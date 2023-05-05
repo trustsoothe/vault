@@ -1,0 +1,59 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "pipeline": {
+    "build": {
+      "cache": false,
+      "dependsOn": ["^codegen", "^build"],
+      "inputs": ["src/**"],
+      "outputs": ["dist/**", ".next/**"]
+    },
+    "build:prod": {
+      "dependsOn": ["^codegen", "^build"],
+      "inputs": ["src/**", "lib/**"],
+      "outputs": ["dist/**", ".next/**"]
+    },
+    "test": {
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "cache": true
+    },
+    "lint:fix": {
+      "cache": false
+    },
+    "typecheck": {
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    },
+    "commit": {
+      "dependsOn": ["build", "lint", "typecheck"]
+    },
+    "start": {
+      "dependsOn": ["build"]
+    },
+    "start:docker": {
+      "cache": false
+    },
+    "build:docker": {
+      "cache": false
+    },
+    "sweep:cli:docker": {
+      "cache": false
+    },
+    "codegen": {
+      "cache": false,
+      "inputs": ["operations/**", "schema/**"],
+      "outputs": ["src/generated/**"]
+    },
+    "release": {
+      "cache": false
+    }
+  },
+  "globalEnv": ["CI_ENV"]
+}

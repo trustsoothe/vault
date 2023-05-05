@@ -1,0 +1,41 @@
+{
+  "name": "Keyring",
+  "version": "0.0.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pokt-scan/keyring.git"
+  },
+  "workspaces": [
+    "apps/nodejs/*",
+    "packages/nodejs/*"
+  ],
+  "scripts": {
+    "clean": "turbo run clean --parallel --concurrency=100% && rm -rf out && rm -rf .turbo && rm -rf node_modules",
+    "format": "prettier --loglevel error --write \"**/*.{js,ts,jsx,tsx}\"",
+    "format:ci": "prettier --loglevel warn --check \"**/*.{js,ts,jsx,tsx}\"",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint --concurrency=100%",
+    "lint:fix": "turbo run lintfix --concurrency=100%",
+    "build": "turbo run build --concurrency=100%",
+    "build:ci": "./build-ci.sh",
+    "test": "turbo run test",
+    "commit": "turbo run commit",
+    "sweeps": "node apps/sweeps/dist/cli.js"
+  },
+  "dependencies": {
+    "@changesets/cli": "2.26.0",
+    "dotenv": "16.0.0",
+    "eslint": "8.36.0",
+    "turbo": "1.4.3"
+  },
+  "engines": {
+    "npm": ">=7.0.0",
+    "node": ">=16.0.0"
+  },
+  "packageManager": "yarn@1.22.19",
+  "resolutions": {
+    "prettier": "2.7.1"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@poktscan/tsconfig",
+  "version": "0.0.1",
+  "license": "UNLICENSED",
+  "private": true,
+  "files": [
+    "tsconfig.base.json",
+    "tsconfig.node16.json",
+    "esbuild.base.js"
+  ],
+  "devDependencies": {
+    "eslint": "8.1.0",
+    "esbuild": "0.17.8",
+    "esbuild-node-externals": "1.6.0",
+    "esbuild-register": "3.4.2",
+    "typescript": "4.8.2",
+    "get-monorepo-packages": "1.2.0"
+  }
+}
