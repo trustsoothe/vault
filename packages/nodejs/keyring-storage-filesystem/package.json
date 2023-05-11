@@ -1,10 +1,9 @@
 {
-  "name": "@poktscan/keyring",
+  "name": "@poktscan/keyring-storage-filesystem",
   "version": "0.0.0",
-  "description": "Universal Crypto Wallet Manager",
+  "description": "Filesystem based storage plugin for the Universal Crypto Wallet Manager",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "repository": "git@github.com/pokt-scan/keyring.git",
+  "repository": "git@github.com:pokt-scan/keyring.git",
   "author": "Julio Henriquez <julio@poktscan.com>",
   "license": "UNLICENSED",
   "private": true,
@@ -13,13 +12,9 @@
     "typecheck": "tsc src/index.ts --noEmit",
     "lint": "eslint .",
     "lint:fix": "yarn lint --fix",
-    "build": "node esbuild.js && tsc -p tsconfig.json"
-  },
-  "devDependencies": {
-    "@types/uuid": "^9.0.1",
-    "vitest": "0.31.0"
+    "build": "node esbuild.js"
   },
   "dependencies": {
-    "uuid": "^9.0.0"
+    "@poktscan/keyring": "*"
   }
 }

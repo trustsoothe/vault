@@ -8,6 +8,7 @@
     "module": "commonjs",
     "target": "es2021",
     "strict": false,
+    "declaration": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

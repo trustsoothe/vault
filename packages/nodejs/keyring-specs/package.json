@@ -1,0 +1,25 @@
+{
+  "name": "@poktscan/keyring-specs",
+  "version": "0.0.0",
+  "description": "Automated Specs for the Universal Crypto Wallet Manager",
+  "repository": "git@github.com:pokt-scan/keyring.git",
+  "author": "Julio Henriquez <julio@poktscan.com>",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "test": "vitest",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
+    "typecheck": "tsc -p ./tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "yarn lint --fix"
+  },
+  "dependencies": {
+    "@poktscan/keyring": "*",
+    "@poktscan/keyring-encryption-sjcl": "*",
+    "@poktscan/keyring-storage-filesystem": "*"
+  },
+  "devDependencies": {
+    "sinon": "^15.0.4",
+    "vitest": "0.31.0"
+  }
+}
