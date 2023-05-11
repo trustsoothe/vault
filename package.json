@@ -25,7 +25,7 @@
     "sweeps": "node apps/sweeps/dist/cli.js"
   },
   "dependencies": {
-    "@changesets/cli": "2.26.0",
+    "@changesets/cli": "^2.26.1",
     "dotenv": "16.0.0",
     "eslint": "8.36.0",
     "turbo": "1.4.3"
