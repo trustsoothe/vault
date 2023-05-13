@@ -3,6 +3,8 @@ import IVaultStore from "./core/common/storage/IVaultStorage";
 import ISessionStore from "./core/common/storage/ISessionStorage";
 import IEncryptionService from "./core/common/encryption/IEncryptionService";
 import {Vault} from "./core/vault";
+import {Session} from "./core/session";
+import {PermissionsBuilder} from "./core/common/permissions";
 
 export class KeyManager {
   private _isUnlocked = false
@@ -13,28 +15,30 @@ export class KeyManager {
               private readonly encryptionService: IEncryptionService) {
   }
 
-  async unlockVault(passphrase: string): Promise<void> {
+  async unlockVault(passphrase: string): Promise<Session> {
     const passphraseValue = new Passphrase(passphrase)
-    const encryptedVault = await this.vaultStore.get()
+    const serializedEncryptedVault = await this.vaultStore.get()
+    const encryptedVault = EncryptedVault.deserialize(serializedEncryptedVault)
 
     if (!encryptedVault) {
       throw new Error('Vault could not be restored from store. Has it been initialized?')
     }
 
-    let vaultJson: string
+    const vault = await this.decryptVault(passphraseValue, encryptedVault)
 
-    try {
-      vaultJson = await this.encryptionService.decrypt(passphraseValue, encryptedVault.contents)
-    } catch (error) {
-      throw new Error('Unable to restore vault. Is passphrase incorrect?')
-    }
+    const permissions =
+      new PermissionsBuilder()
+        .forResource('account')
+          .allowEverything()
+          .onAny()
+        .build();
 
-    try {
-      this._vault = Vault.fromSerialized(JSON.parse(vaultJson))
-      this._isUnlocked = true
-    } catch (error) {
-      throw new Error('Unable to deserialize vault. Has it been tempered with?')
-    }
+    const session = new Session(permissions)
+    await this.sessionStore.save(session.serialize())
+
+    this._vault = vault
+    this._isUnlocked = true
+    return session
   }
 
   lockVault(): void {
@@ -63,5 +67,21 @@ export class KeyManager {
     const vaultJson = JSON.stringify(vault.serialize())
     const encryptedVaultJson = await this.encryptionService.encrypt(passphrase, vaultJson)
     return new EncryptedVault(encryptedVaultJson, vault.createdAt, vault.updatedAt);
+  }
+
+  private async decryptVault(passphrase: Passphrase, encryptedVault: EncryptedVault): Promise<Vault> {
+    let vaultJson: string
+
+    try {
+      vaultJson = await this.encryptionService.decrypt(passphrase, encryptedVault.contents)
+    } catch (error) {
+      throw new Error('Unable to restore vault. Is passphrase incorrect?')
+    }
+
+    try {
+      return Vault.deserialize(JSON.parse(vaultJson))
+    } catch (error) {
+      throw new Error('Unable to deserialize vault. Has it been tempered with?')
+    }
   }
 }

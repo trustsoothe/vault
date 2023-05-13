@@ -11,7 +11,7 @@ export interface SerializedVault {
 export class Vault {
   private readonly _id: string
   private readonly _createdAt: number
-  private readonly _updatedAt: number
+  private _updatedAt: number
   private readonly _accounts: Account[]
 
   constructor(id?: string, accounts?: Account[], originalCreationDate?: number,  lastUpdatedAt?: number) {
@@ -27,11 +27,6 @@ export class Vault {
     this._createdAt = originalCreationDate || Date.now()
     this._updatedAt = lastUpdatedAt || Date.now()
     this._accounts = accounts || []
-  }
-
-  static fromSerialized(serializedVault: SerializedVault): Vault {
-    const accounts = serializedVault.accounts.map(Account.fromSerialized)
-    return new Vault(serializedVault.id, accounts, serializedVault.createdAt, serializedVault.updatedAt)
   }
 
   get id(): string {
@@ -57,5 +52,10 @@ export class Vault {
       updatedAt: this._updatedAt,
       accounts: this._accounts.map((account) => account.serialize())
     }
+  }
+
+  static deserialize(serializedVault: SerializedVault): Vault {
+    const accounts = serializedVault.accounts.map(Account.deserialize)
+    return new Vault(serializedVault.id, accounts, serializedVault.createdAt, serializedVault.updatedAt)
   }
 }

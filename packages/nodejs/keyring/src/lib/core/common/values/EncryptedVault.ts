@@ -33,7 +33,11 @@ export class EncryptedVault {
     }
   }
 
-  static fromSerialized(serializedEncryptedVault: SerializedEncryptedVault): EncryptedVault {
+  static deserialize(serializedEncryptedVault: SerializedEncryptedVault): EncryptedVault | null {
+    if (!serializedEncryptedVault) {
+      return null
+    }
+
     return new EncryptedVault(serializedEncryptedVault.contents, serializedEncryptedVault.createdAt, serializedEncryptedVault.updatedAt)
   }
 }

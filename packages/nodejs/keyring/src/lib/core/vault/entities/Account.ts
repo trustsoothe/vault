@@ -1,5 +1,6 @@
 import {SupportedProtocols} from "../../common/values";
 import {v4, validate} from "uuid";
+import {AccountReference} from "../../common/values/AccountReference";
 
 export interface SerializedAccount {
   id: string
@@ -17,8 +18,8 @@ export class Account {
   private readonly _privateKey: string
   private readonly _address: string
   private readonly _protocol: SupportedProtocols
-  private readonly _createdAt: number
-  private readonly _updatedAt: number
+  private _createdAt: number
+  private _updatedAt: number
 
   constructor(publicKey: string, privateKey: string, address: string, protocol: SupportedProtocols, id?: string, createdAt?: number, updatedAt?: number) {
     if (id && validate(id) === false) {
@@ -46,12 +47,20 @@ export class Account {
     this._privateKey = privateKey
     this._address = address
     this._protocol = protocol
-    this._createdAt = createdAt || Date.now()
-    this._updatedAt = updatedAt || Date.now()
+    this._createdAt = Date.now()
+    this._updatedAt = Date.now()
   }
 
-  static fromSerialized(serializedAccount: SerializedAccount): Account {
-    return new Account(serializedAccount.publicKey, serializedAccount.privateKey, serializedAccount.address, serializedAccount.protocol, serializedAccount.id, serializedAccount.createdAt, serializedAccount.updatedAt)
+  static deserialize(serializedAccount: SerializedAccount): Account {
+    return new Account(
+      serializedAccount.publicKey,
+      serializedAccount.privateKey,
+      serializedAccount.address,
+      serializedAccount.protocol,
+      serializedAccount.id,
+      serializedAccount.createdAt,
+      serializedAccount.updatedAt
+    )
   }
 
   get id(): string {
@@ -92,5 +101,9 @@ export class Account {
       createdAt: this._createdAt,
       updatedAt: this._updatedAt
     }
+  }
+
+  asAccountReference(): AccountReference {
+    return new AccountReference(this._address, this._protocol)
   }
 }

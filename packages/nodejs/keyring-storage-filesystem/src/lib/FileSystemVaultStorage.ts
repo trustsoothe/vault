@@ -8,8 +8,10 @@ export class FileSystemVaultStorage implements IVaultStore {
             if (fs.existsSync(this.vaultFilePath)) {
                 const vaultJson = await fs.promises.readFile(this.vaultFilePath, 'utf8')
                 if (vaultJson) {
-                    const vault: SerializedEncryptedVault = JSON.parse(vaultJson)
-                    return EncryptedVault.fromSerialized(vault)
+                    /*
+                       TODO: Validate the vaultJson is a valid EncryptedVault
+                     */
+                    return JSON.parse(vaultJson)
                 }
             }
         } catch (error) {
