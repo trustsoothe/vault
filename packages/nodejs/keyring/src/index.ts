@@ -1,4 +1,4 @@
-export * from "./lib/KeyManager"
+export * from "./lib/VaultTeller"
 export * from "./lib/core/common/values"
 export * from "./lib/core/vault"
 export * from "./lib/core/session"

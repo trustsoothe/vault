@@ -6,7 +6,7 @@ import {Vault} from "./core/vault";
 import {Session} from "./core/session";
 import {PermissionsBuilder} from "./core/common/permissions";
 
-export class KeyManager {
+export class VaultTeller {
   private _isUnlocked = false
   private _vault: Vault | null = null
 
