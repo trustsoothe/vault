@@ -1,5 +1,6 @@
 import {v4, validate} from 'uuid'
 import {Account, SerializedAccount} from "./entities/Account"
+export * from './entities/Account'
 
 export interface SerializedVault {
   id: string

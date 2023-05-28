@@ -16,10 +16,10 @@
     "build": "node esbuild.js && tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@types/uuid": "^9.0.1",
+    "@types/uuid": "9.0.1",
     "vitest": "0.31.0"
   },
   "dependencies": {
-    "uuid": "^9.0.0"
+    "uuid": "9.0.0"
   }
 }

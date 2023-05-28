@@ -1,10 +1,11 @@
-import { Passphrase, EncryptedVault } from "./core/common/values";
+import { Passphrase, EncryptedVault, ExternalAccessRequest } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
 import ISessionStore from "./core/common/storage/ISessionStorage";
 import IEncryptionService from "./core/common/encryption/IEncryptionService";
 import {Vault} from "./core/vault";
-import {Session} from "./core/session";
+import {Session, SessionOptions} from "./core/session";
 import {PermissionsBuilder} from "./core/common/permissions";
+
 
 export class VaultTeller {
   private _isUnlocked = false
@@ -31,9 +32,15 @@ export class VaultTeller {
         .forResource('account')
           .allowEverything()
           .onAny()
+        .forResource('transaction')
+          .allowEverything()
+          .onAny()
+        .forResource('session')
+          .allowEverything()
+          .onAny()
         .build();
 
-    const session = new Session(permissions)
+    const session = new Session({ permissions })
     await this.sessionStore.save(session.serialize())
 
     this._vault = vault
@@ -57,6 +64,36 @@ export class VaultTeller {
     const newVault = new Vault();
     const encryptedVault = await this.encryptVault(passphraseValue, newVault)
     await this.vaultStore.save(encryptedVault.serialize())
+  }
+
+  async isSessionValid(sessionId: string): Promise<boolean> {
+    const session = await this.getSession(sessionId)
+    if (session) {
+      return session.isValid()
+    }
+    return false;
+  }
+
+  async authorizeExternal(request: ExternalAccessRequest): Promise<Session> {
+    if (!request || !(request instanceof ExternalAccessRequest)) {
+      throw new Error('ExternalAccessRequest object is required')
+    }
+
+    if (!this.isUnlocked) {
+      throw new Error('Vault must be unlocked to authorize external access')
+    }
+
+    // Concat will create a new array with the same elements as the original array (which is readonly).
+    const sessionOptions: SessionOptions = {
+      permissions: request.permissions.concat(),
+      maxAge: request.maxAge,
+      accounts: request.accounts.concat(),
+      origin: request.origin || null,
+    }
+
+    const session = new Session(sessionOptions)
+    await this.sessionStore.save(session.serialize())
+    return session
   }
 
   get isUnlocked(): boolean {
@@ -83,5 +120,13 @@ export class VaultTeller {
     } catch (error) {
       throw new Error('Unable to deserialize vault. Has it been tempered with?')
     }
+  }
+
+  private async getSession(sessionId: string): Promise<Session | null> {
+    const serializedSession = await this.sessionStore.getById(sessionId)
+    if (serializedSession) {
+      return Session.deserialize(serializedSession)
+    }
+    return null
   }
 }

@@ -104,6 +104,6 @@ export class Account {
   }
 
   asAccountReference(): AccountReference {
-    return new AccountReference(this._address, this._protocol)
+    return new AccountReference(this._id, this._address, this._protocol)
   }
 }

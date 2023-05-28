@@ -1,21 +1,23 @@
 
 export enum PermissionResources {
   account = 'account',
+  transaction = 'transaction',
+  session = 'session',
 }
 
 export type ResourceConfig = {
-  [key in keyof typeof PermissionResources]: string[];
+  [key in keyof typeof PermissionResources]: string[]
 };
 
 export type Permission = {
-  resource: keyof typeof PermissionResources;
-  action: string;
-  identities: string[];
+  resource: keyof typeof PermissionResources
+  action: string
+  identities: string[]
 };
 
 export type Resource = {
-  name: keyof typeof PermissionResources;
-  permissions: Permission[];
+  name: keyof typeof PermissionResources
+  permissions: Permission[]
 }
 
 class ResourcePermissionBuilder {
@@ -75,7 +77,9 @@ class ResourcePermissionBuilder {
 export class PermissionsBuilder {
   private readonly resources: Resource[] = [];
   private readonly resourceConfig: ResourceConfig = {
-    account: ['create', 'read', 'update', 'delete']
+    account: ['create', 'read', 'update', 'delete'],
+    transaction: ['sign'],
+    session: ['list', 'revoke'],
   }
   constructor() {}
 

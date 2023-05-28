@@ -11,15 +11,18 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
     "typecheck": "tsc -p ./tsconfig.json --noEmit",
     "lint": "eslint .",
-    "lint:fix": "yarn lint --fix"
+    "lint:fix": "yarn lint --fix",
+    "build": "yarn typecheck"
   },
   "dependencies": {
     "@poktscan/keyring": "*",
     "@poktscan/keyring-encryption-sjcl": "*",
-    "@poktscan/keyring-storage-filesystem": "*"
+    "@poktscan/keyring-storage-filesystem": "*",
+    "uuid": "9.0.0"
   },
   "devDependencies": {
-    "sinon": "^15.0.4",
+    "@types/uuid": "9.0.1",
+    "sinon": "15.0.4",
     "vitest": "0.31.0"
   }
 }
