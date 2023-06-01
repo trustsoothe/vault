@@ -2,8 +2,9 @@ import {v4, validate} from "uuid";
 import {Permission} from "../common/permissions";
 import {AccountReference, SerializedAccountReference} from "../common/values/AccountReference";
 import {OriginReference} from "../common/values";
+import IEntity from "../common/IEntity";
 
-export interface SerializedSession {
+export interface SerializedSession extends IEntity {
   id: string
   permissions: Permission[]
   maxAge: number
@@ -19,7 +20,7 @@ export interface SessionOptions {
   origin?: OriginReference
 }
 
-export class Session {
+export class Session implements IEntity {
   private readonly _id: string
   private readonly _permissions: Permission[]
   private readonly _maxAge: number

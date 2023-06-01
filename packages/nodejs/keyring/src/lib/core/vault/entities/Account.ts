@@ -1,8 +1,9 @@
 import {SupportedProtocols} from "../../common/values";
 import {v4, validate} from "uuid";
 import {AccountReference} from "../../common/values/AccountReference";
+import IEntity from "../../common/IEntity";
 
-export interface SerializedAccount {
+export interface SerializedAccount extends IEntity {
   id: string
   publicKey: string
   privateKey: string
@@ -12,7 +13,7 @@ export interface SerializedAccount {
   updatedAt: number
 }
 
-export class Account {
+export class Account implements IEntity {
   private readonly _id: string
   private readonly _publicKey: string
   private readonly _privateKey: string

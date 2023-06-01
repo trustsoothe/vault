@@ -1,15 +1,16 @@
 import {v4, validate} from 'uuid'
 import {Account, SerializedAccount} from "./entities/Account"
+import IEntity from "../common/IEntity";
 export * from './entities/Account'
 
-export interface SerializedVault {
+export interface SerializedVault extends IEntity {
   id: string
   createdAt: number
   updatedAt: number
   accounts: SerializedAccount[]
 }
 
-export class Vault {
+export class Vault implements IEntity {
   private readonly _id: string
   private readonly _createdAt: number
   private _updatedAt: number
