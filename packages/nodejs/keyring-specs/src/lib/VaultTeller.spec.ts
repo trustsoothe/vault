@@ -1,15 +1,18 @@
 import {
   Account,
+  AccountOptions,
+  Asset,
   ExternalAccessRequest,
   IEncryptionService,
   ISessionStore,
   IVaultStore,
+  Network,
+  OriginReference,
   Permission,
   PermissionsBuilder,
   Session,
   SupportedProtocols,
-  OriginReference,
-  VaultTeller
+  VaultTeller,
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
 import {FileSystemSessionStorage, FileSystemVaultStorage} from '@poktscan/keyring-storage-filesystem'
@@ -138,17 +141,37 @@ describe('VaultTeller', () => {
 
   describe('authorizeExternal', () => {
     const exampleOriginReference: OriginReference = new OriginReference('https://example.com')
+    let exampleNetwork: Network
+    let exampleAsset: Asset
     let exampleAccount: Account
     let exampleExternalPermissions: Permission[]
     let exampleExternalAccessRequest: ExternalAccessRequest
 
     beforeEach(() => {
+      exampleNetwork = new Network({
+        name: 'Example Network',
+        rpcUrl: 'https://example.com',
+        protocol: SupportedProtocols.POCKET_NETWORK,
+        chainId: '1'
+      })
+
+      exampleAsset = new Asset({
+        name: 'Example Asset',
+        network: exampleNetwork,
+        symbol: 'EXA'
+      })
+
+
+      const options: AccountOptions = {
+        publicKey: '1234',
+        privateKey: '1234',
+        address: 'derived-address',
+        asset: exampleAsset
+      }
+
       exampleAccount =
         new Account(
-          '123',
-          '1234',
-          '1234',
-          SupportedProtocols.POCKET_NETWORK,
+          options,
           v4()
         )
 
