@@ -96,6 +96,17 @@ export class VaultTeller {
     return session
   }
 
+  async listSessions(sessionId: string): Promise<ReadonlyArray<Session>> {
+    await this.validateSessionForPermissions(sessionId, 'list')
+    const serializedSessions = await this.sessionStore.list()
+    return serializedSessions.map(Session.deserialize)
+  }
+
+  async revokeSession(sessionId: string, revokeSessionId: string): Promise<void> {
+    await this.validateSessionForPermissions(sessionId, 'revoke')
+    await this.sessionStore.remove(revokeSessionId)
+  }
+
   get isUnlocked(): boolean {
     return this._isUnlocked && this._vault !== null
   }
@@ -128,5 +139,31 @@ export class VaultTeller {
       return Session.deserialize(serializedSession)
     }
     return null
+  }
+
+  private async validateSessionForPermissions(sessionId: string, action: string, ids: string[] = ['*']): Promise<void> {
+    if (!this.isUnlocked) {
+      throw new Error('Invalid Operation: Vault is locked')
+    }
+
+    if (!sessionId) {
+      throw new Error('Unauthorized: Session id is required')
+    }
+
+    const session = await this.getSession(sessionId)
+
+    if (!session) {
+      throw new Error('Unauthorized: Session id not found')
+    }
+
+    if (!session.isValid()) {
+      throw new Error('Unauthorized: Session is invalid')
+    }
+
+    const isAllowed = session.isAllowed('session', action, ids)
+
+    if (!isAllowed) {
+      throw new Error('Unauthorized: Session is not allowed to perform this operation')
+    }
   }
 }

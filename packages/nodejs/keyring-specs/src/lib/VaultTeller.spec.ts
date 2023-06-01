@@ -24,14 +24,58 @@ describe('VaultTeller', () => {
   let vaultStore: IVaultStore = null
   let sessionStore: ISessionStore = null
   let encryptionService: IEncryptionService = null
-
-  beforeAll(() => {
-    sessionStore = new FileSystemSessionStorage('/tmp/key-manager-test-sessions.json');
-  })
+  const exampleOriginReference: OriginReference = new OriginReference('https://example.com')
+  let exampleNetwork: Network
+  let exampleAsset: Asset
+  let exampleAccount: Account
+  let exampleExternalPermissions: Permission[]
+  let exampleExternalAccessRequest: ExternalAccessRequest
 
   beforeEach(() => {
     vaultStore = null
     encryptionService = new SJCLEncryptionService()
+
+    exampleNetwork = new Network({
+      name: 'Example Network',
+      rpcUrl: 'https://example.com',
+      protocol: SupportedProtocols.POCKET_NETWORK,
+      chainId: '1'
+    })
+
+    exampleAsset = new Asset({
+      name: 'Example Asset',
+      network: exampleNetwork,
+      symbol: 'EXA'
+    })
+
+
+    const options: AccountOptions = {
+      publicKey: '1234',
+      privateKey: '1234',
+      address: 'derived-address',
+      asset: exampleAsset
+    }
+
+    exampleAccount =
+      new Account(
+        options,
+        v4()
+      )
+
+    exampleExternalPermissions =
+      new PermissionsBuilder().forResource('account').allow('read').on(exampleAccount.id).build()
+
+    exampleExternalAccessRequest =
+      new ExternalAccessRequest(
+        exampleExternalPermissions,
+        6000,
+        exampleOriginReference,
+        [exampleAccount.asAccountReference()]
+      )
+  })
+
+  beforeAll(() => {
+    sessionStore = new FileSystemSessionStorage('/tmp/key-manager-test-sessions.json');
   })
 
   afterEach(async () => {
@@ -140,53 +184,6 @@ describe('VaultTeller', () => {
   })
 
   describe('authorizeExternal', () => {
-    const exampleOriginReference: OriginReference = new OriginReference('https://example.com')
-    let exampleNetwork: Network
-    let exampleAsset: Asset
-    let exampleAccount: Account
-    let exampleExternalPermissions: Permission[]
-    let exampleExternalAccessRequest: ExternalAccessRequest
-
-    beforeEach(() => {
-      exampleNetwork = new Network({
-        name: 'Example Network',
-        rpcUrl: 'https://example.com',
-        protocol: SupportedProtocols.POCKET_NETWORK,
-        chainId: '1'
-      })
-
-      exampleAsset = new Asset({
-        name: 'Example Asset',
-        network: exampleNetwork,
-        symbol: 'EXA'
-      })
-
-
-      const options: AccountOptions = {
-        publicKey: '1234',
-        privateKey: '1234',
-        address: 'derived-address',
-        asset: exampleAsset
-      }
-
-      exampleAccount =
-        new Account(
-          options,
-          v4()
-        )
-
-      exampleExternalPermissions =
-       new PermissionsBuilder().forResource('account').allow('read').on(exampleAccount.id).build()
-
-      exampleExternalAccessRequest =
-        new ExternalAccessRequest(
-          exampleExternalPermissions,
-          6000,
-          exampleOriginReference,
-          [exampleAccount.asAccountReference()]
-        )
-    })
-
     test('throws an error if the vault is not unlocked', async () => {
       vaultStore = new FileSystemVaultStorage(`/tmp/.test-external-access-vault-${Date.now()}.json`);
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
@@ -327,6 +324,126 @@ describe('VaultTeller', () => {
       const session = await vaultTeller.unlockVault('passphrase')
       const isSessionValid = await vaultTeller.isSessionValid(session.id)
       expect(isSessionValid).toBe(true)
+    })
+  })
+
+  describe('listSessions', () => {
+    test('throws "Invalid Operation" error if the vault is locked', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-locked-${Date.now()}.json`)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      const listSessionsOperation = vaultTeller.listSessions(null)
+      await expect(listSessionsOperation).rejects.toThrow('Invalid Operation: Vault is locked')
+    });
+
+    test('throws "Unauthorized" error if the session id is not provided', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-unauthorized-${Date.now()}.json`)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const listSessionsOperation = vaultTeller.listSessions(null)
+      await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session id is required')
+    })
+
+    test('throws "Unauthorized" error if the session id is not found in the session store', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-unauthorized-not-found-${Date.now()}.json`)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const listSessionsOperation = vaultTeller.listSessions('not-found')
+      await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session id not found')
+    })
+
+    test('throws "Unauthorized" error if the session id is found in the session store but is invalid', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-unauthorized-invalid-${Date.now()}.json`)
+      const clock = sinon.useFakeTimers();
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      const session = await vaultTeller.unlockVault('passphrase')
+      clock.tick(3600 * 1000)
+      const listSessionsOperation = vaultTeller.listSessions(session.id)
+      await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session is invalid')
+      clock.restore()
+    })
+
+    test('throws "Unauthorized" error if the session id is found in the session store but "session:list" is not allowed', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-unauthorized-not-allowed-${Date.now()}.json`)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const session = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
+      const listSessionsOperation = vaultTeller.listSessions(session.id)
+      await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session is not allowed to perform this operation')
+    })
+
+    test('returns a list of sessions if the session id is found in the session store and is valid', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-valid-${Date.now()}.json`)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      const session = await vaultTeller.unlockVault('passphrase')
+      const listSessions = await vaultTeller.listSessions(session.id)
+      expect(listSessions).toEqual([session])
+    })
+  })
+
+  describe('revokeSession', () => {
+    test('throws "Invalid Operation" error if the vault is locked', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-locked-${Date.now()}.json`)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      const listSessionsOperation = vaultTeller.revokeSession(null, null)
+      await expect(listSessionsOperation).rejects.toThrow('Invalid Operation: Vault is locked')
+    });
+
+    test('throws "Unauthorized" error if the session id is not provided', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-unauthorized-${Date.now()}.json`)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const listSessionsOperation = vaultTeller.revokeSession(null, null)
+      await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session id is required')
+    })
+
+    test('throws "Unauthorized" error if the session id is not found in the session store', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-unauthorized-not-found-${Date.now()}.json`)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const listSessionsOperation = vaultTeller.revokeSession('not-found', null)
+      await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session id not found')
+    })
+
+    test('throws "Unauthorized" error if the session id is found in the session store but is invalid', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-unauthorized-invalid-${Date.now()}.json`)
+      const clock = sinon.useFakeTimers();
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      const session = await vaultTeller.unlockVault('passphrase')
+      clock.tick(3600 * 1000)
+      const listSessionsOperation = vaultTeller.revokeSession(session.id, null)
+      await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session is invalid')
+      clock.restore()
+    })
+
+    test('throws "Unauthorized" error if the session id is found in the session store but "session:revoke" is not allowed', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-unauthorized-not-allowed-${Date.now()}.json`)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const session = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
+      const listSessionsOperation = vaultTeller.revokeSession(session.id, null)
+      await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session is not allowed to perform this operation')
+    })
+
+    test('successfully revokes the session if the session id is found in the session store and is valid', async () => {
+      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-valid-${Date.now()}.json`)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      const ownerSession = await vaultTeller.unlockVault('passphrase')
+      const externalSession = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
+      const sessionsBeforeRevoke = await vaultTeller.listSessions(ownerSession.id)
+      expect(sessionsBeforeRevoke).toEqual([ownerSession, externalSession])
+      const revokeSession = await vaultTeller.revokeSession(ownerSession.id, externalSession.id)
+      const sessionsAfterRevoke = await vaultTeller.listSessions(ownerSession.id)
+      expect(sessionsAfterRevoke).toEqual([ownerSession])
     })
   })
 })

@@ -88,6 +88,14 @@ export class Session implements IEntity {
     }
   }
 
+  isAllowed(resource: string, action: string, ids: string[] = ['*']): boolean {
+    return this.permissions.some((permission) =>
+      permission.resource === resource &&
+      permission.action === action &&
+        (permission.identities.includes('*') || ids.every((id) => permission.identities.includes(id)))
+    )
+  }
+
   static deserialize(serializedSession: SerializedSession): Session {
     const options: SessionOptions = {
       permissions: serializedSession.permissions,
