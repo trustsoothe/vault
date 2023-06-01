@@ -9,6 +9,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
+    "test": "vitest",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
     "typecheck": "tsc src/index.ts --noEmit",
     "lint": "eslint .",
