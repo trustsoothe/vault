@@ -1,7 +1,7 @@
 {
-  "name": "@poktscan/keyring-encryption-sjcl",
+  "name": "@poktscan/keyring-encryption-web",
   "version": "0.0.0",
-  "description": "SJCL based encryption plugin for the Universal Crypto Wallet Manager",
+  "description": "Web Crypto API based encryption plugin for the Universal Crypto Wallet Manager",
   "main": "dist/index.js",
   "repository": "git@github.com:pokt-scan/keyring.git",
   "author": "Julio Henriquez <julio@poktscan.com>",
@@ -15,7 +15,6 @@
     "build": "node esbuild.js"
   },
   "dependencies": {
-    "@poktscan/keyring": "*",
-    "sjcl": "1.0.8"
+    "@poktscan/keyring": "*"
   }
 }

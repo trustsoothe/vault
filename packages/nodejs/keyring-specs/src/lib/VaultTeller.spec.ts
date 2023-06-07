@@ -16,7 +16,7 @@ import {
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
 import {FileSystemSessionStorage, FileSystemVaultStorage} from '@poktscan/keyring-storage-filesystem'
-import {SJCLEncryptionService} from '@poktscan/keyring-encryption-sjcl'
+import {WebEncryptionService} from '@poktscan/keyring-encryption-web'
 import sinon from 'sinon'
 import {v4} from "uuid";
 
@@ -33,7 +33,7 @@ describe('VaultTeller', () => {
 
   beforeEach(() => {
     vaultStore = null
-    encryptionService = new SJCLEncryptionService()
+    encryptionService = new WebEncryptionService()
 
     exampleNetwork = new Network({
       name: 'Example Network',

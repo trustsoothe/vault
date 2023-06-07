@@ -16,12 +16,14 @@
   },
   "dependencies": {
     "@poktscan/keyring": "*",
-    "@poktscan/keyring-encryption-sjcl": "*",
+    "@poktscan/keyring-encryption-web": "*",
     "@poktscan/keyring-storage-filesystem": "*",
     "uuid": "9.0.0"
   },
   "devDependencies": {
+    "@peculiar/webcrypto": "1.4.3",
     "@types/uuid": "9.0.1",
+    "jsdom": "22.1.0",
     "sinon": "15.0.4",
     "vitest": "0.31.0"
   }
