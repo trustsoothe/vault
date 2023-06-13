@@ -17,7 +17,6 @@ const baseConfig = {
   sourcemap: 'inline',
   minify: process.env.NODE_ENV === 'production',
   logLevel: 'info',
-  external: [],
   plugins: [
     nodeExternalsPlugin({
       allowList,

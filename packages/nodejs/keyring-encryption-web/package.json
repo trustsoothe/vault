@@ -12,9 +12,13 @@
     "typecheck": "tsc src/index.ts --noEmit",
     "lint": "eslint .",
     "lint:fix": "yarn lint --fix",
-    "build": "node esbuild.js"
+    "build": "node esbuild.js",
+    "test": "vitest"
   },
   "dependencies": {
     "@poktscan/keyring": "*"
+  },
+  "devDependencies": {
+    "vitest": "0.32.0"
   }
 }

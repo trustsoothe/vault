@@ -5,6 +5,7 @@ export * from "./lib/core/session"
 export * from "./lib/core/network"
 export * from "./lib/core/asset"
 export * from "./lib/core/common/permissions"
+import EncryptionServiceSpecFactory from './lib/core/common/encryption/IEncryptionService.specFactory'
 
 import type IEncryptionService from "./lib/core/common/encryption/IEncryptionService"
 import type ISessionStore from "./lib/core/common/storage/ISessionStorage"
@@ -22,4 +23,8 @@ export type {
   IAssetStorage,
   IStorage,
   IEntity
+}
+
+export {
+  EncryptionServiceSpecFactory
 }

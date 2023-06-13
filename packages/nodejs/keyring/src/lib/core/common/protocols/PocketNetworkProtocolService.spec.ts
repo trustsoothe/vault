@@ -1,5 +1,5 @@
-import {describe, test, expect, beforeAll} from "vitest";
-import protocolServiceSpecFactory from './IProtocolService.specFactory';
+import {describe} from "vitest";
+import ProtocolServiceSpecFactory from './IProtocolService.specFactory';
 import {PocketNetworkProtocolService} from "./PocketNetworkProtocolService";
 import {Asset} from "../../asset";
 import {Network} from "../../network";
@@ -19,5 +19,5 @@ describe('PocketNetworkProtocolService', () => {
     symbol: 'POKT'
   })
 
-  protocolServiceSpecFactory<PocketNetworkProtocolService>(PocketNetworkProtocolService, pokt)
+  ProtocolServiceSpecFactory<PocketNetworkProtocolService>(PocketNetworkProtocolService, pokt)
 })

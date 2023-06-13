@@ -18,9 +18,12 @@
   },
   "devDependencies": {
     "@types/uuid": "9.0.1",
-    "vitest": "0.31.0"
+    "vitest": "0.32.0"
   },
   "dependencies": {
     "uuid": "9.0.0"
+  },
+  "peerDependencies": {
+    "vitest": "0.32.0"
   }
 }
