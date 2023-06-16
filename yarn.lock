@@ -652,6 +652,31 @@
   resolved "https://registry.yarnpkg.com/@types/chai/-/chai-4.3.5.tgz#ae69bcbb1bebb68c4ac0b11e9d8ed04526b3562b"
   integrity sha512-mEo1sAde+UCE6b2hxn332f1g1E8WfYRu6p5SvTKr2ZKC1f7gFJXk4h5PyGP9Dt6gCaG8y8XhwnXWC6Iy2cmBng==
 
+"@types/chrome@^0.0.237":
+  version "0.0.237"
+  resolved "https://registry.yarnpkg.com/@types/chrome/-/chrome-0.0.237.tgz#20a38e1d1134e2725fc7eb43c881e55e1b24ddd7"
+  integrity sha512-krsRmyfMlck5r+H1EapsrrucDRq6iRm0NAi5fapr93CgnpVMDdK+h2+z4x79GegdW7BNH9Vb//gkptORwwwVIQ==
+  dependencies:
+    "@types/filesystem" "*"
+    "@types/har-format" "*"
+
+"@types/filesystem@*":
+  version "0.0.32"
+  resolved "https://registry.yarnpkg.com/@types/filesystem/-/filesystem-0.0.32.tgz#307df7cc084a2293c3c1a31151b178063e0a8edf"
+  integrity sha512-Yuf4jR5YYMR2DVgwuCiP11s0xuVRyPKmz8vo6HBY3CGdeMj8af93CFZX+T82+VD1+UqHOxTq31lO7MI7lepBtQ==
+  dependencies:
+    "@types/filewriter" "*"
+
+"@types/filewriter@*":
+  version "0.0.29"
+  resolved "https://registry.yarnpkg.com/@types/filewriter/-/filewriter-0.0.29.tgz#a48795ecadf957f6c0d10e0c34af86c098fa5bee"
+  integrity sha512-BsPXH/irW0ht0Ji6iw/jJaK8Lj3FJemon2gvEqHKpCdDCeemHa+rI3WBGq5z7cDMZgoLjY40oninGxqk+8NzNQ==
+
+"@types/har-format@*":
+  version "1.2.11"
+  resolved "https://registry.yarnpkg.com/@types/har-format/-/har-format-1.2.11.tgz#26aff34e9c782b2648cc45778abadcd930f7db43"
+  integrity sha512-T232/TneofqK30AD1LRrrf8KnjLvzrjWDp7eWST5KoiSzrBfRsLrWDPk4STQPW4NZG6v2MltnduBVmakbZOBIQ==
+
 "@types/is-ci@^3.0.0":
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/@types/is-ci/-/is-ci-3.0.0.tgz#7e8910af6857601315592436f030aaa3ed9783c3"
@@ -688,6 +713,11 @@
   version "9.0.1"
   resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-9.0.1.tgz#98586dc36aee8dacc98cc396dbca8d0429647aa6"
   integrity sha512-rFT3ak0/2trgvp4yYZo5iKFEPsET7vKydKF+VRCxlQ9bpheehyAJH89dAkaLEq/j/RZXJIqcgsmPJKUP1Z28HA==
+
+"@types/webextension-polyfill@^0.10.0":
+  version "0.10.0"
+  resolved "https://registry.yarnpkg.com/@types/webextension-polyfill/-/webextension-polyfill-0.10.0.tgz#e87b5e2c101599779a584cdb043887ad73b37b0e"
+  integrity sha512-If4EcaHzYTqcbNMp/FdReVdRmLL/Te42ivnJII551bYjhX19bWem5m14FERCqdJA732OloGuxCRvLBvcMGsn4A==
 
 "@vitest/expect@0.31.0":
   version "0.31.0"
@@ -2811,7 +2841,7 @@ prelude-ls@^1.2.1:
   resolved "https://registry.yarnpkg.com/prelude-ls/-/prelude-ls-1.2.1.tgz#debc6489d7a6e6b0e7611888cec880337d316396"
   integrity sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==
 
-prettier@2.7.1, prettier@^2.7.1:
+prettier@^2.7.1:
   version "2.7.1"
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.7.1.tgz#e235806850d057f97bb08368a4f7d899f7760c64"
   integrity sha512-ujppO+MkdPqoVINuDFDRLClm7D78qbDt0/NR+wp5FqEZOoTNAjPHWj17QRhu7geIHJfcNhRk1XVQmF8Bp3ye+g==
@@ -3090,11 +3120,6 @@ sinon@15.0.4:
     diff "^5.1.0"
     nise "^5.1.4"
     supports-color "^7.2.0"
-
-sjcl@1.0.8:
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/sjcl/-/sjcl-1.0.8.tgz#f2ec8d7dc1f0f21b069b8914a41a8f236b0e252a"
-  integrity sha512-LzIjEQ0S0DpIgnxMEayM1rq9aGwGRG4OnZhCdjx7glTaJtf4zRfpg87ImfjSJjoW9vKpagd82McDOwbRT5kQKQ==
 
 slash@^1.0.0:
   version "1.0.0"
@@ -3659,6 +3684,11 @@ wcwidth@^1.0.1:
   dependencies:
     defaults "^1.0.3"
 
+web-ext-types@^3.2.1:
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/web-ext-types/-/web-ext-types-3.2.1.tgz#3edc0e3c2e8fe121d7d7e4ca0b7ee0c883cea832"
+  integrity sha512-oQZYDU3W8X867h8Jmt3129kRVKklz70db40Y6OzoTTuzOJpF/dB2KULJUf0txVPyUUXuyzV8GmT3nVvRHoG+Ew==
+
 webcrypto-core@^1.7.7:
   version "1.7.7"
   resolved "https://registry.yarnpkg.com/webcrypto-core/-/webcrypto-core-1.7.7.tgz#06f24b3498463e570fed64d7cab149e5437b162c"
@@ -3669,6 +3699,11 @@ webcrypto-core@^1.7.7:
     asn1js "^3.0.1"
     pvtsutils "^1.3.2"
     tslib "^2.4.0"
+
+webextension-polyfill@^0.10.0:
+  version "0.10.0"
+  resolved "https://registry.yarnpkg.com/webextension-polyfill/-/webextension-polyfill-0.10.0.tgz#ccb28101c910ba8cf955f7e6a263e662d744dbb8"
+  integrity sha512-c5s35LgVa5tFaHhrZDnr3FpQpjj1BB+RXhLTYUxGqBVN460HkbM8TBtEqdXWbpTKfzwCcjAZVF7zXCYSKtcp9g==
 
 webidl-conversions@^7.0.0:
   version "7.0.0"
