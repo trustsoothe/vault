@@ -3,6 +3,6 @@ import { GenericExtensionStorage } from "./GenericExtensionStorage";
 
 export class ExtensionNetworkStorage extends GenericExtensionStorage<SerializedNetwork> {
   constructor() {
-    super("network_set");
+    super("networks_set");
   }
 }

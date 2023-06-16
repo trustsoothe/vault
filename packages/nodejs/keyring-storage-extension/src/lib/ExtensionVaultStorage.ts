@@ -6,7 +6,9 @@ import type {
 import * as browser from "webextension-polyfill";
 
 export class ExtensionVaultStorage implements IVaultStore {
-  constructor(private readonly vaultPath: string) {}
+  private readonly vaultPath: string = "vault";
+
+  constructor() {}
 
   async get(): Promise<EncryptedVault | null> {
     try {
