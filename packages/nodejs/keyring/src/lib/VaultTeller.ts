@@ -40,7 +40,7 @@ export class VaultTeller {
           .onAny()
         .build();
 
-    const session = new Session({ permissions })
+    const session = new Session({ permissions, maxAge: 0 })
     await this.sessionStore.save(session.serialize())
 
     this._vault = vault

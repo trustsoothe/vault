@@ -15,15 +15,21 @@ import {
   VaultTeller,
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
-import {FileSystemSessionStorage, FileSystemVaultStorage} from '@poktscan/keyring-storage-filesystem'
-import {WebEncryptionService} from '@poktscan/keyring-encryption-web'
 import sinon from 'sinon'
 import {v4} from "uuid";
 
-describe('VaultTeller', () => {
-  let vaultStore: IVaultStore = null
-  let sessionStore: ISessionStore = null
-  let encryptionService: IEncryptionService = null
+export default <
+  TEncryptionService extends IEncryptionService,
+  TSessionStore extends ISessionStore,
+  TVaultStore extends IVaultStore>(
+    TVaultStoreCreator: {  new (): TVaultStore } | (() => TVaultStore),
+    TSessionStoreCreator: {  new (): TSessionStore } | (() => TSessionStore),
+    TEncryptionServiceCreator: {  new (): TEncryptionService } | (() => TEncryptionService)
+  ) => {
+
+  let vaultStore: TVaultStore = null
+  let sessionStore: TSessionStore = null
+  let encryptionService: TEncryptionService = null
   const exampleOriginReference: OriginReference = new OriginReference('https://example.com')
   let exampleNetwork: Network
   let exampleAsset: Asset
@@ -31,9 +37,27 @@ describe('VaultTeller', () => {
   let exampleExternalPermissions: Permission[]
   let exampleExternalAccessRequest: ExternalAccessRequest
 
+  function isConstructor<T>(creator: {  new (): T } | (() => T)) {
+    return !!creator && !!creator.prototype && !!creator.prototype.constructor
+  }
+
+  function createVaultStore() : TVaultStore {
+    return isConstructor<TVaultStore>(TVaultStoreCreator)
+      // @ts-ignore
+      ? new TVaultStoreCreator()
+      // @ts-ignore
+      : TVaultStoreCreator()
+  }
+
   beforeEach(() => {
     vaultStore = null
-    encryptionService = new WebEncryptionService()
+
+    encryptionService =
+        isConstructor<TEncryptionService>(TEncryptionServiceCreator)
+            // @ts-ignore
+          ? new TEncryptionServiceCreator()
+            // @ts-ignore
+          : TEncryptionServiceCreator()
 
     exampleNetwork = new Network({
       name: 'Example Network',
@@ -75,7 +99,11 @@ describe('VaultTeller', () => {
   })
 
   beforeAll(() => {
-    sessionStore = new FileSystemSessionStorage('/tmp/key-manager-test-sessions.json');
+    sessionStore = isConstructor<TSessionStore>(TSessionStoreCreator)
+      // @ts-ignore
+      ? new TSessionStoreCreator()
+      // @ts-ignore
+      : TSessionStoreCreator()
   })
 
   afterEach(async () => {
@@ -92,7 +120,7 @@ describe('VaultTeller', () => {
     })
 
     test('throws an error if the vault store is not initialized', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-uninitialized-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       sinon.stub(vaultStore, 'get').returns(null)
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       const authorizeOwnerOperation = vaultTeller.unlockVault('passphrase')
@@ -100,16 +128,16 @@ describe('VaultTeller', () => {
     })
 
     test('throws an error if the provided passphrase is incorrect', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-incorrectPass-${Date.now()}.json`);
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       const authorizeOwnerOperation = vaultTeller.unlockVault('wrong-passphrase')
-      await expect(authorizeOwnerOperation).rejects.toThrow('Unable to restore vault. Is passphrase incorrect?');
+      await expect(authorizeOwnerOperation).rejects.toThrow('Unable to restore vault. Is passphrase incorrect?')
     })
 
     describe('when the vault is initialized and the passphrase is correct', () => {
       test('changes "isUnlocked" to true (the internal in memory vault is assigned)', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-isUnlocked-${Date.now()}.json`);
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         await vaultTeller.unlockVault('passphrase')
@@ -117,23 +145,23 @@ describe('VaultTeller', () => {
       })
 
       test('returns a new Session object', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-session-${Date.now()}.json`);
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         const session = await vaultTeller.unlockVault('passphrase')
         expect(session).toBeInstanceOf(Session)
       })
 
-      test('returns a new Session object with a maxAge of an hour', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-session-${Date.now()}.json`);
+      test('returns a new Session object with a maxAge of of zero (do not expire)', async () => {
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase');
         const session = await vaultTeller.unlockVault('passphrase')
-        expect(session.maxAge).toBe(3600)
+        expect(session.maxAge).toBe(0)
       })
 
       test('persists the newly created session', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-session-${Date.now()}.json`);
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase');
         const session = await vaultTeller.unlockVault('passphrase')
@@ -144,7 +172,7 @@ describe('VaultTeller', () => {
       })
 
       test('newly created session has all permissions for the account resource', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-session-accounts-permissions-${Date.now()}.json`)
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         const { permissions } = await vaultTeller.unlockVault('passphrase')
@@ -154,7 +182,7 @@ describe('VaultTeller', () => {
       })
 
       test('newly created session has all permissions for the transaction resource', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-session-transaction-permissions-${Date.now()}.json`)
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         const { permissions } = await vaultTeller.unlockVault('passphrase')
@@ -164,7 +192,7 @@ describe('VaultTeller', () => {
       })
 
       test('newly created session has all permissions for the session resource', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-session-permissions-${Date.now()}.json`)
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         const { permissions } = await vaultTeller.unlockVault('passphrase')
@@ -174,7 +202,7 @@ describe('VaultTeller', () => {
       })
 
       test('newly created session has no accounts associated with it', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-session-${Date.now()}.json`);
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase');
         const session = await vaultTeller.unlockVault('passphrase')
@@ -185,7 +213,7 @@ describe('VaultTeller', () => {
 
   describe('authorizeExternal', () => {
     test('throws an error if the vault is not unlocked', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-external-access-vault-${Date.now()}.json`);
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase');
       const authorizeExternalAccessOperation = vaultTeller.authorizeExternal(exampleExternalAccessRequest)
@@ -193,7 +221,7 @@ describe('VaultTeller', () => {
     })
 
     test('expects a valid ExternalAccessRequest object', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-external-access-input-${Date.now()}.json`);
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
@@ -203,7 +231,7 @@ describe('VaultTeller', () => {
 
     describe('when successful', () => {
       test('resolves to a valid Session object', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-external-access-session-${Date.now()}.json`);
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         await vaultTeller.unlockVault('passphrase')
@@ -212,7 +240,7 @@ describe('VaultTeller', () => {
       })
 
       test('resolves to a valid Session object with the correct permissions', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-external-access-session-permissions-${Date.now()}.json`);
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         await vaultTeller.unlockVault('passphrase')
@@ -221,7 +249,7 @@ describe('VaultTeller', () => {
       })
 
       test('resolved Session object has the correct maxAge', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-external-access-session-maxAge-${Date.now()}.json`);
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         await vaultTeller.unlockVault('passphrase')
@@ -230,7 +258,7 @@ describe('VaultTeller', () => {
       })
 
       test('resolved Session object has the correct origin', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-external-access-session-origin-${Date.now()}.json`);
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         await vaultTeller.unlockVault('passphrase')
@@ -239,7 +267,7 @@ describe('VaultTeller', () => {
       })
 
       test('resolved Session object has the correct accounts', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-external-access-session-accounts-${Date.now()}.json`);
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         await vaultTeller.unlockVault('passphrase')
@@ -248,7 +276,7 @@ describe('VaultTeller', () => {
       })
 
       test('persists the session', async () => {
-        vaultStore = new FileSystemVaultStorage(`/tmp/.test-external-access-persist-${Date.now()}.json`);
+        vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         await vaultTeller.unlockVault('passphrase')
@@ -263,7 +291,7 @@ describe('VaultTeller', () => {
 
   describe('lockVault', function () {
     test('changes "isUnlocked" to false (the internal in memory vault is de-assigned)', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-lockVault-${Date.now()}.json`);
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
@@ -274,14 +302,14 @@ describe('VaultTeller', () => {
 
   describe('initializeVault', () => {
     test('throws an error if the passed passphrase is null or empty', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-${Date.now()}.json`);
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       const initializeVaultOperation = vaultTeller.initializeVault(null)
       await expect(initializeVaultOperation).rejects.toThrow('Passphrase cannot be null or empty')
     });
 
     test('throws an error if the vault store is already initialized', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-initialized-${Date.now()}.json`);
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService);
       await vaultTeller.initializeVault('passphrase');
       const secondInitializeVaultOperation = vaultTeller.initializeVault('passphrase')
@@ -291,34 +319,21 @@ describe('VaultTeller', () => {
 
   describe('isSessionValid', () => {
     test('returns false if the session id is null or undefined', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-isValidSession-undefined-${Date.now()}.json`);
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService);
       const isSessionValid = await vaultTeller.isSessionValid(null)
       expect(isSessionValid).toBe(false)
     })
 
     test('returns false if the session id is not found in the session store', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-isValidSession-notFound-${Date.now()}.json`);
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService);
       const isSessionValid = await vaultTeller.isSessionValid('not-found')
       expect(isSessionValid).toBe(false)
     })
 
-    test('returns false if the session id is found in the session store but is expired', async () => {
-      // Initialize the storage before setting the fake timers since these will have them go to zero
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-isValidSession-expired-${Date.now()}.json`);
-      const clock = sinon.useFakeTimers();
-      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService);
-      await vaultTeller.initializeVault('passphrase')
-      const session = await vaultTeller.unlockVault('passphrase')
-      clock.tick(3600 * 1000)
-      const isSessionValid = await vaultTeller.isSessionValid(session.id)
-      expect(isSessionValid).toBe(false)
-      clock.restore()
-    })
-
     test('returns true if the session id is found in the session store and is not expired', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-isValidSession-valid-${Date.now()}.json`);
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService);
       await vaultTeller.initializeVault('passphrase')
       const session = await vaultTeller.unlockVault('passphrase')
@@ -329,14 +344,14 @@ describe('VaultTeller', () => {
 
   describe('listSessions', () => {
     test('throws "Invalid Operation" error if the vault is locked', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-locked-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       const listSessionsOperation = vaultTeller.listSessions(null)
       await expect(listSessionsOperation).rejects.toThrow('Invalid Operation: Vault is locked')
     });
 
     test('throws "Unauthorized" error if the session id is not provided', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-unauthorized-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
@@ -345,7 +360,7 @@ describe('VaultTeller', () => {
     })
 
     test('throws "Unauthorized" error if the session id is not found in the session store', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-unauthorized-not-found-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
@@ -354,19 +369,20 @@ describe('VaultTeller', () => {
     })
 
     test('throws "Unauthorized" error if the session id is found in the session store but is invalid', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-unauthorized-invalid-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const clock = sinon.useFakeTimers();
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
-      const session = await vaultTeller.unlockVault('passphrase')
-      clock.tick(3600 * 1000)
+      await vaultTeller.unlockVault('passphrase')
+      const session = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
+      clock.tick(exampleExternalAccessRequest.maxAge * 1000 + 1)
       const listSessionsOperation = vaultTeller.listSessions(session.id)
       await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session is invalid')
       clock.restore()
     })
 
     test('throws "Unauthorized" error if the session id is found in the session store but "session:list" is not allowed', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-unauthorized-not-allowed-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
@@ -376,7 +392,7 @@ describe('VaultTeller', () => {
     })
 
     test('returns a list of sessions if the session id is found in the session store and is valid', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-listSessions-valid-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       const session = await vaultTeller.unlockVault('passphrase')
@@ -387,14 +403,14 @@ describe('VaultTeller', () => {
 
   describe('revokeSession', () => {
     test('throws "Invalid Operation" error if the vault is locked', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-locked-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       const listSessionsOperation = vaultTeller.revokeSession(null, null)
       await expect(listSessionsOperation).rejects.toThrow('Invalid Operation: Vault is locked')
     });
 
     test('throws "Unauthorized" error if the session id is not provided', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-unauthorized-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
@@ -403,7 +419,7 @@ describe('VaultTeller', () => {
     })
 
     test('throws "Unauthorized" error if the session id is not found in the session store', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-unauthorized-not-found-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
@@ -412,19 +428,20 @@ describe('VaultTeller', () => {
     })
 
     test('throws "Unauthorized" error if the session id is found in the session store but is invalid', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-unauthorized-invalid-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const clock = sinon.useFakeTimers();
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
-      const session = await vaultTeller.unlockVault('passphrase')
-      clock.tick(3600 * 1000)
+      await vaultTeller.unlockVault('passphrase')
+      const session = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
+      clock.tick(exampleExternalAccessRequest.maxAge * 1000 + 1)
       const listSessionsOperation = vaultTeller.revokeSession(session.id, null)
       await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session is invalid')
       clock.restore()
     })
 
     test('throws "Unauthorized" error if the session id is found in the session store but "session:revoke" is not allowed', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-unauthorized-not-allowed-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
@@ -434,7 +451,7 @@ describe('VaultTeller', () => {
     })
 
     test('successfully revokes the session if the session id is found in the session store and is valid', async () => {
-      vaultStore = new FileSystemVaultStorage(`/tmp/.test-vault-revokeSession-valid-${Date.now()}.json`)
+      vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       const ownerSession = await vaultTeller.unlockVault('passphrase')
@@ -446,4 +463,4 @@ describe('VaultTeller', () => {
       expect(sessionsAfterRevoke).toEqual([ownerSession])
     })
   })
-})
+}

@@ -18,6 +18,7 @@
     "@poktscan/keyring": "*",
     "@poktscan/keyring-encryption-web": "*",
     "@poktscan/keyring-storage-filesystem": "*",
+    "@poktscan/keyring-storage-extension": "*",
     "uuid": "9.0.0"
   },
   "devDependencies": {
