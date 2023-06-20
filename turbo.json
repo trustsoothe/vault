@@ -15,6 +15,9 @@
     "test": {
       "dependsOn": ["build"]
     },
+    "ci:test": {
+      "dependsOn": ["build"]
+    },
     "lint": {
       "cache": true
     },
