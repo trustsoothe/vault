@@ -1,11 +1,11 @@
-name: Build and Run Tests
+name: Code Quality Checks
 
 on:
   pull_request:
     branches: [ main ]
 
 jobs:
-  tests:
+  quality:
 
     runs-on: ubuntu-latest
 
@@ -19,4 +19,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
+      - run: npm run typecheck
+      - run: npm run build
       - run: npm run ci:test
