@@ -5,6 +5,7 @@ export * from "./lib/core/session"
 export * from "./lib/core/network"
 export * from "./lib/core/asset"
 export * from "./lib/core/common/permissions"
+export * from "./lib/core/common/protocols"
 import EncryptionServiceSpecFactory from './lib/core/common/encryption/IEncryptionService.specFactory'
 
 import type IEncryptionService from "./lib/core/common/encryption/IEncryptionService"

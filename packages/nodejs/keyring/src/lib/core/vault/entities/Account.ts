@@ -75,6 +75,10 @@ export class Account implements IEntity {
     return this._address
   }
 
+  get asset(): Readonly<Asset> {
+    return this._asset
+  }
+
   get createdAt(): number {
     return this._createdAt
   }

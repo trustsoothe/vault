@@ -1,6 +1,5 @@
 import {
   Account,
-  AccountOptions,
   Asset,
   ExternalAccessRequest,
   IEncryptionService,
@@ -13,6 +12,7 @@ import {
   Session,
   SupportedProtocols,
   VaultTeller,
+  AccountOptions,
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
 import sinon from 'sinon'
