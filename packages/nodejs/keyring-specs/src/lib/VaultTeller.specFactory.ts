@@ -1,18 +1,18 @@
 import {
   Account,
+  AccountOptions,
   Asset,
   ExternalAccessRequest,
   IEncryptionService,
-  ISessionStore,
+  IStorage,
   IVaultStore,
-  Network,
   OriginReference,
   Permission,
   PermissionsBuilder,
+  SerializedSession,
   Session,
+  SupportedProtocols,
   VaultTeller,
-  AccountOptions,
-  UnspecifiedProtocol,
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
 import sinon from 'sinon'
@@ -20,10 +20,10 @@ import {v4} from "uuid";
 
 export default <
   TEncryptionService extends IEncryptionService,
-  TSessionStore extends ISessionStore,
+  TSessionStore extends IStorage<SerializedSession>,
   TVaultStore extends IVaultStore>(
     TVaultStoreCreator: {  new (): TVaultStore } | (() => TVaultStore),
-    TSessionStoreCreator: {  new (): TSessionStore } | (() => TSessionStore),
+    TSessionStoreCreator: {  new (): TSessionStore } | (() => IStorage<SerializedSession>),
     TEncryptionServiceCreator: {  new (): TEncryptionService } | (() => TEncryptionService)
   ) => {
 
@@ -60,7 +60,10 @@ export default <
 
     exampleAsset = new Asset({
       name: 'Example Asset',
-      protocol: new UnspecifiedProtocol('1'),
+      protocol: {
+        name: SupportedProtocols.Unspecified,
+        chainID: 'unspecified'
+      },
       symbol: 'EXM'
     })
 
@@ -90,7 +93,7 @@ export default <
   })
 
   beforeAll(() => {
-    sessionStore = isConstructor<TSessionStore>(TSessionStoreCreator)
+    sessionStore = isConstructor<IStorage<SerializedSession>>(TSessionStoreCreator)
       // @ts-ignore
       ? new TSessionStoreCreator()
       // @ts-ignore

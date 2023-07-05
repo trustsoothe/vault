@@ -1,3 +1,4 @@
-import {PocketNetworkProtocol, UnspecifiedProtocol} from "./protocols";
+import {SupportedProtocols} from "./values";
+import {IProtocol} from "./IProtocol";
 
-export type Protocol = PocketNetworkProtocol | UnspecifiedProtocol
+export type Protocol = IProtocol<SupportedProtocols.Pocket> | IProtocol<SupportedProtocols.Unspecified>

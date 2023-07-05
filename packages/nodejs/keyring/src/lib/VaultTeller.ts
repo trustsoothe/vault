@@ -1,10 +1,10 @@
 import { Passphrase, EncryptedVault, ExternalAccessRequest } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
-import ISessionStore from "./core/common/storage/ISessionStorage";
 import IEncryptionService from "./core/common/encryption/IEncryptionService";
 import {Vault} from "./core/vault";
-import {Session, SessionOptions} from "./core/session";
+import {SerializedSession, Session, SessionOptions} from "./core/session";
 import {PermissionsBuilder} from "./core/common/permissions";
+import IStorage from "./core/common/storage/IStorage";
 
 
 export class VaultTeller {
@@ -12,7 +12,7 @@ export class VaultTeller {
   private _vault: Vault | null = null
 
   constructor(private readonly vaultStore: IVaultStore,
-              private readonly sessionStore: ISessionStore,
+              private readonly sessionStore: IStorage<SerializedSession>,
               private readonly encryptionService: IEncryptionService) {
   }
 
