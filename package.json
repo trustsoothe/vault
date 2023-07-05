@@ -22,7 +22,7 @@
     "build:ci": "./build-ci.sh",
     "test": "turbo run test",
     "commit": "turbo run commit",
-    "sweeps": "node apps/sweeps/dist/cli.js"
+    "ci:test": "turbo run ci:test"
   },
   "dependencies": {
     "@changesets/cli": "^2.26.1",

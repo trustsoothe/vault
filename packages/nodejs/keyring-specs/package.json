@@ -8,6 +8,7 @@
   "private": true,
   "scripts": {
     "test": "vitest",
+    "ci:test": "vitest run",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
     "typecheck": "tsc -p ./tsconfig.json --noEmit",
     "lint": "eslint .",
