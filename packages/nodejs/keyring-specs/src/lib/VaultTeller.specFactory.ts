@@ -10,9 +10,9 @@ import {
   Permission,
   PermissionsBuilder,
   Session,
-  SupportedProtocols,
   VaultTeller,
   AccountOptions,
+  UnspecifiedProtocol,
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
 import sinon from 'sinon'
@@ -31,7 +31,6 @@ export default <
   let sessionStore: TSessionStore = null
   let encryptionService: TEncryptionService = null
   const exampleOriginReference: OriginReference = new OriginReference('https://example.com')
-  let exampleNetwork: Network
   let exampleAsset: Asset
   let exampleAccount: Account
   let exampleExternalPermissions: Permission[]
@@ -59,19 +58,11 @@ export default <
             // @ts-ignore
           : TEncryptionServiceCreator()
 
-    exampleNetwork = new Network({
-      name: 'Example Network',
-      rpcUrl: 'https://example.com',
-      protocol: SupportedProtocols.POCKET_NETWORK,
-      chainId: '1'
-    })
-
     exampleAsset = new Asset({
       name: 'Example Asset',
-      network: exampleNetwork,
-      symbol: 'EXA'
+      protocol: new UnspecifiedProtocol('1'),
+      symbol: 'EXM'
     })
-
 
     const options: AccountOptions = {
       publicKey: '1234',

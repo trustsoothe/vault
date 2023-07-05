@@ -1,13 +1,13 @@
 import {v4, validate} from "uuid";
-import {SupportedProtocols} from "../common/values";
 import IEntity from "../common/IEntity";
+import {Protocol} from "../common/Protocol";
 
 export interface SerializedNetwork extends IEntity {
   id: string
   name: string
   rpcUrl: string
-  chainId: string
-  protocol: SupportedProtocols
+  isDefault: boolean
+  protocol: Protocol
   createdAt: number
   updatedAt: number
 }
@@ -15,16 +15,16 @@ export interface SerializedNetwork extends IEntity {
 export interface NetworkOptions {
   name: string
   rpcUrl: string
-  chainId: string
-  protocol: SupportedProtocols
+  protocol: Protocol
+  isDefault?: boolean
 }
 
 export class Network implements IEntity {
   private readonly _id: string
   private readonly _name: string
   private readonly _rpcUrl: string
-  private readonly _chainId: string
-  private readonly _protocol: SupportedProtocols
+  private readonly _protocol: Protocol
+  private readonly _isDefault: boolean
   private _createdAt: number
   private _updatedAt: number
 
@@ -36,10 +36,10 @@ export class Network implements IEntity {
     this._id = id || v4()
     this._name = options.name
     this._rpcUrl = options.rpcUrl
-    this._chainId = options.chainId
     this._protocol = options.protocol
     this._createdAt = Date.now()
     this._updatedAt = this._createdAt
+    this._isDefault = options.isDefault || false
   }
 
   get id(): string {
@@ -54,12 +54,12 @@ export class Network implements IEntity {
     return this._rpcUrl
   }
 
-  get chainId(): string {
-    return this._chainId
+  get protocol(): Protocol {
+    return Object.assign({}, this._protocol)
   }
 
-  get protocol(): SupportedProtocols {
-    return this._protocol
+  get isDefault(): boolean {
+    return this._isDefault
   }
 
   serialize(): SerializedNetwork {
@@ -67,7 +67,7 @@ export class Network implements IEntity {
       id: this._id,
       name: this._name,
       rpcUrl: this._rpcUrl,
-      chainId: this._chainId,
+      isDefault: this._isDefault,
       protocol: this._protocol,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
@@ -78,8 +78,8 @@ export class Network implements IEntity {
     const options: NetworkOptions = {
       name: serializedNetwork.name,
       rpcUrl: serializedNetwork.rpcUrl,
-      chainId: serializedNetwork.chainId,
       protocol: serializedNetwork.protocol,
+      isDefault: serializedNetwork.isDefault
     }
 
     const deserializedNetwork = new Network(options, serializedNetwork.id)
