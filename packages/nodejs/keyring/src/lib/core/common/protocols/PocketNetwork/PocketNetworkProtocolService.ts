@@ -1,6 +1,11 @@
 import { webcrypto } from 'node:crypto';
 
+/**
+ * This workaround is required by the '@noble/ed25519' library. See: https://github.com/paulmillr/noble-ed25519#usage
+ * node.js 18 and earlier,  needs globalThis.crypto polyfill
+ */
 if (!globalThis.crypto) {
+  // @ts-ignore
   globalThis.crypto = webcrypto;
 }
 
@@ -10,6 +15,7 @@ import {fromUint8Array} from 'hex-lite';
 import {utils,  getPublicKeyAsync} from '@noble/ed25519';
 import {Buffer} from "buffer";
 import IEncryptionService from "../../encryption/IEncryptionService";
+
 
 export class PocketNetworkProtocolService implements IProtocolService {
   constructor(private IEncryptionService: IEncryptionService) {}
