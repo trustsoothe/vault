@@ -6,7 +6,6 @@ import {SerializedSession, Session, SessionOptions} from "./core/session";
 import {PermissionsBuilder} from "./core/common/permissions";
 import IStorage from "./core/common/storage/IStorage";
 
-
 export class VaultTeller {
   private _isUnlocked = false
   private _vault: Vault | null = null
@@ -104,7 +103,11 @@ export class VaultTeller {
 
   async revokeSession(sessionId: string, revokeSessionId: string): Promise<void> {
     await this.validateSessionForPermissions(sessionId, 'revoke')
-    await this.sessionStore.remove(revokeSessionId)
+    const session = await this.getSession(revokeSessionId)
+    if (session) {
+      session.invalidate()
+      await this.sessionStore.save(session.serialize())
+    }
   }
 
   get isUnlocked(): boolean {

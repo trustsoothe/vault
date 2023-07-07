@@ -452,9 +452,12 @@ export default <
       const externalSession = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
       const sessionsBeforeRevoke = await vaultTeller.listSessions(ownerSession.id)
       expect(sessionsBeforeRevoke).toEqual([ownerSession, externalSession])
-      const revokeSession = await vaultTeller.revokeSession(ownerSession.id, externalSession.id)
+      await vaultTeller.revokeSession(ownerSession.id, externalSession.id)
       const sessionsAfterRevoke = await vaultTeller.listSessions(ownerSession.id)
-      expect(sessionsAfterRevoke).toEqual([ownerSession])
+      const expectedRevokedSession = sessionsAfterRevoke.find(s => s.id === externalSession.id)
+      expect(expectedRevokedSession.isValid()).toBe(false);
+      expect(expectedRevokedSession.invalidatedAt).not.toBe(null);
+      expect(expectedRevokedSession.invalidatedAt).closeTo(Date.now(), 1000);
     })
   })
 }

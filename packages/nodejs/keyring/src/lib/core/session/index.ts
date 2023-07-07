@@ -9,6 +9,8 @@ export interface SerializedSession extends IEntity {
   permissions: Permission[]
   maxAge: number
   accounts: SerializedAccountReference[]
+  invalidated: boolean
+  invalidatedAt: number
   origin: string
   createdAt: number
 }
@@ -26,7 +28,9 @@ export class Session implements IEntity {
   private readonly _maxAge: number
   private readonly _accounts: AccountReference[] = []
   private readonly _origin: OriginReference
+  private _invalidated = false
   private _createdAt: number
+  private _invalidatedAt?: number = null
 
   constructor(options: SessionOptions = {}, id?: string) {
     if (id && validate(id) === false) {
@@ -61,14 +65,6 @@ export class Session implements IEntity {
     return this._maxAge
   }
 
-  isValid(): boolean {
-    if (this._maxAge === 0) {
-      return true
-    }
-
-    return this._createdAt + this._maxAge * 1000 > Date.now()
-  }
-
   get accounts(): ReadonlyArray<AccountReference> {
     return this._accounts
   }
@@ -77,11 +73,21 @@ export class Session implements IEntity {
     return this._origin
   }
 
+  get createdAt(): number {
+    return this._createdAt
+  }
+
+  get invalidatedAt(): number {
+    return this._invalidatedAt
+  }
+
   serialize(): SerializedSession {
     return {
       id: this._id,
       permissions: this._permissions,
       maxAge: this._maxAge,
+      invalidated: this._invalidated,
+      invalidatedAt: this._invalidatedAt,
       accounts: this._accounts.map((account) => account.serialize()),
       origin: (this._origin && this._origin.value) ?? '',
       createdAt: this._createdAt,
@@ -96,6 +102,27 @@ export class Session implements IEntity {
     )
   }
 
+  invalidate(): void {
+    if (this._invalidated) {
+      return
+    }
+
+    this._invalidated = true
+    this._invalidatedAt = Date.now()
+  }
+
+  isValid(): boolean {
+    if (this._invalidated) {
+      return false
+    }
+
+    if (this._maxAge === 0) {
+      return true
+    }
+
+    return this._createdAt + this._maxAge * 1000 > Date.now()
+  }
+
   static deserialize(serializedSession: SerializedSession): Session {
     const options: SessionOptions = {
       permissions: serializedSession.permissions,
@@ -105,6 +132,8 @@ export class Session implements IEntity {
     }
     const session = new Session(options, serializedSession.id)
     session._createdAt = serializedSession.createdAt
+    session._invalidated = serializedSession.invalidated
+    session._invalidatedAt = serializedSession.invalidatedAt
     return session
   }
 }
