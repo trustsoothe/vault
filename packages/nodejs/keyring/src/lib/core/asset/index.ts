@@ -1,18 +1,21 @@
-import {Network, SerializedNetwork} from "../network";
 import {v4, validate} from "uuid";
 import IEntity from "../common/IEntity";
+import {PocketNetworkProtocol} from "../common/protocols/PocketNetwork/PocketNetworkProtocol";
+import {Protocol} from "../common/Protocol";
 
 export interface AssetOptions {
   name: string
-  network: Network
+  protocol: Protocol
   symbol: string
+  isDefault?: boolean
 }
 
 export interface SerializedAsset extends IEntity {
   id: string
   name: string
-  network: SerializedNetwork
   symbol: string
+  protocol: Protocol,
+  isDefault: boolean
   createdAt: number
   updatedAt: number
 }
@@ -20,10 +23,11 @@ export interface SerializedAsset extends IEntity {
 export class Asset implements IEntity {
   private readonly _id: string
   private _name: string
-  private _network: Network
   private _symbol: string
   private _createdAt: number
   private _updatedAt: number
+  private _protocol: Protocol
+  private _isDefault: boolean
 
   constructor(options: AssetOptions, id?: string) {
     if (id && validate(id) === false) {
@@ -32,10 +36,11 @@ export class Asset implements IEntity {
 
     this._id = id || v4()
     this._name = options.name
-    this._network = options.network
+    this._protocol = options.protocol
     this._symbol = options.symbol
     this._createdAt = Date.now()
     this._updatedAt = this._createdAt
+    this._isDefault = options.isDefault || false
   }
 
   get id(): string {
@@ -46,10 +51,6 @@ export class Asset implements IEntity {
     return this._name
   }
 
-  get network(): Readonly<Network> {
-    return this._network
-  }
-
   get symbol(): string {
     return this._symbol
   }
@@ -58,16 +59,25 @@ export class Asset implements IEntity {
     return this._createdAt
   }
 
+  get protocol(): Protocol {
+    return this._protocol
+  }
+
   get updatedAt(): number {
     return this._updatedAt
+  }
+
+  get isDefault(): boolean {
+    return this._isDefault
   }
 
   serialize(): SerializedAsset {
     return {
       id: this._id,
       name: this._name,
-      network: this._network.serialize(),
       symbol: this._symbol,
+      protocol: this._protocol,
+      isDefault: this._isDefault,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt
     }
@@ -76,7 +86,8 @@ export class Asset implements IEntity {
   static deserialize(serializedAsset: SerializedAsset): Asset {
     const options: AssetOptions = {
       name: serializedAsset.name,
-      network: Network.deserialize(serializedAsset.network),
+      protocol: serializedAsset.protocol,
+      isDefault: serializedAsset.isDefault,
       symbol: serializedAsset.symbol
     }
 

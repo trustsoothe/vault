@@ -4,12 +4,12 @@ import {
   Asset,
   ExternalAccessRequest,
   IEncryptionService,
-  ISessionStore,
+  IStorage,
   IVaultStore,
-  Network,
   OriginReference,
   Permission,
   PermissionsBuilder,
+  SerializedSession,
   Session,
   SupportedProtocols,
   VaultTeller,
@@ -20,10 +20,10 @@ import {v4} from "uuid";
 
 export default <
   TEncryptionService extends IEncryptionService,
-  TSessionStore extends ISessionStore,
+  TSessionStore extends IStorage<SerializedSession>,
   TVaultStore extends IVaultStore>(
     TVaultStoreCreator: {  new (): TVaultStore } | (() => TVaultStore),
-    TSessionStoreCreator: {  new (): TSessionStore } | (() => TSessionStore),
+    TSessionStoreCreator: {  new (): TSessionStore } | (() => IStorage<SerializedSession>),
     TEncryptionServiceCreator: {  new (): TEncryptionService } | (() => TEncryptionService)
   ) => {
 
@@ -31,7 +31,6 @@ export default <
   let sessionStore: TSessionStore = null
   let encryptionService: TEncryptionService = null
   const exampleOriginReference: OriginReference = new OriginReference('https://example.com')
-  let exampleNetwork: Network
   let exampleAsset: Asset
   let exampleAccount: Account
   let exampleExternalPermissions: Permission[]
@@ -59,19 +58,14 @@ export default <
             // @ts-ignore
           : TEncryptionServiceCreator()
 
-    exampleNetwork = new Network({
-      name: 'Example Network',
-      rpcUrl: 'https://example.com',
-      protocol: SupportedProtocols.POCKET_NETWORK,
-      chainId: '1'
-    })
-
     exampleAsset = new Asset({
       name: 'Example Asset',
-      network: exampleNetwork,
-      symbol: 'EXA'
+      protocol: {
+        name: SupportedProtocols.Unspecified,
+        chainID: 'unspecified'
+      },
+      symbol: 'EXM'
     })
-
 
     const options: AccountOptions = {
       publicKey: '1234',
@@ -99,7 +93,7 @@ export default <
   })
 
   beforeAll(() => {
-    sessionStore = isConstructor<TSessionStore>(TSessionStoreCreator)
+    sessionStore = isConstructor<IStorage<SerializedSession>>(TSessionStoreCreator)
       // @ts-ignore
       ? new TSessionStoreCreator()
       // @ts-ignore
@@ -458,9 +452,12 @@ export default <
       const externalSession = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
       const sessionsBeforeRevoke = await vaultTeller.listSessions(ownerSession.id)
       expect(sessionsBeforeRevoke).toEqual([ownerSession, externalSession])
-      const revokeSession = await vaultTeller.revokeSession(ownerSession.id, externalSession.id)
+      await vaultTeller.revokeSession(ownerSession.id, externalSession.id)
       const sessionsAfterRevoke = await vaultTeller.listSessions(ownerSession.id)
-      expect(sessionsAfterRevoke).toEqual([ownerSession])
+      const expectedRevokedSession = sessionsAfterRevoke.find(s => s.id === externalSession.id)
+      expect(expectedRevokedSession.isValid()).toBe(false);
+      expect(expectedRevokedSession.invalidatedAt).not.toBe(null);
+      expect(expectedRevokedSession.invalidatedAt).closeTo(Date.now(), 1000);
     })
   })
 }

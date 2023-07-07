@@ -75,6 +75,10 @@ export class Account implements IEntity {
     return this._address
   }
 
+  get asset(): Readonly<Asset> {
+    return this._asset
+  }
+
   get createdAt(): number {
     return this._createdAt
   }
@@ -112,6 +116,6 @@ export class Account implements IEntity {
   }
 
   asAccountReference(): AccountReference {
-    return new AccountReference(this._id, this._address, this._asset.network.protocol)
+    return new AccountReference(this._id, this._address, this._asset.protocol)
   }
 }

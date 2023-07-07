@@ -1,12 +1,12 @@
 import {Account} from "../../vault";
-import {MnemonicPhrase} from "../values";
+import {Passphrase} from "../values";
 import {Asset} from "../../asset";
 
-export interface AccountOptions {
-  asset: Asset
-  mnemonic?: MnemonicPhrase
+export interface CreateAccountOptions {
+  asset: Asset,
+  passphrase: Passphrase,
 }
 
 export interface IProtocolService {
-  createAccount(options: AccountOptions): Promise<Account>
+  createAccount(options: CreateAccountOptions): Promise<Account>
 }

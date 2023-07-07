@@ -1,11 +1,13 @@
 import {SupportedProtocols} from "../values";
-import {PocketNetworkProtocolService} from "./PocketNetworkProtocolService";
+import {PocketNetworkProtocolService} from "./PocketNetwork";
+import IEncryptionService from "../encryption/IEncryptionService";
+import {Protocol} from "../Protocol";
 
 export class ProtocolServiceFactory {
-  static getProtocolService(protocol: SupportedProtocols) {
-    switch (protocol) {
-      case SupportedProtocols.POCKET_NETWORK:
-        return new PocketNetworkProtocolService()
+  static getProtocolService(protocol: Protocol, encryptionService: IEncryptionService) {
+    switch (protocol.name) {
+      case SupportedProtocols.Pocket:
+        return new PocketNetworkProtocolService(encryptionService)
       default:
         throw new Error(`Protocol ${protocol} not supported`)
     }

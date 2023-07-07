@@ -1,16 +1,17 @@
-import {SupportedProtocols} from "./SupportedProtocols";
+import {Protocol} from "../Protocol";
 
 export interface SerializedAccountReference {
   id: string
   address: string
-  protocol: SupportedProtocols
+  protocol: Protocol
 }
 
 export class AccountReference {
   private readonly _id: string = ''
   private readonly _address: string = ''
-  private readonly _protocol: SupportedProtocols = null
-  constructor(id: string, address: string, protocol: SupportedProtocols) {
+  private readonly _protocol: Protocol = null
+
+  constructor(id: string, address: string, protocol: Protocol) {
     this._id = id
     this._address = address
     this._protocol = protocol
@@ -24,7 +25,7 @@ export class AccountReference {
     return this._address
   }
 
-  get protocol(): SupportedProtocols {
+  get protocol(): Protocol {
     return this._protocol
   }
 

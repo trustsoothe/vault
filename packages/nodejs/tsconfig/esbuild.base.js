@@ -5,9 +5,14 @@ const packages = getPackages('../../../')
 
 const watch = process.argv[2]
 
-const allowList = packages.map(function (source) {
+const keyringPackages = packages.map(function (source) {
   return source.package.name
 })
+
+const allowList = [
+    ...keyringPackages,
+    '@noble/ed25519',
+]
 
 const baseConfig = {
   entryPoints: ['src/index.ts'],
