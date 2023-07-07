@@ -10,9 +10,14 @@ const store = configureStore({
   middleware: (getDefaultMiddleware) => {
     return getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ["vault/unlockVault/fulfilled"],
+        ignoredActions: [
+          "vault/unlockVault/fulfilled",
+          "vault/unlockVault/pending",
+          "vault/AuthorizeExternalSession/fulfilled",
+          "vault/AuthorizeExternalSession/pending",
+        ],
         ignoredActionPaths: ["payload"],
-        ignoredPaths: ["vault.session"],
+        ignoredPaths: ["vault.session", "vault.entities.sessions.list"],
       },
     });
   },

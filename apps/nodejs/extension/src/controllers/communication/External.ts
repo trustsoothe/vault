@@ -117,7 +117,7 @@ class ExternalCommunicationController {
     if (message?.type === TRANSFER_REQUEST) {
       const response = await this._handleTransferRequest(message, sender);
 
-      if (response?.type === NEW_ACCOUNT_RESPONSE) {
+      if (response?.type === TRANSFER_RESPONSE) {
         return response;
       }
       isRequestBeingHandled = true;

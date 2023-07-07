@@ -42,8 +42,7 @@ const router = createHashRouter([
     children: [
       {
         path: ACCOUNTS_PAGE,
-        element: <Transfer />,
-        // element: <AccountList />,
+        element: <AccountList />,
       },
       {
         path: SESSIONS_PAGE,
@@ -67,7 +66,7 @@ const router = createHashRouter([
       },
       {
         path: TRANSFER_PAGE,
-        element: <AccountList />,
+        element: <Transfer />,
       },
     ],
   },

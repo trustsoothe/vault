@@ -13,6 +13,7 @@ import {
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
   SESSIONS_PAGE,
+  TRANSFER_PAGE,
 } from "../../constants/routes";
 import { useAppDispatch } from "../../hooks/redux";
 import { lockVault } from "../../redux/slices/vault";
@@ -96,6 +97,9 @@ const Header: React.FC = () => {
             onClick={closeMenu}
             sx={{ borderTop: "1px solid lightgray" }}
           >
+            <Link to={TRANSFER_PAGE}>Transfer</Link>
+          </MenuItem>
+          <MenuItem onClick={closeMenu}>
             <Link to={CREATE_ACCOUNT_PAGE}>Create account</Link>
           </MenuItem>
           <MenuItem onClick={closeMenu}>

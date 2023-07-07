@@ -9,6 +9,7 @@ interface AmountHelperTextProps {
   transferFee: number;
   isLoadingBalance?: boolean;
   isLoadingFee?: boolean;
+  disableAll?: boolean;
   onClickAll: () => void;
 }
 
@@ -18,6 +19,7 @@ const AmountHelperText: React.FC<AmountHelperTextProps> = ({
   isLoadingBalance,
   isLoadingFee,
   transferFee,
+  disableAll,
 }) => {
   return (
     <Stack
@@ -77,7 +79,7 @@ const AmountHelperText: React.FC<AmountHelperTextProps> = ({
             textDecoration: "underline",
           },
         }}
-        disabled={!accountBalance}
+        disabled={disableAll || !accountBalance}
         onClick={onClickAll}
       >
         All

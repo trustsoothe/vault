@@ -13,13 +13,17 @@ import {
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
 import {
+  AmountNotPresented,
   ForbiddenSession,
+  FromAddressNotPresented,
   InvalidSession,
+  NotConnected,
   OriginNotPresented,
   RequestConnectionExists,
   RequestNewAccountExists,
   RequestTransferExists,
   SessionIdNotPresented,
+  ToAddressNotPresented,
 } from "../../errors/communication";
 
 const id = "ihemdpidnelcmpnndlfkhkebmbgjnehb";
@@ -69,6 +73,9 @@ type TransferError =
   | typeof ForbiddenSession
   | typeof OriginNotPresented
   | typeof RequestTransferExists
+  | typeof AmountNotPresented
+  | typeof ToAddressNotPresented
+  | typeof FromAddressNotPresented
   | null;
 
 interface NewAccountResponse {
@@ -326,6 +333,8 @@ class ProxyCommunicationController {
       if (response?.type === NEW_ACCOUNT_RESPONSE) {
         await this._handleNewAccountResponse(response);
       }
+    } else {
+      return this._sendNewAccountResponse(true, null, NotConnected);
     }
   }
 
@@ -336,13 +345,13 @@ class ProxyCommunicationController {
     if (data) {
       const { rejected, address } = data;
 
-      this._sendNewRequestResponse(rejected, address);
+      this._sendNewAccountResponse(rejected, address);
     } else {
-      this._sendNewRequestResponse(false, null, error);
+      this._sendNewAccountResponse(false, null, error);
     }
   }
 
-  private _sendNewRequestResponse(
+  private _sendNewAccountResponse(
     rejected: boolean,
     address: string = null,
     error: NewAccountError = null
@@ -358,8 +367,22 @@ class ProxyCommunicationController {
     });
   }
 
-  private async _sendTransferRequest({ fromAddress, toAddress, amount }) {
+  private async _sendTransferRequest(data: TransferRequest["data"]) {
     if (this._session) {
+      const { fromAddress, toAddress, amount } = data || {};
+
+      if (!fromAddress) {
+        return this._sendTransferResponse(true, null, FromAddressNotPresented);
+      }
+
+      if (!toAddress) {
+        return this._sendTransferResponse(true, null, ToAddressNotPresented);
+      }
+
+      if (!amount) {
+        return this._sendTransferResponse(true, null, AmountNotPresented);
+      }
+
       const response = await browser.runtime.sendMessage({
         type: TRANSFER_REQUEST,
         data: {
@@ -377,6 +400,8 @@ class ProxyCommunicationController {
       if (response?.type === TRANSFER_RESPONSE) {
         await this._handleTransferResponse(response);
       }
+    } else {
+      return this._sendTransferResponse(true, null, NotConnected);
     }
   }
 
