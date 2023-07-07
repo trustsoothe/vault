@@ -2,6 +2,7 @@
   "name": "@poktscan/keyring-storage-extension",
   "version": "0.0.0",
   "description": "Web extensions based storage plugin for the Universal Crypto Wallet Manager",
+  "types": "dist/index.d.ts",
   "main": "dist/index.js",
   "repository": "git@github.com:pokt-scan/keyring.git",
   "author": "Alan Rojas <alan@poktscan.com>",
@@ -12,15 +13,16 @@
     "typecheck": "tsc src/index.ts --noEmit",
     "lint": "eslint .",
     "lint:fix": "yarn lint --fix",
-    "build": "node esbuild.js"
+    "build": "node esbuild.js && tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@poktscan/keyring": "*"
+    "@poktscan/keyring": "*",
+    "webextension-polyfill": "0.10.0"
   },
   "devDependencies": {
+    "@poktscan/tsconfig": "*",
     "@types/chrome": "0.0.237",
     "@types/webextension-polyfill": "0.10.0",
-    "web-ext-types": "3.2.1",
-    "webextension-polyfill": "0.10.0"
+    "web-ext-types": "3.2.1"
   }
 }

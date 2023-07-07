@@ -1,0 +1,432 @@
+import type { SerializedAsset } from "@poktscan/keyring";
+import React, { useCallback, useEffect, useState } from "react";
+import Stack from "@mui/material/Stack";
+import Divider from "@mui/material/Divider";
+import MenuItem from "@mui/material/MenuItem";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import { Controller, useForm } from "react-hook-form";
+import AutocompleteAsset from "../Account/AutocompleteAsset";
+import RequestFrom from "../common/RequestFrom";
+import Button from "@mui/material/Button";
+import AmountHelperText from "./AmountHelperText";
+import { DefaultAsset } from "../../utils";
+import AppToBackground from "../../controllers/communication/AppToBackground";
+import { TransferRequest } from "../../redux/slices/app";
+
+interface TransferProps {
+  requesterInfo?: TransferRequest;
+  fromAddress?: string;
+}
+
+interface FormValues {
+  fromType: "saved_account" | "private_key";
+  from: string;
+  toAddress: string;
+  amount: string;
+  asset: SerializedAsset | null;
+  accountPassword: string;
+}
+
+export const isHex = (str: string) => {
+  return str.match(/^[0-9a-fA-F]+$/g);
+};
+
+export const byteLength = (str: string) => new Blob([str]).size;
+
+const isAddress = (str: string) => isHex(str) && byteLength(str) === 40;
+
+//todo: validate private key?
+const isPrivateKey = (str: string) => isHex(str) && byteLength(str) === 128;
+
+const mockAccounts = [
+  "2b758f936e45aaebc87db14a9f0e51b51b6653b6",
+  "266c4fc7c61a7a73dbfe04e0e67cc923848dea21",
+  "25879ff86bd06d2cb34316d8380dd0ef20266dd0",
+  "1d72b77c04a4a4301dc644e8d3b2710bcd53a4fa",
+  "1cf01f48a52970c71caefb8b44b6de08bfd16c28",
+  "1b5419bf1149a5de10f986918912aa1aa85f3cf2",
+  "17fea60985c0a37b46adc8cadec5c1d70a78db94",
+];
+
+const Transfer: React.FC<TransferProps> = ({
+  requesterInfo,
+  //   {
+  //   fromAddress: "1d72b77c04a4a4301dc644e8d3b2710bcd53a4fb",
+  //   toAddress: "17fea60985c0a37b46adc8cadec5c1d70a78db93",
+  //   amount: 20,
+  //   origin: "http://localhost:3000",
+  //   faviconUrl: "https://poktscan.com/img/brand/favicon-32x32.png",
+  // },
+  fromAddress,
+}) => {
+  const [accounts] = useState(mockAccounts);
+  const {
+    control,
+    watch,
+    register,
+    setValue,
+    clearErrors,
+    handleSubmit,
+    formState,
+    getFieldState,
+  } = useForm<FormValues>({
+    mode: "onChange",
+    defaultValues: {
+      fromType: "saved_account",
+      asset: null,
+      from: "",
+      toAddress: "",
+      amount: "",
+      accountPassword: "",
+    },
+  });
+
+  const [fromAddressStatus, setFromAddressStatus] = useState<string>(null);
+  const [fromType, from, asset] = watch(["fromType", "from", "asset"]);
+
+  useEffect(() => {
+    setValue("from", "");
+    setValue("amount", "");
+    setValue("accountPassword", "");
+    setValue("asset", null);
+    clearErrors("from");
+    clearErrors("amount");
+    clearErrors("accountPassword");
+    clearErrors("asset");
+  }, [fromType]);
+
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [fromBalance, setFromBalance] = useState<number>(null);
+
+  const getFromBalance = useCallback(() => {
+    const fromState = getFieldState("from");
+    if (from && !fromState.invalid) {
+      setIsLoadingBalance(true);
+      //todo: add logic to fetch from balance
+      setTimeout(() => {
+        setFromBalance(502.31);
+        setIsLoadingBalance(false);
+      }, 1000);
+    } else {
+      setFromBalance(null);
+    }
+  }, [from, getFieldState]);
+
+  useEffect(() => {
+    getFromBalance();
+  }, [getFromBalance]);
+
+  const [isLoadingFee, setIsLoadingFee] = useState<boolean>(false);
+  const [assetFee, setAssetFee] = useState<number>(null);
+
+  const getAssetFee = useCallback(() => {
+    if (asset?.id) {
+      setIsLoadingFee(true);
+      //todo: add logic to fetch fee
+      setTimeout(() => {
+        setAssetFee(0.01);
+        setIsLoadingFee(false);
+      }, 1000);
+    } else {
+      setAssetFee(null);
+    }
+  }, [asset]);
+
+  useEffect(() => {
+    getAssetFee();
+  }, [getAssetFee]);
+
+  useEffect(() => {
+    if (isAddress(from)) {
+      if (accounts.includes(from)) {
+        setValue("asset", DefaultAsset.serialize());
+      }
+    }
+  }, [from]);
+
+  useEffect(() => {
+    const address = fromAddress || requesterInfo?.fromAddress;
+
+    if (address) {
+      if (accounts.includes(address)) {
+        setValue("from", address);
+        setFromAddressStatus("is_account_saved");
+      } else {
+        setValue("fromType", "private_key");
+        setFromAddressStatus("private_key_required");
+      }
+    } else {
+      setFromAddressStatus(null);
+    }
+  }, [accounts, fromAddress, requesterInfo]);
+
+  useEffect(() => {
+    if (requesterInfo) {
+      setValue("amount", requesterInfo.amount.toString());
+      setValue("toAddress", requesterInfo.toAddress);
+    }
+  }, [requesterInfo]);
+
+  const onClickAll = useCallback(() => {
+    const transferFromBalance = (fromBalance || 0) - (assetFee || 0);
+
+    if (transferFromBalance) {
+      setValue("amount", (transferFromBalance || "").toString());
+      clearErrors("amount");
+    }
+  }, [fromBalance, setValue, clearErrors, assetFee]);
+
+  const onSubmit = useCallback(
+    async (data: FormValues) => {
+      console.log(data);
+      await AppToBackground.sendRequestToAnswerTransfer({
+        rejected: false,
+        transferData: {
+          asset: data.asset,
+          amount: data.amount,
+          toAddress: data.toAddress,
+          from:
+            data.fromType === "saved_account"
+              ? {
+                  address: data.from,
+                  password: data.accountPassword,
+                }
+              : data.from,
+        },
+        request: requesterInfo,
+      });
+    },
+    [requesterInfo]
+  );
+
+  const onClickCancel = useCallback(async () => {
+    if (requesterInfo) {
+      await AppToBackground.sendRequestToAnswerTransfer({
+        rejected: true,
+        transferData: null,
+        request: requesterInfo,
+      });
+    }
+  }, [requesterInfo]);
+
+  return (
+    <Stack
+      width={1}
+      maxWidth={1}
+      boxSizing={"border-box"}
+      component={"form"}
+      onSubmit={handleSubmit(onSubmit)}
+      spacing={"15px"}
+    >
+      {requesterInfo ? (
+        <RequestFrom
+          title={"Transfer Request from:"}
+          origin={requesterInfo.origin}
+          faviconUrl={requesterInfo.faviconUrl}
+        />
+      ) : (
+        <Typography variant={"h6"} marginY={"10px"} textAlign={"center"}>
+          {"New Transfer"}
+        </Typography>
+      )}
+      <Stack
+        direction={"row"}
+        alignItems={"center"}
+        justifyContent={"space-between"}
+        mb={"15px"}
+        display={fromAddressStatus ? "none" : "flex"}
+      >
+        <Typography>From type</Typography>
+        <Controller
+          name={"fromType"}
+          control={control}
+          render={({ field }) => (
+            <TextField
+              select
+              size={"small"}
+              placeholder={"Type"}
+              sx={{
+                "& .MuiInputBase-root": {
+                  minHeight: 30,
+                  maxHeight: 30,
+                  height: 30,
+                },
+              }}
+              {...field}
+            >
+              <MenuItem value={"saved_account"}>Saved Account</MenuItem>
+              <MenuItem value={"private_key"}>Private Key</MenuItem>
+            </TextField>
+          )}
+        />
+      </Stack>
+
+      <Typography
+        fontSize={10}
+        color={"gray"}
+        component={"span"}
+        display={
+          fromAddressStatus === "private_key_required" ? "block" : "none"
+        }
+      >
+        Introduce the private key of the following wallet:
+        <br /> <b>{fromAddress || requesterInfo?.fromAddress}</b>.
+      </Typography>
+
+      {fromType === "private_key" ? (
+        <TextField
+          label={"Private Key"}
+          fullWidth
+          size={"small"}
+          {...register("from", {
+            required: "Required",
+            validate: (value, formValues) => {
+              if (formValues.fromType === "private_key") {
+                // todo: when fromAddress presented, the private key should be the private key of fromAddress wallet
+                if (!isPrivateKey(value)) {
+                  return "Invalid Private Key";
+                }
+              }
+              return true;
+            },
+          })}
+          error={!!formState?.errors?.from}
+          helperText={formState?.errors?.from?.message}
+        />
+      ) : (
+        <Controller
+          name={"from"}
+          control={control}
+          rules={{ required: true }}
+          render={({ field, fieldState: { error } }) => (
+            <TextField
+              label={"From"}
+              fullWidth
+              size={"small"}
+              select
+              sx={{
+                "& input": {
+                  fontSize: 14,
+                },
+              }}
+              disabled={!!fromAddressStatus}
+              error={!!error}
+              helperText={error?.message}
+              {...field}
+            >
+              {accounts.map((address) => (
+                <MenuItem key={address} value={address}>
+                  <Typography fontSize={14}> {address}</Typography>
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+        />
+      )}
+      {fromType === "private_key" ? (
+        <AutocompleteAsset control={control} />
+      ) : (
+        <TextField
+          label={"Account Password"}
+          fullWidth
+          size={"small"}
+          type={"password"}
+          {...register("accountPassword", {
+            required: "Required",
+          })}
+          error={!!formState?.errors?.accountPassword}
+          helperText={formState?.errors?.accountPassword?.message}
+        />
+      )}
+
+      <Divider sx={{ width: 1, my: "15px" }} />
+
+      <Controller
+        control={control}
+        name={"amount"}
+        rules={{
+          required: "Required",
+          min: {
+            value: 0.01,
+            message: "Min is 0.01",
+          },
+          max: fromBalance
+            ? {
+                value: fromBalance,
+                message: `Max is ${fromBalance}`,
+              }
+            : undefined,
+        }}
+        render={({ field, fieldState: { error } }) => (
+          <TextField
+            label={"Amount"}
+            fullWidth
+            size={"small"}
+            type={"number"}
+            disabled={!!requesterInfo?.amount}
+            error={!!error?.message}
+            InputLabelProps={{ shrink: !!field.value }}
+            helperText={
+              <AmountHelperText
+                isLoadingBalance={isLoadingBalance}
+                accountBalance={fromBalance}
+                transferFee={assetFee}
+                isLoadingFee={isLoadingFee}
+                onClickAll={onClickAll}
+              />
+            }
+            {...field}
+          />
+        )}
+      />
+
+      <TextField
+        label={"To Address"}
+        fullWidth
+        size={"small"}
+        disabled={!!requesterInfo?.toAddress}
+        {...register("toAddress", {
+          required: "Required",
+          validate: (value) => {
+            if (!isAddress(value)) {
+              return "Invalid Address";
+            }
+
+            return true;
+          },
+        })}
+        error={!!formState?.errors?.toAddress}
+        helperText={formState?.errors?.toAddress?.message}
+      />
+
+      <Stack direction={"row"} spacing={"15px"} marginTop={"15px!important"}>
+        <Button
+          fullWidth
+          variant={"outlined"}
+          sx={{
+            textTransform: "none",
+            fontWeight: 600,
+          }}
+          onClick={onClickCancel}
+        >
+          Cancel
+        </Button>
+        <Button
+          fullWidth
+          variant={"contained"}
+          sx={{
+            textTransform: "none",
+            backgroundColor: "rgb(29, 138, 237)",
+            fontWeight: 600,
+          }}
+          type={"submit"}
+        >
+          Accept
+        </Button>
+      </Stack>
+    </Stack>
+  );
+};
+
+export default Transfer;
