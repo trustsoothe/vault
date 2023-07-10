@@ -13,6 +13,7 @@ export interface SerializedSession extends IEntity {
   invalidatedAt: number
   origin: string
   createdAt: number
+  lastActivity: number
 }
 
 export interface SessionOptions {
@@ -31,6 +32,7 @@ export class Session implements IEntity {
   private _invalidated = false
   private _createdAt: number
   private _invalidatedAt?: number = null
+  private _lastActivity: number = null
 
   constructor(options: SessionOptions = {}, id?: string) {
     if (id && validate(id) === false) {
@@ -49,6 +51,7 @@ export class Session implements IEntity {
     this._permissions = options.permissions
     this._maxAge = options.maxAge ?? 3600
     this._createdAt = Date.now()
+    this._lastActivity = Date.now()
     this._accounts = options.accounts ?? []
     this._origin = options.origin || null
   }
@@ -81,6 +84,10 @@ export class Session implements IEntity {
     return this._invalidatedAt
   }
 
+  get lastActivity(): number {
+    return this._lastActivity
+  }
+
   serialize(): SerializedSession {
     return {
       id: this._id,
@@ -91,6 +98,7 @@ export class Session implements IEntity {
       accounts: this._accounts.map((account) => account.serialize()),
       origin: (this._origin && this._origin.value) ?? '',
       createdAt: this._createdAt,
+      lastActivity: this._lastActivity,
     }
   }
 
@@ -123,6 +131,10 @@ export class Session implements IEntity {
     return this._createdAt + this._maxAge * 1000 > Date.now()
   }
 
+  updateLastActivity(): void {
+    this._lastActivity = Date.now()
+  }
+
   static deserialize(serializedSession: SerializedSession): Session {
     const options: SessionOptions = {
       permissions: serializedSession.permissions,
@@ -134,6 +146,7 @@ export class Session implements IEntity {
     session._createdAt = serializedSession.createdAt
     session._invalidated = serializedSession.invalidated
     session._invalidatedAt = serializedSession.invalidatedAt
+    session._lastActivity = serializedSession.lastActivity
     return session
   }
 }

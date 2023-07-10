@@ -1,6 +1,8 @@
 import sinon from 'sinon'
 import {describe, test, expect, beforeEach, afterEach} from 'vitest'
-import {Session} from "@poktscan/keyring";
+import {PocketNetworkProtocol, Session} from "@poktscan/keyring";
+import {AccountReference} from "@poktscan/keyring/dist/lib/core/common/values/AccountReference";
+import {v4} from "uuid";
 
 describe('session', () => {
   let  clock: sinon.SinonFakeTimers
@@ -80,4 +82,54 @@ describe('session', () => {
       expect(session.isValid()).toBe(false)
     })
   })
+
+  describe('lastActivity', () => {
+    test('defaults to the time of creation', () => {
+      const session = new Session({ permissions: []})
+      expect(session.lastActivity).closeTo(Date.now(), 100)
+    })
+  })
+
+  describe('updateLastActivity', () => {
+    test('updates the lastActivity timestamp', () => {
+      const session = new Session({ permissions: []})
+      const lastActivity = session.lastActivity
+      clock.tick(2000) // Simulate 2 seconds has passed
+      session.updateLastActivity()
+      expect(session.lastActivity).toBeGreaterThan(lastActivity)
+      expect(session.lastActivity).closeTo(Date.now(), 100)
+    })
+
+    test('throws an error timestamp if the session is invalidated', () => {
+      const session = new Session({ permissions: []})
+      session.invalidate()
+      expect(() => session.updateLastActivity()).toThrow('Cannot update lastActivity on invalidated session')
+    })
+  })
+
+  // describe('addAccount', () => {
+  //   test('adds the account to the session permissions', () => {
+  //     const session = new Session({ permissions: []})
+  //
+  //     expect(session.permissions).toEqual([])
+  //
+  //     const account =
+  //       new AccountReference(v4(),'some-shady-account-address', new PocketNetworkProtocol('testnet'));
+  //
+  //     session.addAccount(account)
+  //
+  //     expect(session.permissions).toContain({
+  //       resource: 'account',
+  //       action
+  //     })
+  //   })
+  //
+  //   test('does not mutate the original session', () => {
+  //     const originalSession = new Session({permissions: []})
+  //     const originalSessionFreeze = JSON.stringify(originalSession);
+  //     const newPermissions = [{ blockchain: 'ethereum', networkId: '1', address: '0x123' }]
+  //     originalSession.replacePermissions(newPermissions)
+  //     expect(JSON.stringify(originalSession)).toEqual(originalSessionFreeze)
+  //   })
+  // })
 })
