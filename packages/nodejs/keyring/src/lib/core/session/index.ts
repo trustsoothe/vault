@@ -129,7 +129,7 @@ export class Session implements IEntity {
       return true
     }
 
-    return this._createdAt + this._maxAge * 1000 > Date.now()
+    return this.lastActivity + this.maxAge * 1000 > Date.now()
   }
 
   updateLastActivity(): void {
