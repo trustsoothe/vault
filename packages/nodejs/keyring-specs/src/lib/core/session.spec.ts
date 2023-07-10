@@ -1,9 +1,6 @@
 import sinon from 'sinon'
 import {describe, test, expect, beforeEach, afterEach} from 'vitest'
-import {PocketNetworkProtocol, Session} from "@poktscan/keyring";
-import {AccountReference} from "@poktscan/keyring/dist/lib/core/common/values/AccountReference";
-import {v4} from "uuid";
-
+import {InvalidSessionError, Session} from "@poktscan/keyring";
 describe('session', () => {
   let  clock: sinon.SinonFakeTimers
 
@@ -103,7 +100,7 @@ describe('session', () => {
     test('throws an error timestamp if the session is invalidated', () => {
       const session = new Session({ permissions: []})
       session.invalidate()
-      expect(() => session.updateLastActivity()).toThrow('Cannot update lastActivity on invalidated session')
+      expect(() => session.updateLastActivity()).toThrow(new InvalidSessionError())
     })
   })
 

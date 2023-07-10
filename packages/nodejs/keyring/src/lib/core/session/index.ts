@@ -3,6 +3,7 @@ import {Permission} from "../common/permissions";
 import {AccountReference, SerializedAccountReference} from "../common/values/AccountReference";
 import {OriginReference} from "../common/values";
 import IEntity from "../common/IEntity";
+import {InvalidSessionError} from "../../errors";
 
 export interface SerializedSession extends IEntity {
   id: string
@@ -132,6 +133,10 @@ export class Session implements IEntity {
   }
 
   updateLastActivity(): void {
+    if (!this.isValid()) {
+      throw new InvalidSessionError()
+    }
+
     this._lastActivity = Date.now()
   }
 
