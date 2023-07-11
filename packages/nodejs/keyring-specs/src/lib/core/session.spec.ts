@@ -1,6 +1,12 @@
 import sinon from 'sinon'
 import {describe, test, expect, beforeEach, afterEach} from 'vitest'
-import {InvalidSessionError, Session} from "@poktscan/keyring";
+import {
+  InvalidSessionError,
+  PocketNetworkProtocol,
+  Session,
+  AccountReference,
+  ForbiddenSessionError, PermissionsBuilder
+} from "@poktscan/keyring";
 describe('session', () => {
   let  clock: sinon.SinonFakeTimers
 
@@ -104,29 +110,52 @@ describe('session', () => {
     })
   })
 
-  // describe('addAccount', () => {
-  //   test('adds the account to the session permissions', () => {
-  //     const session = new Session({ permissions: []})
-  //
-  //     expect(session.permissions).toEqual([])
-  //
-  //     const account =
-  //       new AccountReference(v4(),'some-shady-account-address', new PocketNetworkProtocol('testnet'));
-  //
-  //     session.addAccount(account)
-  //
-  //     expect(session.permissions).toContain({
-  //       resource: 'account',
-  //       action
-  //     })
-  //   })
-  //
-  //   test('does not mutate the original session', () => {
-  //     const originalSession = new Session({permissions: []})
-  //     const originalSessionFreeze = JSON.stringify(originalSession);
-  //     const newPermissions = [{ blockchain: 'ethereum', networkId: '1', address: '0x123' }]
-  //     originalSession.replacePermissions(newPermissions)
-  //     expect(JSON.stringify(originalSession)).toEqual(originalSessionFreeze)
-  //   })
-  // })
+  describe('addAccount', () => {
+    const exampleAccountReference: AccountReference
+      = new AccountReference('123', '0x32344', new PocketNetworkProtocol('testnet'))
+
+    const permissions =
+      new PermissionsBuilder()
+        .forResource('account')
+        .allowEverything()
+        .andBuild();
+
+    test('throws unauthorized error if the session is invalidated', () => {
+      const session = new Session({ permissions: []})
+      session.invalidate()
+      expect(() => session.addAccount(exampleAccountReference)).toThrow(new InvalidSessionError())
+    })
+
+    test('throws unauthorized error if the session does not have account:create permissions', () => {
+      const session = new Session({ permissions: []})
+      expect(() => session.addAccount(exampleAccountReference)).toThrow(new ForbiddenSessionError())
+    })
+
+    test('when the session has account:create permissions, adds the account to the list of permission resources', () => {
+      const session = new Session({ permissions })
+
+      expect(session.permissions).toEqual(permissions)
+
+      session.addAccount(exampleAccountReference)
+
+      const permissionsWithAccount =
+        new PermissionsBuilder()
+          .forResource('account')
+          .allowEverything()
+          .on(exampleAccountReference.id)
+          .build();
+
+      expect(permissionsWithAccount).toEqual(session.permissions)
+    })
+
+    test('when the session has account:create permissions, adds the account to the list of accounts', () => {
+      const session = new Session({ permissions })
+
+      expect(session.accounts).toEqual([])
+
+      session.addAccount(exampleAccountReference)
+
+      expect([exampleAccountReference]).toEqual(session.accounts)
+    })
+  })
 })

@@ -60,4 +60,8 @@ export class Vault implements IEntity {
     const accounts = serializedVault.accounts.map(Account.deserialize)
     return new Vault(serializedVault.id, accounts, serializedVault.createdAt, serializedVault.updatedAt)
   }
+
+  addAccount(account: Account) {
+    this._accounts.push(account);
+  }
 }

@@ -1,9 +1,8 @@
 import {v4, validate} from "uuid";
 import {Permission} from "../common/permissions";
-import {AccountReference, SerializedAccountReference} from "../common/values/AccountReference";
-import {OriginReference} from "../common/values";
+import {OriginReference, AccountReference, SerializedAccountReference} from "../common/values";
 import IEntity from "../common/IEntity";
-import {InvalidSessionError} from "../../errors";
+import {ForbiddenSessionError, InvalidSessionError} from "../../errors";
 
 export interface SerializedSession extends IEntity {
   id: string
@@ -26,7 +25,7 @@ export interface SessionOptions {
 
 export class Session implements IEntity {
   private readonly _id: string
-  private readonly _permissions: Permission[]
+  private _permissions: Permission[]
   private readonly _maxAge: number
   private readonly _accounts: AccountReference[] = []
   private readonly _origin: OriginReference
@@ -138,6 +137,29 @@ export class Session implements IEntity {
     }
 
     this._lastActivity = Date.now()
+  }
+
+  addAccount(account: AccountReference): void {
+    if (!this.isValid()) {
+      throw new InvalidSessionError()
+    }
+
+    if (!this.isAllowed('account', 'create', [])) {
+      throw new ForbiddenSessionError();
+    }
+
+    this._permissions = this.permissions.map((permission) => {
+      if (permission.resource === 'account') {
+        return {
+          ...permission,
+          identities: [...permission.identities, account.id]
+        }
+      }
+
+      return permission
+    });
+
+    this._accounts.push(account)
   }
 
   static deserialize(serializedSession: SerializedSession): Session {
