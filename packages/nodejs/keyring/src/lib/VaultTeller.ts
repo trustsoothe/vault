@@ -163,10 +163,6 @@ export class VaultTeller {
     action: string,
     ids: string[] = []
   ): Promise<void> {
-    if (!this.isUnlocked) {
-      throw new VaultIsLockedError();
-    }
-
     if (!sessionId) {
       throw new SessionIdRequiredError();
     }

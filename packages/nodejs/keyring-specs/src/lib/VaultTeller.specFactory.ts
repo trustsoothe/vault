@@ -337,13 +337,6 @@ export default <
   })
 
   describe('listSessions', () => {
-    test('throws "Invalid Operation" error if the vault is locked', async () => {
-      vaultStore = createVaultStore()
-      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
-      const listSessionsOperation = vaultTeller.listSessions(null)
-      await expect(listSessionsOperation).rejects.toThrow('Invalid Operation: Vault is locked')
-    });
-
     test('throws "Unauthorized" error if the session id is not provided', async () => {
       vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
@@ -396,13 +389,6 @@ export default <
   })
 
   describe('revokeSession', () => {
-    test('throws "Invalid Operation" error if the vault is locked', async () => {
-      vaultStore = createVaultStore()
-      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
-      const listSessionsOperation = vaultTeller.revokeSession(null, null)
-      await expect(listSessionsOperation).rejects.toThrow('Invalid Operation: Vault is locked')
-    });
-
     test('throws "Unauthorized" error if the session id is not provided', async () => {
       vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
