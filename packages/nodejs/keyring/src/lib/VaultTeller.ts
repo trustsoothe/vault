@@ -1,7 +1,7 @@
 import {
   Passphrase,
   EncryptedVault,
-  ExternalAccessRequest,
+  ExternalAccessRequest, AccountReference,
 } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
 import IEncryptionService from "./core/common/encryption/IEncryptionService";
@@ -117,7 +117,7 @@ export class VaultTeller {
     return serializedSessions.map(Session.deserialize);
   }
 
-  async createAccount(sessionId: string, asset: Asset, accountPassphrase: Passphrase, vaultPassphrase: Passphrase): Promise<void> {
+  async createAccount(sessionId: string, asset: Asset, accountPassphrase: Passphrase, vaultPassphrase: Passphrase): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "create");
 
     const protocolService=
@@ -131,6 +131,8 @@ export class VaultTeller {
     await this.addVaultAccount(account, vaultPassphrase);
 
     await this.updateSessionLastActivity(sessionId);
+
+    return account.asAccountReference();
   }
 
   async listAccounts(sessionId: string) {
