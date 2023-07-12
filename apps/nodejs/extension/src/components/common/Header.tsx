@@ -15,11 +15,9 @@ import {
   SESSIONS_PAGE,
   TRANSFER_PAGE,
 } from "../../constants/routes";
-import { useAppDispatch } from "../../hooks/redux";
-import { lockVault } from "../../redux/slices/vault";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
 const Header: React.FC = () => {
-  const dispatch = useAppDispatch();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = !!anchorEl;
 
@@ -32,9 +30,9 @@ const Header: React.FC = () => {
   }, []);
 
   const onClickLock = useCallback(() => {
-    dispatch(lockVault());
+    AppToBackground.lockVault();
     closeMenu();
-  }, [closeMenu, dispatch]);
+  }, [closeMenu]);
 
   return (
     <Stack flexGrow={1} height={510 - 15 - 20}>

@@ -6,9 +6,9 @@ import {
 } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
 import {IEncryptionService} from "./core/common/encryption/IEncryptionService";
-import {Account, AccountUpdateOptions, Vault} from "./core/vault";
+import { Account, AccountUpdateOptions,Vault } from "./core/vault";
 import { SerializedSession, Session, SessionOptions } from "./core/session";
-import {Permission, PermissionsBuilder} from "./core/common/permissions";
+import { Permission,PermissionsBuilder } from "./core/common/permissions";
 import IStorage from "./core/common/storage/IStorage";
 import {
   AccountNotFoundError, ArgumentError,

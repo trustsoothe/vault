@@ -1,5 +1,6 @@
 // Controller to manage the communication between the webpages and the content script
 import browser from "webextension-polyfill";
+import { z, ZodError } from "zod";
 import { Permission } from "@poktscan/keyring";
 import {
   CHECK_CONNECTION_REQUEST,
@@ -14,8 +15,11 @@ import {
 } from "../../constants/communication";
 import {
   AmountNotPresented,
+  AmountNotValid,
   ForbiddenSession,
   FromAddressNotPresented,
+  FromAddressNotValid,
+  InvalidBody,
   InvalidSession,
   NotConnected,
   OriginNotPresented,
@@ -24,7 +28,9 @@ import {
   RequestTransferExists,
   SessionIdNotPresented,
   ToAddressNotPresented,
+  ToAddressNotValid,
 } from "../../errors/communication";
+import { isHex } from "../../utils";
 
 const id = "ihemdpidnelcmpnndlfkhkebmbgjnehb";
 
@@ -119,11 +125,7 @@ interface NewAccountRequest extends BaseBrowserRequest {
 
 interface TransferRequest extends BaseBrowserRequest {
   type: typeof TRANSFER_REQUEST;
-  data: {
-    fromAddress: string;
-    toAddress: string;
-    amount: number;
-  };
+  data: z.infer<typeof TransferRequestBody>;
 }
 
 type BrowserRequest =
@@ -131,6 +133,18 @@ type BrowserRequest =
   | CheckConnectionRequest
   | NewAccountRequest
   | TransferRequest;
+
+const TransferRequestBody = z.object({
+  toAddress: z
+    .string()
+    .length(40)
+    .refine(isHex, "toAddress is not a valid address"),
+  fromAddress: z
+    .string()
+    .length(40)
+    .refine(isHex, "fromAddress is not a valid address"),
+  amount: z.number().min(0.01),
+});
 
 class ProxyCommunicationController {
   private _session: Session | null = null;
@@ -369,7 +383,7 @@ class ProxyCommunicationController {
 
   private async _sendTransferRequest(data: TransferRequest["data"]) {
     if (this._session) {
-      const { fromAddress, toAddress, amount } = data || {};
+      let { fromAddress, toAddress, amount } = data || {};
 
       if (!fromAddress) {
         return this._sendTransferResponse(true, null, FromAddressNotPresented);
@@ -381,6 +395,28 @@ class ProxyCommunicationController {
 
       if (!amount) {
         return this._sendTransferResponse(true, null, AmountNotPresented);
+      }
+
+      try {
+        TransferRequestBody.parse(data);
+      } catch (e) {
+        const zodError: ZodError = e;
+        const path = zodError?.issues?.[0]?.path?.[0];
+
+        switch (path) {
+          case "toAddress": {
+            return this._sendTransferResponse(true, null, ToAddressNotValid);
+          }
+          case "fromAddress": {
+            return this._sendTransferResponse(true, null, FromAddressNotValid);
+          }
+          case "amount": {
+            return this._sendTransferResponse(true, null, AmountNotValid);
+          }
+          default: {
+            return this._sendTransferResponse(true, null, InvalidBody);
+          }
+        }
       }
 
       const response = await browser.runtime.sendMessage({

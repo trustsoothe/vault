@@ -7,15 +7,11 @@ import {
   AutocompleteRenderOptionState,
   FilterOptionsState,
 } from "@mui/material";
-import { SerializedAsset, SupportedProtocols } from "@poktscan/keyring";
+import { SerializedAsset } from "@poktscan/keyring";
 import TextField from "@mui/material/TextField";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-
-const labelByProtocol: Record<SupportedProtocols, string> = {
-  [SupportedProtocols.POCKET_NETWORK]: "Pocket Network",
-  [SupportedProtocols.UNKNOWN]: "Unknown",
-};
+import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 
 interface AutocompleteAssetProps {
   assets: RootState["vault"]["entities"]["assets"]["list"];
@@ -38,7 +34,7 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
       if (!value) return options;
 
       return options.filter(
-        ({ name, symbol, network: { protocol, chainId } }) => {
+        ({ name, symbol, protocol: { name: protocolName, chainID } }) => {
           if (symbol.toLowerCase().includes(value)) {
             return true;
           }
@@ -47,11 +43,11 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
             return true;
           }
 
-          if (protocol.toLowerCase().includes(value)) {
+          if (labelByProtocolMap[protocolName].toLowerCase().includes(value)) {
             return true;
           }
 
-          if (chainId.toLowerCase().includes(value)) {
+          if (chainID.toLowerCase().includes(value)) {
             return true;
           }
 
@@ -94,11 +90,11 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
           </Typography>
           <Stack direction={"row"} spacing={"5px"} alignItems={"center"}>
             <Typography fontSize={12}>
-              Protocol: {labelByProtocol[asset.network.protocol]}
+              Protocol: {labelByProtocolMap[asset.protocol.name]}
             </Typography>
             <Typography fontSize={12}>-</Typography>
             <Typography fontSize={12}>
-              ChainID: {asset.network.chainId}
+              ChainID: {labelByChainID[asset.protocol.chainID]}
             </Typography>
           </Stack>
         </Stack>

@@ -9,9 +9,17 @@ import {
   ANSWER_TRANSFER_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  INITIALIZE_VAULT_REQUEST,
+  INITIALIZE_VAULT_RESPONSE,
+  LOCK_VAULT_REQUEST,
+  LOCK_VAULT_RESPONSE,
   NEW_ACCOUNT_RESPONSE,
+  REVOKE_SESSION_REQUEST,
+  REVOKE_SESSION_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
+  UNLOCK_VAULT_REQUEST,
+  UNLOCK_VAULT_RESPONSE,
 } from "../../constants/communication";
 import {
   ConnectionRequest,
@@ -28,7 +36,13 @@ import {
   SerializedAsset,
   SerializedSession,
 } from "@poktscan/keyring";
-import { authorizeExternalSession } from "../../redux/slices/vault";
+import {
+  authorizeExternalSession,
+  initVault,
+  lockVault,
+  revokeSession,
+  unlockVault,
+} from "../../redux/slices/vault";
 import MessageSender = Runtime.MessageSender;
 
 export interface AnswerConnectionRequest {
@@ -72,10 +86,37 @@ export interface AnswerTransferRequest {
   };
 }
 
+export interface VaultRequestWithPass<T extends string> {
+  type: T;
+  data: {
+    password;
+  };
+}
+
+type InitializeVaultRequest = VaultRequestWithPass<
+  typeof INITIALIZE_VAULT_REQUEST
+>;
+type UnlockVaultRequest = VaultRequestWithPass<typeof UNLOCK_VAULT_REQUEST>;
+
+interface LockVaultMessage {
+  type: typeof LOCK_VAULT_REQUEST;
+}
+
+interface RevokeSessionMessage {
+  type: typeof REVOKE_SESSION_REQUEST;
+  data: {
+    sessionId: string;
+  };
+}
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
-  | AnswerTransferRequest;
+  | AnswerTransferRequest
+  | InitializeVaultRequest
+  | UnlockVaultRequest
+  | LockVaultMessage
+  | RevokeSessionMessage;
 
 // Controller to manage the communication between extension views and the background
 class InternalCommunicationController {
@@ -143,6 +184,68 @@ class InternalCommunicationController {
     if (message?.type === ANSWER_TRANSFER_REQUEST) {
       return this._answerTransferAccount(message);
     }
+
+    if (message?.type === INITIALIZE_VAULT_REQUEST) {
+      return this._handleInitializeVault(message.data.password);
+    }
+
+    if (message?.type === UNLOCK_VAULT_REQUEST) {
+      return this._handleUnlockVault(message.data.password);
+    }
+
+    if (message?.type === LOCK_VAULT_REQUEST) {
+      return this._handleLockVault();
+    }
+
+    if (message?.type === REVOKE_SESSION_REQUEST) {
+      return this._handleRevokeSession(message.data.sessionId);
+    }
+  }
+
+  private async _handleInitializeVault(password: string) {
+    await store.dispatch(initVault(password));
+
+    return {
+      type: INITIALIZE_VAULT_RESPONSE,
+      data: {
+        answered: true,
+      },
+    };
+  }
+
+  private async _handleUnlockVault(password: string) {
+    const result = await store.dispatch(unlockVault(password));
+    const isPasswordWrong = result && "error" in result;
+
+    return {
+      type: UNLOCK_VAULT_RESPONSE,
+      data: {
+        answered: true,
+        isPasswordWrong,
+      },
+    };
+  }
+
+  private async _handleLockVault() {
+    await store.dispatch(lockVault());
+
+    return {
+      type: LOCK_VAULT_RESPONSE,
+      data: {
+        answered: true,
+      },
+    };
+  }
+
+  private async _handleRevokeSession(sessionId: string) {
+    await store.dispatch(revokeSession(sessionId));
+
+    return {
+      type: REVOKE_SESSION_RESPONSE,
+      data: {
+        answered: true,
+      },
+    };
   }
 
   private async _answerConnectionRequest(message: AnswerConnectionRequest) {

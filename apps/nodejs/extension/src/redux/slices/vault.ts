@@ -7,15 +7,12 @@ import type {
 } from "@poktscan/keyring";
 import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import {
-  AssetStorage,
-  DefaultAsset,
-  getVault,
-  NetworkStorage,
-} from "../../utils";
+import { AssetStorage, getVault, NetworkStorage } from "../../utils";
 import { RootState } from "../store";
 import { Asset, ExternalAccessRequest, Network } from "@poktscan/keyring";
+import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 
+const webEncryptionService = new WebEncryptionService();
 const ExtensionVaultInstance = getVault();
 
 type InitializeStatus = "loading" | "exists" | "none";
@@ -47,16 +44,24 @@ export const unlockVault = createAsyncThunk(
   async (password: string) => {
     const session = await ExtensionVaultInstance.unlockVault(password);
 
+    // const passwordEncrypted = await webEncryptionService.encrypt(
+    //   session.id,
+    //   password
+    // );
+
     const [sessions, networks, assets] = await Promise.all([
       ExtensionVaultInstance.listSessions(session.id),
       NetworkStorage.list(),
       AssetStorage.list(),
+      // browser.storage.local.set({ [session.id]: passwordEncrypted }),
     ]);
 
     return {
       session: session.serialize(),
       entities: {
-        sessions: sessions.map((item) => item.serialize()),
+        sessions: sessions
+          .filter((item) => item.isValid())
+          .map((item) => item.serialize()),
         networks: networks.concat(),
         assets: assets.concat(),
       },
@@ -211,7 +216,7 @@ const vaultSlice = createSlice({
 
       state.entities.sessions.list = sessions;
       state.entities.networks.list = networks;
-      state.entities.assets.list = [...assets, DefaultAsset.serialize()];
+      state.entities.assets.list = [...assets];
     });
 
     builder.addCase(initVault.fulfilled, (state) => {

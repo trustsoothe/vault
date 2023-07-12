@@ -6,8 +6,7 @@ import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { useAppDispatch } from "../../hooks/redux";
-import { revokeSession as revokeSessionThunk } from "../../redux/slices/vault";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface SessionDetailProps {
   session: Session;
@@ -15,10 +14,9 @@ interface SessionDetailProps {
 }
 
 const SessionDetail: React.FC<SessionDetailProps> = ({ session, onClose }) => {
-  const dispatch = useAppDispatch();
   const revokeSession = useCallback(() => {
-    dispatch(revokeSessionThunk(session.id)).then(() => onClose());
-  }, [session, dispatch, onClose]);
+    AppToBackground.revokeSession(session.id).then(() => onClose());
+  }, [session, onClose]);
 
   return (
     <Stack

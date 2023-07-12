@@ -3,15 +3,12 @@ import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import { useAppDispatch } from "../hooks/redux";
-import { unlockVault } from "../redux/slices/vault";
+import AppToBackground from "../controllers/communication/AppToBackground";
 
 const UnlockVault: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [wrongPassword, setWrongPassword] = useState(false);
-
-  const dispatch = useAppDispatch();
 
   const toggleShowPassword = useCallback(() => {
     setShowPassword((prevState) => !prevState);
@@ -29,13 +26,13 @@ const UnlockVault: React.FC = () => {
 
   const onClickUnlock = useCallback(() => {
     if (password) {
-      dispatch(unlockVault(password)).then((response) => {
-        if (response && "error" in response) {
+      AppToBackground.unlockVault(password).then((response) => {
+        if (response?.data?.isPasswordWrong) {
           setWrongPassword(true);
         }
       });
     }
-  }, [password, dispatch]);
+  }, [password]);
 
   return (
     <Stack flexGrow={1}>

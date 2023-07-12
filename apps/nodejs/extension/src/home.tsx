@@ -23,6 +23,7 @@ import {
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
+  REQUEST_CONNECTION_PAGE,
   SESSIONS_PAGE,
   TRANSFER_PAGE,
 } from "./constants/routes";
@@ -34,7 +35,6 @@ import Transfer from "./components/Transfer";
 const store = new Store();
 const storeWithMiddleware = applyMiddleware(store, thunkMiddleware);
 
-//todo: home page when vault unlocked
 const router = createHashRouter([
   {
     path: "",
@@ -55,6 +55,35 @@ const router = createHashRouter([
       {
         path: ASSETS_PAGE,
         element: <AssetList />,
+      },
+      {
+        path: CREATE_ACCOUNT_PAGE,
+        element: <CreateNewAccount />,
+      },
+      {
+        path: IMPORT_ACCOUNT_PAGE,
+        element: <ImportAccount />,
+      },
+      {
+        path: TRANSFER_PAGE,
+        element: <Transfer />,
+      },
+    ],
+  },
+]);
+
+const requestRouter = createHashRouter([
+  {
+    path: "",
+    element: <RequestHandler />,
+    children: [
+      {
+        path: "",
+        element: <CircularLoading />,
+      },
+      {
+        path: REQUEST_CONNECTION_PAGE,
+        element: <Request />,
       },
       {
         path: CREATE_ACCOUNT_PAGE,
@@ -106,7 +135,11 @@ const Home: React.FC<HomeProps> = ({
 
     if (vaultSession) {
       if (view === "session-request") {
-        return <RequestHandler />;
+        return (
+          <Stack flexGrow={1}>
+            <RouterProvider router={requestRouter} />
+          </Stack>
+        );
       }
       return (
         <Stack flexGrow={1}>

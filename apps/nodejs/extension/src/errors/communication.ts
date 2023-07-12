@@ -30,8 +30,32 @@ export const ToAddressNotPresented: Readonly<DefaultError> = Object.freeze({
 
 export const AmountNotPresented: Readonly<DefaultError> = Object.freeze({
   name: "AMOUNT_ADDRESS_NOT_PRESENTED",
-  code: 4,
+  code: 5,
   message: "amount was not presented in the payload.",
+});
+
+export const FromAddressNotValid: Readonly<DefaultError> = Object.freeze({
+  name: "FROM_ADDRESS_NOT_VALID",
+  code: 7,
+  message: "fromAddress is not valid.",
+});
+
+export const ToAddressNotValid: Readonly<DefaultError> = Object.freeze({
+  name: "TO_ADDRESS_NOT_VALID",
+  code: 8,
+  message: "toAddress is not valid.",
+});
+
+export const AmountNotValid: Readonly<DefaultError> = Object.freeze({
+  name: "AMOUNT_ADDRESS_NOT_VALID",
+  code: 9,
+  message: "amount is not valid.",
+});
+
+export const InvalidBody: Readonly<DefaultError> = Object.freeze({
+  name: "INVALID_BODY",
+  code: 6,
+  message: "The data passed is not valid.",
 });
 
 export const SessionIdNotPresented: Readonly<DefaultError> = Object.freeze({

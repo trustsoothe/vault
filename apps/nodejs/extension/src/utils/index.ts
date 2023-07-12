@@ -1,9 +1,4 @@
-import {
-  Asset,
-  Network,
-  SupportedProtocols,
-  VaultTeller,
-} from "@poktscan/keyring";
+import { VaultTeller } from "@poktscan/keyring";
 import {
   ExtensionSessionStorage,
   ExtensionVaultStorage,
@@ -12,7 +7,6 @@ import {
 } from "@poktscan/keyring-storage-extension";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 
-console.log("recreating ExtensionVaultInstance");
 let extensionVaultInstance: VaultTeller;
 
 export const getVault = (): VaultTeller => {
@@ -27,25 +21,12 @@ export const getVault = (): VaultTeller => {
   ));
 };
 
-export const ExtensionVaultInstance = new VaultTeller(
-  new ExtensionVaultStorage(),
-  new ExtensionSessionStorage(),
-  new WebEncryptionService()
-);
-
 export const AssetStorage = new ExtensionAssetStorage();
 
 export const NetworkStorage = new ExtensionNetworkStorage();
 
-export const DefaultNetwork = new Network({
-  name: "Pocket Mainnet",
-  rpcUrl: "http://pokt.network.com/rpc",
-  chainId: "mainnet",
-  protocol: SupportedProtocols.POCKET_NETWORK,
-});
+export const isHex = (str: string) => {
+  return str.match(/^[0-9a-fA-F]+$/g);
+};
 
-export const DefaultAsset = new Asset({
-  name: "POKT Token",
-  symbol: "POKT",
-  network: DefaultNetwork,
-});
+export const byteLength = (str: string) => new Blob([str]).size;

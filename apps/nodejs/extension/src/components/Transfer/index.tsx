@@ -9,17 +9,11 @@ import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
-import { DefaultAsset } from "../../utils";
 import RequestFrom from "../common/RequestFrom";
 import AmountHelperText from "./AmountHelperText";
 import CircularLoading from "../common/CircularLoading";
 import AutocompleteAsset from "../Account/AutocompleteAsset";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-
-interface TransferProps {
-  requesterInfo?: TransferRequest;
-  fromAddress?: string;
-}
 
 interface FormValues {
   fromType: "saved_account" | "private_key";
@@ -51,10 +45,11 @@ const mockAccounts = [
   "17fea60985c0a37b46adc8cadec5c1d70a78db94",
 ];
 
-const Transfer: React.FC<TransferProps> = ({ requesterInfo }) => {
-  const navigate = requesterInfo ? null : useNavigate();
-  const location = requesterInfo ? null : useLocation();
-  const [searchParams] = requesterInfo ? [null] : useSearchParams();
+const Transfer: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const requesterInfo: TransferRequest = location.state;
+  const [searchParams] = useSearchParams();
 
   const [accounts] = useState(mockAccounts);
   const [status, setStatus] = useState<
@@ -139,7 +134,7 @@ const Transfer: React.FC<TransferProps> = ({ requesterInfo }) => {
   useEffect(() => {
     if (isAddress(from)) {
       if (accounts.includes(from)) {
-        setValue("asset", DefaultAsset.serialize());
+        setValue("asset", null);
       }
     }
   }, [from]);

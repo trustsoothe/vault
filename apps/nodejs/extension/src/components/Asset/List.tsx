@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { DefaultAsset } from "../../utils";
+import React, { useCallback, useMemo, useState } from "react";
 import { SerializedAsset } from "@poktscan/keyring";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -7,12 +6,11 @@ import { Divider, IconButton } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import AddUpdateAsset from "./AddUpdate";
 import RemoveAsset from "./Remove";
 import { RootState } from "../../redux/store";
 import { connect } from "react-redux";
-import { useAppDispatch } from "../../hooks/redux";
+import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 
 interface AssetItemProps {
   asset: SerializedAsset;
@@ -35,10 +33,10 @@ const AssetItem: React.FC<AssetItemProps> = ({
         </Stack>
         <Stack direction={"row"} alignItems={"center"} spacing={"10px"}>
           <Typography fontSize={12}>
-            Protocol: {asset.network.protocol}
+            Protocol: {labelByProtocolMap[asset.protocol.name]}
           </Typography>
           <Typography fontSize={12}>
-            ChainID: {asset.network.chainId}
+            ChainID: {labelByChainID[asset.protocol.chainID]}
           </Typography>
         </Stack>
       </Stack>

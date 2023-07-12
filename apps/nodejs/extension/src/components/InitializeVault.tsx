@@ -5,8 +5,7 @@ import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import { initVault } from "../redux/slices/vault";
-import { useAppDispatch } from "../hooks/redux";
+import AppToBackground from "../controllers/communication/AppToBackground";
 
 interface FormValues {
   password: string;
@@ -25,19 +24,15 @@ const InitializeVault: React.FC = () => {
       confirmPassword: "",
     },
   });
-  const dispatch = useAppDispatch();
   const [showPasswords, setShowPasswords] = useState(false);
 
   const toggleShowPasswords = useCallback(() => {
     setShowPasswords((prevState) => !prevState);
   }, []);
 
-  const onSubmit = useCallback(
-    (data: FormValues) => {
-      dispatch(initVault(data.password));
-    },
-    [dispatch]
-  );
+  const onSubmit = useCallback((data: FormValues) => {
+    AppToBackground.initializeVault(data.password);
+  }, []);
 
   return (
     <Stack

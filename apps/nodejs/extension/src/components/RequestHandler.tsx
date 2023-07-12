@@ -7,9 +7,12 @@ import {
   NEW_ACCOUNT_REQUEST,
   TRANSFER_REQUEST,
 } from "../constants/communication";
-import Request from "./Session/Request";
-import CreateNew from "./Account/CreateNew";
-import Transfer from "./Transfer";
+import { Outlet, useNavigate } from "react-router-dom";
+import {
+  CREATE_ACCOUNT_PAGE,
+  REQUEST_CONNECTION_PAGE,
+  TRANSFER_PAGE,
+} from "../constants/routes";
 
 interface RequestHandlerProps {
   externalRequests: RootState["app"]["externalRequests"];
@@ -24,22 +27,28 @@ const RequestHandler: React.FC<RequestHandlerProps> = ({
       .then((window) => browser.windows.remove(window.id));
   }, []);
 
-  const updateBadgeText = useCallback(() => {
-    const length = externalRequests.length;
-    const badgeText = length - 1 ? `${length - 1}` : "";
-
-    browser.action
-      .setBadgeText({
-        text: badgeText,
-      })
-      .catch();
-  }, [externalRequests]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!externalRequests.length) {
       closeCurrentWindow();
     } else {
-      // updateBadgeText();
+      const currentRequest = externalRequests[0];
+
+      switch (currentRequest.type) {
+        case CONNECTION_REQUEST_MESSAGE: {
+          navigate(REQUEST_CONNECTION_PAGE, { state: currentRequest });
+          break;
+        }
+        case NEW_ACCOUNT_REQUEST: {
+          navigate(CREATE_ACCOUNT_PAGE, { state: currentRequest });
+          break;
+        }
+        case TRANSFER_REQUEST: {
+          navigate(TRANSFER_PAGE, { state: currentRequest });
+          break;
+        }
+      }
     }
   }, [externalRequests.length]);
 
@@ -55,19 +64,7 @@ const RequestHandler: React.FC<RequestHandlerProps> = ({
     return null;
   }
 
-  switch (currentRequest.type) {
-    case CONNECTION_REQUEST_MESSAGE: {
-      return <Request currentRequest={currentRequest} />;
-    }
-    case NEW_ACCOUNT_REQUEST: {
-      return <CreateNew currentRequest={currentRequest} />;
-    }
-    case TRANSFER_REQUEST: {
-      return <Transfer requesterInfo={currentRequest} />;
-    }
-    default:
-      return null;
-  }
+  return <Outlet />;
 };
 
 const mapStateToProps = (state: RootState) => {

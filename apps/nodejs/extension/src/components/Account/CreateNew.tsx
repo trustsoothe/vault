@@ -13,10 +13,6 @@ import { NewAccountRequest } from "../../redux/slices/app";
 import { useAppDispatch } from "../../hooks/redux";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
-interface CreateNewAccountProps {
-  currentRequest?: NewAccountRequest;
-}
-
 interface FormValues {
   account_name: string;
   password: string;
@@ -25,12 +21,11 @@ interface FormValues {
 
 type FormStatus = "normal" | "loading" | "error" | "submitted";
 
-const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
-  currentRequest,
-}) => {
+const CreateNewAccount: React.FC = ({}) => {
   const dispatch = useAppDispatch();
-  const navigate = currentRequest ? null : useNavigate();
-  const location = currentRequest ? null : useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentRequest: NewAccountRequest = location?.state;
 
   const { register, formState, handleSubmit, getValues, control } =
     useForm<FormValues>({
@@ -45,7 +40,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
 
   const onClickCancel = useCallback(async () => {
     if (currentRequest) {
-      await AppToBackground.sendRequestToAnswerNewAccount({
+      await AppToBackground.answerNewAccount({
         rejected: true,
         accountData: null,
         request: currentRequest || null,
@@ -63,7 +58,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
     async (data: FormValues) => {
       setStatus("loading");
       try {
-        await AppToBackground.sendRequestToAnswerNewAccount({
+        await AppToBackground.answerNewAccount({
           rejected: false,
           accountData: {
             name: data.account_name,

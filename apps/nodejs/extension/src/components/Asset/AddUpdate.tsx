@@ -1,11 +1,16 @@
+import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import Stack from "@mui/material/Stack";
 import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
-import { SerializedAsset, Network, SerializedNetwork } from "@poktscan/keyring";
-import { DefaultNetwork } from "../../utils";
+import {
+  Network,
+  SerializedAsset,
+  SerializedNetwork,
+  SupportedProtocols,
+} from "@poktscan/keyring";
 import CircularLoading from "../common/CircularLoading";
 import Button from "@mui/material/Button";
 import { RootState } from "../../redux/store";
@@ -15,14 +20,16 @@ import { saveAsset } from "../../redux/slices/vault";
 
 interface FormValues {
   name: string;
-  networkId: string;
+  protocol: SupportedProtocols;
+  chainId: ChainID<SupportedProtocols>;
   symbol: string;
 }
 
 const defaultFormValues: FormValues = {
   name: "",
   symbol: "",
-  networkId: DefaultNetwork.id,
+  protocol: SupportedProtocols.Pocket,
+  chainId: "mainnet",
 };
 
 interface AddUpdateAssetProps {
@@ -53,16 +60,14 @@ const AddUpdateAsset: React.FC<AddUpdateAssetProps> = ({
       ...(assetToUpdate && {
         name: assetToUpdate.name,
         symbol: assetToUpdate.symbol,
-        networkId: assetToUpdate.network.id,
+        protocol: assetToUpdate.protocol.name,
+        chainID: assetToUpdate.protocol.chainID,
       }),
     });
   }, [assetToUpdate]);
 
   const allNetworks: Network[] = useMemo(() => {
-    return [
-      DefaultNetwork,
-      ...customNetworks.map((item) => Network.deserialize(item)),
-    ];
+    return [...customNetworks.map((item) => Network.deserialize(item))];
   }, [customNetworks]);
 
   const onSubmit = useCallback(
@@ -75,14 +80,16 @@ const AddUpdateAsset: React.FC<AddUpdateAssetProps> = ({
         id = assetToUpdate.id;
       }
 
-      const network = allNetworks.find((net) => net.id === data.networkId);
-
       const options = {
         name: data.name,
         symbol: data.symbol,
-        network,
+        protocol: {
+          name: data.protocol,
+          chainID: data.chainId,
+        },
       };
 
+      // @ts-ignore
       dispatch(saveAsset({ options, id }))
         .unwrap()
         .then(() => {
@@ -177,7 +184,7 @@ const AddUpdateAsset: React.FC<AddUpdateAssetProps> = ({
             helperText={errors?.name?.message}
           />
           <Controller
-            name={"networkId"}
+            name={"protocol"}
             control={control}
             rules={{ required: "Required" }}
             render={({ field, fieldState: { error } }) => (
@@ -190,9 +197,9 @@ const AddUpdateAsset: React.FC<AddUpdateAssetProps> = ({
                 error={!!error}
                 helperText={error?.message}
               >
-                {allNetworks.map(({ name, id }) => (
-                  <MenuItem key={id} value={id}>
-                    {name}
+                {Object.values(SupportedProtocols).map((protocol) => (
+                  <MenuItem key={protocol} value={protocol}>
+                    {protocol}
                   </MenuItem>
                 ))}
               </TextField>

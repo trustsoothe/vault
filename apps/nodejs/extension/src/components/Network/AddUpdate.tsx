@@ -13,28 +13,34 @@ import CircularLoading from "../common/CircularLoading";
 import Button from "@mui/material/Button";
 import { useAppDispatch } from "../../hooks/redux";
 import { saveNetwork } from "../../redux/slices/vault";
+import {
+  chainIDsByProtocol,
+  labelByProtocolMap,
+} from "../../constants/protocols";
+import { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
 
-const defaultFormValues: NetworkOptions = {
+interface FormValues {
+  name: string;
+  rpcUrl: string;
+  protocol: {
+    name: SupportedProtocols;
+    chainID: ChainID<SupportedProtocols> | "";
+  };
+}
+
+const defaultFormValues: FormValues = {
   name: "",
-  chainId: "",
   rpcUrl: "",
-  protocol: SupportedProtocols.POCKET_NETWORK,
-};
-
-const supportedChainIdsByProtocol: Record<SupportedProtocols, string[]> = {
-  [SupportedProtocols.POCKET_NETWORK]: ["mainnet", "testnet"],
-  [SupportedProtocols.UNKNOWN]: [],
-};
-
-const labelByProtocol: Record<SupportedProtocols, string> = {
-  [SupportedProtocols.POCKET_NETWORK]: "Pocket Network",
-  [SupportedProtocols.UNKNOWN]: "Unknown",
+  protocol: {
+    name: SupportedProtocols.Pocket,
+    chainID: "mainnet",
+  },
 };
 
 const protocols: { protocol: SupportedProtocols; label: string }[] =
   Object.values(SupportedProtocols).map((protocol) => ({
     protocol,
-    label: labelByProtocol[protocol],
+    label: labelByProtocolMap[protocol],
   }));
 
 interface AddUpdateNetworkProps {
@@ -51,27 +57,26 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
     "normal" | "loading" | "saved" | "error"
   >("normal");
   const { register, handleSubmit, formState, control, reset, watch, setValue } =
-    useForm<NetworkOptions>({
+    useForm<FormValues>({
       defaultValues: { ...defaultFormValues },
     });
 
-  const selectedProtocol = watch("protocol");
+  const selectedProtocol = watch("protocol.name");
+
+  useEffect(() => {
+    setValue("protocol.chainID", "");
+  }, [selectedProtocol]);
 
   useEffect(() => {
     reset({
       ...defaultFormValues,
       ...(networkToUpdate && {
         name: networkToUpdate.name,
-        chainId: networkToUpdate.chainId,
         rpcUrl: networkToUpdate.rpcUrl,
         protocol: networkToUpdate.protocol,
       }),
     });
   }, [networkToUpdate]);
-
-  useEffect(() => {
-    setValue("chainId", "");
-  }, [selectedProtocol]);
 
   const onSubmit = useCallback(
     (data: NetworkOptions) => {
@@ -99,7 +104,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
   );
 
   const chainIDs: string[] = useMemo(() => {
-    return supportedChainIdsByProtocol[selectedProtocol] || [];
+    return chainIDsByProtocol[selectedProtocol] || [];
   }, [selectedProtocol]);
 
   const content = useMemo(() => {
@@ -186,7 +191,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
             helperText={errors?.name?.message}
           />
           <Controller
-            name={"protocol"}
+            name={"protocol.name"}
             control={control}
             rules={{ required: "Required" }}
             render={({ field, fieldState: { error } }) => (
@@ -208,7 +213,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
             )}
           />
           <Controller
-            name={"chainId"}
+            name={"protocol.chainID"}
             control={control}
             rules={{ required: "Required" }}
             render={({ field, fieldState: { error } }) => (

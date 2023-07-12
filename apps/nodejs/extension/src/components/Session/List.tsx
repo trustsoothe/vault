@@ -7,36 +7,25 @@ import Typography from "@mui/material/Typography";
 import { IconButton } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import { revokeSession as revokeSessionThunk } from "../../redux/slices/vault";
-import { useAppDispatch } from "../../hooks/redux";
 import SessionDetail from "./SessionDetail";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface ListSessionsProps {
-  session: RootState["vault"]["vaultSession"];
-  isLoading: boolean;
   sessionList: RootState["vault"]["entities"]["sessions"]["list"];
 }
 
-const ListSessions: React.FC<ListSessionsProps> = ({
-  session,
-  isLoading,
-  sessionList,
-}) => {
+const ListSessions: React.FC<ListSessionsProps> = ({ sessionList }) => {
   const [sessionToDetail, setSessionToDetail] = useState<Session>(null);
-  const dispatch = useAppDispatch();
 
   const sessions: Session[] = useMemo(() => {
-    return sessionList.map((serializedSession) =>
-      Session.deserialize(serializedSession)
-    );
+    return sessionList
+      .map((serializedSession) => Session.deserialize(serializedSession))
+      .filter((item) => item.isValid());
   }, [sessionList]);
 
-  const revokeSession = useCallback(
-    (sessionIdToRevoke: string) => {
-      dispatch(revokeSessionThunk(sessionIdToRevoke));
-    },
-    [dispatch]
-  );
+  const revokeSession = useCallback((sessionIdToRevoke: string) => {
+    AppToBackground.revokeSession(sessionIdToRevoke);
+  }, []);
 
   const onClickDetail = useCallback((session: Session) => {
     setSessionToDetail(session);
@@ -60,8 +49,7 @@ const ListSessions: React.FC<ListSessionsProps> = ({
           alignItems={"center"}
           justifyContent={"space-between"}
           paddingX={"8px"}
-          // @ts-ignore
-          key={sessionItem._id}
+          key={sessionItem.id}
         >
           <Stack>
             <Typography fontSize={12}>
@@ -69,9 +57,6 @@ const ListSessions: React.FC<ListSessionsProps> = ({
             </Typography>
             <Typography fontSize={12}>
               Permissions: {sessionItem.permissions.length}
-            </Typography>
-            <Typography fontSize={12}>
-              Valid: {sessionItem.isValid() ? "Yes" : "No"}
             </Typography>
           </Stack>
 
@@ -84,8 +69,7 @@ const ListSessions: React.FC<ListSessionsProps> = ({
             </IconButton>
             <IconButton
               sx={{ padding: 0 }}
-              // @ts-ignore
-              onClick={() => revokeSession(sessionItem._id)}
+              onClick={() => revokeSession(sessionItem.id)}
             >
               <DeleteIcon sx={{ fontSize: 18 }} />
             </IconButton>
@@ -98,9 +82,7 @@ const ListSessions: React.FC<ListSessionsProps> = ({
 
 const mapStateToProps = (state: RootState) => {
   return {
-    session: state.vault.vaultSession,
     sessionList: state.vault.entities.sessions.list,
-    isLoading: state.vault.entities.sessions.loading,
   };
 };
 

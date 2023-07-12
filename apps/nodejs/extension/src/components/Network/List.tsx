@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { DefaultNetwork } from "../../utils";
 import { SerializedNetwork } from "@poktscan/keyring";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -12,6 +11,8 @@ import AddUpdateNetwork from "./AddUpdate";
 import RemoveNetwork from "./Remove";
 import { RootState } from "../../redux/store";
 import { connect } from "react-redux";
+import groupBy from "lodash/groupBy";
+import { labelByProtocolMap, labelByChainID } from "../../constants/protocols";
 
 interface NetworkItemProps {
   network: SerializedNetwork;
@@ -31,9 +32,13 @@ const NetworkItem: React.FC<NetworkItemProps> = ({
           {network.name}
         </Typography>
         <Stack direction={"row"} alignItems={"center"} spacing={"7px"}>
-          <Typography fontSize={12}>{network.protocol}</Typography>
+          <Typography fontSize={12}>
+            {labelByProtocolMap[network.protocol.name]}
+          </Typography>
           <Typography fontSize={12}>-</Typography>
-          <Typography fontSize={12}>{network.chainId}</Typography>
+          <Typography fontSize={12}>
+            {labelByChainID[network.protocol.chainID]}
+          </Typography>
         </Stack>
         <Typography
           fontSize={10}
@@ -66,14 +71,11 @@ const NetworkItem: React.FC<NetworkItemProps> = ({
 };
 
 interface NetworkListProps {
-  customNetworks: SerializedNetwork[];
+  networks: SerializedNetwork[];
   isLoading: boolean;
 }
 
-const NetworkList: React.FC<NetworkListProps> = ({
-  customNetworks,
-  isLoading,
-}) => {
+const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
   const [selectedNetwork, setSelectedNetwork] =
     useState<SerializedNetwork>(null);
   const [view, setView] = useState<"list" | "addUpdate" | "remove">("list");
@@ -96,6 +98,11 @@ const NetworkList: React.FC<NetworkListProps> = ({
     setSelectedNetwork(null);
     setView("list");
   }, []);
+
+  const [defaultNetworks, customNetworks] = useMemo(() => {
+    const groupedNetworks = groupBy(networks, "isDefault");
+    return [groupedNetworks["true"], groupedNetworks["false"] || []];
+  }, [networks]);
 
   const content = useMemo(() => {
     if (view === "addUpdate") {
@@ -138,8 +145,12 @@ const NetworkList: React.FC<NetworkListProps> = ({
           >
             <Typography fontSize={14}>Defaults</Typography>
           </Divider>
-          <NetworkItem network={DefaultNetwork.serialize()} />
-          {customNetworks.length && (
+          <Stack divider={<Divider sx={{ marginY: "10px" }} />}>
+            {defaultNetworks.map((network) => (
+              <NetworkItem network={network} key={network.id} />
+            ))}
+          </Stack>
+          {customNetworks.length ? (
             <>
               <Divider
                 textAlign={"left"}
@@ -168,14 +179,14 @@ const NetworkList: React.FC<NetworkListProps> = ({
                 ))}
               </Stack>
             </>
-          )}
+          ) : null}
         </Box>
       </Stack>
     );
   }, [
     selectedNetwork,
     onClose,
-    customNetworks,
+    networks,
     isLoading,
     onClickRemove,
     onClickUpdate,
@@ -192,7 +203,7 @@ const NetworkList: React.FC<NetworkListProps> = ({
 
 const mapStateToProps = (state: RootState) => {
   return {
-    customNetworks: state.vault.entities.networks.list,
+    networks: state.vault.entities.networks.list,
     isLoading: state.vault.entities.networks.loading,
   };
 };

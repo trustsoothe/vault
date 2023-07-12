@@ -26,7 +26,10 @@ const external = new ExternalCommunicationController();
 
 browser.runtime.onMessage.addListener(async (message, sender) => {
   if (message?.name === WORKER_KEEP_ALIVE_MESSAGE) {
-    return "ACK_KEEP_ALIVE_MESSAGE";
+    return {
+      name: "ACK_KEEP_ALIVE_MESSAGE",
+      date: new Date(),
+    };
   }
 
   const responses = await Promise.all([
@@ -44,3 +47,26 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
     type: "UNKNOWN",
   };
 });
+
+class TestC {
+  constructor() {
+    const currentDate = new Date();
+    console.log("created new instance of TestC at:", currentDate);
+
+    // @ts-ignore
+    (browser.storage.session as typeof browser.storage.local)
+      .get({ previous_date: null })
+      .then((result) => {
+        console.log("previous saved date:", result["previous_date"]);
+
+        // @ts-ignore
+        (browser.storage.session as typeof browser.storage.local)
+          .set({
+            previous_date: currentDate.toString(),
+          })
+          .catch((e) => console.log(e));
+      });
+  }
+}
+
+const testInstance = new TestC();

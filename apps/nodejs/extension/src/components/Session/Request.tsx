@@ -9,6 +9,7 @@ import { Permission } from "@poktscan/keyring";
 import { useAppDispatch } from "../../hooks/redux";
 import { ConnectionRequest } from "../../redux/slices/app";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import { useLocation } from "react-router-dom";
 
 const mockAccounts = [
   "2b758f936e45aaebc87db14a9f0e51b51b6653b6",
@@ -20,12 +21,8 @@ const mockAccounts = [
   "17fea60985c0a37b46adc8cadec5c1d70a78db94",
 ];
 
-interface SessionRequestProps {
-  currentRequest: ConnectionRequest;
-}
-
-const Request: React.FC<SessionRequestProps> = ({ currentRequest }) => {
-  const dispatch = useAppDispatch();
+const Request: React.FC = () => {
+  const currentRequest: ConnectionRequest = useLocation()?.state;
   const [selectedAccountsMap, setSelectedAccountsMap] = useState<
     Record<string, boolean>
   >({});
@@ -102,7 +99,7 @@ const Request: React.FC<SessionRequestProps> = ({ currentRequest }) => {
           }
         }
 
-        await AppToBackground.sendRequestToAnswerConnection({
+        await AppToBackground.answerConnection({
           accepted,
           request: currentRequest,
           permissions: accepted ? permissions : null,
