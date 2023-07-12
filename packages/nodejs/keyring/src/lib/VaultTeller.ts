@@ -14,7 +14,6 @@ import {
   InvalidSessionError,
   SessionIdRequiredError,
   SessionNotFoundError,
-  VaultIsLockedError,
 } from "./errors";
 import {Asset} from "./core/asset";
 import {ProtocolServiceFactory} from "./core/common/protocols";
@@ -129,6 +128,8 @@ export class VaultTeller {
     });
 
     await this.addVaultAccount(account, vaultPassphrase);
+
+    await this.addSessionAccount(sessionId, account);
 
     await this.updateSessionLastActivity(sessionId);
 
@@ -260,5 +261,13 @@ export class VaultTeller {
     const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
 
     await this.vaultStore.save(encryptedUpdatedVault.serialize());
+  }
+
+  private async addSessionAccount(sessionId: string, account: Account) {
+    const session = await this.getSession(sessionId);
+    if (session) {
+      session.addAccount(account.asAccountReference());
+      await this.sessionStore.save(session.serialize());
+    }
   }
 }
