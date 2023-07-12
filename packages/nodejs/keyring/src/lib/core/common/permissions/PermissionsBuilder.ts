@@ -38,6 +38,10 @@ class ResourcePermissionBuilder {
     return this;
   }
 
+  andBuild() {
+    return this.builder.build();
+  }
+
   on(...identities) {
     this.setPermissionsIdentities(identities);
     return this.builder;

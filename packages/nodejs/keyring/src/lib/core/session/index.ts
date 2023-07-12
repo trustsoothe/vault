@@ -1,8 +1,8 @@
 import {v4, validate} from "uuid";
 import {Permission} from "../common/permissions";
-import {AccountReference, SerializedAccountReference} from "../common/values/AccountReference";
-import {OriginReference} from "../common/values";
+import {OriginReference, AccountReference, SerializedAccountReference} from "../common/values";
 import IEntity from "../common/IEntity";
+import {ForbiddenSessionError, InvalidSessionError} from "../../errors";
 
 export interface SerializedSession extends IEntity {
   id: string
@@ -13,6 +13,7 @@ export interface SerializedSession extends IEntity {
   invalidatedAt: number
   origin: string
   createdAt: number
+  lastActivity: number
 }
 
 export interface SessionOptions {
@@ -24,13 +25,14 @@ export interface SessionOptions {
 
 export class Session implements IEntity {
   private readonly _id: string
-  private readonly _permissions: Permission[]
+  private _permissions: Permission[]
   private readonly _maxAge: number
   private readonly _accounts: AccountReference[] = []
   private readonly _origin: OriginReference
   private _invalidated = false
   private _createdAt: number
   private _invalidatedAt?: number = null
+  private _lastActivity: number = null
 
   constructor(options: SessionOptions = {}, id?: string) {
     if (id && validate(id) === false) {
@@ -49,6 +51,7 @@ export class Session implements IEntity {
     this._permissions = options.permissions
     this._maxAge = options.maxAge ?? 3600
     this._createdAt = Date.now()
+    this._lastActivity = Date.now()
     this._accounts = options.accounts ?? []
     this._origin = options.origin || null
   }
@@ -81,6 +84,10 @@ export class Session implements IEntity {
     return this._invalidatedAt
   }
 
+  get lastActivity(): number {
+    return this._lastActivity
+  }
+
   serialize(): SerializedSession {
     return {
       id: this._id,
@@ -91,6 +98,7 @@ export class Session implements IEntity {
       accounts: this._accounts.map((account) => account.serialize()),
       origin: (this._origin && this._origin.value) ?? '',
       createdAt: this._createdAt,
+      lastActivity: this._lastActivity,
     }
   }
 
@@ -120,7 +128,38 @@ export class Session implements IEntity {
       return true
     }
 
-    return this._createdAt + this._maxAge * 1000 > Date.now()
+    return this.lastActivity + this.maxAge * 1000 > Date.now()
+  }
+
+  updateLastActivity(): void {
+    if (!this.isValid()) {
+      throw new InvalidSessionError()
+    }
+
+    this._lastActivity = Date.now()
+  }
+
+  addAccount(account: AccountReference): void {
+    if (!this.isValid()) {
+      throw new InvalidSessionError()
+    }
+
+    if (!this.isAllowed('account', 'create', [])) {
+      throw new ForbiddenSessionError();
+    }
+
+    this._permissions = this.permissions.map((permission) => {
+      if (permission.resource === 'account') {
+        return {
+          ...permission,
+          identities: [...permission.identities, account.id]
+        }
+      }
+
+      return permission
+    });
+
+    this._accounts.push(account)
   }
 
   static deserialize(serializedSession: SerializedSession): Session {
@@ -134,6 +173,7 @@ export class Session implements IEntity {
     session._createdAt = serializedSession.createdAt
     session._invalidated = serializedSession.invalidated
     session._invalidatedAt = serializedSession.invalidatedAt
+    session._lastActivity = serializedSession.lastActivity
     return session
   }
 }

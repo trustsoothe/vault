@@ -1,11 +1,11 @@
 import {
   Passphrase,
   EncryptedVault,
-  ExternalAccessRequest,
+  ExternalAccessRequest, AccountReference,
 } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
 import IEncryptionService from "./core/common/encryption/IEncryptionService";
-import { Vault } from "./core/vault";
+import {Account, Vault} from "./core/vault";
 import { SerializedSession, Session, SessionOptions } from "./core/session";
 import { PermissionsBuilder } from "./core/common/permissions";
 import IStorage from "./core/common/storage/IStorage";
@@ -14,8 +14,9 @@ import {
   InvalidSessionError,
   SessionIdRequiredError,
   SessionNotFoundError,
-  VaultIsLockedError,
 } from "./errors";
+import {Asset} from "./core/asset";
+import {ProtocolServiceFactory} from "./core/common/protocols";
 
 export class VaultTeller {
   private _isUnlocked = false;
@@ -111,7 +112,37 @@ export class VaultTeller {
   async listSessions(sessionId: string): Promise<ReadonlyArray<Session>> {
     await this.validateSessionForPermissions(sessionId, "session", "list");
     const serializedSessions = await this.sessionStore.list();
+    await this.updateSessionLastActivity(sessionId);
     return serializedSessions.map(Session.deserialize);
+  }
+
+  async createAccount(sessionId: string, asset: Asset, accountPassphrase: Passphrase, vaultPassphrase: Passphrase): Promise<AccountReference> {
+    await this.validateSessionForPermissions(sessionId, "account", "create");
+
+    const protocolService=
+      ProtocolServiceFactory.getProtocolService(asset.protocol, this.encryptionService);
+
+    const account = await protocolService.createAccount({
+      asset,
+      passphrase: accountPassphrase,
+    });
+
+    await this.addVaultAccount(account, vaultPassphrase);
+
+    await this.addSessionAccount(sessionId, account);
+
+    await this.updateSessionLastActivity(sessionId);
+
+    return account.asAccountReference();
+  }
+
+  async listAccounts(sessionId: string) {
+    await this.validateSessionForPermissions(sessionId, "account", "list");
+    await this.updateSessionLastActivity(sessionId);
+    const session = await this.getSession(sessionId);
+    if (session) {
+      return session.accounts;
+    }
   }
 
   async revokeSession(
@@ -123,6 +154,34 @@ export class VaultTeller {
     if (session) {
       session.invalidate();
       await this.sessionStore.save(session.serialize());
+    }
+    await this.updateSessionLastActivity(sessionId);
+  }
+
+  public async validateSessionForPermissions(
+    sessionId: string,
+    resource: string,
+    action: string,
+    ids: string[] = []
+  ): Promise<void> {
+    if (!sessionId) {
+      throw new SessionIdRequiredError();
+    }
+
+    const session = await this.getSession(sessionId);
+
+    if (!session) {
+      throw new SessionNotFoundError();
+    }
+
+    if (!session.isValid()) {
+      throw new InvalidSessionError();
+    }
+
+    const isAllowed = session.isAllowed(resource, action, ids);
+
+    if (!isAllowed) {
+      throw new ForbiddenSessionError();
     }
   }
 
@@ -178,34 +237,37 @@ export class VaultTeller {
     return null;
   }
 
-  public async validateSessionForPermissions(
-    sessionId: string,
-    resource: string,
-    action: string,
-    ids: string[] = ["*"]
-  ): Promise<void> {
-    if (!this.isUnlocked) {
-      throw new VaultIsLockedError();
-    }
-
-    if (!sessionId) {
-      throw new SessionIdRequiredError();
-    }
-
+  private async updateSessionLastActivity(sessionId: string): Promise<void> {
     const session = await this.getSession(sessionId);
+    if (session) {
+      session.updateLastActivity();
+      await this.sessionStore.save(session.serialize());
+    }
+  }
 
-    if (!session) {
-      throw new SessionNotFoundError();
+  private async addVaultAccount(account: Account, vaultPassphrase: Passphrase) {
+    const serializedEncryptedVault = await this.vaultStore.get();
+
+    if (!serializedEncryptedVault) {
+      throw new Error("Vault is not initialized");
     }
 
-    if (!session.isValid()) {
-      throw new InvalidSessionError();
-    }
+    const encryptedOriginalVault = EncryptedVault.deserialize(serializedEncryptedVault);
 
-    const isAllowed = session.isAllowed(resource, action, ids);
+    const vault = await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
 
-    if (!isAllowed) {
-      throw new ForbiddenSessionError();
+    vault.addAccount(account);
+
+    const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
+
+    await this.vaultStore.save(encryptedUpdatedVault.serialize());
+  }
+
+  private async addSessionAccount(sessionId: string, account: Account) {
+    const session = await this.getSession(sessionId);
+    if (session) {
+      session.addAccount(account.asAccountReference());
+      await this.sessionStore.save(session.serialize());
     }
   }
 }
