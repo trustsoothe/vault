@@ -5,7 +5,7 @@ import {
 } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
 import IEncryptionService from "./core/common/encryption/IEncryptionService";
-import {Account, Vault} from "./core/vault";
+import {Account, AccountUpdateOptions, Vault} from "./core/vault";
 import { SerializedSession, Session, SessionOptions } from "./core/session";
 import { PermissionsBuilder } from "./core/common/permissions";
 import IStorage from "./core/common/storage/IStorage";
@@ -15,8 +15,7 @@ import {
   SessionIdRequiredError,
   SessionNotFoundError,
 } from "./errors";
-import {Asset} from "./core/asset";
-import {ProtocolServiceFactory} from "./core/common/protocols";
+import {CreateAccountOptions, ProtocolServiceFactory} from "./core/common/protocols";
 
 export class VaultTeller {
   private _isUnlocked = false;
@@ -53,7 +52,12 @@ export class VaultTeller {
       .onAny()
       .build();
 
-    const session = new Session({ permissions, maxAge: 0 });
+    const session = new Session({
+      permissions,
+      maxAge: 0,
+      accounts: vault.accounts.map((account) => account.asAccountReference()),
+    });
+
     await this.sessionStore.save(session.serialize());
 
     this._vault = vault;
@@ -116,20 +120,31 @@ export class VaultTeller {
     return serializedSessions.map(Session.deserialize);
   }
 
-  async createAccount(sessionId: string, asset: Asset, accountPassphrase: Passphrase, vaultPassphrase: Passphrase): Promise<AccountReference> {
+  async createAccount(sessionId: string, vaultPassphrase: Passphrase,  options: CreateAccountOptions): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "create");
 
     const protocolService=
-      ProtocolServiceFactory.getProtocolService(asset.protocol, this.encryptionService);
+      ProtocolServiceFactory.getProtocolService(options.asset.protocol, this.encryptionService);
 
-    const account = await protocolService.createAccount({
-      asset,
-      passphrase: accountPassphrase,
-    });
+    const account = await protocolService.createAccount(options);
 
     await this.addVaultAccount(account, vaultPassphrase);
 
     await this.addSessionAccount(sessionId, account);
+
+    await this.updateSessionLastActivity(sessionId);
+
+    return account.asAccountReference();
+  }
+
+  async updateAccountName(sessionId: string, vaultPassphrase: Passphrase, options: AccountUpdateOptions): Promise<AccountReference> {
+    await this.validateSessionForPermissions(sessionId, "account", "update");
+
+    const account = await this.getVaultAccount(options.id, vaultPassphrase);
+
+    account.updateName(options.name);
+
+    await this.updateVaultAccount(account, vaultPassphrase);
 
     await this.updateSessionLastActivity(sessionId);
 
@@ -269,5 +284,43 @@ export class VaultTeller {
       session.addAccount(account.asAccountReference());
       await this.sessionStore.save(session.serialize());
     }
+  }
+
+  private async getVaultAccount(accountId: string, vaultPassphrase: Passphrase): Promise<Account> {
+    const serializedEncryptedVault = await this.vaultStore.get();
+
+    if (!serializedEncryptedVault) {
+      throw new Error("Vault is not initialized");
+    }
+
+    const encryptedOriginalVault = EncryptedVault.deserialize(serializedEncryptedVault);
+
+    const vault = await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
+
+    const account = vault.accounts.find((account) => account.id === accountId);
+
+    if (!account) {
+      throw new Error(`Account ${accountId} not found`);
+    }
+
+    return account
+  }
+
+  private async updateVaultAccount(account: Account, vaultPassphrase: Passphrase) {
+    const serializedEncryptedVault = await this.vaultStore.get();
+
+    if (!serializedEncryptedVault) {
+      throw new Error("Vault is not initialized");
+    }
+
+    const encryptedOriginalVault = EncryptedVault.deserialize(serializedEncryptedVault);
+
+    const vault = await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
+
+    vault.updateAccount(account);
+
+    const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
+
+    await this.vaultStore.save(encryptedUpdatedVault.serialize());
   }
 }

@@ -3,8 +3,9 @@ import {Passphrase} from "../values";
 import {Asset} from "../../asset";
 
 export interface CreateAccountOptions {
-  asset: Asset,
-  passphrase: Passphrase,
+  name?: string
+  asset: Asset
+  passphrase: Passphrase
 }
 
 export interface IProtocolService {
