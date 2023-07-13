@@ -130,7 +130,7 @@ export class VaultTeller {
 
     await this.addVaultAccount(account, vaultPassphrase);
 
-    await this.addSessionAccount(sessionId, account);
+    await this.addAccountToSession(sessionId, account);
 
     await this.updateSessionLastActivity(sessionId);
 
@@ -197,6 +197,14 @@ export class VaultTeller {
 
     if (!isAllowed) {
       throw new ForbiddenSessionError();
+    }
+  }
+
+  public async addAccountToSession(sessionId: string, account: Account) {
+    const session = await this.getSession(sessionId);
+    if (session) {
+      session.addAccount(account.asAccountReference());
+      await this.sessionStore.save(session.serialize());
     }
   }
 
@@ -276,14 +284,6 @@ export class VaultTeller {
     const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
 
     await this.vaultStore.save(encryptedUpdatedVault.serialize());
-  }
-
-  private async addSessionAccount(sessionId: string, account: Account) {
-    const session = await this.getSession(sessionId);
-    if (session) {
-      session.addAccount(account.asAccountReference());
-      await this.sessionStore.save(session.serialize());
-    }
   }
 
   private async getVaultAccount(accountId: string, vaultPassphrase: Passphrase): Promise<Account> {
