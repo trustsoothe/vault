@@ -112,7 +112,7 @@ describe('session', () => {
 
   describe('addAccount', () => {
     const exampleAccountReference: AccountReference
-      = new AccountReference('123', '0x32344', new PocketNetworkProtocol('testnet'))
+      = new AccountReference('123', 'Testnet Account','0x32344', new PocketNetworkProtocol('testnet'))
 
     const permissions =
       new PermissionsBuilder()

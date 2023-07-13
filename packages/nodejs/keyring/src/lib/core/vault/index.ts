@@ -14,7 +14,7 @@ export class Vault implements IEntity {
   private readonly _id: string
   private readonly _createdAt: number
   private _updatedAt: number
-  private readonly _accounts: Account[]
+  private _accounts: Account[]
 
   constructor(id?: string, accounts?: Account[], originalCreationDate?: number,  lastUpdatedAt?: number) {
     if (id && validate(id) === false) {
@@ -63,5 +63,15 @@ export class Vault implements IEntity {
 
   addAccount(account: Account) {
     this._accounts.push(account);
+  }
+
+  updateAccount(account: Account) {
+    this._accounts = this._accounts.map((a) => {
+      if (a.id === account.id) {
+        return account
+      }
+
+      return a;
+    });
   }
 }
