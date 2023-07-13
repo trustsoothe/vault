@@ -53,7 +53,12 @@ export class VaultTeller {
       .onAny()
       .build();
 
-    const session = new Session({ permissions, maxAge: 0 });
+    const session = new Session({
+      permissions,
+      maxAge: 0,
+      accounts: vault.accounts.map((account) => account.asAccountReference()),
+    });
+
     await this.sessionStore.save(session.serialize());
 
     this._vault = vault;
