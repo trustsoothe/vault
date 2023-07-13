@@ -1,3 +1,4 @@
+import type { SerializedAccountReference } from "@poktscan/keyring";
 import React, { useCallback, useMemo, useState } from "react";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
@@ -5,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import CircularLoading from "../common/CircularLoading";
 
 interface RemoveAccountProps {
-  account: string;
+  account: SerializedAccountReference;
   onClose: () => void;
 }
 
@@ -81,7 +82,7 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ account, onClose }) => {
       >
         <Typography fontSize={16} textAlign={"center"}>
           Are you sure you want to remove the{" "}
-          <span style={{ fontWeight: 600 }}>"{account}"</span> account?
+          <span style={{ fontWeight: 600 }}>"{account.address}"</span> account?
         </Typography>
         <Stack direction={"row"} width={250} spacing={"15px"}>
           <Button

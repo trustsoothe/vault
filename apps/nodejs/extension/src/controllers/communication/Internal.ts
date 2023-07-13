@@ -30,6 +30,7 @@ import {
   TransferRequest,
 } from "../../redux/slices/app";
 import {
+  AccountReference,
   ExternalAccessRequest,
   OriginReference,
   Permission,
@@ -37,6 +38,7 @@ import {
   SerializedSession,
 } from "@poktscan/keyring";
 import {
+  addNewAccount,
   authorizeExternalSession,
   initVault,
   lockVault,
@@ -49,8 +51,9 @@ export interface AnswerConnectionRequest {
   type: typeof ANSWER_CONNECTION_REQUEST;
   data: {
     accepted: boolean;
-    permissions: Permission[] | null;
     request: ConnectionRequest;
+    canCreateAccounts: boolean;
+    idsOfSelectedAccounts: string[];
   } | null;
 }
 
@@ -249,7 +252,12 @@ class InternalCommunicationController {
   }
 
   private async _answerConnectionRequest(message: AnswerConnectionRequest) {
-    const { accepted, permissions = [], request } = message?.data || {};
+    const {
+      accepted,
+      canCreateAccounts,
+      idsOfSelectedAccounts = [],
+      request,
+    } = message?.data || {};
     const { origin, tabId, type } = request;
 
     const promises: Promise<unknown>[] = [];
@@ -266,12 +274,51 @@ class InternalCommunicationController {
         })
       );
     } else {
+      const permissions: Permission[] = [];
+      const accountReferences: AccountReference[] = [];
+
+      if (canCreateAccounts) {
+        permissions.push({
+          resource: "account",
+          action: "create",
+          identities: ["*"],
+        });
+      }
+
+      if (idsOfSelectedAccounts.length) {
+        permissions.push({
+          resource: "account",
+          action: "read",
+          identities: idsOfSelectedAccounts,
+        });
+
+        permissions.push({
+          resource: "transaction",
+          action: "sign",
+          identities: idsOfSelectedAccounts,
+        });
+
+        const accounts = store.getState().vault.entities.accounts.list;
+
+        const idsOfSelectedAccountsMap = idsOfSelectedAccounts.reduce(
+          (acc, id) => ({ ...acc, [id]: true }),
+          {}
+        );
+
+        for (const account of accounts) {
+          if (idsOfSelectedAccountsMap[account.id]) {
+            accountReferences.push(AccountReference.deserialize(account));
+          }
+        }
+      }
+
       const maxAge = 3600;
       const originReference = new OriginReference(origin);
       const requestReference = new ExternalAccessRequest(
         permissions,
         maxAge,
-        originReference
+        originReference,
+        accountReferences
       );
 
       const [response, tabs] = await Promise.all([
@@ -322,7 +369,7 @@ class InternalCommunicationController {
   }
 
   private async _answerCreateNewAccount(message: AnswerNewAccountRequest) {
-    const { rejected, request } = message?.data;
+    const { rejected, request, accountData } = message?.data;
 
     let address: string | null = null;
 
@@ -344,8 +391,23 @@ class InternalCommunicationController {
         ),
       ]);
     } else if (!rejected) {
-      // todo: add create account code returning the address
-      address = "25879ff86bd06d2cb34316d8380dd0ef20266dd0";
+      try {
+        const accountReference = await store
+          .dispatch(
+            addNewAccount({
+              sessionId: request?.sessionId,
+              asset: accountData.asset,
+              password: accountData.password,
+              name: accountData.password,
+            })
+          )
+          .unwrap();
+
+        address = accountReference.address;
+      } catch (e) {
+        console.log("ERROR creating account:", e);
+        // todo: handle error
+      }
 
       if (request) {
         await Promise.all([

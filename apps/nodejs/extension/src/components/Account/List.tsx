@@ -1,4 +1,7 @@
+import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Skeleton from "@mui/material/Skeleton";
@@ -16,21 +19,17 @@ import {
 } from "../../constants/routes";
 import UpdateAccount from "./Update";
 import RemoveAccount from "./Remove";
+import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 
-const mockAccounts = [
-  "2b758f936e45aaebc87db14a9f0e51b51b6653b6",
-  "266c4fc7c61a7a73dbfe04e0e67cc923848dea21",
-  "25879ff86bd06d2cb34316d8380dd0ef20266dd0",
-  "1d72b77c04a4a4301dc644e8d3b2710bcd53a4fa",
-  "1cf01f48a52970c71caefb8b44b6de08bfd16c28",
-  "1b5419bf1149a5de10f986918912aa1aa85f3cf2",
-  "17fea60985c0a37b46adc8cadec5c1d70a78db94",
-];
+interface AccountListProps {
+  accounts: SerializedAccountReference[];
+}
 
-const AccountList: React.FC = () => {
+const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
   const navigate = useNavigate();
   const [view, setView] = useState<"list" | "update" | "remove">("list");
-  const [selectedAccount, setSelectedAccount] = useState<string>(null);
+  const [selectedAccount, setSelectedAccount] =
+    useState<SerializedAccountReference>(null);
   const [searchText, setSearchText] = useState("");
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
 
@@ -55,20 +54,117 @@ const AccountList: React.FC = () => {
     navigate(CREATE_ACCOUNT_PAGE);
   }, [navigate]);
 
-  const onClickUpdateAccount = useCallback((address: string) => {
-    setSelectedAccount(address);
-    setView("update");
-  }, []);
+  const onClickUpdateAccount = useCallback(
+    (account: SerializedAccountReference) => {
+      setSelectedAccount(account);
+      setView("update");
+    },
+    []
+  );
 
-  const onClickRemoveAccount = useCallback((address: string) => {
-    setSelectedAccount(address);
-    setView("remove");
-  }, []);
+  const onClickRemoveAccount = useCallback(
+    (account: SerializedAccountReference) => {
+      setSelectedAccount(account);
+      setView("remove");
+    },
+    []
+  );
 
   const onClose = useCallback(() => {
     setSelectedAccount(null);
     setView("list");
   }, []);
+
+  const accountListComponent = useMemo(() => {
+    if (!accounts.length) {
+      return (
+        <Stack
+          flexGrow={1}
+          alignItems={"center"}
+          justifyContent={"center"}
+          sx={{
+            "& p": {
+              fontSize: "14px!important",
+            },
+          }}
+        >
+          <Typography mt={"-50px"} fontWeight={500}>
+            You do not have any account yet.
+          </Typography>
+        </Stack>
+      );
+    }
+
+    return accounts.map((account, index) => {
+      return (
+        <Stack
+          paddingY={"10px"}
+          paddingX={"5px"}
+          spacing={"5px"}
+          key={account.id}
+          borderTop={index === 0 ? undefined : "1px solid lightgray"}
+          width={1}
+          boxSizing={"border-box"}
+          direction={"row"}
+        >
+          <Stack flexGrow={1} spacing={"5px"}>
+            <Stack
+              direction={"row"}
+              spacing={"5px"}
+              alignItems={"center"}
+              width={1}
+            >
+              <Typography fontWeight={600}>Account {index + 1}</Typography>
+              <Typography fontWeight={600} marginX={"3px"}>
+                •
+              </Typography>
+              {isLoadingTokens ? (
+                <Skeleton height={15} width={75} variant={"rectangular"} />
+              ) : (
+                <Typography
+                  sx={{ fontSize: "10px!important" }}
+                  component={"span"}
+                  color={"dimgrey"}
+                  fontWeight={600}
+                >
+                  2 POKT
+                </Typography>
+              )}
+            </Stack>
+            <Typography>{account.id}</Typography>
+            <Typography>
+              Protocol: {labelByProtocolMap[account.protocol.name]}
+            </Typography>
+            <Typography>
+              ChainID: {labelByChainID[account.protocol.chainID]}
+            </Typography>
+          </Stack>
+          <Stack spacing={"10px"} width={"min-content"}>
+            <IconButton
+              sx={{ padding: 0 }}
+              onClick={() =>
+                navigate(`${TRANSFER_PAGE}?fromAddress=${account.address}`)
+              }
+            >
+              <ReplyIcon sx={{ fontSize: 18, transform: "rotateY(180deg)" }} />
+            </IconButton>
+            <IconButton
+              sx={{ padding: 0 }}
+              onClick={() => onClickUpdateAccount(account)}
+            >
+              <EditIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+            <IconButton
+              sx={{ padding: 0 }}
+              onClick={() => onClickRemoveAccount(account)}
+            >
+              <DeleteIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Stack>
+        </Stack>
+      );
+    });
+  }, [accounts, onClickUpdateAccount, onClickRemoveAccount, isLoadingTokens]);
 
   const content = useMemo(() => {
     if (selectedAccount && view === "update") {
@@ -101,6 +197,7 @@ const AccountList: React.FC = () => {
           size={"small"}
           value={searchText}
           onChange={onChangeSearchText}
+          disabled={!accounts.length}
           placeholder={"Search by name / address"}
           sx={{
             "& .MuiInputBase-root": {
@@ -126,80 +223,7 @@ const AccountList: React.FC = () => {
             },
           }}
         >
-          {mockAccounts.map((address, index) => {
-            return (
-              <Stack
-                paddingY={"10px"}
-                paddingX={"5px"}
-                spacing={"5px"}
-                key={address}
-                borderTop={index === 0 ? undefined : "1px solid lightgray"}
-                width={1}
-                boxSizing={"border-box"}
-                direction={"row"}
-              >
-                <Stack flexGrow={1} spacing={"5px"}>
-                  <Stack
-                    direction={"row"}
-                    spacing={"5px"}
-                    alignItems={"center"}
-                    // justifyContent={"space-between"}
-                    width={1}
-                  >
-                    <Typography fontWeight={600}>
-                      Account {index + 1}
-                    </Typography>
-                    <Typography fontWeight={600} marginX={"3px"}>
-                      •
-                    </Typography>
-                    {isLoadingTokens ? (
-                      <Skeleton
-                        height={15}
-                        width={75}
-                        variant={"rectangular"}
-                      />
-                    ) : (
-                      <Typography
-                        sx={{ fontSize: "10px!important" }}
-                        component={"span"}
-                        color={"dimgrey"}
-                        fontWeight={600}
-                      >
-                        2 POKT
-                      </Typography>
-                    )}
-                  </Stack>
-                  <Typography>{address}</Typography>
-                  <Typography>Protocol: Pocket Network</Typography>
-                  <Typography>ChainID: Mainnet</Typography>
-                </Stack>
-                <Stack spacing={"10px"} width={"min-content"}>
-                  <IconButton
-                    sx={{ padding: 0 }}
-                    onClick={() =>
-                      navigate(`${TRANSFER_PAGE}?fromAddress=${address}`)
-                    }
-                  >
-                    <ReplyIcon
-                      sx={{ fontSize: 18, transform: "rotateY(180deg)" }}
-                    />
-                  </IconButton>
-                  <IconButton
-                    sx={{ padding: 0 }}
-                    onClick={() => onClickUpdateAccount(address)}
-                  >
-                    <EditIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                  <IconButton
-                    sx={{ padding: 0 }}
-                    onClick={() => onClickRemoveAccount(`Account ${index + 1}`)}
-                  >
-                    <DeleteIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Stack>
-              </Stack>
-            );
-          })}
+          {accountListComponent}
         </Stack>
       </>
     );
@@ -207,8 +231,7 @@ const AccountList: React.FC = () => {
     onClickImport,
     onClickNew,
     view,
-    onClickUpdateAccount,
-    onClickRemoveAccount,
+    accountListComponent,
     navigate,
     isLoadingTokens,
     searchText,
@@ -220,4 +243,10 @@ const AccountList: React.FC = () => {
   return <Stack height={1}>{content}</Stack>;
 };
 
-export default AccountList;
+const mapStateToProps = (state: RootState) => {
+  return {
+    accounts: state.vault.entities.accounts.list,
+  };
+};
+
+export default connect(mapStateToProps)(AccountList);

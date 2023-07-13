@@ -1,27 +1,19 @@
 import type { RootState } from "../../redux/store";
+import type { ConnectionRequest } from "../../redux/slices/app";
 import React, { useCallback, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { connect } from "react-redux";
-import { Permission } from "@poktscan/keyring";
-import { useAppDispatch } from "../../hooks/redux";
-import { ConnectionRequest } from "../../redux/slices/app";
-import AppToBackground from "../../controllers/communication/AppToBackground";
 import { useLocation } from "react-router-dom";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
-const mockAccounts = [
-  "2b758f936e45aaebc87db14a9f0e51b51b6653b6",
-  "266c4fc7c61a7a73dbfe04e0e67cc923848dea21",
-  "25879ff86bd06d2cb34316d8380dd0ef20266dd0",
-  "1d72b77c04a4a4301dc644e8d3b2710bcd53a4fa",
-  "1cf01f48a52970c71caefb8b44b6de08bfd16c28",
-  "1b5419bf1149a5de10f986918912aa1aa85f3cf2",
-  "17fea60985c0a37b46adc8cadec5c1d70a78db94",
-];
+interface ConnectionRequestProps {
+  accounts: RootState["vault"]["entities"]["accounts"]["list"];
+}
 
-const Request: React.FC = () => {
+const Request: React.FC<ConnectionRequestProps> = ({ accounts }) => {
   const currentRequest: ConnectionRequest = useLocation()?.state;
   const [selectedAccountsMap, setSelectedAccountsMap] = useState<
     Record<string, boolean>
@@ -32,20 +24,27 @@ const Request: React.FC = () => {
     setSelectedCreateAccounts((prevState) => !prevState);
   }, []);
 
-  const toggleSelectAccount = useCallback((address: string) => {
+  const toggleSelectAccount = useCallback((id: string) => {
     setSelectedAccountsMap((prevState) => {
-      const newAddressValue = prevState[address] ? undefined : true;
-      return { ...prevState, [address]: newAddressValue };
+      const newAddressValue = prevState[id] ? undefined : true;
+      return { ...prevState, [id]: newAddressValue };
     });
   }, []);
 
   const isAllSelected = useMemo(() => {
-    const selectedAccountsCount = Object.keys(selectedAccountsMap).filter(
+    const selectedAccountsCount = Object.values(selectedAccountsMap).filter(
       (item) => item
     ).length;
-    return (
-      selectedCreateAccounts && selectedAccountsCount === mockAccounts.length
-    );
+
+    return selectedCreateAccounts && selectedAccountsCount === accounts.length;
+  }, [selectedCreateAccounts, selectedAccountsMap, accounts]);
+
+  const isSomethingSelected = useMemo(() => {
+    const selectedAccountsCount = Object.values(selectedAccountsMap).filter(
+      (item) => item
+    ).length;
+
+    return selectedCreateAccounts || selectedAccountsCount;
   }, [selectedCreateAccounts, selectedAccountsMap]);
 
   const toggleSelectAll = useCallback(() => {
@@ -54,55 +53,32 @@ const Request: React.FC = () => {
       if (isAllSelected) {
         return {};
       } else {
-        return mockAccounts.reduce(
-          (acc, address) => ({ ...acc, [address]: true }),
+        return accounts.reduce(
+          (acc, account) => ({ ...acc, [account.id]: true }),
           {}
         );
       }
     });
-  }, [isAllSelected]);
+  }, [isAllSelected, accounts]);
 
   const sendResponse = useCallback(
     async (accepted: boolean) => {
       if (currentRequest) {
-        const permissions: Permission[] = [];
+        const identities: string[] = [];
 
         if (accepted) {
-          if (selectedCreateAccounts) {
-            permissions.push({
-              resource: "account",
-              action: "create",
-              identities: ["*"],
-            });
-          }
-
-          const identities: string[] = [];
-
           for (const address in selectedAccountsMap) {
             if (selectedAccountsMap[address]) {
               identities.push(address);
             }
-          }
-
-          if (identities.length) {
-            permissions.push({
-              resource: "account",
-              action: "read",
-              identities,
-            });
-
-            permissions.push({
-              resource: "transaction",
-              action: "sign",
-              identities,
-            });
           }
         }
 
         await AppToBackground.answerConnection({
           accepted,
           request: currentRequest,
-          permissions: accepted ? permissions : null,
+          canCreateAccounts: selectedCreateAccounts && accepted,
+          idsOfSelectedAccounts: identities,
         });
       }
     },
@@ -199,12 +175,12 @@ const Request: React.FC = () => {
             </Typography>
           </Stack>
         </Stack>
-        {mockAccounts.map((address, index) => {
+        {accounts.map((account, index) => {
           return (
             <Stack
               padding={"5px"}
               spacing={"10px"}
-              key={address}
+              key={account.id}
               borderTop={"1px solid lightgray"}
               direction={"row"}
               alignItems={"center"}
@@ -215,8 +191,8 @@ const Request: React.FC = () => {
               <Checkbox
                 size={"small"}
                 sx={{ paddingX: 0 }}
-                checked={selectedAccountsMap[address] || false}
-                onClick={() => toggleSelectAccount(address)}
+                checked={selectedAccountsMap[account.id] || false}
+                onClick={() => toggleSelectAccount(account.id)}
               />
               <Stack width={1}>
                 <Stack
@@ -235,7 +211,7 @@ const Request: React.FC = () => {
                     2 POKT
                   </Typography>
                 </Stack>
-                <Typography>{address}</Typography>
+                <Typography>{account.address}</Typography>
               </Stack>
             </Stack>
           );
@@ -260,6 +236,7 @@ const Request: React.FC = () => {
         </Button>
         <Button
           fullWidth
+          disabled={!isSomethingSelected}
           variant={"contained"}
           sx={{
             textTransform: "none",
@@ -279,8 +256,7 @@ const Request: React.FC = () => {
 
 const mapStateToProps = (state: RootState) => {
   return {
-    sessionId: state.vault.vaultSession.id,
-    externalRequests: state.app.externalRequests,
+    accounts: state.vault.entities.accounts.list,
   };
 };
 

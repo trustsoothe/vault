@@ -4,13 +4,19 @@ import type {
   SerializedAsset,
   SerializedNetwork,
   SerializedSession,
+  SerializedAccountReference,
 } from "@poktscan/keyring";
+import type { RootState } from "../store";
 import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { AssetStorage, getVault, NetworkStorage } from "../../utils";
-import { RootState } from "../store";
-import { Asset, ExternalAccessRequest, Network } from "@poktscan/keyring";
+import {
+  Asset,
+  ExternalAccessRequest,
+  Network,
+  Passphrase,
+} from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
+import { AssetStorage, getVault, NetworkStorage } from "../../utils";
 
 const webEncryptionService = new WebEncryptionService();
 const ExtensionVaultInstance = getVault();
@@ -34,6 +40,10 @@ export interface VaultSlice {
       loading: boolean;
       list: SerializedAsset[];
     };
+    accounts: {
+      loading: boolean;
+      list: SerializedAccountReference[];
+    };
   };
 }
 
@@ -43,17 +53,22 @@ export const unlockVault = createAsyncThunk(
   "vault/unlockVault",
   async (password: string) => {
     const session = await ExtensionVaultInstance.unlockVault(password);
+    const passphrase = new Passphrase(session.id);
 
-    // const passwordEncrypted = await webEncryptionService.encrypt(
-    //   session.id,
-    //   password
-    // );
+    const passwordEncrypted = await webEncryptionService.encrypt(
+      passphrase,
+      password
+    );
 
-    const [sessions, networks, assets] = await Promise.all([
+    const [sessions, networks, assets, accounts] = await Promise.all([
       ExtensionVaultInstance.listSessions(session.id),
       NetworkStorage.list(),
       AssetStorage.list(),
-      // browser.storage.local.set({ [session.id]: passwordEncrypted }),
+      ExtensionVaultInstance.listAccounts(session.id),
+      // @ts-ignore
+      (browser.storage.session as typeof browser.storage.local).set({
+        [session.id]: passwordEncrypted,
+      }),
     ]);
 
     return {
@@ -64,10 +79,55 @@ export const unlockVault = createAsyncThunk(
           .map((item) => item.serialize()),
         networks: networks.concat(),
         assets: assets.concat(),
+        accounts: accounts.map((item) => item.serialize()),
       },
     };
   }
 );
+
+export const addNewAccount = createAsyncThunk<
+  SerializedAccountReference,
+  {
+    sessionId?: string;
+    password: string;
+    name: string;
+    asset: SerializedAsset;
+  }
+>("vault/addNewAccount", async (args, context) => {
+  const {
+    vault: { vaultSession },
+  } = context.getState() as RootState;
+
+  const passwordEncryptedObj = await // @ts-ignore
+  (browser.storage.session as typeof browser.storage.local).get(
+    vaultSession.id
+  );
+
+  const passphraseEncrypted: string = passwordEncryptedObj[vaultSession.id];
+
+  if (!passphraseEncrypted) {
+    throw Error("Password not found");
+  }
+
+  const decryptPassphrase = new Passphrase(vaultSession.id);
+  const passphraseDecrypted = await webEncryptionService.decrypt(
+    decryptPassphrase,
+    passphraseEncrypted
+  );
+
+  const session = args.sessionId || vaultSession.id;
+  const vaultPassphrase = new Passphrase(passphraseDecrypted);
+  const accountPassphrase = new Passphrase(args.password);
+
+  const accountReference = await ExtensionVaultInstance.createAccount(
+    session,
+    Asset.deserialize(args.asset),
+    accountPassphrase,
+    vaultPassphrase
+  );
+
+  return accountReference.serialize();
+});
 
 export const initVault = createAsyncThunk<void, string>(
   "vault/initVault",
@@ -182,6 +242,10 @@ const emptyEntities = {
     loading: false,
     list: [],
   },
+  accounts: {
+    loading: false,
+    list: [],
+  },
 };
 
 const initialState: VaultSlice = {
@@ -209,7 +273,7 @@ const vaultSlice = createSlice({
     builder.addCase(unlockVault.fulfilled, (state, action) => {
       const {
         session,
-        entities: { sessions, networks, assets },
+        entities: { sessions, networks, assets, accounts },
       } = action.payload;
       state.vaultSession = session;
       state.isUnlockedStatus = "yes";
@@ -217,6 +281,7 @@ const vaultSlice = createSlice({
       state.entities.sessions.list = sessions;
       state.entities.networks.list = networks;
       state.entities.assets.list = [...assets];
+      state.entities.accounts.list = accounts;
     });
 
     builder.addCase(initVault.fulfilled, (state) => {
@@ -348,6 +413,21 @@ const vaultSlice = createSlice({
       state.entities.assets.list = state.entities.assets.list.filter(
         (item) => item.id !== removedAssetId
       );
+    });
+
+    //accounts: addNewAccount
+    builder.addCase(addNewAccount.pending, (state) => {
+      state.entities.accounts.loading = true;
+    });
+
+    builder.addCase(addNewAccount.rejected, (state, action) => {
+      console.log("ADD_NEW_ACCOUNT", action);
+      state.entities.accounts.loading = false;
+    });
+
+    builder.addCase(addNewAccount.fulfilled, (state, action) => {
+      state.entities.accounts.loading = false;
+      state.entities.accounts.list.push(action.payload);
     });
   },
 });

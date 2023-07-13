@@ -1,7 +1,12 @@
+import type { RootState } from "../../redux/store";
 import type { TransferRequest } from "../../redux/slices/app";
-import type { SerializedAsset } from "@poktscan/keyring";
+import type {
+  SerializedAccountReference,
+  SerializedAsset,
+} from "@poktscan/keyring";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
@@ -35,23 +40,16 @@ const isAddress = (str: string) => isHex(str) && byteLength(str) === 40;
 //todo: validate private key?
 const isPrivateKey = (str: string) => isHex(str) && byteLength(str) === 128;
 
-const mockAccounts = [
-  "2b758f936e45aaebc87db14a9f0e51b51b6653b6",
-  "266c4fc7c61a7a73dbfe04e0e67cc923848dea21",
-  "25879ff86bd06d2cb34316d8380dd0ef20266dd0",
-  "1d72b77c04a4a4301dc644e8d3b2710bcd53a4fa",
-  "1cf01f48a52970c71caefb8b44b6de08bfd16c28",
-  "1b5419bf1149a5de10f986918912aa1aa85f3cf2",
-  "17fea60985c0a37b46adc8cadec5c1d70a78db94",
-];
+interface TransferProps {
+  accounts: SerializedAccountReference[];
+}
 
-const Transfer: React.FC = () => {
+const Transfer: React.FC<TransferProps> = ({ accounts }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const requesterInfo: TransferRequest = location.state;
   const [searchParams] = useSearchParams();
 
-  const [accounts] = useState(mockAccounts);
   const [status, setStatus] = useState<
     "loading" | "error" | "normal" | "submitted"
   >("normal");
@@ -133,7 +131,7 @@ const Transfer: React.FC = () => {
 
   useEffect(() => {
     if (isAddress(from)) {
-      if (accounts.includes(from)) {
+      if (accounts.some((account) => account.address === from)) {
         setValue("asset", null);
       }
     }
@@ -147,7 +145,7 @@ const Transfer: React.FC = () => {
     const address = fromAddress;
 
     if (address) {
-      if (accounts.includes(address)) {
+      if (accounts.some((account) => account.address === address)) {
         setValue("from", address);
         setFromAddressStatus("is_account_saved");
       } else {
@@ -367,9 +365,9 @@ const Transfer: React.FC = () => {
                 helperText={error?.message}
                 {...field}
               >
-                {accounts.map((address) => (
-                  <MenuItem key={address} value={address}>
-                    <Typography fontSize={14}> {address}</Typography>
+                {accounts.map((account) => (
+                  <MenuItem key={account.id} value={account.address}>
+                    <Typography fontSize={14}> {account.address}</Typography>
                   </MenuItem>
                 ))}
               </TextField>
@@ -520,4 +518,8 @@ const Transfer: React.FC = () => {
   );
 };
 
-export default Transfer;
+const mapStateToProps = (state: RootState) => ({
+  accounts: state.vault.entities.accounts.list,
+});
+
+export default connect(mapStateToProps)(Transfer);

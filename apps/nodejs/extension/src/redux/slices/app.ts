@@ -17,6 +17,7 @@ export interface NewAccountRequest {
   origin: string;
   faviconUrl: string;
   tabId: number;
+  sessionId: string;
 }
 
 export interface TransferRequest {

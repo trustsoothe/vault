@@ -1,3 +1,4 @@
+import type { SerializedAccountReference } from "@poktscan/keyring";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import { useForm } from "react-hook-form";
@@ -11,7 +12,7 @@ interface FormValues {
 }
 
 interface UpdateAccountProps {
-  account: string;
+  account: SerializedAccountReference;
   onClose: () => void;
 }
 
@@ -86,7 +87,12 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
     return (
       <>
         <Typography variant={"h6"}>Update Account</Typography>
-        <TextField label={"Address"} value={account} size={"small"} fullWidth />
+        <TextField
+          label={"Address"}
+          value={account.address}
+          size={"small"}
+          fullWidth
+        />
         <TextField
           label={"Account Name"}
           size={"small"}

@@ -226,6 +226,7 @@ class ExternalCommunicationController {
         origin,
         faviconUrl,
         tabId: sender.tab.id,
+        sessionId,
       },
       NEW_ACCOUNT_RESPONSE
     );
@@ -246,44 +247,52 @@ class ExternalCommunicationController {
       };
     }
 
-    try {
-      await ExtensionVaultInstance.validateSessionForPermissions(
-        sessionId,
-        "transaction",
-        "sign",
-        [fromAddress]
-      );
-    } catch (error) {
-      if (error instanceof SessionNotFoundError) {
+    const accounts = store.getState().vault.entities.accounts.list;
+
+    const accountOnState = accounts.find(
+      (account) => account.address === fromAddress
+    );
+
+    if (accountOnState) {
+      try {
+        await ExtensionVaultInstance.validateSessionForPermissions(
+          sessionId,
+          "transaction",
+          "sign",
+          [accountOnState.id]
+        );
+      } catch (error) {
+        if (error instanceof SessionNotFoundError) {
+          return {
+            type: TRANSFER_RESPONSE,
+            error: InvalidSession,
+            data: null,
+          };
+        }
+
+        if (error instanceof InvalidSessionError) {
+          return {
+            type: TRANSFER_RESPONSE,
+            error: InvalidSession,
+            data: null,
+          };
+        }
+
+        if (error instanceof ForbiddenSessionError) {
+          return {
+            type: TRANSFER_RESPONSE,
+            error: ForbiddenSession,
+            data: null,
+          };
+        }
+
         return {
           type: TRANSFER_RESPONSE,
-          error: InvalidSession,
+          //todo: add default error
+          error: { name: "add default error" },
           data: null,
         };
       }
-
-      if (error instanceof InvalidSessionError) {
-        return {
-          type: TRANSFER_RESPONSE,
-          error: InvalidSession,
-          data: null,
-        };
-      }
-
-      if (error instanceof ForbiddenSessionError) {
-        return {
-          type: TRANSFER_RESPONSE,
-          error: ForbiddenSession,
-          data: null,
-        };
-      }
-
-      return {
-        type: TRANSFER_RESPONSE,
-        //todo: add default error
-        error: { name: "add default error" },
-        data: null,
-      };
     }
 
     return this._addExternalRequest(
