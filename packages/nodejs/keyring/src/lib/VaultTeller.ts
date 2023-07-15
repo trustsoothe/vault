@@ -7,15 +7,16 @@ import IVaultStore from "./core/common/storage/IVaultStorage";
 import IEncryptionService from "./core/common/encryption/IEncryptionService";
 import {Account, AccountUpdateOptions, Vault} from "./core/vault";
 import { SerializedSession, Session, SessionOptions } from "./core/session";
-import { PermissionsBuilder } from "./core/common/permissions";
+import {Permission, PermissionsBuilder} from "./core/common/permissions";
 import IStorage from "./core/common/storage/IStorage";
 import {
   ForbiddenSessionError,
   InvalidSessionError,
   SessionIdRequiredError,
-  SessionNotFoundError,
+  SessionNotFoundError, VaultIsLockedError,
 } from "./errors";
 import {CreateAccountOptions, ProtocolServiceFactory} from "./core/common/protocols";
+import {v4} from "uuid";
 
 export class VaultTeller {
   private _isUnlocked = false;
@@ -100,6 +101,14 @@ export class VaultTeller {
       throw new Error("Vault must be unlocked to authorize external access");
     }
 
+    const newSessionId = v4();
+    const extendedPermissions =
+      new PermissionsBuilder(request.permissions as Permission[])
+        .forResource("session")
+        .allow('revoke')
+        .on(newSessionId)
+        .build();
+
     // Concat will create a new array with the same elements as the original array (which is readonly).
     const sessionOptions: SessionOptions = {
       permissions: request.permissions.concat(),
@@ -108,7 +117,7 @@ export class VaultTeller {
       origin: request.origin || null,
     };
 
-    const session = new Session(sessionOptions);
+    const session = new Session(sessionOptions, newSessionId);
     await this.sessionStore.save(session.serialize());
     return session;
   }
@@ -152,12 +161,27 @@ export class VaultTeller {
   }
 
   async listAccounts(sessionId: string) {
-    await this.validateSessionForPermissions(sessionId, "account", "list");
-    await this.updateSessionLastActivity(sessionId);
-    const session = await this.getSession(sessionId);
-    if (session) {
-      return session.accounts;
+    if (!this.isUnlocked) {
+      throw new VaultIsLockedError();
     }
+
+    const session = await this.getSession(sessionId);
+
+    if (!session) {
+      throw new SessionNotFoundError();
+    }
+
+
+    if (!session.isValid()) {
+      throw new InvalidSessionError();
+    }
+
+    const authorizedAccounts = this._vault.accounts.filter((account) =>
+      session.isAllowed("account", "read", [account.id]));
+
+    await this.updateSessionLastActivity(sessionId);
+
+    return authorizedAccounts;
   }
 
   async revokeSession(
@@ -172,6 +196,7 @@ export class VaultTeller {
     }
     await this.updateSessionLastActivity(sessionId);
   }
+
 
   public async validateSessionForPermissions(
     sessionId: string,

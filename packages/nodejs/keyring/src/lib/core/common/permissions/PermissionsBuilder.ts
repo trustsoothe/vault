@@ -1,3 +1,6 @@
+import merge from 'lodash/merge';
+import union from 'lodash/union';
+import unionBy from 'lodash/unionBy';
 
 export enum PermissionResources {
   account = 'account',
@@ -56,7 +59,7 @@ class ResourcePermissionBuilder {
     this.resource.permissions = this.resource.permissions.map(permission => {
       return {
         ...permission,
-        identities,
+        identities: union(permission.identities, identities),
       };
     });
   }
@@ -69,13 +72,25 @@ class ResourcePermissionBuilder {
       throw new Error(`Unknown actions: ${invalidActions.join(', ')} for resource ${this.resource.name}`);
     }
 
-    this.resource.permissions = actions.map(action => {
+    const proposedPermissions = actions.map(action => {
       return {
         resource: this.resource.name,
         action,
         identities: []
       };
     })
+
+    const uniquePermissions = unionBy(this.resource.permissions, proposedPermissions, 'action');
+
+    this.resource.permissions = uniquePermissions.map(permission => {
+      const proposedPermission = proposedPermissions.find(proposedPermission => proposedPermission.action === permission.action);
+
+      if (!proposedPermission) {
+        return permission;
+      }
+
+      return merge(permission, proposedPermission);
+    });
   }
 }
 export class PermissionsBuilder {
@@ -85,18 +100,43 @@ export class PermissionsBuilder {
     transaction: ['sign'],
     session: ['list', 'revoke'],
   }
-  constructor() {}
+  constructor(permissions?: Permission[]) {
+    if (permissions) {
+      this.resources = permissions.reduce((resources, permission) => {
+        const resource = resources.find(resource => resource.name === permission.resource);
+
+        if (resource) {
+          resource.permissions.push(permission);
+        } else {
+          resources.push({
+            name: permission.resource,
+            permissions: [permission],
+          });
+        }
+
+        return resources;
+      }, []);
+    }
+  }
 
   forResource(resourceName: keyof typeof PermissionResources) {
     if (!this.resourceConfig.hasOwnProperty(resourceName)) {
       throw new Error(`Unknown resource: ${resourceName}`);
     }
 
+    const preExistingResource = this.resources.find(resource => resource.name === resourceName);
+
+    if (preExistingResource) {
+      return new ResourcePermissionBuilder(preExistingResource, this);
+    }
+
     const resource = {
       name: resourceName,
       permissions: []
     };
+
     this.resources.push(resource);
+
     return new ResourcePermissionBuilder(resource, this);
   }
 
