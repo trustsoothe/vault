@@ -20,6 +20,8 @@ import {
   TRANSFER_RESPONSE,
   UNLOCK_VAULT_REQUEST,
   UNLOCK_VAULT_RESPONSE,
+  UPDATE_ACCOUNT_REQUEST,
+  UPDATE_ACCOUNT_RESPONSE,
 } from "../../constants/communication";
 import {
   ConnectionRequest,
@@ -30,10 +32,10 @@ import {
   TransferRequest,
 } from "../../redux/slices/app";
 import {
-  AccountReference,
   ExternalAccessRequest,
   OriginReference,
-  Permission,
+  PermissionResources,
+  PermissionsBuilder,
   SerializedAsset,
   SerializedSession,
 } from "@poktscan/keyring";
@@ -44,6 +46,7 @@ import {
   lockVault,
   revokeSession,
   unlockVault,
+  updateAccount,
 } from "../../redux/slices/vault";
 import MessageSender = Runtime.MessageSender;
 
@@ -52,8 +55,9 @@ export interface AnswerConnectionRequest {
   data: {
     accepted: boolean;
     request: ConnectionRequest;
+    canListAccounts: boolean;
     canCreateAccounts: boolean;
-    idsOfSelectedAccounts: string[];
+    canSuggestTransfers: boolean;
   } | null;
 }
 
@@ -112,6 +116,14 @@ interface RevokeSessionMessage {
   };
 }
 
+export interface UpdateAccountMessage {
+  type: typeof UPDATE_ACCOUNT_REQUEST;
+  data: {
+    id: string;
+    name: string;
+  };
+}
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
@@ -119,7 +131,8 @@ export type Message =
   | InitializeVaultRequest
   | UnlockVaultRequest
   | LockVaultMessage
-  | RevokeSessionMessage;
+  | RevokeSessionMessage
+  | UpdateAccountMessage;
 
 // Controller to manage the communication between extension views and the background
 class InternalCommunicationController {
@@ -203,6 +216,10 @@ class InternalCommunicationController {
     if (message?.type === REVOKE_SESSION_REQUEST) {
       return this._handleRevokeSession(message.data.sessionId);
     }
+
+    if (message?.type === UPDATE_ACCOUNT_REQUEST) {
+      return this._handleUpdateAccount(message);
+    }
   }
 
   private async _handleInitializeVault(password: string) {
@@ -255,7 +272,8 @@ class InternalCommunicationController {
     const {
       accepted,
       canCreateAccounts,
-      idsOfSelectedAccounts = [],
+      canSuggestTransfers,
+      canListAccounts,
       request,
     } = message?.data || {};
     const { origin, tabId, type } = request;
@@ -274,51 +292,36 @@ class InternalCommunicationController {
         })
       );
     } else {
-      const permissions: Permission[] = [];
-      const accountReferences: AccountReference[] = [];
+      const permissionBuilder = new PermissionsBuilder();
 
       if (canCreateAccounts) {
-        permissions.push({
-          resource: "account",
-          action: "create",
-          identities: ["*"],
-        });
+        permissionBuilder
+          .forResource(PermissionResources.account)
+          .allow("create")
+          .onAny();
       }
 
-      if (idsOfSelectedAccounts.length) {
-        permissions.push({
-          resource: "account",
-          action: "read",
-          identities: idsOfSelectedAccounts,
-        });
-
-        permissions.push({
-          resource: "transaction",
-          action: "sign",
-          identities: idsOfSelectedAccounts,
-        });
-
-        const accounts = store.getState().vault.entities.accounts.list;
-
-        const idsOfSelectedAccountsMap = idsOfSelectedAccounts.reduce(
-          (acc, id) => ({ ...acc, [id]: true }),
-          {}
-        );
-
-        for (const account of accounts) {
-          if (idsOfSelectedAccountsMap[account.id]) {
-            accountReferences.push(AccountReference.deserialize(account));
-          }
-        }
+      if (canListAccounts) {
+        permissionBuilder
+          .forResource(PermissionResources.account)
+          .allow("list", "read")
+          .onAny();
       }
 
+      if (canSuggestTransfers) {
+        permissionBuilder
+          .forResource(PermissionResources.transaction)
+          .allow("sign")
+          .onAny();
+      }
+
+      const permissions = permissionBuilder.build();
       const maxAge = 3600;
       const originReference = new OriginReference(origin);
       const requestReference = new ExternalAccessRequest(
         permissions,
         maxAge,
-        originReference,
-        accountReferences
+        originReference
       );
 
       const [response, tabs] = await Promise.all([
@@ -392,18 +395,18 @@ class InternalCommunicationController {
       ]);
     } else if (!rejected) {
       try {
-        const accountReference = await store
+        const response = await store
           .dispatch(
             addNewAccount({
               sessionId: request?.sessionId,
               asset: accountData.asset,
               password: accountData.password,
-              name: accountData.password,
+              name: accountData.name,
             })
           )
           .unwrap();
 
-        address = accountReference.address;
+        address = response.accountReference.address;
       } catch (e) {
         console.log("ERROR creating account:", e);
         // todo: handle error
@@ -498,6 +501,17 @@ class InternalCommunicationController {
       data: {
         answered: true,
         hash,
+      },
+    };
+  }
+
+  private async _handleUpdateAccount(message: UpdateAccountMessage) {
+    await store.dispatch(updateAccount(message.data));
+
+    return {
+      type: UPDATE_ACCOUNT_RESPONSE,
+      data: {
+        answered: true,
       },
     };
   }

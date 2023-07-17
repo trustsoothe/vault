@@ -10,6 +10,11 @@ export interface ConnectionRequest {
   origin: string;
   faviconUrl: string;
   tabId: number;
+  suggestedPermissions?: (
+    | "list_accounts"
+    | "create_accounts"
+    | "suggest_transfer"
+  )[];
 }
 
 export interface NewAccountRequest {

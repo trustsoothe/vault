@@ -1,96 +1,119 @@
-export interface DefaultError {
-  name: string;
-  code: number;
-  message: string;
+function createError<N extends string, C extends number, M extends string>(
+  name: N,
+  code: C,
+  message: M
+) {
+  return Object.freeze({
+    name,
+    code,
+    message,
+  });
 }
 
-export const NotConnected: Readonly<DefaultError> = Object.freeze({
-  name: "NOT_CONNECTED",
-  code: 1,
-  message: "You are not connected with the vault extension",
-});
+export const UnknownError = createError(
+  "UNKNOWN_ERROR",
+  0,
+  "An unhandled error occur trying to process your request."
+);
 
-export const OriginNotPresented: Readonly<DefaultError> = Object.freeze({
-  name: "ORIGIN_NOT_PRESENTED",
-  code: 1,
-  message: "The origin was not presented in the payload.",
-});
+export const VaultIsLocked = createError(
+  "VAULT_IS_LOCKED",
+  12,
+  "The vault is locked."
+);
 
-export const FromAddressNotPresented: Readonly<DefaultError> = Object.freeze({
-  name: "FROM_ADDRESS_NOT_PRESENTED",
-  code: 3,
-  message: "fromAddress was not presented in the payload.",
-});
+export const NotConnected = createError(
+  "NOT_CONNECTED",
+  1,
+  "You are not connected with the vault extension"
+);
 
-export const ToAddressNotPresented: Readonly<DefaultError> = Object.freeze({
-  name: "TO_ADDRESS_NOT_PRESENTED",
-  code: 4,
-  message: "toAddress was not presented in the payload.",
-});
+export const OriginNotPresented = createError(
+  "ORIGIN_NOT_PRESENTED",
+  2,
+  "The origin was not presented in the payload."
+);
 
-export const AmountNotPresented: Readonly<DefaultError> = Object.freeze({
-  name: "AMOUNT_ADDRESS_NOT_PRESENTED",
-  code: 5,
-  message: "amount was not presented in the payload.",
-});
+export const FromAddressNotPresented = createError(
+  "FROM_ADDRESS_NOT_PRESENTED",
+  3,
+  "fromAddress was not presented in the payload."
+);
 
-export const FromAddressNotValid: Readonly<DefaultError> = Object.freeze({
-  name: "FROM_ADDRESS_NOT_VALID",
-  code: 7,
-  message: "fromAddress is not valid.",
-});
+export const ToAddressNotPresented = createError(
+  "TO_ADDRESS_NOT_PRESENTED",
+  4,
+  "toAddress was not presented in the payload."
+);
 
-export const ToAddressNotValid: Readonly<DefaultError> = Object.freeze({
-  name: "TO_ADDRESS_NOT_VALID",
-  code: 8,
-  message: "toAddress is not valid.",
-});
+export const AmountNotPresented = createError(
+  "AMOUNT_ADDRESS_NOT_PRESENTED",
+  5,
+  "amount was not presented in the payload."
+);
 
-export const AmountNotValid: Readonly<DefaultError> = Object.freeze({
-  name: "AMOUNT_ADDRESS_NOT_VALID",
-  code: 9,
-  message: "amount is not valid.",
-});
+export const FromAddressNotValid = createError(
+  "FROM_ADDRESS_NOT_VALID",
+  7,
+  "fromAddress is not valid."
+);
 
-export const InvalidBody: Readonly<DefaultError> = Object.freeze({
-  name: "INVALID_BODY",
-  code: 6,
-  message: "The data passed is not valid.",
-});
+export const ToAddressNotValid = createError(
+  "TO_ADDRESS_NOT_VALID",
+  8,
+  "toAddress is not valid."
+);
 
-export const SessionIdNotPresented: Readonly<DefaultError> = Object.freeze({
-  name: "SESSION_NOT_PRESENTED",
-  code: 2,
-  message: "The sessionId was not presented in the payload.",
-});
+export const AmountNotValid = createError(
+  "AMOUNT_ADDRESS_NOT_VALID",
+  9,
+  "amount is not valid."
+);
 
-export const RequestConnectionExists: Readonly<DefaultError> = Object.freeze({
-  name: "REQUEST_CONNECTION_ALREADY_EXISTS",
-  code: 1000,
-  message: "There is a pending connect request from this origin.",
-});
+export const InvalidBody = createError(
+  "INVALID_BODY",
+  6,
+  "The data passed is not valid."
+);
 
-export const RequestNewAccountExists: Readonly<DefaultError> = Object.freeze({
-  name: "REQUEST_NEW_ACCOUNT_ALREADY_EXISTS",
-  code: 1001,
-  message: "There is a pending new account request from this origin.",
-});
+export const SessionIdNotPresented = createError(
+  "SESSION_NOT_PRESENTED",
+  10,
+  "The sessionId was not presented in the payload."
+);
 
-export const RequestTransferExists: Readonly<DefaultError> = Object.freeze({
-  name: "REQUEST_TRANSFER_ALREADY_EXISTS",
-  code: 1002,
-  message: "There is a pending transfer request from this origin.",
-});
+export const InvalidPermission = createError(
+  "INVALID_PERMISSION",
+  11,
+  "An invalid permission was provided."
+);
 
-export const InvalidSession: Readonly<DefaultError> = Object.freeze({
-  name: "INVALID_SESSION",
-  code: 500,
-  message: "Unauthorized. The provided sessionId is not valid.",
-});
+export const RequestConnectionExists = createError(
+  "REQUEST_CONNECTION_ALREADY_EXISTS",
+  1000,
+  "There is a pending connect request from this origin."
+);
 
-export const ForbiddenSession: Readonly<DefaultError> = Object.freeze({
-  name: "FORBIDDEN_SESSION",
-  code: 500,
-  message:
-    "Forbidden. The provided session does not have the rights to perform the requested operation.",
-});
+export const RequestNewAccountExists = createError(
+  "REQUEST_NEW_ACCOUNT_ALREADY_EXISTS",
+  1001,
+  "There is a pending new account request from this origin."
+);
+
+export const RequestTransferExists = createError(
+  "REQUEST_TRANSFER_ALREADY_EXISTS",
+  1002,
+  "There is a pending transfer request from this origin."
+);
+
+export const InvalidSession = createError(
+  "INVALID_SESSION",
+  500,
+  "Unauthorized. The provided sessionId is not valid."
+);
+
+export const ForbiddenSession = createError(
+  "FORBIDDEN_SESSION",
+  500,
+  "Forbidden. The provided session does not have the rights to perform the requested operation."
+);

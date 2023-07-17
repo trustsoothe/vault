@@ -1,29 +1,38 @@
 import React from "react";
-import Stack from "@mui/material/Stack";
+import Stack, { StackProps } from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 interface RequestFromProps {
-  title: string;
+  title?: string;
+  description?: string;
   origin: string;
   faviconUrl: string;
+  containerProps?: StackProps;
+  containerMetaProps?: StackProps;
 }
 
 const RequestFrom: React.FC<RequestFromProps> = ({
   title,
+  description,
   origin,
   faviconUrl,
+  containerProps,
+  containerMetaProps,
 }) => {
   return (
-    <Stack spacing={"10px"}>
-      <Typography fontSize={20} textAlign={"center"}>
-        {title}
-      </Typography>
+    <Stack spacing={"10px"} {...containerProps}>
+      {title && (
+        <Typography fontSize={20} textAlign={"center"}>
+          {title}
+        </Typography>
+      )}
       <Stack
         direction={"row"}
         alignItems={"center"}
         justifyContent={"center"}
         spacing={"10px"}
         width={1}
+        {...containerMetaProps}
       >
         <img width={24} height={24} alt={"favicon-ico"} src={faviconUrl} />
         <Typography
@@ -38,6 +47,11 @@ const RequestFrom: React.FC<RequestFromProps> = ({
           {origin}
         </Typography>
       </Stack>
+      {description && (
+        <Typography fontSize={14} textAlign={"center"}>
+          {description}
+        </Typography>
+      )}
     </Stack>
   );
 };

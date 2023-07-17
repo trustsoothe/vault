@@ -13,9 +13,12 @@ import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import Autocomplete from "@mui/material/Autocomplete";
 import { Controller, useForm } from "react-hook-form";
 import RequestFrom from "../common/RequestFrom";
+import { filterAccounts } from "../Account/List";
 import AmountHelperText from "./AmountHelperText";
+import ListAccountItem from "../Account/ListItem";
 import CircularLoading from "../common/CircularLoading";
 import AutocompleteAsset from "../Account/AutocompleteAsset";
 import AppToBackground from "../../controllers/communication/AppToBackground";
@@ -222,6 +225,14 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
     }
   }, [requesterInfo]);
 
+  const accountsMap: Record<string, SerializedAccountReference> =
+    useMemo(() => {
+      return accounts.reduce(
+        (acc, item) => ({ ...acc, [item.address]: item }),
+        {}
+      );
+    }, [accounts]);
+
   const content = useMemo(() => {
     if (status === "loading") {
       return <CircularLoading />;
@@ -349,28 +360,78 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
             name={"from"}
             control={control}
             rules={{ required: true }}
-            render={({ field, fieldState: { error } }) => (
-              <TextField
-                label={"From"}
-                fullWidth
-                size={"small"}
-                select
+            render={({
+              field: { onChange, value, ...otherProps },
+              fieldState: { error },
+            }) => (
+              <Autocomplete
+                options={accounts.map((item) => item.address)}
+                filterOptions={(_, state) => {
+                  const value = state.inputValue.toLowerCase().trim();
+
+                  return filterAccounts(value, accounts).map(
+                    (item) => item.address
+                  );
+                }}
+                renderOption={(
+                  props: React.HTMLAttributes<unknown>,
+                  option,
+                  state
+                ) => {
+                  const account = accountsMap[option];
+
+                  return (
+                    <ListAccountItem
+                      account={account}
+                      key={option}
+                      containerProps={{
+                        ...props,
+                        sx: {
+                          alignItems: "flex-start!important",
+                          "& p": {
+                            fontSize: "12px!important",
+                          },
+                        },
+                        paddingY: "5px!important",
+                        paddingX: "10px!important",
+                        borderTop:
+                          state.index !== 0 ? "1px solid lightgray" : undefined,
+                        py: "5px",
+                      }}
+                    />
+                  );
+                }}
+                getOptionLabel={(option) => {
+                  const account = accountsMap[option];
+                  const firstCharacters = option.substring(0, 4);
+                  const lastCharacters = option.substring(option.length - 4);
+
+                  return `${account.name} (${firstCharacters}...${lastCharacters})`;
+                }}
+                onChange={(_, newValue) => onChange(newValue)}
+                value={value || null}
+                {...otherProps}
                 sx={{
-                  "& input": {
-                    fontSize: 14,
+                  width: 1,
+                }}
+                ListboxProps={{
+                  sx: {
+                    maxHeight: 225,
                   },
                 }}
                 disabled={!!fromAddressStatus}
-                error={!!error}
-                helperText={error?.message}
-                {...field}
-              >
-                {accounts.map((account) => (
-                  <MenuItem key={account.id} value={account.address}>
-                    <Typography fontSize={14}> {account.address}</Typography>
-                  </MenuItem>
-                ))}
-              </TextField>
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={"From"}
+                    fullWidth
+                    size={"small"}
+                    disabled={!!fromAddressStatus}
+                    error={!!error}
+                    helperText={error?.message}
+                  />
+                )}
+              />
             )}
           />
         )}
@@ -449,6 +510,11 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
           })}
           error={!!formState?.errors?.toAddress}
           helperText={formState?.errors?.toAddress?.message}
+          sx={{
+            "& input, label": {
+              fontSize: 14,
+            },
+          }}
         />
 
         <Stack

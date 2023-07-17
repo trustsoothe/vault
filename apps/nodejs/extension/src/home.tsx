@@ -113,13 +113,16 @@ const Home: React.FC<HomeProps> = ({
   externalRequests,
 }) => {
   const [view, setView] = useState("loading");
+  const [isPopup, setIsPopup] = useState(false);
   // useEffect(() => {
   //   browser.storage.local.clear().then(() => console.log("cleared"));
   // }, []);
 
   useEffect(() => {
+    // todo: improve this?
     const isSessionRequest = window.location.search.includes("view=request");
     setView(isSessionRequest ? "session-request" : "normal");
+    setIsPopup(window.location.search.includes("popup=true"));
   }, []);
 
   const content = useMemo(() => {
@@ -161,6 +164,7 @@ const Home: React.FC<HomeProps> = ({
         alignItems: "center",
         justifyContent: "center",
         marginLeft: "-8px",
+        maxHeight: isPopup ? 510 : undefined,
       }}
     >
       <Paper

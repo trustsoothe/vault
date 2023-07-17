@@ -1,21 +1,25 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { SerializedNetwork } from "@poktscan/keyring";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import { Divider, IconButton } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+import type { SerializedNetwork } from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
+import React, { CSSProperties, useCallback, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
+import groupBy from "lodash/groupBy";
+import { connect } from "react-redux";
+import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import { FixedSizeList } from "react-window";
+import EditIcon from "@mui/icons-material/Edit";
+import IconButton from "@mui/material/IconButton";
+import Typography from "@mui/material/Typography";
+import DeleteIcon from "@mui/icons-material/Delete";
 import AddUpdateNetwork from "./AddUpdate";
 import RemoveNetwork from "./Remove";
-import { RootState } from "../../redux/store";
-import { connect } from "react-redux";
-import groupBy from "lodash/groupBy";
 import { labelByProtocolMap, labelByChainID } from "../../constants/protocols";
 
 interface NetworkItemProps {
   network: SerializedNetwork;
+  style?: CSSProperties;
+  showBorderTop?: boolean;
   onClickUpdate?: (network: SerializedNetwork) => void;
   onClickRemove?: (network: SerializedNetwork) => void;
 }
@@ -24,9 +28,17 @@ const NetworkItem: React.FC<NetworkItemProps> = ({
   network,
   onClickUpdate,
   onClickRemove,
+  style,
+  showBorderTop,
 }) => {
   return (
-    <Stack direction={"row"}>
+    <Stack
+      direction={"row"}
+      style={style}
+      paddingY={"8px"}
+      boxSizing={"border-box"}
+      borderTop={showBorderTop ? "1px solid lightgray" : undefined}
+    >
       <Stack paddingX={"5px"} spacing={"3px"} flexGrow={1}>
         <Typography fontSize={12} fontWeight={600}>
           {network.name}
@@ -130,11 +142,11 @@ const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
           </Button>
         </Stack>
 
-        <Box overflow={"auto"} marginRight={"-10px"} paddingRight={"10px"}>
+        <Box marginRight={"-10px"} paddingRight={"10px"}>
           <Divider
             textAlign={"left"}
             sx={{
-              marginY: "10px",
+              marginTop: "5px",
               "&::before": {
                 width: "4%",
               },
@@ -146,8 +158,12 @@ const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
             <Typography fontSize={14}>Defaults</Typography>
           </Divider>
           <Stack divider={<Divider sx={{ marginY: "10px" }} />}>
-            {defaultNetworks.map((network) => (
-              <NetworkItem network={network} key={network.id} />
+            {defaultNetworks.map((network, index) => (
+              <NetworkItem
+                network={network}
+                key={network.id}
+                showBorderTop={index !== 0}
+              />
             ))}
           </Stack>
           {customNetworks.length ? (
@@ -155,9 +171,7 @@ const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
               <Divider
                 textAlign={"left"}
                 sx={{
-                  marginTop: "15px",
-                  marginBottom: "10px",
-
+                  marginY: "5px",
                   "&::before": {
                     width: "4%",
                   },
@@ -168,15 +182,32 @@ const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
               >
                 <Typography fontSize={14}>Customs</Typography>
               </Divider>
-              <Stack divider={<Divider sx={{ marginY: "10px" }} />}>
-                {customNetworks.map((network) => (
-                  <NetworkItem
-                    network={network}
-                    key={network.id}
-                    onClickRemove={onClickRemove}
-                    onClickUpdate={onClickUpdate}
-                  />
-                ))}
+              <Stack
+                divider={<Divider sx={{ marginY: "5px" }} />}
+                overflow={"auto"}
+              >
+                <FixedSizeList
+                  width={"100%"}
+                  itemCount={customNetworks.length}
+                  itemSize={75}
+                  height={260}
+                  itemData={customNetworks}
+                >
+                  {({ index, style, data }) => {
+                    const network = data[index];
+
+                    return (
+                      <NetworkItem
+                        network={network}
+                        key={network.id}
+                        style={style}
+                        onClickUpdate={onClickUpdate}
+                        onClickRemove={onClickRemove}
+                        showBorderTop={index !== 0}
+                      />
+                    );
+                  }}
+                </FixedSizeList>
               </Stack>
             </>
           ) : null}

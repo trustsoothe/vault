@@ -1,6 +1,8 @@
 import type {
   AnswerConnectionRequest,
   AnswerNewAccountRequest,
+  UpdateAccountMessage,
+  AnswerTransferRequest,
 } from "./Internal";
 import browser from "webextension-polyfill";
 import {
@@ -11,8 +13,8 @@ import {
   LOCK_VAULT_REQUEST,
   REVOKE_SESSION_REQUEST,
   UNLOCK_VAULT_REQUEST,
+  UPDATE_ACCOUNT_REQUEST,
 } from "../../constants/communication";
-import { AnswerTransferRequest } from "./Internal";
 
 export default class AppToBackground {
   static async answerConnection(data: AnswerConnectionRequest["data"]) {
@@ -25,6 +27,13 @@ export default class AppToBackground {
   static async answerNewAccount(data: AnswerNewAccountRequest["data"]) {
     return browser.runtime.sendMessage({
       type: ANSWER_NEW_ACCOUNT_REQUEST,
+      data,
+    });
+  }
+
+  static async updateAccount(data: UpdateAccountMessage["data"]) {
+    return browser.runtime.sendMessage({
+      type: UPDATE_ACCOUNT_REQUEST,
       data,
     });
   }

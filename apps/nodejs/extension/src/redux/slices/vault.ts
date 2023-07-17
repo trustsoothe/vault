@@ -5,8 +5,10 @@ import type {
   SerializedNetwork,
   SerializedSession,
   SerializedAccountReference,
+  AccountUpdateOptions,
 } from "@poktscan/keyring";
 import type { RootState } from "../store";
+import { v4 } from "uuid";
 import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import {
@@ -48,12 +50,13 @@ export interface VaultSlice {
 }
 
 export const VAULT_HAS_BEEN_INITIALIZED_KEY = "vault_has_been_initialized";
+export const PASSPHRASE = v4();
 
 export const unlockVault = createAsyncThunk(
   "vault/unlockVault",
   async (password: string) => {
     const session = await ExtensionVaultInstance.unlockVault(password);
-    const passphrase = new Passphrase(session.id);
+    const passphrase = new Passphrase(PASSPHRASE);
 
     const passwordEncrypted = await webEncryptionService.encrypt(
       passphrase,
@@ -86,7 +89,10 @@ export const unlockVault = createAsyncThunk(
 );
 
 export const addNewAccount = createAsyncThunk<
-  SerializedAccountReference,
+  {
+    accountReference: SerializedAccountReference;
+    session: SerializedSession;
+  },
   {
     sessionId?: string;
     password: string;
@@ -97,7 +103,6 @@ export const addNewAccount = createAsyncThunk<
   const {
     vault: { vaultSession },
   } = context.getState() as RootState;
-
   const passwordEncryptedObj = await // @ts-ignore
   (browser.storage.session as typeof browser.storage.local).get(
     vaultSession.id
@@ -109,7 +114,7 @@ export const addNewAccount = createAsyncThunk<
     throw Error("Password not found");
   }
 
-  const decryptPassphrase = new Passphrase(vaultSession.id);
+  const decryptPassphrase = new Passphrase(PASSPHRASE);
   const passphraseDecrypted = await webEncryptionService.decrypt(
     decryptPassphrase,
     passphraseEncrypted
@@ -121,9 +126,48 @@ export const addNewAccount = createAsyncThunk<
 
   const accountReference = await ExtensionVaultInstance.createAccount(
     session,
-    Asset.deserialize(args.asset),
-    accountPassphrase,
-    vaultPassphrase
+    vaultPassphrase,
+    {
+      name: args.name,
+      asset: Asset.deserialize(args.asset),
+      passphrase: accountPassphrase,
+    }
+  );
+
+  const updatedSession = await ExtensionVaultInstance.getSession(session);
+
+  return {
+    accountReference: accountReference.serialize(),
+    session: updatedSession.serialize(),
+  };
+});
+
+export const updateAccount = createAsyncThunk<
+  SerializedAccountReference,
+  AccountUpdateOptions
+>("vault/updateAccount", async (arg, context) => {
+  const {
+    vault: { vaultSession },
+  } = context.getState() as RootState;
+
+  const passwordEncryptedObj = await // @ts-ignore
+  (browser.storage.session as typeof browser.storage.local).get(
+    vaultSession.id
+  );
+
+  const passphraseEncrypted: string = passwordEncryptedObj[vaultSession.id];
+
+  const decryptPassphrase = new Passphrase(PASSPHRASE);
+  const passphraseDecrypted = await webEncryptionService.decrypt(
+    decryptPassphrase,
+    passphraseEncrypted
+  );
+  const vaultPassphrase = new Passphrase(passphraseDecrypted);
+
+  const accountReference = await ExtensionVaultInstance.updateAccountName(
+    vaultSession.id,
+    vaultPassphrase,
+    arg
   );
 
   return accountReference.serialize();
@@ -170,7 +214,6 @@ export const authorizeExternalSession = createAsyncThunk<
   SerializedSession,
   ExternalAccessRequest
 >("vault/AuthorizeExternalSession", async (request) => {
-  console.log("where am i?");
   const session = await ExtensionVaultInstance.authorizeExternal(request);
   return session.serialize();
 });
@@ -426,8 +469,40 @@ const vaultSlice = createSlice({
     });
 
     builder.addCase(addNewAccount.fulfilled, (state, action) => {
+      const { accountReference, session } = action.payload;
       state.entities.accounts.loading = false;
-      state.entities.accounts.list.push(action.payload);
+      state.entities.accounts.list.push(accountReference);
+
+      const index = state.entities.sessions.list.findIndex(
+        (item) => item.id === session.id
+      );
+
+      if (index !== -1) {
+        state.entities.sessions.list.splice(index, 1, session);
+      }
+    });
+
+    //accounts: updateAccount
+    builder.addCase(updateAccount.pending, (state) => {
+      state.entities.accounts.loading = true;
+    });
+
+    builder.addCase(updateAccount.rejected, (state) => {
+      state.entities.accounts.loading = false;
+    });
+
+    builder.addCase(updateAccount.fulfilled, (state, action) => {
+      const account = action.payload;
+
+      state.entities.accounts.loading = false;
+
+      const index = state.entities.accounts.list.findIndex(
+        (item) => item.id === account.id
+      );
+
+      if (index !== -1) {
+        state.entities.accounts.list.splice(index, 1, account);
+      }
     });
   },
 });

@@ -6,6 +6,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import React, { useCallback, useMemo, useState } from "react";
 import CircularLoading from "../common/CircularLoading";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface FormValues {
   account_name: string;
@@ -19,17 +20,27 @@ interface UpdateAccountProps {
 const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
   const { handleSubmit, register, formState } = useForm<FormValues>({
     defaultValues: {
-      account_name: "",
+      account_name: account.name,
     },
   });
   const [status, setStatus] = useState<
     "normal" | "loading" | "error" | "saved"
   >("normal");
 
-  const onSubmit = useCallback((data) => {
-    setStatus("loading");
-    setTimeout(() => setStatus("saved"), 1000);
-  }, []);
+  const onSubmit = useCallback(
+    (data: FormValues) => {
+      setStatus("loading");
+      AppToBackground.updateAccount({
+        id: account.id,
+        name: data.account_name,
+      })
+        .then(() => {
+          setStatus("saved");
+        })
+        .catch(() => setStatus("error"));
+    },
+    [account]
+  );
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -94,6 +105,7 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
           fullWidth
         />
         <TextField
+          autoFocus
           label={"Account Name"}
           size={"small"}
           fullWidth

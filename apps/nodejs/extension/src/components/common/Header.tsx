@@ -107,7 +107,7 @@ const Header: React.FC = () => {
             onClick={closeMenu}
             sx={{ borderTop: "1px solid lightgray" }}
           >
-            <Link to={SESSIONS_PAGE}>Sessions</Link>
+            <Link to={SESSIONS_PAGE}>Connected Sites</Link>
           </MenuItem>
           <MenuItem onClick={closeMenu}>
             <Link to={NETWORKS_PAGE}>Networks</Link>

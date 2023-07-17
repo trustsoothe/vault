@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
-import Skeleton from "@mui/material/Skeleton";
+import { FixedSizeList } from "react-window";
 import { useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import EditIcon from "@mui/icons-material/Edit";
@@ -19,11 +19,46 @@ import {
 } from "../../constants/routes";
 import UpdateAccount from "./Update";
 import RemoveAccount from "./Remove";
+import ListAccountItem from "./ListItem";
+import useDebounce from "../../hooks/useDebounce";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 
 interface AccountListProps {
   accounts: SerializedAccountReference[];
 }
+
+export const filterAccounts = (
+  searchText: string,
+  accounts: SerializedAccountReference[]
+) => {
+  if (!searchText) {
+    return accounts;
+  }
+
+  const text = searchText.trim().toLowerCase();
+
+  return accounts.filter((account) => {
+    if (account.name.toLowerCase().includes(text)) {
+      return true;
+    }
+
+    if (account.address.toLowerCase().includes(text)) {
+      return true;
+    }
+
+    if (
+      labelByProtocolMap[account.protocol.name].toLowerCase().includes(text)
+    ) {
+      return true;
+    }
+
+    if (labelByChainID[account.protocol.chainID].toLowerCase().includes(text)) {
+      return true;
+    }
+
+    return false;
+  });
+};
 
 const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
   const navigate = useNavigate();
@@ -31,6 +66,7 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
   const [selectedAccount, setSelectedAccount] =
     useState<SerializedAccountReference>(null);
   const [searchText, setSearchText] = useState("");
+  const debouncedSearchText = useDebounce(searchText);
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
 
   useEffect(() => {
@@ -75,8 +111,15 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
     setView("list");
   }, []);
 
+  const searchedAccounts: SerializedAccountReference[] = useMemo(() => {
+    return filterAccounts(debouncedSearchText, accounts);
+  }, [accounts, debouncedSearchText]);
+
   const accountListComponent = useMemo(() => {
-    if (!accounts.length) {
+    if (!accounts.length || !searchedAccounts.length) {
+      const text = !accounts.length
+        ? "You do not have any account yet."
+        : "No Results.";
       return (
         <Stack
           flexGrow={1}
@@ -89,82 +132,75 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
           }}
         >
           <Typography mt={"-50px"} fontWeight={500}>
-            You do not have any account yet.
+            {text}
           </Typography>
         </Stack>
       );
     }
 
-    return accounts.map((account, index) => {
-      return (
-        <Stack
-          paddingY={"10px"}
-          paddingX={"5px"}
-          spacing={"5px"}
-          key={account.id}
-          borderTop={index === 0 ? undefined : "1px solid lightgray"}
-          width={1}
-          boxSizing={"border-box"}
-          direction={"row"}
-        >
-          <Stack flexGrow={1} spacing={"5px"}>
+    return (
+      <FixedSizeList
+        width={"100%"}
+        itemCount={searchedAccounts.length}
+        itemSize={100}
+        height={350}
+        itemData={searchedAccounts}
+      >
+        {({ style, data, index }) => {
+          const account = data[index];
+
+          return (
             <Stack
-              direction={"row"}
+              paddingY={"10px"}
+              paddingX={"5px"}
               spacing={"5px"}
-              alignItems={"center"}
+              key={account.id}
+              borderTop={index === 0 ? undefined : "1px solid lightgray"}
               width={1}
+              boxSizing={"border-box"}
+              direction={"row"}
+              style={style}
             >
-              <Typography fontWeight={600}>Account {index + 1}</Typography>
-              <Typography fontWeight={600} marginX={"3px"}>
-                •
-              </Typography>
-              {isLoadingTokens ? (
-                <Skeleton height={15} width={75} variant={"rectangular"} />
-              ) : (
-                <Typography
-                  sx={{ fontSize: "10px!important" }}
-                  component={"span"}
-                  color={"dimgrey"}
-                  fontWeight={600}
+              <ListAccountItem
+                account={account}
+                isLoadingTokens={isLoadingTokens}
+              />
+              <Stack spacing={"10px"} width={"min-content"}>
+                <IconButton
+                  sx={{ padding: 0 }}
+                  onClick={() =>
+                    navigate(`${TRANSFER_PAGE}?fromAddress=${account.address}`)
+                  }
                 >
-                  2 POKT
-                </Typography>
-              )}
+                  <ReplyIcon
+                    sx={{ fontSize: 18, transform: "rotateY(180deg)" }}
+                  />
+                </IconButton>
+                <IconButton
+                  sx={{ padding: 0 }}
+                  onClick={() => onClickUpdateAccount(account)}
+                >
+                  <EditIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+                <IconButton
+                  sx={{ padding: 0 }}
+                  onClick={() => onClickRemoveAccount(account)}
+                >
+                  <DeleteIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Stack>
             </Stack>
-            <Typography>{account.id}</Typography>
-            <Typography>
-              Protocol: {labelByProtocolMap[account.protocol.name]}
-            </Typography>
-            <Typography>
-              ChainID: {labelByChainID[account.protocol.chainID]}
-            </Typography>
-          </Stack>
-          <Stack spacing={"10px"} width={"min-content"}>
-            <IconButton
-              sx={{ padding: 0 }}
-              onClick={() =>
-                navigate(`${TRANSFER_PAGE}?fromAddress=${account.address}`)
-              }
-            >
-              <ReplyIcon sx={{ fontSize: 18, transform: "rotateY(180deg)" }} />
-            </IconButton>
-            <IconButton
-              sx={{ padding: 0 }}
-              onClick={() => onClickUpdateAccount(account)}
-            >
-              <EditIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-            <IconButton
-              sx={{ padding: 0 }}
-              onClick={() => onClickRemoveAccount(account)}
-            >
-              <DeleteIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-          </Stack>
-        </Stack>
-      );
-    });
-  }, [accounts, onClickUpdateAccount, onClickRemoveAccount, isLoadingTokens]);
+          );
+        }}
+      </FixedSizeList>
+    );
+  }, [
+    accounts,
+    onClickUpdateAccount,
+    onClickRemoveAccount,
+    isLoadingTokens,
+    searchedAccounts,
+  ]);
 
   const content = useMemo(() => {
     if (selectedAccount && view === "update") {
@@ -183,7 +219,26 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
           alignItems={"center"}
           marginY={"5px"}
         >
-          <Typography variant={"h6"}>Accounts</Typography>
+          <Stack direction={"row"} alignItems={"center"} spacing={"10px"}>
+            <Typography variant={"h6"}>Accounts</Typography>
+            <Stack
+              justifyContent={"center"}
+              alignItems={"center"}
+              height={20}
+              paddingX={"5px"}
+              bgcolor={"#d3d3d3"}
+              borderRadius={"4px"}
+            >
+              <Typography
+                fontSize={10}
+                fontWeight={600}
+                color={"#454545"}
+                letterSpacing={"0.5px"}
+              >
+                {accounts.length}
+              </Typography>
+            </Stack>
+          </Stack>
           <Stack
             direction={"row"}
             sx={{ "& button": { textTransform: "none" } }}
@@ -238,6 +293,7 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
     onChangeSearchText,
     onClose,
     selectedAccount,
+    accounts.length,
   ]);
 
   return <Stack height={1}>{content}</Stack>;

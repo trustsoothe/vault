@@ -135,7 +135,6 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
                   fullWidth
                   label={"Account Asset"}
                   size={"small"}
-                  //{...register("account_name", { required: "Required" })}
                   error={!!error}
                   helperText={error?.message}
                 />

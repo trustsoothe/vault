@@ -1,5 +1,10 @@
 import browser, { Runtime } from "webextension-polyfill";
 import {
+  ForbiddenSessionError,
+  InvalidSessionError,
+  SessionNotFoundError,
+} from "@poktscan/keyring";
+import {
   ForbiddenSession,
   InvalidSession,
   OriginNotPresented,
@@ -7,6 +12,8 @@ import {
   RequestNewAccountExists,
   RequestTransferExists,
   SessionIdNotPresented,
+  UnknownError,
+  VaultIsLocked,
 } from "../../errors/communication";
 import store from "../../redux/store";
 import {
@@ -17,8 +24,12 @@ import {
 import {
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  DISCONNECT_REQUEST,
+  DISCONNECT_RESPONSE,
   IS_SESSION_VALID_REQUEST,
   IS_SESSION_VALID_RESPONSE,
+  LIST_ACCOUNTS_REQUEST,
+  LIST_ACCOUNTS_RESPONSE,
   NEW_ACCOUNT_REQUEST,
   NEW_ACCOUNT_RESPONSE,
   REQUEST_BEING_HANDLED,
@@ -26,48 +37,16 @@ import {
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
 import { getVault } from "../../utils";
-import {
-  ForbiddenSessionError,
-  InvalidSessionError,
-  SessionNotFoundError,
-} from "@poktscan/keyring";
+import { revokeSession } from "../../redux/slices/vault";
 import MessageSender = Runtime.MessageSender;
-
-export interface ConnectionRequestMessage {
-  type: typeof CONNECTION_REQUEST_MESSAGE;
-  data: {
-    origin: string;
-    faviconUrl: string;
-  };
-}
-
-export interface SessionValidRequestMessage {
-  type: typeof IS_SESSION_VALID_REQUEST;
-  data: {
-    sessionId: string;
-  };
-}
-
-export interface NewAccountRequestMessage {
-  type: typeof NEW_ACCOUNT_REQUEST;
-  data: {
-    sessionId: string;
-    origin: string;
-    faviconUrl: string;
-  };
-}
-
-export interface TransferRequestMessage {
-  type: typeof TRANSFER_REQUEST;
-  data: {
-    sessionId: string;
-    origin: string;
-    faviconUrl: string;
-    fromAddress: string;
-    toAddress: string;
-    amount: number;
-  };
-}
+import type {
+  ConnectionRequestMessage,
+  DisconnectRequestMessage,
+  ListAccountsRequestMessage,
+  NewAccountRequestMessage,
+  SessionValidRequestMessage,
+  TransferRequestMessage,
+} from "../../types/communication";
 
 const RequestBeingHandledResponse = {
   type: REQUEST_BEING_HANDLED,
@@ -77,7 +56,9 @@ export type Message =
   | ConnectionRequestMessage
   | SessionValidRequestMessage
   | NewAccountRequestMessage
-  | TransferRequestMessage;
+  | TransferRequestMessage
+  | DisconnectRequestMessage
+  | ListAccountsRequestMessage;
 
 const ExtensionVaultInstance = getVault();
 
@@ -123,6 +104,22 @@ class ExternalCommunicationController {
       isRequestBeingHandled = true;
     }
 
+    if (message?.type === DISCONNECT_REQUEST) {
+      const response = await this._handleDisconnectRequest(message);
+
+      if (response?.type === DISCONNECT_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === LIST_ACCOUNTS_REQUEST) {
+      const response = await this._handleListAccountsRequest(message);
+
+      if (response?.type === LIST_ACCOUNTS_RESPONSE) {
+        return response;
+      }
+    }
+
     if (isRequestBeingHandled) {
       return RequestBeingHandledResponse;
     }
@@ -132,7 +129,7 @@ class ExternalCommunicationController {
     message: ConnectionRequestMessage,
     sender: MessageSender
   ) {
-    const { origin, faviconUrl } = message?.data || {};
+    const { origin, faviconUrl, suggestedPermissions } = message?.data || {};
 
     return this._addExternalRequest(
       {
@@ -140,6 +137,7 @@ class ExternalCommunicationController {
         origin,
         faviconUrl,
         tabId: sender.tab.id,
+        suggestedPermissions,
       },
       CONNECTION_RESPONSE_MESSAGE
     );
@@ -247,52 +245,42 @@ class ExternalCommunicationController {
       };
     }
 
-    const accounts = store.getState().vault.entities.accounts.list;
-
-    const accountOnState = accounts.find(
-      (account) => account.address === fromAddress
-    );
-
-    if (accountOnState) {
-      try {
-        await ExtensionVaultInstance.validateSessionForPermissions(
-          sessionId,
-          "transaction",
-          "sign",
-          [accountOnState.id]
-        );
-      } catch (error) {
-        if (error instanceof SessionNotFoundError) {
-          return {
-            type: TRANSFER_RESPONSE,
-            error: InvalidSession,
-            data: null,
-          };
-        }
-
-        if (error instanceof InvalidSessionError) {
-          return {
-            type: TRANSFER_RESPONSE,
-            error: InvalidSession,
-            data: null,
-          };
-        }
-
-        if (error instanceof ForbiddenSessionError) {
-          return {
-            type: TRANSFER_RESPONSE,
-            error: ForbiddenSession,
-            data: null,
-          };
-        }
-
+    try {
+      await ExtensionVaultInstance.validateSessionForPermissions(
+        sessionId,
+        "transaction",
+        "sign"
+      );
+    } catch (error) {
+      if (error instanceof SessionNotFoundError) {
         return {
           type: TRANSFER_RESPONSE,
-          //todo: add default error
-          error: { name: "add default error" },
+          error: InvalidSession,
           data: null,
         };
       }
+
+      if (error instanceof InvalidSessionError) {
+        return {
+          type: TRANSFER_RESPONSE,
+          error: InvalidSession,
+          data: null,
+        };
+      }
+
+      if (error instanceof ForbiddenSessionError) {
+        return {
+          type: TRANSFER_RESPONSE,
+          error: ForbiddenSession,
+          data: null,
+        };
+      }
+
+      return {
+        type: TRANSFER_RESPONSE,
+        error: UnknownError,
+        data: null,
+      };
     }
 
     return this._addExternalRequest(
@@ -360,6 +348,132 @@ class ExternalCommunicationController {
         text: `${externalRequests.length + 1}`,
       });
     }
+  }
+
+  private async _handleDisconnectRequest(message: DisconnectRequestMessage) {
+    if (!message?.data?.sessionId) {
+      return {
+        type: DISCONNECT_RESPONSE,
+        error: SessionIdNotPresented,
+        data: null,
+      };
+    }
+
+    try {
+      await store.dispatch(revokeSession(message.data.sessionId)).unwrap();
+    } catch (error) {
+      // todo: add function to handle this errors
+      if (error instanceof SessionNotFoundError) {
+        return {
+          type: DISCONNECT_RESPONSE,
+          error: InvalidSession,
+          data: null,
+        };
+      }
+
+      if (error instanceof InvalidSessionError) {
+        return {
+          type: DISCONNECT_RESPONSE,
+          error: InvalidSession,
+          data: null,
+        };
+      }
+
+      if (error instanceof ForbiddenSessionError) {
+        return {
+          type: DISCONNECT_RESPONSE,
+          error: ForbiddenSession,
+          data: null,
+        };
+      }
+
+      return {
+        type: DISCONNECT_RESPONSE,
+        error: UnknownError,
+        data: null,
+      };
+    }
+
+    return {
+      type: DISCONNECT_RESPONSE,
+      data: {
+        disconnected: true,
+      },
+      error: null,
+    };
+  }
+
+  private async _handleListAccountsRequest(
+    message: ListAccountsRequestMessage
+  ) {
+    const sessionId = message?.data?.sessionId;
+    if (!sessionId) {
+      return {
+        type: LIST_ACCOUNTS_RESPONSE,
+        error: SessionIdNotPresented,
+        data: null,
+      };
+    }
+
+    try {
+      await ExtensionVaultInstance.validateSessionForPermissions(
+        sessionId,
+        "account",
+        "list"
+      );
+    } catch (error) {
+      // todo: add function to handle this errors
+      if (error instanceof SessionNotFoundError) {
+        return {
+          type: LIST_ACCOUNTS_RESPONSE,
+          error: InvalidSession,
+          data: null,
+        };
+      }
+
+      if (error instanceof InvalidSessionError) {
+        return {
+          type: LIST_ACCOUNTS_RESPONSE,
+          error: InvalidSession,
+          data: null,
+        };
+      }
+
+      if (error instanceof ForbiddenSessionError) {
+        return {
+          type: LIST_ACCOUNTS_RESPONSE,
+          error: ForbiddenSession,
+          data: null,
+        };
+      }
+
+      return {
+        type: LIST_ACCOUNTS_RESPONSE,
+        error: UnknownError,
+        data: null,
+      };
+    }
+
+    const { isUnlockedStatus } = store.getState().vault;
+
+    if (isUnlockedStatus !== "yes") {
+      return {
+        type: LIST_ACCOUNTS_RESPONSE,
+        error: VaultIsLocked,
+        data: null,
+      };
+    }
+
+    const accounts = await ExtensionVaultInstance.listAccounts(sessionId);
+
+    return {
+      type: LIST_ACCOUNTS_RESPONSE,
+      data: {
+        // todo: add logic to add balance
+        accounts: accounts.map((item) => item.serialize()),
+      },
+      error: null,
+    };
   }
 }
 

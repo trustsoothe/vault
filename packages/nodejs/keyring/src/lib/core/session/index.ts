@@ -141,7 +141,10 @@ export class Session implements IEntity {
     }
 
     this._permissions = this.permissions.map((permission) => {
-      if (permission.resource === 'account') {
+      if (
+        permission.resource === "account" ||
+        permission.resource === "transaction"
+      ) {
         return {
           ...permission,
           identities: [...permission.identities, account.id]

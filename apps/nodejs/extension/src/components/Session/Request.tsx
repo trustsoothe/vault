@@ -1,6 +1,6 @@
 import type { RootState } from "../../redux/store";
 import type { ConnectionRequest } from "../../redux/slices/app";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
@@ -9,81 +9,124 @@ import { connect } from "react-redux";
 import { useLocation } from "react-router-dom";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
-interface ConnectionRequestProps {
-  accounts: RootState["vault"]["entities"]["accounts"]["list"];
+interface PermissionItemProps {
+  checked: boolean;
+  toggleValue: () => void;
+  title: string;
+  description: string;
+  showBorderTop?: boolean;
 }
 
-const Request: React.FC<ConnectionRequestProps> = ({ accounts }) => {
+const PermissionItem: React.FC<PermissionItemProps> = ({
+  checked,
+  toggleValue,
+  title,
+  description,
+  showBorderTop,
+}) => {
+  return (
+    <Stack
+      padding={"5px"}
+      spacing={"10px"}
+      direction={"row"}
+      alignItems={"center"}
+      height={50}
+      width={1}
+      boxSizing={"border-box"}
+      borderTop={showBorderTop ? "1px solid lightgray" : undefined}
+    >
+      <Checkbox
+        size={"small"}
+        sx={{ paddingX: 0 }}
+        checked={checked}
+        onClick={toggleValue}
+      />
+      <Stack width={1}>
+        <Typography fontWeight={600}>{title}</Typography>
+        <Typography
+          sx={{ fontSize: "10px!important" }}
+          component={"span"}
+          color={"dimgrey"}
+        >
+          {description}
+        </Typography>
+      </Stack>
+    </Stack>
+  );
+};
+
+const Request: React.FC = () => {
   const currentRequest: ConnectionRequest = useLocation()?.state;
-  const [selectedAccountsMap, setSelectedAccountsMap] = useState<
-    Record<string, boolean>
-  >({});
-  const [selectedCreateAccounts, setSelectedCreateAccounts] = useState(false);
+  const [allowCreateAccounts, setAllowCreateAccounts] = useState(false);
+  const [allowListAccounts, setAllowListAccounts] = useState(false);
+  const [allowSuggestTransfers, setAllowSuggestTransfers] = useState(false);
 
-  const toggleSelectCreateAccount = useCallback(() => {
-    setSelectedCreateAccounts((prevState) => !prevState);
-  }, []);
+  useEffect(() => {
+    if (currentRequest?.suggestedPermissions) {
+      const { suggestedPermissions } = currentRequest;
 
-  const toggleSelectAccount = useCallback((id: string) => {
-    setSelectedAccountsMap((prevState) => {
-      const newAddressValue = prevState[id] ? undefined : true;
-      return { ...prevState, [id]: newAddressValue };
-    });
-  }, []);
+      setAllowCreateAccounts(suggestedPermissions.includes("create_accounts"));
+      setAllowListAccounts(suggestedPermissions.includes("list_accounts"));
+      setAllowSuggestTransfers(
+        suggestedPermissions.includes("suggest_transfer")
+      );
+    }
+  }, [currentRequest]);
 
-  const isAllSelected = useMemo(() => {
-    const selectedAccountsCount = Object.values(selectedAccountsMap).filter(
-      (item) => item
-    ).length;
-
-    return selectedCreateAccounts && selectedAccountsCount === accounts.length;
-  }, [selectedCreateAccounts, selectedAccountsMap, accounts]);
-
-  const isSomethingSelected = useMemo(() => {
-    const selectedAccountsCount = Object.values(selectedAccountsMap).filter(
-      (item) => item
-    ).length;
-
-    return selectedCreateAccounts || selectedAccountsCount;
-  }, [selectedCreateAccounts, selectedAccountsMap]);
+  const isAllSelected =
+    allowCreateAccounts && allowListAccounts && allowSuggestTransfers;
+  const isSomethingSelected =
+    allowCreateAccounts || allowListAccounts || allowSuggestTransfers;
 
   const toggleSelectAll = useCallback(() => {
-    setSelectedCreateAccounts(!isAllSelected);
-    setSelectedAccountsMap(() => {
-      if (isAllSelected) {
-        return {};
-      } else {
-        return accounts.reduce(
-          (acc, account) => ({ ...acc, [account.id]: true }),
-          {}
-        );
-      }
-    });
-  }, [isAllSelected, accounts]);
+    setAllowCreateAccounts(!isAllSelected);
+    setAllowListAccounts(!isAllSelected);
+    setAllowSuggestTransfers(!isAllSelected);
+  }, [isAllSelected]);
 
   const sendResponse = useCallback(
     async (accepted: boolean) => {
       if (currentRequest) {
-        const identities: string[] = [];
-
-        if (accepted) {
-          for (const address in selectedAccountsMap) {
-            if (selectedAccountsMap[address]) {
-              identities.push(address);
-            }
-          }
-        }
-
         await AppToBackground.answerConnection({
           accepted,
           request: currentRequest,
-          canCreateAccounts: selectedCreateAccounts && accepted,
-          idsOfSelectedAccounts: identities,
+          canListAccounts: allowListAccounts && accepted,
+          canCreateAccounts: allowCreateAccounts && accepted,
+          canSuggestTransfers: allowSuggestTransfers && accepted,
         });
       }
     },
-    [currentRequest, selectedCreateAccounts, selectedAccountsMap]
+    [
+      currentRequest,
+      allowCreateAccounts,
+      allowListAccounts,
+      allowSuggestTransfers,
+    ]
   );
+
+  const permissionItems: PermissionItemProps[] = useMemo(() => {
+    return [
+      {
+        title: "List Accounts",
+        description: "Allow the site to list your accounts.",
+        checked: allowListAccounts,
+        toggleValue: () => setAllowListAccounts((prevState) => !prevState),
+      },
+      {
+        title: "Suggest Transfers",
+        description: "Allow the site to suggest transfers.",
+        checked: allowSuggestTransfers,
+        toggleValue: () => setAllowSuggestTransfers((prevState) => !prevState),
+      },
+      {
+        title: "Create Accounts",
+        description:
+          "Allow the site to request for the creation of new accounts.",
+        checked: allowCreateAccounts,
+        toggleValue: () => setAllowCreateAccounts((prevState) => !prevState),
+      },
+    ];
+  }, [allowListAccounts, allowSuggestTransfers, allowCreateAccounts]);
 
   if (!currentRequest) {
     return null;
@@ -94,6 +137,7 @@ const Request: React.FC<ConnectionRequestProps> = ({ accounts }) => {
       spacing={"10px"}
       height={1}
       flexGrow={1}
+      justifyContent={"center"}
       // pb={"15px"}
     >
       <Typography fontSize={20} textAlign={"center"}>
@@ -124,23 +168,29 @@ const Request: React.FC<ConnectionRequestProps> = ({ accounts }) => {
           {currentRequest.origin}
         </Typography>
       </Stack>
-      <Typography fontSize={12} marginTop={"15px!important"}>
-        Select the permissions and accounts you want to grant:
+      <Typography
+        fontSize={14}
+        marginTop={"15px!important"}
+        textAlign={"center"}
+      >
+        Select the permissions you want to grant this site with.
       </Typography>
-      <Stack direction={"row"} alignItems={"center"} height={18}>
+      <Stack direction={"row"} alignItems={"center"} height={18} mt={"10px"}>
         <Checkbox
           size={"small"}
           checked={isAllSelected}
           onClick={toggleSelectAll}
         />
-        <Typography fontSize={12}>Select All</Typography>
+        <Typography fontSize={12} fontWeight={600}>
+          Select All
+        </Typography>
       </Stack>
       <Stack
-        flexGrow={1}
         border={"1px solid lightgray"}
         overflow={"auto"}
         padding={"5px"}
         mb={"10px"}
+        mt={"5px"}
         borderRadius={"6px"}
         boxSizing={"border-box"}
         sx={{
@@ -149,80 +199,15 @@ const Request: React.FC<ConnectionRequestProps> = ({ accounts }) => {
           },
         }}
       >
-        <Stack
-          padding={"5px"}
-          spacing={"10px"}
-          direction={"row"}
-          alignItems={"center"}
-          height={50}
-          width={1}
-          boxSizing={"border-box"}
-        >
-          <Checkbox
-            size={"small"}
-            sx={{ paddingX: 0 }}
-            checked={selectedCreateAccounts}
-            onClick={toggleSelectCreateAccount}
-          />
-          <Stack width={1}>
-            <Typography fontWeight={600}>Create new Accounts</Typography>
-            <Typography
-              sx={{ fontSize: "10px!important" }}
-              component={"span"}
-              color={"dimgrey"}
-            >
-              Allow the site to request for the creation of new accounts.
-            </Typography>
-          </Stack>
-        </Stack>
-        {accounts.map((account, index) => {
-          return (
-            <Stack
-              padding={"5px"}
-              spacing={"10px"}
-              key={account.id}
-              borderTop={"1px solid lightgray"}
-              direction={"row"}
-              alignItems={"center"}
-              height={50}
-              width={1}
-              boxSizing={"border-box"}
-            >
-              <Checkbox
-                size={"small"}
-                sx={{ paddingX: 0 }}
-                checked={selectedAccountsMap[account.id] || false}
-                onClick={() => toggleSelectAccount(account.id)}
-              />
-              <Stack width={1}>
-                <Stack
-                  direction={"row"}
-                  spacing={"5px"}
-                  alignItems={"center"}
-                  justifyContent={"space-between"}
-                  width={1}
-                >
-                  <Typography fontWeight={600}>Account {index + 1}</Typography>
-                  <Typography
-                    sx={{ fontSize: "10px!important" }}
-                    component={"span"}
-                    color={"dimgrey"}
-                  >
-                    2 POKT
-                  </Typography>
-                </Stack>
-                <Typography>{account.address}</Typography>
-              </Stack>
-            </Stack>
-          );
-        })}
+        {permissionItems.map((props, index) => (
+          <PermissionItem key={index} showBorderTop={index !== 0} {...props} />
+        ))}
       </Stack>
       <Typography fontSize={10}>
-        This site will be able to see the address and suggest transactions of
-        the selected accounts. Before doing any operation, you will need to
-        confirm it.
+        This site will be grant with the permissions you select. Before doing
+        any operation, you will need to confirm it.
       </Typography>
-      <Stack direction={"row"} spacing={"15px"} marginTop={"15px!important"}>
+      <Stack direction={"row"} spacing={"15px"} marginTop={"20px!important"}>
         <Button
           fullWidth
           variant={"outlined"}
