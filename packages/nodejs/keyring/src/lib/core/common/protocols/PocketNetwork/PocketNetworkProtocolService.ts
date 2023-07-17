@@ -36,6 +36,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
     return new Account({
       asset: options.asset,
+      name: options.name,
       address,
       publicKey: Buffer.from(publicKey).toString('hex'),
       privateKey: encryptedPrivateKey,

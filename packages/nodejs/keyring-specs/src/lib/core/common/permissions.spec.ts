@@ -89,6 +89,80 @@ describe('PermissionsBuilder', () => {
 
     expect(permissions).toEqual(expectedPermissions)
   })
+  test('allows extending a list of permissions with a new resource', () => {
+    const initialPermissions: Permission[] = [
+      {
+        resource: 'account',
+        action: 'read',
+        identities: ['*']
+      },
+      {
+        resource: 'transaction',
+        action: 'sign',
+        identities: ['*']
+      }
+    ];
+
+    const expectedPermissions: Permission[] = [
+      ...initialPermissions,
+      {
+        resource: 'session',
+        action: 'revoke',
+        identities: ['*']
+      },
+    ];
+
+    const permissions =
+      new PermissionsBuilder(initialPermissions)
+        .forResource('session')
+        .allow('revoke')
+        .onAny()
+        .build();
+
+    expect(permissions).toEqual(expectedPermissions)
+  })
+  test('allows extending a list of permissions with a pre-existing resource', () => {
+    const sessionResource: Permission = {
+      resource: 'session',
+      action: 'revoke',
+      identities: ['123']
+    };
+
+    const basePermissions: Permission[] = [
+      {
+        resource: 'account',
+        action: 'read',
+        identities: ['*']
+      },
+      {
+        resource: 'transaction',
+        action: 'sign',
+        identities: ['*']
+      },
+    ];
+
+    const initialPermissions: Permission[] = [
+      ...basePermissions,
+      { ...sessionResource },
+    ];
+
+    const expectedPermissions: Permission[] = [
+      ...basePermissions,
+      {
+        ...sessionResource,
+        identities: ['123', '1234'],
+      },
+    ];
+
+    const permissions =
+      new PermissionsBuilder(initialPermissions)
+        .forResource('session')
+        .allow('revoke')
+        .on('1234')
+        .build();
+
+    expect(permissions).toEqual(expectedPermissions)
+  })
   test('Fails when creating permissions for unknown actions', () => {
     expect(() => {
       new PermissionsBuilder()

@@ -8,7 +8,6 @@ export interface SerializedSession extends IEntity {
   id: string
   permissions: Permission[]
   maxAge: number
-  accounts: SerializedAccountReference[]
   invalidated: boolean
   invalidatedAt: number
   origin: string
@@ -27,7 +26,6 @@ export class Session implements IEntity {
   private readonly _id: string
   private _permissions: Permission[]
   private readonly _maxAge: number
-  private readonly _accounts: AccountReference[] = []
   private readonly _origin: OriginReference
   private _invalidated = false
   private _createdAt: number
@@ -52,7 +50,6 @@ export class Session implements IEntity {
     this._maxAge = options.maxAge ?? 3600
     this._createdAt = Date.now()
     this._lastActivity = Date.now()
-    this._accounts = options.accounts ?? []
     this._origin = options.origin || null
   }
 
@@ -66,10 +63,6 @@ export class Session implements IEntity {
 
   get maxAge(): number {
     return this._maxAge
-  }
-
-  get accounts(): ReadonlyArray<AccountReference> {
-    return this._accounts
   }
 
   get origin(): OriginReference {
@@ -95,7 +88,6 @@ export class Session implements IEntity {
       maxAge: this._maxAge,
       invalidated: this._invalidated,
       invalidatedAt: this._invalidatedAt,
-      accounts: this._accounts.map((account) => account.serialize()),
       origin: (this._origin && this._origin.value) ?? '',
       createdAt: this._createdAt,
       lastActivity: this._lastActivity,
@@ -158,15 +150,12 @@ export class Session implements IEntity {
 
       return permission
     });
-
-    this._accounts.push(account)
   }
 
   static deserialize(serializedSession: SerializedSession): Session {
     const options: SessionOptions = {
       permissions: serializedSession.permissions,
       maxAge: serializedSession.maxAge,
-      accounts: serializedSession.accounts.map(AccountReference.deserialize),
       origin: (serializedSession.origin && new OriginReference(serializedSession.origin)) || null,
     }
     const session = new Session(options, serializedSession.id)

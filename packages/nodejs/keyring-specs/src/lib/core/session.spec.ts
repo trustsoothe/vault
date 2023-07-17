@@ -147,15 +147,5 @@ describe('session', () => {
 
       expect(permissionsWithAccount).toEqual(session.permissions)
     })
-
-    test('when the session has account:create permissions, adds the account to the list of accounts', () => {
-      const session = new Session({ permissions })
-
-      expect(session.accounts).toEqual([])
-
-      session.addAccount(exampleAccountReference)
-
-      expect([exampleAccountReference]).toEqual(session.accounts)
-    })
   })
 })

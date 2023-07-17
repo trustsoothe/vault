@@ -194,14 +194,6 @@ export default <
           = new PermissionsBuilder().forResource('session').allowEverything().onAny().build()
         expect(permissions).toEqual(expect.arrayContaining(expectedPermissions))
       })
-
-      test('newly created session has no accounts associated with it', async () => {
-        vaultStore = createVaultStore()
-        const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
-        await vaultTeller.initializeVault('passphrase');
-        const session = await vaultTeller.unlockVault('passphrase')
-        expect(session.accounts).toEqual([])
-      })
     })
   })
 
@@ -258,15 +250,6 @@ export default <
         await vaultTeller.unlockVault('passphrase')
         const {origin} = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
         expect(origin).toEqual(exampleExternalAccessRequest.origin)
-      })
-
-      test('resolved Session object has the correct accounts', async () => {
-        vaultStore = createVaultStore()
-        const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
-        await vaultTeller.initializeVault('passphrase')
-        await vaultTeller.unlockVault('passphrase')
-        const {accounts} = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
-        expect(accounts).toEqual(exampleExternalAccessRequest.accounts)
       })
 
       test('persists the session', async () => {
