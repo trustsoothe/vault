@@ -3,59 +3,59 @@ import type { TransferRequest } from "../../redux/slices/app";
 import type {
   SerializedAccountReference,
   SerializedAsset,
+  SerializedNetwork,
 } from "@poktscan/keyring";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
-import MenuItem from "@mui/material/MenuItem";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Autocomplete from "@mui/material/Autocomplete";
-import { Controller, useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import RequestFrom from "../common/RequestFrom";
-import { filterAccounts } from "../Account/List";
-import AmountHelperText from "./AmountHelperText";
-import ListAccountItem from "../Account/ListItem";
 import CircularLoading from "../common/CircularLoading";
-import AutocompleteAsset from "../Account/AutocompleteAsset";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import AccountStep from "./AccountStep";
+import TransferInfoStep from "./TransferInfoStep";
 
-interface FormValues {
+export interface FormValues {
   fromType: "saved_account" | "private_key";
   from: string;
   toAddress: string;
   amount: string;
+  memo?: string;
   asset: SerializedAsset | null;
+  network: SerializedNetwork | null;
   accountPassword: string;
 }
 
-export const isHex = (str: string) => {
-  return str.match(/^[0-9a-fA-F]+$/g);
-};
-
-export const byteLength = (str: string) => new Blob([str]).size;
-
-const isAddress = (str: string) => isHex(str) && byteLength(str) === 40;
-
-//todo: validate private key?
-const isPrivateKey = (str: string) => isHex(str) && byteLength(str) === 128;
-
 interface TransferProps {
   accounts: SerializedAccountReference[];
+  assets: SerializedAsset[];
 }
 
-const Transfer: React.FC<TransferProps> = ({ accounts }) => {
+const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const requesterInfo: TransferRequest = location.state;
   const [searchParams] = useSearchParams();
 
   const [status, setStatus] = useState<
-    "loading" | "error" | "normal" | "submitted"
-  >("normal");
+    "loading" | "error" | "setAccount" | "setTransferData" | "submitted"
+  >("setAccount");
+  const methods = useForm<FormValues>({
+    mode: "onChange",
+    defaultValues: {
+      fromType: "saved_account",
+      asset: null,
+      network: null,
+      memo: "",
+      from: "",
+      toAddress: "",
+      amount: "",
+      accountPassword: "",
+    },
+  });
   const {
     control,
     watch,
@@ -65,17 +65,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
     handleSubmit,
     formState,
     getFieldState,
-  } = useForm<FormValues>({
-    mode: "onChange",
-    defaultValues: {
-      fromType: "saved_account",
-      asset: null,
-      from: "",
-      toAddress: "",
-      amount: "",
-      accountPassword: "",
-    },
-  });
+  } = methods;
 
   const [fromAddressStatus, setFromAddressStatus] = useState<string>(null);
   const [fromType, from, asset] = watch(["fromType", "from", "asset"]);
@@ -85,11 +75,30 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
     setValue("amount", "");
     setValue("accountPassword", "");
     setValue("asset", null);
+    setValue("network", null);
     clearErrors("from");
     clearErrors("amount");
     clearErrors("accountPassword");
     clearErrors("asset");
+    clearErrors("network");
   }, [fromType]);
+
+  useEffect(() => {
+    const fromState = getFieldState("from");
+    if (from && !fromState.invalid && fromType === "saved_account") {
+      const account = accounts.find((value) => value.address === from);
+
+      if (account) {
+        const asset = assets.find(
+          (item) =>
+            item.protocol.name === account.protocol.name &&
+            item.protocol.chainID === item.protocol.chainID
+        );
+
+        setValue("asset", asset || null);
+      }
+    }
+  }, [from]);
 
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [fromBalance, setFromBalance] = useState<number>(null);
@@ -132,14 +141,6 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
     getAssetFee();
   }, [getAssetFee]);
 
-  useEffect(() => {
-    if (isAddress(from)) {
-      if (accounts.some((account) => account.address === from)) {
-        setValue("asset", null);
-      }
-    }
-  }, [from]);
-
   const fromAddress = useMemo(() => {
     return searchParams?.get("fromAddress") || requesterInfo?.fromAddress;
   }, [searchParams, requesterInfo]);
@@ -167,17 +168,13 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
     }
   }, [requesterInfo]);
 
-  const onClickAll = useCallback(() => {
-    const transferFromBalance = (fromBalance || 0) - (assetFee || 0);
-
-    if (transferFromBalance) {
-      setValue("amount", (transferFromBalance || "").toString());
-      clearErrors("amount");
-    }
-  }, [fromBalance, setValue, clearErrors, assetFee]);
-
   const onSubmit = useCallback(
     async (data: FormValues) => {
+      if (status === "setAccount") {
+        setStatus("setTransferData");
+        return;
+      }
+
       setStatus("loading");
       try {
         const response = await AppToBackground.sendRequestToAnswerTransfer({
@@ -206,10 +203,15 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
         }
       }
     },
-    [requesterInfo]
+    [requesterInfo, status]
   );
 
   const onClickCancel = useCallback(async () => {
+    if (status === "setTransferData") {
+      setStatus("setAccount");
+      return;
+    }
+
     if (requesterInfo) {
       await AppToBackground.sendRequestToAnswerTransfer({
         rejected: true,
@@ -223,15 +225,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
         navigate("/");
       }
     }
-  }, [requesterInfo]);
-
-  const accountsMap: Record<string, SerializedAccountReference> =
-    useMemo(() => {
-      return accounts.reduce(
-        (acc, item) => ({ ...acc, [item.address]: item }),
-        {}
-      );
-    }, [accounts]);
+  }, [requesterInfo, status]);
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -277,6 +271,26 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
       );
     }
 
+    const settingAccount = status === "setAccount";
+
+    const component = settingAccount ? (
+      <AccountStep
+        fromAddressStatus={fromAddressStatus}
+        fromAddress={fromAddress}
+      />
+    ) : (
+      <TransferInfoStep
+        fee={assetFee}
+        isLoadingFee={isLoadingFee}
+        fromBalance={fromBalance}
+        isLoadingBalance={isLoadingBalance}
+        request={requesterInfo}
+      />
+    );
+
+    const secondaryBtnText = settingAccount ? "Cancel" : "Back";
+    const primaryBtnText = settingAccount ? "Continue" : "Send";
+
     return (
       <>
         {requesterInfo ? (
@@ -284,243 +298,25 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
             title={"Transfer Request from:"}
             origin={requesterInfo.origin}
             faviconUrl={requesterInfo.faviconUrl}
+            containerProps={{
+              mb: "15px",
+            }}
           />
         ) : (
-          <Typography variant={"h6"} marginY={"10px"} textAlign={"center"}>
+          <Typography
+            variant={"h6"}
+            marginTop={"10px"}
+            mb={"15px"}
+            textAlign={"center"}
+          >
             {"New Transfer"}
           </Typography>
         )}
-        <Stack
-          direction={"row"}
-          alignItems={"center"}
-          justifyContent={"space-between"}
-          mb={"15px"}
-          display={fromAddressStatus ? "none" : "flex"}
-          width={1}
-        >
-          <Typography>From type</Typography>
-          <Controller
-            name={"fromType"}
-            control={control}
-            render={({ field }) => (
-              <TextField
-                select
-                size={"small"}
-                placeholder={"Type"}
-                sx={{
-                  "& .MuiInputBase-root": {
-                    minHeight: 30,
-                    maxHeight: 30,
-                    height: 30,
-                  },
-                }}
-                {...field}
-              >
-                <MenuItem value={"saved_account"}>Saved Account</MenuItem>
-                <MenuItem value={"private_key"}>Private Key</MenuItem>
-              </TextField>
-            )}
-          />
-        </Stack>
-
-        <Typography
-          fontSize={10}
-          color={"gray"}
-          component={"span"}
-          display={
-            fromAddressStatus === "private_key_required" ? "block" : "none"
-          }
-        >
-          Introduce the private key of the following wallet:
-          <br /> <b>{fromAddress}</b>.
-        </Typography>
-
-        {fromType === "private_key" ? (
-          <TextField
-            label={"Private Key"}
-            fullWidth
-            size={"small"}
-            {...register("from", {
-              required: "Required",
-              validate: (value, formValues) => {
-                if (formValues.fromType === "private_key") {
-                  // todo: when fromAddress presented, the private key should be the private key of fromAddress wallet
-                  if (!isPrivateKey(value)) {
-                    return "Invalid Private Key";
-                  }
-                }
-                return true;
-              },
-            })}
-            error={!!formState?.errors?.from}
-            helperText={formState?.errors?.from?.message}
-          />
-        ) : (
-          <Controller
-            name={"from"}
-            control={control}
-            rules={{ required: true }}
-            render={({
-              field: { onChange, value, ...otherProps },
-              fieldState: { error },
-            }) => (
-              <Autocomplete
-                options={accounts.map((item) => item.address)}
-                filterOptions={(_, state) => {
-                  const value = state.inputValue.toLowerCase().trim();
-
-                  return filterAccounts(value, accounts).map(
-                    (item) => item.address
-                  );
-                }}
-                renderOption={(
-                  props: React.HTMLAttributes<unknown>,
-                  option,
-                  state
-                ) => {
-                  const account = accountsMap[option];
-
-                  return (
-                    <ListAccountItem
-                      account={account}
-                      key={option}
-                      containerProps={{
-                        ...props,
-                        sx: {
-                          alignItems: "flex-start!important",
-                          "& p": {
-                            fontSize: "12px!important",
-                          },
-                        },
-                        paddingY: "5px!important",
-                        paddingX: "10px!important",
-                        borderTop:
-                          state.index !== 0 ? "1px solid lightgray" : undefined,
-                        py: "5px",
-                      }}
-                    />
-                  );
-                }}
-                getOptionLabel={(option) => {
-                  const account = accountsMap[option];
-                  const firstCharacters = option.substring(0, 4);
-                  const lastCharacters = option.substring(option.length - 4);
-
-                  return `${account.name} (${firstCharacters}...${lastCharacters})`;
-                }}
-                onChange={(_, newValue) => onChange(newValue)}
-                value={value || null}
-                {...otherProps}
-                sx={{
-                  width: 1,
-                }}
-                ListboxProps={{
-                  sx: {
-                    maxHeight: 225,
-                  },
-                }}
-                disabled={!!fromAddressStatus}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={"From"}
-                    fullWidth
-                    size={"small"}
-                    disabled={!!fromAddressStatus}
-                    error={!!error}
-                    helperText={error?.message}
-                  />
-                )}
-              />
-            )}
-          />
-        )}
-        {fromType === "private_key" ? (
-          <AutocompleteAsset control={control} />
-        ) : (
-          <TextField
-            label={"Account Password"}
-            fullWidth
-            size={"small"}
-            type={"password"}
-            {...register("accountPassword", {
-              required: "Required",
-            })}
-            error={!!formState?.errors?.accountPassword}
-            helperText={formState?.errors?.accountPassword?.message}
-          />
-        )}
-
-        <Divider sx={{ width: 1, my: "15px" }} />
-
-        <Controller
-          control={control}
-          name={"amount"}
-          rules={{
-            required: "Required",
-            min: {
-              value: 0.01,
-              message: "Min is 0.01",
-            },
-            max: fromBalance
-              ? {
-                  value: fromBalance,
-                  message: `Max is ${fromBalance}`,
-                }
-              : undefined,
-          }}
-          render={({ field, fieldState: { error } }) => (
-            <TextField
-              label={"Amount"}
-              fullWidth
-              size={"small"}
-              type={"number"}
-              disabled={!!requesterInfo?.amount}
-              error={!!error?.message}
-              InputLabelProps={{ shrink: !!field.value }}
-              helperText={
-                <AmountHelperText
-                  isLoadingBalance={isLoadingBalance}
-                  accountBalance={fromBalance}
-                  disableAll={!!requesterInfo?.amount}
-                  transferFee={assetFee}
-                  isLoadingFee={isLoadingFee}
-                  onClickAll={onClickAll}
-                />
-              }
-              {...field}
-            />
-          )}
-        />
-
-        <TextField
-          label={"To Address"}
-          fullWidth
-          size={"small"}
-          disabled={!!requesterInfo?.toAddress}
-          {...register("toAddress", {
-            required: "Required",
-            validate: (value) => {
-              if (!isAddress(value)) {
-                return "Invalid Address";
-              }
-
-              return true;
-            },
-          })}
-          error={!!formState?.errors?.toAddress}
-          helperText={formState?.errors?.toAddress?.message}
-          sx={{
-            "& input, label": {
-              fontSize: 14,
-            },
-          }}
-        />
-
+        {component}
         <Stack
           direction={"row"}
           spacing={"15px"}
-          marginTop={"15px!important"}
+          marginTop={"20px!important"}
           width={1}
         >
           <Button
@@ -532,7 +328,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
             }}
             onClick={onClickCancel}
           >
-            Cancel
+            {secondaryBtnText}
           </Button>
           <Button
             fullWidth
@@ -544,7 +340,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
             }}
             type={"submit"}
           >
-            Accept
+            {primaryBtnText}
           </Button>
         </Stack>
       </>
@@ -553,7 +349,6 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
     status,
     register,
     control,
-    onClickAll,
     onClickCancel,
     formState,
     requesterInfo,
@@ -565,27 +360,30 @@ const Transfer: React.FC<TransferProps> = ({ accounts }) => {
     fromAddress,
     fromType,
     accounts,
+    navigate,
   ]);
 
   return (
-    <Stack
-      width={1}
-      height={1}
-      maxWidth={1}
-      boxSizing={"border-box"}
-      component={"form"}
-      onSubmit={handleSubmit(onSubmit)}
-      spacing={"15px"}
-      justifyContent={"center"}
-      alignItems={"center"}
-    >
-      {content}
-    </Stack>
+    <FormProvider {...methods}>
+      <Stack
+        width={1}
+        height={1}
+        maxWidth={1}
+        boxSizing={"border-box"}
+        component={"form"}
+        onSubmit={handleSubmit(onSubmit)}
+        justifyContent={"center"}
+        alignItems={"center"}
+      >
+        {content}
+      </Stack>
+    </FormProvider>
   );
 };
 
 const mapStateToProps = (state: RootState) => ({
   accounts: state.vault.entities.accounts.list,
+  assets: state.vault.entities.assets.list,
 });
 
 export default connect(mapStateToProps)(Transfer);

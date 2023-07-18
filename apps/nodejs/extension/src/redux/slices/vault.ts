@@ -19,6 +19,7 @@ import {
 } from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 import { AssetStorage, getVault, NetworkStorage } from "../../utils";
+import { DISCONNECT_RESPONSE } from "../../constants/communication";
 
 const webEncryptionService = new WebEncryptionService();
 const ExtensionVaultInstance = getVault();
@@ -218,23 +219,52 @@ export const authorizeExternalSession = createAsyncThunk<
   return session.serialize();
 });
 
-export const revokeSession = createAsyncThunk<SerializedSession[], string>(
-  "vault/revokeSession",
-  async (sessionIdToRevoke, context) => {
-    const {
-      vault: { vaultSession, entities },
-    } = context.getState() as RootState;
+export const revokeSession = createAsyncThunk<
+  SerializedSession[],
+  { sessionId: string; external: boolean }
+>("vault/revokeSession", async ({ sessionId, external }, context) => {
+  const {
+    vault: { vaultSession, entities },
+  } = context.getState() as RootState;
 
-    await ExtensionVaultInstance.revokeSession(
-      vaultSession.id,
-      sessionIdToRevoke
-    );
+  await ExtensionVaultInstance.revokeSession(
+    external ? sessionId : vaultSession.id,
+    sessionId
+  );
 
-    return entities.sessions.list.filter(
-      (item) => item.id !== sessionIdToRevoke
-    );
+  let revokedSession: SerializedSession;
+
+  const sessions = entities.sessions.list.filter((item) => {
+    if (item.id === sessionId) {
+      revokedSession = item;
+    }
+    return item.id !== sessionId;
+  });
+
+  if (revokedSession) {
+    const origin = revokedSession.origin;
+
+    if (origin) {
+      const tabsWithOrigin = await browser.tabs.query({ url: `${origin}/*` });
+
+      if (tabsWithOrigin.length) {
+        await Promise.allSettled(
+          tabsWithOrigin.map((tab) =>
+            browser.tabs.sendMessage(tab.id, {
+              type: DISCONNECT_RESPONSE,
+              data: {
+                disconnected: true,
+              },
+              error: null,
+            })
+          )
+        );
+      }
+    }
   }
-);
+
+  return sessions;
+});
 
 export const saveNetwork = createAsyncThunk<
   SerializedNetwork,

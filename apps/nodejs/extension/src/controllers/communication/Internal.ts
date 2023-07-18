@@ -258,7 +258,7 @@ class InternalCommunicationController {
   }
 
   private async _handleRevokeSession(sessionId: string) {
-    await store.dispatch(revokeSession(sessionId));
+    await store.dispatch(revokeSession({ sessionId, external: false }));
 
     return {
       type: REVOKE_SESSION_RESPONSE,
@@ -304,7 +304,7 @@ class InternalCommunicationController {
       if (canListAccounts) {
         permissionBuilder
           .forResource(PermissionResources.account)
-          .allow("list", "read")
+          .allow("read")
           .onAny();
       }
 

@@ -130,10 +130,19 @@ interface TransferResponse {
   error: TransferError;
 }
 
+interface DisconnectResponse {
+  type: typeof DISCONNECT_RESPONSE;
+  data: {
+    disconnected: true;
+  };
+  error: null;
+}
+
 type ExtensionResponses =
   | ConnectionResponse
   | NewAccountResponse
-  | TransferResponse;
+  | TransferResponse
+  | DisconnectResponse;
 
 export type TPermissionsAllowedToSuggest = z.infer<
   typeof PermissionsAllowedToSuggest
@@ -226,6 +235,15 @@ class ProxyCommunicationController {
 
           if (message?.type === TRANSFER_RESPONSE) {
             await this._handleTransferResponse(message);
+          }
+
+          if (message?.type === DISCONNECT_RESPONSE) {
+            if (message.data.disconnected) {
+              this._sendDisconnectResponse(
+                message.data.disconnected,
+                message.error
+              );
+            }
           }
 
           return "RECEIVED";
@@ -401,7 +419,7 @@ class ProxyCommunicationController {
           continue;
         }
 
-        if (resource === "account" && action === "list") {
+        if (resource === "account" && action === "read") {
           permissions.push("list_accounts");
         }
       }
@@ -567,30 +585,32 @@ class ProxyCommunicationController {
       console.log("RESPONSE:", response);
 
       const disconnected = response?.data?.disconnected;
-      const data = disconnected
-        ? {
-            disconnected,
-          }
-        : null;
 
       if (disconnected) {
         this._session = null;
       }
 
-      window.postMessage({
-        from: "VAULT_KEYRING",
-        type: DISCONNECT_RESPONSE,
-        data,
-        error: response?.error || null,
-      });
+      this._sendDisconnectResponse(disconnected, response?.error || null);
     } else {
-      window.postMessage({
-        from: "VAULT_KEYRING",
-        type: DISCONNECT_RESPONSE,
-        data: null,
-        error: NotConnected,
-      });
+      this._sendDisconnectResponse(false, NotConnected);
     }
+  }
+
+  private _sendDisconnectResponse(disconnect: boolean, error = null) {
+    if (disconnect) {
+      this._session = null;
+    }
+
+    window.postMessage({
+      from: "VAULT_KEYRING",
+      type: DISCONNECT_RESPONSE,
+      data: disconnect
+        ? {
+            disconnect,
+          }
+        : null,
+      error,
+    });
   }
 
   private async _handleListAccountsRequest() {

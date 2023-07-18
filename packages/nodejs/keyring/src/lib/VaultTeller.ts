@@ -20,11 +20,11 @@ import {
   VaultRestoreError,
 } from "./errors";
 import {
-  CreateAccountFromPrivateKeyOptions,
-  CreateAccountOptions, ITransferFundsResult,
+  CreateAccountFromPrivateKeyOptions,CreateAccountOptions,
+ ITransferFundsResult,
   ProtocolServiceFactory,
 } from "./core/common/protocols";
-import {v4, validate} from "uuid";
+import { v4 , validate} from "uuid";
 import {SupportedTransferOrigins} from "./core/common/values";
 import {SupportedTransferDestinations} from "./core/common/values";
 import {Network} from "./core/network";
@@ -47,7 +47,6 @@ export interface TransferOptions<T extends Protocol> {
   network: Network;
   transferArguments: IProtocolTransferArguments<T>;
 }
-
 
 export class VaultTeller {
   private _isUnlocked = false;
@@ -136,14 +135,13 @@ export class VaultTeller {
 
     const newSessionId = v4();
 
-    const permissions =
-      request.addDefaultPermissions
-        ? new PermissionsBuilder(request.permissions as Permission[])
-            .forResource("session")
-            .allow('revoke')
-            .on(newSessionId)
-            .build()
-        : request.permissions as Permission[];
+    const permissions = request.addDefaultPermissions
+      ? new PermissionsBuilder(request.permissions as Permission[])
+          .forResource("session")
+          .allow("revoke")
+          .on(newSessionId)
+          .build()
+      : (request.permissions as Permission[]);
 
     // Concat will create a new array with the same elements as the original array (which is readonly).
     const sessionOptions: SessionOptions = {
@@ -165,11 +163,17 @@ export class VaultTeller {
     return serializedSessions.map(Session.deserialize);
   }
 
-  async createAccount(sessionId: string, vaultPassphrase: Passphrase,  options: CreateAccountOptions): Promise<AccountReference> {
+  async createAccount(
+    sessionId: string,
+    vaultPassphrase: Passphrase,
+    options: CreateAccountOptions
+  ): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "create");
 
-    const protocolService=
-      ProtocolServiceFactory.getProtocolService(options.asset.protocol, this.encryptionService);
+    const protocolService = ProtocolServiceFactory.getProtocolService(
+      options.asset.protocol,
+      this.encryptionService
+    );
 
     const account = await protocolService.createAccount(options);
 
@@ -235,7 +239,11 @@ export class VaultTeller {
     }
   }
 
-  async updateAccountName(sessionId: string, vaultPassphrase: Passphrase, options: AccountUpdateOptions): Promise<AccountReference> {
+  async updateAccountName(
+    sessionId: string,
+    vaultPassphrase: Passphrase,
+    options: AccountUpdateOptions
+  ): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "update");
 
     const account = await this.getVaultAccountById(options.id, vaultPassphrase);
@@ -260,13 +268,13 @@ export class VaultTeller {
       throw new SessionNotFoundError();
     }
 
-
     if (!session.isValid()) {
       throw new InvalidSessionError();
     }
 
     const authorizedAccounts = this._vault?.accounts.filter((account) =>
-      session.isAllowed("account", "read", [account.id]));
+      session.isAllowed("account", "read", [account.id])
+    );
 
     await this.updateSessionLastActivity(sessionId);
 
@@ -287,15 +295,19 @@ export class VaultTeller {
     sessionId: string,
     revokeSessionId: string
   ): Promise<void> {
-    await this.validateSessionForPermissions(sessionId, "session", "revoke");
+    await this.validateSessionForPermissions(sessionId, "session", "revoke", [
+      revokeSessionId,
+    ]);
     const session = await this.getSession(revokeSessionId);
     if (session) {
       session.invalidate();
       await this.sessionStore.save(session.serialize());
     }
-    await this.updateSessionLastActivity(sessionId);
-  }
 
+    if (sessionId !== revokeSessionId) {
+      await this.updateSessionLastActivity(sessionId);
+    }
+  }
 
   public async validateSessionForPermissions(
     sessionId: string,
@@ -470,7 +482,7 @@ export class VaultTeller {
     }
   }
 
-  private async getSession(sessionId: string): Promise<Session | null> {
+  public async getSession(sessionId: string): Promise<Session | null> {
     const serializedSession = await this.sessionStore.getById(sessionId);
     if (serializedSession) {
       return Session.deserialize(serializedSession);
@@ -491,7 +503,10 @@ export class VaultTeller {
 
     vault.addAccount(account, replace);
 
-    const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
+    const encryptedUpdatedVault = await this.encryptVault(
+      vaultPassphrase,
+      vault
+    );
 
     await this.vaultStore.save(encryptedUpdatedVault.serialize());
 
@@ -502,7 +517,9 @@ export class VaultTeller {
   }
 
   private async getVaultAccountById(accountId: string, vaultPassphrase: Passphrase): Promise<Account> {
-    const vault = await this.getVault(vaultPassphrase);
+    const vault = await this.getVault(
+      vaultPassphrase
+    );
 
     const account = vault.accounts.find((account) => account.id === accountId);
 
@@ -510,7 +527,7 @@ export class VaultTeller {
       throw new AccountNotFoundError();
     }
 
-    return account
+    return account;
   }
 
   private async getVaultAccountByReference(accountReference: AccountReference, vaultPassphrase: Passphrase): Promise<Account | undefined> {
@@ -520,7 +537,10 @@ export class VaultTeller {
     })
   }
 
-  private async updateVaultAccount(account: Account, vaultPassphrase: Passphrase) {
+  private async updateVaultAccount(
+    account: Account,
+    vaultPassphrase: Passphrase
+  ) {
     const vault = await this.getVault(vaultPassphrase);
 
     vault.updateAccount(account);
@@ -537,13 +557,18 @@ export class VaultTeller {
       throw new Error("Vault is not initialized");
     }
 
-    const encryptedOriginalVault = EncryptedVault.deserialize(serializedEncryptedVault);
+    const encryptedOriginalVault = EncryptedVault.deserialize(
+      serializedEncryptedVault
+    );
 
     if (!encryptedOriginalVault) {
       throw new Error("Vault is not initialized");
     }
 
-    return await this.decryptVault(vaultPassphrase, encryptedOriginalVault)
+    return await this.decryptVault(
+      vaultPassphrase,
+      encryptedOriginalVault
+    )
   }
 
   private async removeVaultAccount(accountReference: AccountReference, vaultPassphrase: Passphrase) {
@@ -551,7 +576,10 @@ export class VaultTeller {
 
     vault.removeAccount(accountReference);
 
-    const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
+    const encryptedUpdatedVault = await this.encryptVault(
+      vaultPassphrase,
+      vault
+    );
 
     await this.vaultStore.save(encryptedUpdatedVault.serialize());
 

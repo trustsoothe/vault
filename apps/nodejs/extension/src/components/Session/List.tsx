@@ -9,14 +9,15 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { Session } from "@poktscan/keyring";
 import SessionDetail from "./SessionDetail";
-import AppToBackground from "../../controllers/communication/AppToBackground";
+import DisconnectSite from "./DisconnectSite";
 
 interface ListSessionsProps {
   sessionList: RootState["vault"]["entities"]["sessions"]["list"];
 }
 
 const ListSessions: React.FC<ListSessionsProps> = ({ sessionList }) => {
-  const [sessionToDetail, setSessionToDetail] = useState<Session>(null);
+  const [view, setView] = useState<"list" | "disconnect" | "detail">("list");
+  const [selectedSession, setSelectedSession] = useState<Session>(null);
 
   const sessions: Session[] = useMemo(() => {
     return sessionList
@@ -24,22 +25,35 @@ const ListSessions: React.FC<ListSessionsProps> = ({ sessionList }) => {
       .filter((item) => item.isValid() && !!item.origin?.value);
   }, [sessionList]);
 
-  const revokeSession = useCallback((sessionIdToRevoke: string) => {
-    AppToBackground.revokeSession(sessionIdToRevoke);
+  const onDisconnectSite = useCallback((session: Session) => {
+    setSelectedSession(session);
+    setView("disconnect");
   }, []);
 
   const onClickDetail = useCallback((session: Session) => {
-    setSessionToDetail(session);
+    setView("detail");
+    setSelectedSession(session);
   }, []);
 
   const onCloseDetail = useCallback(() => {
-    setSessionToDetail(null);
+    setView("list");
+    setSelectedSession(null);
   }, []);
 
   const content = useMemo(() => {
-    if (sessionToDetail) {
+    if (selectedSession && view === "detail") {
       return (
-        <SessionDetail session={sessionToDetail} onClose={onCloseDetail} />
+        <SessionDetail
+          session={selectedSession}
+          onClose={onCloseDetail}
+          onDisconnect={() => setView("disconnect")}
+        />
+      );
+    }
+
+    if (selectedSession && view === "disconnect") {
+      return (
+        <DisconnectSite session={selectedSession} onClose={onCloseDetail} />
       );
     }
 
@@ -109,7 +123,7 @@ const ListSessions: React.FC<ListSessionsProps> = ({ sessionList }) => {
                   </IconButton>
                   <IconButton
                     sx={{ padding: 0 }}
-                    onClick={() => revokeSession(sessionItem.id)}
+                    onClick={() => onDisconnectSite(sessionItem)}
                   >
                     <DeleteIcon sx={{ fontSize: 18 }} />
                   </IconButton>
@@ -120,11 +134,21 @@ const ListSessions: React.FC<ListSessionsProps> = ({ sessionList }) => {
         </FixedSizeList>
       </Stack>
     );
-  }, [sessions, onCloseDetail, sessionToDetail, revokeSession, onClickDetail]);
+  }, [
+    sessions,
+    onCloseDetail,
+    selectedSession,
+    onDisconnectSite,
+    onClickDetail,
+    view,
+  ]);
 
   return (
     <>
-      <Stack marginTop={"15px"}>
+      <Stack
+        marginTop={"15px"}
+        display={view === "disconnect" ? "none" : "flex"}
+      >
         <Typography variant={"h5"}>Connected Sites</Typography>
       </Stack>
       {content}

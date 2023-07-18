@@ -1,23 +1,23 @@
 import type { Session } from "@poktscan/keyring";
-import React, { useCallback } from "react";
+import React from "react";
 import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Typography from "@mui/material/Typography";
 import DeleteIcon from "@mui/icons-material/Delete";
-import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface SessionDetailProps {
   session: Session;
   onClose: () => void;
+  onDisconnect: () => void;
 }
 
-const SessionDetail: React.FC<SessionDetailProps> = ({ session, onClose }) => {
-  const revokeSession = useCallback(() => {
-    AppToBackground.revokeSession(session.id).then(() => onClose());
-  }, [session, onClose]);
-
+const SessionDetail: React.FC<SessionDetailProps> = ({
+  session,
+  onClose,
+  onDisconnect,
+}) => {
   return (
     <Stack
       sx={{ "& p": { fontSize: "12px!important" } }}
@@ -35,7 +35,7 @@ const SessionDetail: React.FC<SessionDetailProps> = ({ session, onClose }) => {
           <IconButton sx={{ padding: 0 }} onClick={onClose}>
             <CloseIcon />
           </IconButton>
-          <IconButton sx={{ padding: 0 }} onClick={revokeSession}>
+          <IconButton sx={{ padding: 0 }} onClick={onDisconnect}>
             <DeleteIcon />
           </IconButton>
         </Stack>

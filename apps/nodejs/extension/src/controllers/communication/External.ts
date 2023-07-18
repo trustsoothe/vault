@@ -47,8 +47,13 @@ import type {
   SessionValidRequestMessage,
   TransferRequestMessage,
 } from "../../types/communication";
+import {
+  ExternalConnectionResponse,
+  IsSessionValidResponse,
+  TRequestBeingHandled,
+} from "../../types/communication";
 
-const RequestBeingHandledResponse = {
+const RequestBeingHandledResponse: TRequestBeingHandled = {
   type: REQUEST_BEING_HANDLED,
 };
 
@@ -71,7 +76,7 @@ class ExternalCommunicationController {
     if (message.type === CONNECTION_REQUEST_MESSAGE) {
       const response = await this._handleConnectionRequest(message, sender);
 
-      if (response?.type === CONNECTION_RESPONSE_MESSAGE) {
+      if (response && response.type === CONNECTION_RESPONSE_MESSAGE) {
         return response;
       }
       isRequestBeingHandled = true;
@@ -128,7 +133,7 @@ class ExternalCommunicationController {
   private async _handleConnectionRequest(
     message: ConnectionRequestMessage,
     sender: MessageSender
-  ) {
+  ): Promise<ExternalConnectionResponse> {
     const { origin, faviconUrl, suggestedPermissions } = message?.data || {};
 
     return this._addExternalRequest(
@@ -143,7 +148,9 @@ class ExternalCommunicationController {
     );
   }
 
-  private async _isSessionValid(message: SessionValidRequestMessage) {
+  private async _isSessionValid(
+    message: SessionValidRequestMessage
+  ): Promise<IsSessionValidResponse> {
     const sessionId = message?.data?.sessionId;
 
     if (!sessionId) {
@@ -213,7 +220,7 @@ class ExternalCommunicationController {
       return {
         type: NEW_ACCOUNT_RESPONSE,
         //todo: add default error
-        error: { name: "add default error" },
+        error: UnknownError,
         data: null,
       };
     }
@@ -351,7 +358,8 @@ class ExternalCommunicationController {
   }
 
   private async _handleDisconnectRequest(message: DisconnectRequestMessage) {
-    if (!message?.data?.sessionId) {
+    const sessionId = message?.data?.sessionId;
+    if (!sessionId) {
       return {
         type: DISCONNECT_RESPONSE,
         error: SessionIdNotPresented,
@@ -360,7 +368,9 @@ class ExternalCommunicationController {
     }
 
     try {
-      await store.dispatch(revokeSession(message.data.sessionId)).unwrap();
+      await store
+        .dispatch(revokeSession({ sessionId, external: true }))
+        .unwrap();
     } catch (error) {
       // todo: add function to handle this errors
       if (error instanceof SessionNotFoundError) {
@@ -419,7 +429,7 @@ class ExternalCommunicationController {
       await ExtensionVaultInstance.validateSessionForPermissions(
         sessionId,
         "account",
-        "list"
+        "read"
       );
     } catch (error) {
       // todo: add function to handle this errors

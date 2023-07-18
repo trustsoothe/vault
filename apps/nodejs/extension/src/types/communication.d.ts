@@ -3,18 +3,33 @@ import type {
   CHECK_CONNECTION_REQUEST,
   NEW_ACCOUNT_REQUEST,
   TRANSFER_REQUEST,
+  DISCONNECT_REQUEST,
+  IS_SESSION_VALID_REQUEST,
+  LIST_ACCOUNTS_REQUEST,
+  REQUEST_BEING_HANDLED,
 } from "../constants/communication";
 import type {
   TPermissionsAllowedToSuggest,
   TTransferRequestBody,
 } from "../controllers/communication/Proxy";
 import {
-  DISCONNECT_REQUEST,
-  IS_SESSION_VALID_REQUEST,
-  LIST_ACCOUNTS_REQUEST,
+  CONNECTION_RESPONSE_MESSAGE,
+  IS_SESSION_VALID_RESPONSE,
+  NEW_ACCOUNT_RESPONSE,
 } from "../constants/communication";
+import {
+  ForbiddenSession,
+  InvalidSession,
+  OriginNotPresented,
+  RequestConnectionExists,
+  RequestNewAccountExists,
+  SessionIdNotPresented,
+  UnknownError,
+} from "../errors/communication";
 
 // external
+
+// requests
 
 type BaseExternalRequestBody = {
   origin: string;
@@ -70,7 +85,54 @@ export interface TransferRequestMessage {
   data: TransferRequestBody;
 }
 
-// proxy requests
+// responses
+
+type TRequestBeingHandled = {
+  type: REQUEST_BEING_HANDLED;
+};
+
+type ConnectionRequestErrors = OriginNotPresented | RequestConnectionExists;
+
+export type ExternalConnectionResponse = {
+  data: null;
+  error: ConnectionRequestErrors;
+  type: CONNECTION_RESPONSE_MESSAGE;
+} | void;
+
+export type ConnectionResponse =
+  | {
+      type: CONNECTION_RESPONSE_MESSAGE;
+      data: { accepted: boolean } | null;
+      error: ConnectionRequestErrors | null;
+    }
+  | TRequestBeingHandled;
+
+type IsSessionValidRequestErrors = SessionIdNotPresented;
+
+export type IsSessionValidResponse = {
+  type: IS_SESSION_VALID_RESPONSE;
+  data: {
+    isValid: boolean;
+  } | null;
+  error: IsSessionValidRequestErrors | null;
+};
+
+type NewAccountRequestErrors =
+  | SessionIdNotPresented
+  | InvalidSession
+  | ForbiddenSession
+  | UnknownError
+  | RequestNewAccountExists;
+
+export type ExternalNewAccountResponse = {
+  type: NEW_ACCOUNT_RESPONSE;
+  data: null;
+  error: NewAccountRequestErrors | null;
+} | void;
+
+// proxy
+
+// requests
 
 export interface BaseProxyRequest {
   to: "VAULT_KEYRING";
