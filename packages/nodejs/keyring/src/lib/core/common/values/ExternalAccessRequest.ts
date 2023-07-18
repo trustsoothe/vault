@@ -7,12 +7,14 @@ export class ExternalAccessRequest {
   private readonly _maxAge: number
   private readonly _origin: OriginReference
   private readonly _accounts: AccountReference[]
+  private readonly _addDefaultPermissions: boolean = true
 
-  constructor(permissions: Permission[], maxAge: number, origin: OriginReference, accounts: AccountReference[] = []) {
+  constructor(permissions: Permission[], maxAge: number, origin: OriginReference, accounts: AccountReference[] = [], addDefaultPermissions: boolean = true) {
     this._permissions = permissions
     this._maxAge = maxAge
     this._origin = origin
     this._accounts = accounts
+    this._addDefaultPermissions = addDefaultPermissions
   }
 
   get permissions(): ReadonlyArray<Permission> {
@@ -29,5 +31,9 @@ export class ExternalAccessRequest {
 
   get accounts(): ReadonlyArray<AccountReference> {
     return this._accounts
+  }
+
+  get addDefaultPermissions(): boolean {
+    return this._addDefaultPermissions
   }
 }

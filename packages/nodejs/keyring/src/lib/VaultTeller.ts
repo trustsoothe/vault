@@ -102,16 +102,19 @@ export class VaultTeller {
     }
 
     const newSessionId = v4();
-    const extendedPermissions =
-      new PermissionsBuilder(request.permissions as Permission[])
-        .forResource("session")
-        .allow('revoke')
-        .on(newSessionId)
-        .build();
+
+    const permissions =
+      request.addDefaultPermissions
+        ? new PermissionsBuilder(request.permissions as Permission[])
+            .forResource("session")
+            .allow('revoke')
+            .on(newSessionId)
+            .build()
+        : request.permissions as Permission[];
 
     // Concat will create a new array with the same elements as the original array (which is readonly).
     const sessionOptions: SessionOptions = {
-      permissions: request.permissions.concat(),
+      permissions,
       maxAge: request.maxAge,
       accounts: request.accounts.concat(),
       origin: request.origin || null,
