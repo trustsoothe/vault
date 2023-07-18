@@ -1,6 +1,6 @@
 import {
   Account,
-  AccountOptions,
+  AccountOptions, AccountReference,
   Asset,
   ExternalAccessRequest,
   IEncryptionService,
@@ -230,8 +230,18 @@ export default <
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
         await vaultTeller.unlockVault('passphrase')
-        const {permissions} = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
-        expect(permissions).toEqual(exampleExternalPermissions)
+        const {permissions, id} = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
+        expect(permissions).toEqual([
+          ...exampleExternalPermissions,
+          /*
+            * The following permissions are added by the VaultTeller: session:revoke:{id}
+           */
+          {
+            action: 'revoke',
+            resource: 'session',
+            identities: [id],
+          },
+        ])
       })
 
       test('resolved Session object has the correct maxAge', async () => {
@@ -405,10 +415,19 @@ export default <
 
     test('throws "Unauthorized" error if the session id is found in the session store but "session:revoke" is not allowed', async () => {
       vaultStore = createVaultStore()
+
+      const externalAccessRequestWithoutDefaults = new ExternalAccessRequest(
+        exampleExternalAccessRequest.permissions as Permission[],
+        exampleExternalAccessRequest.maxAge,
+        exampleExternalAccessRequest.origin,
+        exampleExternalAccessRequest.accounts as AccountReference[],
+        false
+      )
+
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
-      const session = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
+      const session = await vaultTeller.authorizeExternal(externalAccessRequestWithoutDefaults)
       const listSessionsOperation = vaultTeller.revokeSession(session.id, null)
       await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session is not allowed to perform this operation')
     })
