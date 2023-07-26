@@ -4,7 +4,6 @@ import {
   Passphrase,
   IProtocolService,
   Network,
-  SupportedProtocols,
   PocketNetworkProtocol
 } from "@poktscan/keyring";
 import { webcrypto } from 'node:crypto';
@@ -87,6 +86,20 @@ export default <T extends IProtocolService>(TProtocolServiceCreator: () => T, as
         expect(network.status.canProvideFee).toBe(true)
         expect(network.status.feeStatusLastUpdated).toBeDefined()
         expect(network.status.feeStatusLastUpdated).closeTo(Date.now(), 1000)
+      })
+
+      test('updates the balance status', async () => {
+        const network = await protocolService.updateNetworkStatus(pocketTestnet)
+        expect(network.status.canProvideBalance).toBe(true)
+        expect(network.status.balanceStatusLastUpdated).toBeDefined()
+        expect(network.status.balanceStatusLastUpdated).closeTo(Date.now(), 1000)
+      })
+
+      test('updates the send transaction status', async () => {
+        const network = await protocolService.updateNetworkStatus(pocketTestnet)
+        expect(network.status.canSendTransaction).toBe(true)
+        expect(network.status.sendTransactionStatusLastUpdated).toBeDefined()
+        expect(network.status.sendTransactionStatusLastUpdated).closeTo(Date.now(), 1000)
       })
     })
   })

@@ -11,6 +11,9 @@ export interface CreateAccountOptions {
 
 export interface IProtocolService {
   createAccount(options: CreateAccountOptions): Promise<Account>
+  updateFeeStatus(network: Network): Promise<Network>
+  updateBalanceStatus(network: Network): Promise<Network>
+  updateSendTransactionStatus(network: Network): Promise<Network>
   updateNetworkStatus(network: Network): Promise<Network>
   getFee(network: Network): Promise<number>
   getBalance(network: Network, account: AccountReference): Promise<number>

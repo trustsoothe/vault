@@ -29,7 +29,7 @@ export class Session implements IEntity {
   private readonly _origin: OriginReference
   private _invalidated = false
   private _createdAt: number
-  private _invalidatedAt?: number
+  private _invalidatedAt: number = 0
   private _lastActivity: number
 
   constructor(options: SessionOptions = {}, id?: string) {
@@ -74,7 +74,7 @@ export class Session implements IEntity {
   }
 
   get invalidatedAt(): number {
-    return this._invalidatedAt || 0
+    return this._invalidatedAt
   }
 
   get lastActivity(): number {

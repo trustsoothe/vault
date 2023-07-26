@@ -20,15 +20,18 @@ export class Status {
   }
 
   updateFeeStatus(status: boolean) {
-   throw new Error('Not implemented');
+    this._fee = status;
+    this._feeStatusLastUpdated = Date.now();
   }
 
   updateBalanceStatus(status: boolean) {
-    throw new Error('Not implemented');
+    this._balance = status;
+    this._balanceStatusLastUpdated = Date.now();
   }
 
   updateSendTransactionStatus(status: boolean) {
-    throw new Error('Not implemented');
+    this._sendTransaction = status;
+    this._sendTransactionStatusLastUpdated = Date.now();
   }
 
   get canProvideFee(): boolean {

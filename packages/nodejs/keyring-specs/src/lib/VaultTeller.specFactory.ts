@@ -156,7 +156,7 @@ export default <
       test('persists the newly created session', async () => {
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
-        await vaultTeller.initializeVault('passphrase');
+        await vaultTeller.initializeVault('passphrase')
         const session = await vaultTeller.unlockVault('passphrase')
         const serializedSession = await sessionStore.getById(session.id)
         expect(serializedSession, 'Session was not found').not.toBeNull()

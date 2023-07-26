@@ -1,7 +1,7 @@
-import {CreateAccountOptions, IProtocolService} from '../IProtocolService';
-import {Account} from "../../../vault";
 // @ts-ignore
 import {fromUint8Array} from 'hex-lite';
+import {CreateAccountOptions, IProtocolService} from '../IProtocolService';
+import {Account} from "../../../vault";
 import {utils,  getPublicKeyAsync} from '@noble/ed25519';
 import {Buffer} from "buffer";
 import IEncryptionService from "../../encryption/IEncryptionService";
@@ -9,6 +9,11 @@ import { Network } from '../../../network';
 import {AccountReference} from "../../values";
 import fetch from 'isomorphic-fetch'
 import * as Path from "path";
+import {
+  PocketRpcBalanceResponseSchema,
+  PocketRpcCanSendTransactionResponseSchema,
+  PocketRpcFeeParamsResponseSchema
+} from "./schemas";
 
 
 export class PocketNetworkProtocolService implements IProtocolService {
@@ -84,10 +89,72 @@ export class PocketNetworkProtocolService implements IProtocolService {
       return network;
     }
 
-    const responseBody = await response.json();
+    const responseRawBody = await response.json();
+
+    try {
+      PocketRpcFeeParamsResponseSchema.parse(responseRawBody);
+      network.status.updateFeeStatus(true);
+    } catch {
+      network.status.updateFeeStatus(false);
+    }
 
     return network;
   }
+
+  async updateBalanceStatus(network: Network): Promise<Network> {
+    if (!network || !(network instanceof Network)) {
+      throw new Error('Invalid Argument: Network instance not provided')
+    }
+
+    const url = Path.join(network.rpcUrl, 'v1/query/balance')
+
+    const response = await fetch(url, {
+      method: 'POST',
+    })
+
+    if (!response.ok) {
+      network.status.updateBalanceStatus(false);
+      return network;
+    }
+
+    const responseRawBody = await response.json();
+
+    try {
+      PocketRpcBalanceResponseSchema.parse(responseRawBody);
+      network.status.updateBalanceStatus(true);
+    } catch {
+      network.status.updateBalanceStatus(false);
+    }
+
+    return network;
+  }
+
+  async updateSendTransactionStatus(network: Network): Promise<Network> {
+    if (!network || !(network instanceof Network)) {
+      throw new Error('Invalid Argument: Network instance not provided')
+    }
+
+    const url = Path.join(network.rpcUrl, 'v1/client/rawtx')
+
+    const response = await fetch(url, {
+      method: 'POST',
+    })
+
+    if (!response.ok) {
+      network.status.updateSendTransactionStatus(false);
+      return network;
+    }
+
+    const responseRawBody = await response.json();
+
+    try {
+      PocketRpcCanSendTransactionResponseSchema.parse(responseRawBody);
+      network.status.updateSendTransactionStatus(true);
+    } catch (e) {
+      network.status.updateSendTransactionStatus(false);
+    }
+
+    return network; }
 
   async updateNetworkStatus(network: Network): Promise<Network> {
     if (!network || !(network instanceof Network)) {
@@ -95,6 +162,8 @@ export class PocketNetworkProtocolService implements IProtocolService {
     }
 
     await this.updateFeeStatus(network);
+    await this.updateBalanceStatus(network);
+    await this.updateSendTransactionStatus(network);
 
     return network;
   }
