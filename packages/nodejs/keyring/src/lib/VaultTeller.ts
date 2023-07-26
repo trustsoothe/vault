@@ -31,6 +31,13 @@ export class VaultTeller {
   async unlockVault(passphrase: string): Promise<Session> {
     const passphraseValue = new Passphrase(passphrase);
     const serializedEncryptedVault = await this.vaultStore.get();
+
+    if (!serializedEncryptedVault) {
+      throw new Error(
+        "Vault could not be restored from store. Has it been initialized?"
+      );
+    }
+
     const encryptedVault = EncryptedVault.deserialize(serializedEncryptedVault);
 
     if (!encryptedVault) {
@@ -179,12 +186,12 @@ export class VaultTeller {
       throw new InvalidSessionError();
     }
 
-    const authorizedAccounts = this._vault.accounts.filter((account) =>
+    const authorizedAccounts = this._vault?.accounts.filter((account) =>
       session.isAllowed("account", "read", [account.id]));
 
     await this.updateSessionLastActivity(sessionId);
 
-    return authorizedAccounts;
+    return authorizedAccounts || [];
   }
 
   async revokeSession(
@@ -305,6 +312,10 @@ export class VaultTeller {
 
     const encryptedOriginalVault = EncryptedVault.deserialize(serializedEncryptedVault);
 
+    if (!encryptedOriginalVault) {
+      throw new Error("Vault is not initialized");
+    }
+
     const vault = await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
 
     vault.addAccount(account);
@@ -322,6 +333,10 @@ export class VaultTeller {
     }
 
     const encryptedOriginalVault = EncryptedVault.deserialize(serializedEncryptedVault);
+
+    if (!encryptedOriginalVault) {
+      throw new Error("Vault is not initialized");
+    }
 
     const vault = await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
 
@@ -342,6 +357,10 @@ export class VaultTeller {
     }
 
     const encryptedOriginalVault = EncryptedVault.deserialize(serializedEncryptedVault);
+
+    if (!encryptedOriginalVault) {
+      throw new Error("Vault is not initialized");
+    }
 
     const vault = await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
 

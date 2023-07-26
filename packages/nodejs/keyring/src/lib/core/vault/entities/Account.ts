@@ -24,7 +24,7 @@ export interface AccountOptions {
 
 export interface AccountUpdateOptions {
   id: string
-  name?: string
+  name: string
 }
 
 export class Account implements IEntity {

@@ -31,7 +31,7 @@ class ResourcePermissionBuilder {
     this.builder = permissionsBuilder;
   }
 
-  allow(...actions) {
+  allow(...actions: string[]) {
     this.addActionPermissions(actions);
     return this;
   }
@@ -45,7 +45,7 @@ class ResourcePermissionBuilder {
     return this.builder.build();
   }
 
-  on(...identities) {
+  on(...identities: string[]) {
     this.setPermissionsIdentities(identities);
     return this.builder;
   }
@@ -64,7 +64,7 @@ class ResourcePermissionBuilder {
     });
   }
 
-  private addActionPermissions(actions) {
+  private addActionPermissions(actions: string[]) {
     const isAnyActionUnknown = actions.some(action => !this.builder.isValidAction(this.resource.name, action));
 
     if (isAnyActionUnknown) {
@@ -102,7 +102,7 @@ export class PermissionsBuilder {
   }
   constructor(permissions?: Permission[]) {
     if (permissions) {
-      this.resources = permissions.reduce((resources, permission) => {
+      this.resources = permissions.reduce((resources: Resource[], permission) => {
         const resource = resources.find(resource => resource.name === permission.resource);
 
         if (resource) {

@@ -63,3 +63,12 @@ export class VaultIsLockedError extends KeyringError {
     });
   }
 }
+
+export class ProtocolNotSupported extends KeyringError {
+  constructor(protocol?: string) {
+    super({
+      name: 'ProtocolNotSupported',
+      message: protocol ? `Protocol "${protocol}" not supported` : 'Protocol not supported',
+    });
+  }
+}

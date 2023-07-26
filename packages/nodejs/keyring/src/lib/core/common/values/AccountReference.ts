@@ -11,7 +11,7 @@ export class AccountReference {
   private readonly _id: string = ''
   private readonly _name: string = ''
   private readonly _address: string = ''
-  private readonly _protocol: Protocol = null
+  private readonly _protocol: Protocol
 
   constructor(id: string, name: string, address: string, protocol: Protocol) {
     this._id = id

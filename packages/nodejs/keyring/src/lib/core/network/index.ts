@@ -1,6 +1,7 @@
 import {v4, validate} from "uuid";
 import IEntity from "../common/IEntity";
 import {Protocol} from "../common/Protocol";
+import {Status} from "./values/Status";
 
 export interface SerializedNetwork extends IEntity {
   id: string
@@ -10,6 +11,14 @@ export interface SerializedNetwork extends IEntity {
   protocol: Protocol
   createdAt: number
   updatedAt: number
+  status: {
+    fee: boolean
+    feeStatusLastUpdated?: number
+    balance: boolean
+    balanceStatusLastUpdated?: number
+    sendTransaction: boolean
+    sendTransactionStatusLastUpdated?: number
+  }
 }
 
 export interface NetworkOptions {
@@ -25,6 +34,7 @@ export class Network implements IEntity {
   private readonly _rpcUrl: string
   private readonly _protocol: Protocol
   private readonly _isDefault: boolean
+  private _status: Status
   private _createdAt: number
   private _updatedAt: number
 
@@ -40,6 +50,7 @@ export class Network implements IEntity {
     this._createdAt = Date.now()
     this._updatedAt = this._createdAt
     this._isDefault = options.isDefault || false
+    this._status = new Status()
   }
 
   get id(): string {
@@ -62,6 +73,10 @@ export class Network implements IEntity {
     return this._isDefault
   }
 
+  get status(): Status {
+    return this._status
+  }
+
   serialize(): SerializedNetwork {
     return {
       id: this._id,
@@ -71,6 +86,14 @@ export class Network implements IEntity {
       protocol: this._protocol,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
+      status: {
+        fee: this._status.canProvideFee,
+        feeStatusLastUpdated: this._status.feeStatusLastUpdated,
+        balance: this._status.canProvideBalance,
+        balanceStatusLastUpdated: this._status.balanceStatusLastUpdated,
+        sendTransaction: this._status.canSendTransaction,
+        sendTransactionStatusLastUpdated: this._status.sendTransactionStatusLastUpdated
+      }
     }
   }
 
@@ -86,6 +109,7 @@ export class Network implements IEntity {
 
     deserializedNetwork._createdAt = serializedNetwork.createdAt
     deserializedNetwork._updatedAt = serializedNetwork.updatedAt
+    deserializedNetwork._status = new Status(serializedNetwork)
 
     return deserializedNetwork
   }

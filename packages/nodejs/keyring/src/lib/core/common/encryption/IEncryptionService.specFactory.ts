@@ -1,7 +1,8 @@
 import IEncryptionService from './IEncryptionService';
 import {MnemonicPhrase} from "../values";
 
-export default <T extends IEncryptionService>(TEncryptionServiceCreator: {  new (): T }, beforeEach, describe, expect, test) => {
+
+export default <T extends IEncryptionService>(TEncryptionServiceCreator: {  new (): T }, beforeEach: any, describe: any, expect: any, test: any) => {
   let encryptionService: T
 
   beforeEach(() => {
@@ -11,6 +12,7 @@ export default <T extends IEncryptionService>(TEncryptionServiceCreator: {  new 
   describe('deriveSeed', () => {
     test('throws if a mnemonic phrase is not provided', async () => {
       await expect(encryptionService
+          // @ts-ignore
           .deriveSeed(undefined))
           .rejects.toThrow('Invalid Operation: Mnemonic phrase not provided')
     })

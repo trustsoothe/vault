@@ -18,14 +18,16 @@
   "dependencies": {
     "@poktscan/keyring": "*",
     "@poktscan/keyring-encryption-web": "*",
-    "@poktscan/keyring-storage-filesystem": "*",
     "@poktscan/keyring-storage-extension": "*",
+    "@poktscan/keyring-storage-filesystem": "*",
     "uuid": "9.0.0"
   },
   "devDependencies": {
     "@peculiar/webcrypto": "1.4.3",
+    "@types/sinon": "^10.0.15",
     "@types/uuid": "9.0.1",
     "jsdom": "22.1.0",
+    "msw": "1.2.2",
     "sinon": "15.0.4",
     "vitest": "0.31.0"
   }
