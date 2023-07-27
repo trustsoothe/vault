@@ -1,4 +1,8 @@
-import React, { useCallback, useMemo, useState } from "react";
+import type { SerializedAsset } from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
+import type { ExternalNewAccountRequest } from "../../types/communication";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import { useForm } from "react-hook-form";
@@ -6,10 +10,10 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useNavigate, useLocation } from "react-router-dom";
 import CircularLoading from "../common/CircularLoading";
+import OperationFailed from "../common/OperationFailed";
 import AutocompleteAsset from "./AutocompleteAsset";
-import { SerializedAsset } from "@poktscan/keyring";
 import RequestFrom from "../common/RequestFrom";
-import { NewAccountRequest } from "../../redux/slices/app";
+import { getAssetByProtocol } from "../../utils";
 import { useAppDispatch } from "../../hooks/redux";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
@@ -21,20 +25,43 @@ interface FormValues {
 
 type FormStatus = "normal" | "loading" | "error" | "submitted";
 
-const CreateNewAccount: React.FC = ({}) => {
+interface CreateNewAccountProps {
+  assets: RootState["vault"]["entities"]["assets"]["list"];
+}
+
+const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const currentRequest: NewAccountRequest = location?.state;
+  const currentRequest: ExternalNewAccountRequest = location?.state;
 
-  const { register, formState, handleSubmit, getValues, control } =
-    useForm<FormValues>({
-      defaultValues: {
-        account_name: "",
-        password: "",
-        asset: null,
-      },
-    });
+  const {
+    register,
+    formState,
+    handleSubmit,
+    getValues,
+    control,
+    setValue,
+    watch,
+  } = useForm<FormValues>({
+    defaultValues: {
+      account_name: "",
+      password: "",
+      asset: null,
+    },
+  });
+
+  const asset = watch("asset");
+
+  useEffect(() => {
+    if (currentRequest?.protocol) {
+      const asset = getAssetByProtocol(assets, currentRequest.protocol);
+
+      if (asset) {
+        setValue("asset", asset);
+      }
+    }
+  }, [currentRequest]);
 
   const [status, setStatus] = useState<FormStatus>("normal");
 
@@ -57,24 +84,18 @@ const CreateNewAccount: React.FC = ({}) => {
   const onClickCreate = useCallback(
     async (data: FormValues) => {
       setStatus("loading");
-      try {
-        await AppToBackground.answerNewAccount({
-          rejected: false,
-          accountData: {
-            name: data.account_name,
-            asset: data.asset,
-            password: data.password,
-          },
-          request: currentRequest || null,
-        });
-        if (!currentRequest) {
-          setStatus("submitted");
-        }
-      } catch (e) {
-        if (!currentRequest) {
-          setStatus("error");
-        }
-      }
+      const result = await AppToBackground.answerNewAccount({
+        rejected: false,
+        accountData: {
+          name: data.account_name,
+          asset: data.asset,
+          password: data.password,
+        },
+        request: currentRequest || null,
+      });
+
+      const isError = !!result.error;
+      setStatus(isError ? "error" : "submitted");
     },
     [currentRequest, dispatch]
   );
@@ -86,27 +107,10 @@ const CreateNewAccount: React.FC = ({}) => {
 
     if (status === "error") {
       return (
-        <>
-          <Typography>There was an error creating the account.</Typography>
-          <Stack direction={"row"} spacing={"20px"}>
-            <Button
-              variant={"outlined"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 500 }}
-              fullWidth
-              onClick={onClickCancel}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={"contained"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 600 }}
-              fullWidth
-              type={"submit"}
-            >
-              Retry
-            </Button>
-          </Stack>
-        </>
+        <OperationFailed
+          text={"There was an error creating the account."}
+          onCancel={onClickCancel}
+        />
       );
     }
 
@@ -139,7 +143,10 @@ const CreateNewAccount: React.FC = ({}) => {
             Create Account
           </Typography>
         )}
-        <AutocompleteAsset control={control} />
+        <AutocompleteAsset
+          control={control}
+          disabled={!!currentRequest?.protocol && !!asset}
+        />
         <TextField
           label={"Account Name"}
           size={"small"}
@@ -215,4 +222,8 @@ const CreateNewAccount: React.FC = ({}) => {
   );
 };
 
-export default CreateNewAccount;
+const mapStateToProps = (state: RootState) => ({
+  assets: state.vault.entities.assets.list,
+});
+
+export default connect(mapStateToProps)(CreateNewAccount);

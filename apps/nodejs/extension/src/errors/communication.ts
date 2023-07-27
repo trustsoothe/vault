@@ -65,9 +65,21 @@ export const ToAddressNotValid = createError(
 );
 
 export const AmountNotValid = createError(
-  "AMOUNT_ADDRESS_NOT_VALID",
+  "AMOUNT_NOT_VALID",
   9,
   "amount is not valid."
+);
+
+export const MemoNotValid = createError(
+  "MEMO_NOT_VALID",
+  13,
+  "memo is not valid."
+);
+
+export const InvalidProtocol = createError(
+  "INVALID_PROTOCOL",
+  14,
+  "The protocol passed is not valid."
 );
 
 export const InvalidBody = createError(
@@ -114,6 +126,12 @@ export const InvalidSession = createError(
 
 export const ForbiddenSession = createError(
   "FORBIDDEN_SESSION",
-  500,
+  501,
   "Forbidden. The provided session does not have the rights to perform the requested operation."
+);
+
+export const OriginBlocked = createError(
+  "ORIGIN_BLOCKED",
+  502,
+  "This website is blocked."
 );

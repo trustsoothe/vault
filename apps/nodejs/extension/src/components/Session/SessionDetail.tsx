@@ -6,17 +6,24 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Typography from "@mui/material/Typography";
 import DeleteIcon from "@mui/icons-material/Delete";
+import BlockIcon from "@mui/icons-material/Block";
 
 interface SessionDetailProps {
   session: Session;
   onClose: () => void;
   onDisconnect: () => void;
+  openToggleBlockSite: (
+    site: string,
+    toBlock?: boolean,
+    session?: Session
+  ) => void;
 }
 
 const SessionDetail: React.FC<SessionDetailProps> = ({
   session,
   onClose,
   onDisconnect,
+  openToggleBlockSite,
 }) => {
   return (
     <Stack
@@ -34,6 +41,14 @@ const SessionDetail: React.FC<SessionDetailProps> = ({
         <Stack direction={"row"} alignItems={"center"} spacing={"5px"}>
           <IconButton sx={{ padding: 0 }} onClick={onClose}>
             <CloseIcon />
+          </IconButton>
+          <IconButton
+            sx={{ padding: 0 }}
+            onClick={() =>
+              openToggleBlockSite(session.origin.value, false, session)
+            }
+          >
+            <BlockIcon sx={{ fontSize: 18 }} />
           </IconButton>
           <IconButton sx={{ padding: 0 }} onClick={onDisconnect}>
             <DeleteIcon />

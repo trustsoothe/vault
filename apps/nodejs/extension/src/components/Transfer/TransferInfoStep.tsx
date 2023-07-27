@@ -1,5 +1,5 @@
 import type { FormValues } from "./index";
-import type { TransferRequest } from "../../redux/slices/app";
+import type { ExternalTransferRequest } from "../../types/communication";
 import { Controller, useFormContext } from "react-hook-form";
 import TextField from "@mui/material/TextField";
 import React, { useCallback } from "react";
@@ -19,7 +19,7 @@ interface TransferInfoStepProps {
   isLoadingBalance?: boolean;
   isLoadingFee?: boolean;
   fee: number;
-  request?: TransferRequest;
+  request?: ExternalTransferRequest;
 }
 
 const TransferInfoStep: React.FC<TransferInfoStepProps> = ({
@@ -114,6 +114,7 @@ const TransferInfoStep: React.FC<TransferInfoStepProps> = ({
         size={"small"}
         rows={2}
         multiline
+        disabled={!!request?.memo}
         {...register("memo")}
       />
     </Stack>

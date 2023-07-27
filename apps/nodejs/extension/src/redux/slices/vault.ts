@@ -8,6 +8,7 @@ import type {
   AccountUpdateOptions,
 } from "@poktscan/keyring";
 import type { RootState } from "../store";
+import type { DisconnectBackResponse } from "../../types/communication";
 import { v4 } from "uuid";
 import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
@@ -248,15 +249,17 @@ export const revokeSession = createAsyncThunk<
       const tabsWithOrigin = await browser.tabs.query({ url: `${origin}/*` });
 
       if (tabsWithOrigin.length) {
+        const response: DisconnectBackResponse = {
+          type: DISCONNECT_RESPONSE,
+          data: {
+            disconnected: true,
+          },
+          error: null,
+        };
+
         await Promise.allSettled(
           tabsWithOrigin.map((tab) =>
-            browser.tabs.sendMessage(tab.id, {
-              type: DISCONNECT_RESPONSE,
-              data: {
-                disconnected: true,
-              },
-              error: null,
-            })
+            browser.tabs.sendMessage(tab.id, response)
           )
         );
       }

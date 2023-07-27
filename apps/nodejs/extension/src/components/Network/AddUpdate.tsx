@@ -1,3 +1,4 @@
+import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import Stack from "@mui/material/Stack";
@@ -17,7 +18,7 @@ import {
   chainIDsByProtocol,
   labelByProtocolMap,
 } from "../../constants/protocols";
-import { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
+import OperationFailed from "../common/OperationFailed";
 
 interface FormValues {
   name: string;
@@ -130,33 +131,10 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
 
     if (status === "error") {
       return (
-        <Stack
-          flexGrow={1}
-          alignItems={"center"}
-          justifyContent={"center"}
-          marginTop={"-40px"}
-          spacing={"10px"}
-        >
-          <Typography>There was an error saving the network.</Typography>
-          <Stack direction={"row"} width={250} spacing={"15px"}>
-            <Button
-              variant={"outlined"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 500 }}
-              fullWidth
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={"contained"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 600 }}
-              fullWidth
-              type={"submit"}
-            >
-              Retry
-            </Button>
-          </Stack>
-        </Stack>
+        <OperationFailed
+          text={"There was an error saving the network."}
+          onCancel={onClose}
+        />
       );
     }
 

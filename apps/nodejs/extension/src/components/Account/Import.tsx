@@ -12,6 +12,7 @@ import { RootState } from "../../redux/store";
 import { connect } from "react-redux";
 import { SerializedAsset } from "@poktscan/keyring";
 import AutocompleteAsset from "./AutocompleteAsset";
+import OperationFailed from "../common/OperationFailed";
 
 export const isHex = (str: string) => {
   return str.match(/^[0-9a-fA-F]+$/g);
@@ -103,27 +104,10 @@ const ImportAccount: React.FC<ImportAccountProps> = ({ assets }) => {
 
     if (status === "error") {
       return (
-        <>
-          <Typography>There was an error importing the account.</Typography>
-          <Stack direction={"row"} spacing={"20px"}>
-            <Button
-              variant={"outlined"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 500 }}
-              fullWidth
-              onClick={onClickCancel}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={"contained"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 600 }}
-              fullWidth
-              type={"submit"}
-            >
-              Retry
-            </Button>
-          </Stack>
-        </>
+        <OperationFailed
+          text={"There was an error importing the account."}
+          onCancel={onClickCancel}
+        />
       );
     }
 

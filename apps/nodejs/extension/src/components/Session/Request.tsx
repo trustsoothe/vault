@@ -1,12 +1,20 @@
+import type { ExternalConnectionRequest } from "../../types/communication";
 import type { RootState } from "../../redux/store";
-import type { ConnectionRequest } from "../../redux/slices/app";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Typography from "@mui/material/Typography";
 import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { connect } from "react-redux";
 import { useLocation } from "react-router-dom";
+import CircularLoading from "../common/CircularLoading";
+import OperationFailed from "../common/OperationFailed";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface PermissionItemProps {
@@ -56,10 +64,14 @@ const PermissionItem: React.FC<PermissionItemProps> = ({
 };
 
 const Request: React.FC = () => {
-  const currentRequest: ConnectionRequest = useLocation()?.state;
+  const currentRequest: ExternalConnectionRequest = useLocation()?.state;
   const [allowCreateAccounts, setAllowCreateAccounts] = useState(false);
   const [allowListAccounts, setAllowListAccounts] = useState(false);
   const [allowSuggestTransfers, setAllowSuggestTransfers] = useState(false);
+  const [status, setStatus] = useState<"normal" | "loading" | "error">(
+    "normal"
+  );
+  const lastAcceptedRef = useRef<boolean>(null);
 
   useEffect(() => {
     if (currentRequest?.suggestedPermissions) {
@@ -87,13 +99,21 @@ const Request: React.FC = () => {
   const sendResponse = useCallback(
     async (accepted: boolean) => {
       if (currentRequest) {
-        await AppToBackground.answerConnection({
+        lastAcceptedRef.current = accepted;
+        setStatus("loading");
+        const result = await AppToBackground.answerConnection({
           accepted,
           request: currentRequest,
           canListAccounts: allowListAccounts && accepted,
           canCreateAccounts: allowCreateAccounts && accepted,
           canSuggestTransfers: allowSuggestTransfers && accepted,
         });
+        const isError = !!result.error;
+        setStatus(isError ? "error" : "normal");
+
+        if (!isError) {
+          lastAcceptedRef.current = null;
+        }
       }
     },
     [
@@ -132,14 +152,26 @@ const Request: React.FC = () => {
     return null;
   }
 
+  if (status === "loading") {
+    return <CircularLoading />;
+  }
+
+  if (status === "error") {
+    return (
+      <OperationFailed
+        text={"There was an error trying to answer the request."}
+        onCancel={() => sendResponse(false)}
+        onRetry={() => {
+          if (typeof lastAcceptedRef.current === "boolean") {
+            sendResponse(lastAcceptedRef.current);
+          }
+        }}
+      />
+    );
+  }
+
   return (
-    <Stack
-      spacing={"10px"}
-      height={1}
-      flexGrow={1}
-      justifyContent={"center"}
-      // pb={"15px"}
-    >
+    <Stack spacing={"10px"} height={1} flexGrow={1} justifyContent={"center"}>
       <Typography fontSize={20} textAlign={"center"}>
         Connection Request from:
       </Typography>

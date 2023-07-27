@@ -17,12 +17,14 @@ interface AutocompleteAssetProps {
   assets: RootState["vault"]["entities"]["assets"]["list"];
   control;
   name?: string;
+  disabled?: boolean;
 }
 
 const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
   assets,
   control,
   name = "asset",
+  disabled,
 }) => {
   const filterOptions = useCallback(
     (
@@ -128,6 +130,7 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
             sx={{
               width: 1,
             }}
+            disabled={disabled}
             renderInput={(params) => {
               return (
                 <TextField
@@ -137,6 +140,7 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
                   size={"small"}
                   error={!!error}
                   helperText={error?.message}
+                  disabled={disabled}
                 />
               );
             }}

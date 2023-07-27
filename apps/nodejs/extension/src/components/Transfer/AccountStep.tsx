@@ -3,6 +3,7 @@ import type {
   FilterOptionsState,
 } from "@mui/material";
 import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { ExternalTransferRequest } from "../../types/communication";
 import type { RootState } from "../../redux/store";
 import type { FormValues } from "./index";
 import { connect } from "react-redux";
@@ -299,14 +300,16 @@ type TNetwork = RootState["vault"]["entities"]["networks"]["list"];
 interface AccountStepProps {
   fromAddressStatus: string | null;
   fromAddress: string;
+  request?: ExternalTransferRequest;
 }
 
 const AccountStep: React.FC<AccountStepProps> = ({
   fromAddressStatus,
   fromAddress,
+  request,
 }) => {
   const { control, watch, register, formState } = useFormContext<FormValues>();
-  const [fromType] = watch(["fromType"]);
+  const [fromType, asset] = watch(["fromType", "asset"]);
 
   return (
     <Stack width={1} spacing={"20px"}>
@@ -380,7 +383,10 @@ const AccountStep: React.FC<AccountStepProps> = ({
         <AccountsAutocomplete fromAddressStatus={fromAddressStatus} />
       )}
       {fromType === "private_key" ? (
-        <AutocompleteAsset control={control} />
+        <AutocompleteAsset
+          control={control}
+          disabled={!!request?.protocol && !!asset}
+        />
       ) : (
         <TextField
           label={"Account Password"}

@@ -7,6 +7,7 @@ import Typography from "@mui/material/Typography";
 import React, { useCallback, useMemo, useState } from "react";
 import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import OperationFailed from "../common/OperationFailed";
 
 interface FormValues {
   account_name: string;
@@ -33,11 +34,10 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
       AppToBackground.updateAccount({
         id: account.id,
         name: data.account_name,
-      })
-        .then(() => {
-          setStatus("saved");
-        })
-        .catch(() => setStatus("error"));
+      }).then((result) => {
+        const isError = !!result.error;
+        setStatus(isError ? "error" : "saved");
+      });
     },
     [account]
   );
@@ -49,33 +49,10 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
 
     if (status === "error") {
       return (
-        <Stack
-          flexGrow={1}
-          alignItems={"center"}
-          justifyContent={"center"}
-          marginTop={"-40px"}
-          spacing={"10px"}
-        >
-          <Typography>There was an error saving the account.</Typography>
-          <Stack direction={"row"} width={250} spacing={"15px"}>
-            <Button
-              variant={"outlined"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 500 }}
-              fullWidth
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={"contained"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 600 }}
-              fullWidth
-              type={"submit"}
-            >
-              Retry
-            </Button>
-          </Stack>
-        </Stack>
+        <OperationFailed
+          text={"There was an error saving the account."}
+          onCancel={onClose}
+        />
       );
     }
 

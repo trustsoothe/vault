@@ -6,6 +6,7 @@ import Button from "@mui/material/Button";
 import CircularLoading from "../common/CircularLoading";
 import { useAppDispatch } from "../../hooks/redux";
 import { removeNetwork as removeNetworkThunk } from "../../redux/slices/vault";
+import OperationFailed from "../common/OperationFailed";
 
 interface RemoveNetworkProps {
   network: SerializedNetwork;
@@ -55,33 +56,11 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ network, onClose }) => {
 
     if (status === "error") {
       return (
-        <Stack
-          flexGrow={1}
-          alignItems={"center"}
-          justifyContent={"center"}
-          marginTop={"-40px"}
-          spacing={"10px"}
-        >
-          <Typography>There was an error removing the network.</Typography>
-          <Stack direction={"row"} width={250} spacing={"15px"}>
-            <Button
-              variant={"outlined"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 500 }}
-              fullWidth
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={"contained"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 600 }}
-              fullWidth
-              onClick={removeNetwork}
-            >
-              Retry
-            </Button>
-          </Stack>
-        </Stack>
+        <OperationFailed
+          text={"There was an error removing the network."}
+          onCancel={onClose}
+          onRetry={removeNetwork}
+        />
       );
     }
 

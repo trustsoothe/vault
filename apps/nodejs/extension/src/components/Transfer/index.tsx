@@ -1,10 +1,10 @@
-import type { RootState } from "../../redux/store";
-import type { TransferRequest } from "../../redux/slices/app";
 import type {
   SerializedAccountReference,
   SerializedAsset,
   SerializedNetwork,
 } from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
+import type { ExternalTransferRequest } from "../../types/communication";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { connect } from "react-redux";
@@ -17,6 +17,8 @@ import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import AccountStep from "./AccountStep";
 import TransferInfoStep from "./TransferInfoStep";
+import OperationFailed from "../common/OperationFailed";
+import { getAssetByProtocol } from "../../utils";
 
 export interface FormValues {
   fromType: "saved_account" | "private_key";
@@ -37,7 +39,7 @@ interface TransferProps {
 const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const requesterInfo: TransferRequest = location.state;
+  const requesterInfo: ExternalTransferRequest = location.state;
   const [searchParams] = useSearchParams();
 
   const [status, setStatus] = useState<
@@ -74,13 +76,23 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
     setValue("from", "");
     setValue("amount", "");
     setValue("accountPassword", "");
-    setValue("asset", null);
     setValue("network", null);
     clearErrors("from");
     clearErrors("amount");
     clearErrors("accountPassword");
-    clearErrors("asset");
     clearErrors("network");
+
+    if (fromType === "private_key" && requesterInfo?.protocol) {
+      const asset = getAssetByProtocol(assets, requesterInfo.protocol);
+
+      if (asset) {
+        setValue("asset", asset);
+      }
+    } else {
+      setValue("asset", null);
+    }
+
+    clearErrors("asset");
   }, [fromType]);
 
   useEffect(() => {
@@ -89,11 +101,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
       const account = accounts.find((value) => value.address === from);
 
       if (account) {
-        const asset = assets.find(
-          (item) =>
-            item.protocol.name === account.protocol.name &&
-            item.protocol.chainID === item.protocol.chainID
-        );
+        const asset = getAssetByProtocol(assets, account.protocol);
 
         setValue("asset", asset || null);
       }
@@ -162,10 +170,15 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
   }, [accounts, fromAddress]);
 
   useEffect(() => {
-    if (requesterInfo) {
-      setValue("amount", requesterInfo.amount.toString());
-      setValue("toAddress", requesterInfo.toAddress);
-    }
+    setTimeout(() => {
+      if (requesterInfo) {
+        setValue("amount", requesterInfo.amount.toString());
+        setValue("toAddress", requesterInfo.toAddress);
+        if (requesterInfo.memo) {
+          setValue("memo", requesterInfo.memo);
+        }
+      }
+    }, 100);
   }, [requesterInfo]);
 
   const onSubmit = useCallback(
@@ -176,32 +189,24 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
       }
 
       setStatus("loading");
-      try {
-        const response = await AppToBackground.sendRequestToAnswerTransfer({
-          rejected: false,
-          transferData: {
-            asset: data.asset,
-            amount: data.amount,
-            toAddress: data.toAddress,
-            from:
-              data.fromType === "saved_account"
-                ? {
-                    address: data.from,
-                    password: data.accountPassword,
-                  }
-                : data.from,
-          },
-          request: requesterInfo,
-        });
+      const response = await AppToBackground.sendRequestToAnswerTransfer({
+        rejected: false,
+        transferData: {
+          asset: data.asset,
+          amount: data.amount,
+          toAddress: data.toAddress,
+          from:
+            data.fromType === "saved_account"
+              ? {
+                  address: data.from,
+                  password: data.accountPassword,
+                }
+              : data.from,
+        },
+        request: requesterInfo,
+      });
 
-        if (!requesterInfo) {
-          setStatus("submitted");
-        }
-      } catch (e) {
-        if (!requesterInfo) {
-          setStatus("error");
-        }
-      }
+      setStatus(response.error ? "error" : "submitted");
     },
     [requesterInfo, status]
   );
@@ -225,7 +230,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
         navigate("/");
       }
     }
-  }, [requesterInfo, status]);
+  }, [requesterInfo, status, navigate]);
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -234,27 +239,10 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
 
     if (status === "error") {
       return (
-        <>
-          <Typography>There was an error sending the transaction.</Typography>
-          <Stack direction={"row"} spacing={"20px"}>
-            <Button
-              variant={"outlined"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 500 }}
-              fullWidth
-              onClick={onClickCancel}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={"contained"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 600 }}
-              fullWidth
-              type={"submit"}
-            >
-              Retry
-            </Button>
-          </Stack>
-        </>
+        <OperationFailed
+          text={"There was an error sending the transaction."}
+          onCancel={onClickCancel}
+        />
       );
     }
 
@@ -277,6 +265,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
       <AccountStep
         fromAddressStatus={fromAddressStatus}
         fromAddress={fromAddress}
+        request={requesterInfo}
       />
     ) : (
       <TransferInfoStep

@@ -8,12 +8,17 @@ import Stack from "@mui/material/Stack";
 import { connect } from "react-redux";
 import RequestFrom from "./common/RequestFrom";
 import AppToBackground from "../controllers/communication/AppToBackground";
+import CircularLoading from "./common/CircularLoading";
+import OperationFailed from "./common/OperationFailed";
 
 interface UnlockVaultProps {
   currentRequest?: RequestsType;
 }
 
 const UnlockVault: React.FC<UnlockVaultProps> = ({ currentRequest }) => {
+  const [status, setStatus] = useState<"normal" | "loading" | "error">(
+    "normal"
+  );
   const [isRequesting, setIsRequesting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
@@ -39,9 +44,15 @@ const UnlockVault: React.FC<UnlockVaultProps> = ({ currentRequest }) => {
 
   const onClickUnlock = useCallback(() => {
     if (password) {
+      setStatus("loading");
       AppToBackground.unlockVault(password).then((response) => {
-        if (response?.data?.isPasswordWrong) {
-          setWrongPassword(true);
+        if (response.error) {
+          setStatus("error");
+        } else {
+          setStatus("normal");
+          if (response?.data?.isPasswordWrong) {
+            setWrongPassword(true);
+          }
         }
       });
     }
@@ -87,6 +98,19 @@ const UnlockVault: React.FC<UnlockVaultProps> = ({ currentRequest }) => {
       />
     );
   }, [isRequesting, currentRequest]);
+
+  if (status === "loading") {
+    return <CircularLoading />;
+  }
+
+  if (status === "error") {
+    return (
+      <OperationFailed
+        text={"There was an error trying unlock the vault."}
+        onRetry={onClickUnlock}
+      />
+    );
+  }
 
   return (
     <Stack flexGrow={1}>

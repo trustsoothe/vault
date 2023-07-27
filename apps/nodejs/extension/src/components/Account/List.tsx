@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import ReplyIcon from "@mui/icons-material/Reply";
 import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
@@ -20,6 +21,7 @@ import {
 import UpdateAccount from "./Update";
 import RemoveAccount from "./Remove";
 import ListAccountItem from "./ListItem";
+import AccountDetail from "./AccountDetail";
 import useDebounce from "../../hooks/useDebounce";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 
@@ -62,7 +64,9 @@ export const filterAccounts = (
 
 const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
   const navigate = useNavigate();
-  const [view, setView] = useState<"list" | "update" | "remove">("list");
+  const [view, setView] = useState<"list" | "update" | "remove" | "detail">(
+    "list"
+  );
   const [selectedAccount, setSelectedAccount] =
     useState<SerializedAccountReference>(null);
   const [searchText, setSearchText] = useState("");
@@ -94,6 +98,14 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
     (account: SerializedAccountReference) => {
       setSelectedAccount(account);
       setView("update");
+    },
+    []
+  );
+
+  const onClickViewAccount = useCallback(
+    (account: SerializedAccountReference) => {
+      setSelectedAccount(account);
+      setView("detail");
     },
     []
   );
@@ -165,7 +177,11 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
                 account={account}
                 isLoadingTokens={isLoadingTokens}
               />
-              <Stack spacing={"10px"} width={"min-content"}>
+              <Stack
+                spacing={"5px"}
+                marginTop={"-5px!important"}
+                width={"min-content"}
+              >
                 <IconButton
                   sx={{ padding: 0 }}
                   onClick={() =>
@@ -175,6 +191,12 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
                   <ReplyIcon
                     sx={{ fontSize: 18, transform: "rotateY(180deg)" }}
                   />
+                </IconButton>
+                <IconButton
+                  sx={{ padding: 0 }}
+                  onClick={() => onClickViewAccount(account)}
+                >
+                  <VisibilityIcon sx={{ fontSize: 18 }} />
                 </IconButton>
                 <IconButton
                   sx={{ padding: 0 }}
@@ -209,6 +231,10 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
 
     if (selectedAccount && view === "remove") {
       return <RemoveAccount account={selectedAccount} onClose={onClose} />;
+    }
+
+    if (selectedAccount && view === "detail") {
+      return <AccountDetail account={selectedAccount} onClose={onClose} />;
     }
 
     return (

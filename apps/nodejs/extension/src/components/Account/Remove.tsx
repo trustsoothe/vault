@@ -4,6 +4,7 @@ import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import CircularLoading from "../common/CircularLoading";
+import OperationFailed from "../common/OperationFailed";
 
 interface RemoveAccountProps {
   account: SerializedAccountReference;
@@ -43,33 +44,11 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ account, onClose }) => {
 
     if (status === "error") {
       return (
-        <Stack
-          flexGrow={1}
-          alignItems={"center"}
-          justifyContent={"center"}
-          marginTop={"-40px"}
-          spacing={"10px"}
-        >
-          <Typography>There was an error removing the account.</Typography>
-          <Stack direction={"row"} width={250} spacing={"15px"}>
-            <Button
-              variant={"outlined"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 500 }}
-              fullWidth
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={"contained"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 600 }}
-              fullWidth
-              onClick={removeAccount}
-            >
-              Retry
-            </Button>
-          </Stack>
-        </Stack>
+        <OperationFailed
+          text={"There was an error removing the account."}
+          onCancel={onClose}
+          onRetry={removeAccount}
+        />
       );
     }
 

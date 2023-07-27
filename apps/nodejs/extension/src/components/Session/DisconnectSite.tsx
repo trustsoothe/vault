@@ -5,6 +5,7 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import OperationFailed from "../common/OperationFailed";
 
 interface DisconnectSiteProps {
   session: Session;
@@ -21,10 +22,9 @@ const DisconnectSite: React.FC<DisconnectSiteProps> = ({
 
   const disconnect = useCallback(() => {
     setStatus("loading");
-    // todo: catch error
-    AppToBackground.revokeSession(session.id)
-      .then(() => setStatus("removed"))
-      .catch(() => setStatus("error"));
+    AppToBackground.revokeSession(session.id).then((result) =>
+      setStatus(result.error ? "error" : "removed")
+    );
   }, [session]);
 
   return useMemo(() => {
@@ -50,33 +50,11 @@ const DisconnectSite: React.FC<DisconnectSiteProps> = ({
 
     if (status === "error") {
       return (
-        <Stack
-          flexGrow={1}
-          alignItems={"center"}
-          justifyContent={"center"}
-          marginTop={"-40px"}
-          spacing={"10px"}
-        >
-          <Typography>There was an error disconnecting the website.</Typography>
-          <Stack direction={"row"} width={250} spacing={"15px"}>
-            <Button
-              variant={"outlined"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 500 }}
-              fullWidth
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={"contained"}
-              sx={{ textTransform: "none", height: 30, fontWeight: 600 }}
-              fullWidth
-              onClick={disconnect}
-            >
-              Retry
-            </Button>
-          </Stack>
-        </Stack>
+        <OperationFailed
+          text={"There was an error disconnecting the website."}
+          onCancel={onClose}
+          onRetry={disconnect}
+        />
       );
     }
 

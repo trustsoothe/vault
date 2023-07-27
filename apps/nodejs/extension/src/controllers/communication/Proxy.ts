@@ -1,5 +1,7 @@
 import type { Permission } from "@poktscan/keyring";
 import type {
+  ExternalListAccountsResponse,
+  InternalTransferResponse,
   ProxyCheckConnectionRequest,
   ProxyConnectionRequest,
   ProxyDisconnectRequest,
@@ -7,17 +9,36 @@ import type {
   ProxyNewAccountRequest,
   ProxyTransferRequest,
 } from "../../types/communication";
-import {
+import type {
   ConnectionRequestMessage,
+  ConnectionResponseFromBack,
+  DisconnectBackResponse,
   DisconnectRequestMessage,
+  ExternalConnectionResOnProxy,
+  ExternalNewAccountResOnProxy,
+  ExternalTransferResOnProxy,
+  IsSessionValidRequestErrors,
+  IsSessionValidResponse,
   ListAccountsRequestMessage,
   NewAccountRequestMessage,
+  NewAccountResponseFromBack,
+  ProxyConnectionErrors,
+  ProxyConnectionRes,
+  ProxyDisconnectErrors,
+  ProxyDisconnectRes,
+  ProxyListAccountsRes,
+  ProxyNewAccountRequestErrors,
+  ProxyNewAccountRes,
+  ProxyTransferError,
+  ProxyTransferRes,
   SessionValidRequestMessage,
   TransferRequestMessage,
+  TransferResponseFromBack,
 } from "../../types/communication";
-// Controller to manage the communication between the webpages and the content script
+import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
 import browser from "webextension-polyfill";
 import { z, ZodError } from "zod";
+import { SupportedProtocols } from "@poktscan/keyring";
 import {
   CHECK_CONNECTION_REQUEST,
   CONNECTION_REQUEST_MESSAGE,
@@ -36,22 +57,19 @@ import {
 import {
   AmountNotPresented,
   AmountNotValid,
-  ForbiddenSession,
   FromAddressNotPresented,
   FromAddressNotValid,
   InvalidBody,
   InvalidPermission,
-  InvalidSession,
+  InvalidProtocol,
+  MemoNotValid,
   NotConnected,
-  OriginNotPresented,
-  RequestConnectionExists,
-  RequestNewAccountExists,
-  RequestTransferExists,
-  SessionIdNotPresented,
   ToAddressNotPresented,
   ToAddressNotValid,
+  UnknownError,
 } from "../../errors/communication";
 import { isHex } from "../../utils";
+import { chainIDsByProtocol } from "../../constants/protocols";
 
 const id = "ihemdpidnelcmpnndlfkhkebmbgjnehb";
 
@@ -60,74 +78,6 @@ interface Session {
   permissions: Permission[];
   maxAge: number;
   createdAt: number;
-}
-
-type ConnectionError =
-  | null
-  | typeof OriginNotPresented
-  | typeof RequestConnectionExists
-  | typeof InvalidPermission;
-
-interface ConnectionResponse {
-  type: typeof CONNECTION_RESPONSE_MESSAGE;
-  data: {
-    accepted: boolean;
-    session: Session | null;
-  } | null;
-  error: ConnectionError;
-}
-
-type IsSessionValidError = null | typeof SessionIdNotPresented;
-
-interface IsSessionValidResponse {
-  type: typeof IS_SESSION_VALID_RESPONSE;
-  data: {
-    isValid: boolean;
-  } | null;
-  error: IsSessionValidError;
-}
-
-type NewAccountError =
-  | typeof SessionIdNotPresented
-  | typeof InvalidSession
-  | typeof ForbiddenSession
-  | typeof OriginNotPresented
-  | typeof RequestNewAccountExists
-  | typeof NotConnected
-  | null;
-
-type TransferError =
-  | typeof SessionIdNotPresented
-  | typeof InvalidSession
-  | typeof ForbiddenSession
-  | typeof OriginNotPresented
-  | typeof RequestTransferExists
-  | typeof AmountNotPresented
-  | typeof ToAddressNotPresented
-  | typeof FromAddressNotPresented
-  | typeof NotConnected
-  | typeof InvalidBody
-  | typeof AmountNotValid
-  | typeof FromAddressNotValid
-  | typeof ToAddressNotValid
-  | null;
-
-interface NewAccountResponse {
-  type: typeof NEW_ACCOUNT_RESPONSE;
-  data: {
-    rejected: boolean;
-    address: string | null;
-  } | null;
-  error: NewAccountError;
-}
-
-interface TransferResponse {
-  type: typeof TRANSFER_RESPONSE;
-  data: {
-    rejected: boolean;
-    hash: string | null;
-  } | null;
-  error: TransferError;
 }
 
 interface DisconnectResponse {
@@ -139,14 +89,16 @@ interface DisconnectResponse {
 }
 
 type ExtensionResponses =
-  | ConnectionResponse
-  | NewAccountResponse
-  | TransferResponse
+  | ConnectionResponseFromBack
+  | NewAccountResponseFromBack
+  | TransferResponseFromBack
   | DisconnectResponse;
 
 export type TPermissionsAllowedToSuggest = z.infer<
   typeof PermissionsAllowedToSuggest
 >;
+
+export type TProtocol = z.infer<typeof Protocol>;
 
 export type TTransferRequestBody = z.infer<typeof TransferRequestBody>;
 
@@ -158,17 +110,38 @@ type BrowserRequest =
   | ProxyDisconnectRequest
   | ProxyListAccountsRequest;
 
-const TransferRequestBody = z.object({
-  toAddress: z
-    .string()
-    .length(40)
-    .refine(isHex, "toAddress is not a valid address"),
-  fromAddress: z
-    .string()
-    .length(40)
-    .refine(isHex, "fromAddress is not a valid address"),
-  amount: z.number().min(0.01),
-});
+const protocolsArr = Object.values(SupportedProtocols);
+
+const Protocol = z
+  .object({
+    name: z.enum([protocolsArr[0], ...protocolsArr.slice(1)]),
+    chainID: z.string(),
+  })
+  .strict()
+  .refine(
+    ({ name, chainID }) =>
+      chainIDsByProtocol[name].includes(chainID as ChainID<SupportedProtocols>),
+    "Invalid Protocol"
+  )
+  .optional();
+
+const TransferRequestBody = z
+  .object({
+    toAddress: z
+      .string()
+      .toLowerCase()
+      .length(40)
+      .refine(isHex, "toAddress is not a valid address"),
+    fromAddress: z
+      .string()
+      .toLowerCase()
+      .length(40)
+      .refine(isHex, "fromAddress is not a valid address"),
+    amount: z.number().min(0.01),
+    memo: z.string().trim().max(50).optional(),
+    protocol: Protocol,
+  })
+  .strict();
 
 const PermissionsAllowedToSuggest = z.array(
   z.union([
@@ -178,6 +151,7 @@ const PermissionsAllowedToSuggest = z.array(
   ])
 );
 
+// Controller to manage the communication between the webpages and the content script
 class ProxyCommunicationController {
   private _session: Session | null = null;
 
@@ -191,7 +165,7 @@ class ProxyCommunicationController {
 
         if (origin === window.location.origin && data?.to === "VAULT_KEYRING") {
           if (data?.type === CONNECTION_REQUEST_MESSAGE) {
-            await this._sendConnectionRequest(data.suggestedPermissions);
+            await this._sendConnectionRequest(data.data?.suggestedPermissions);
           }
 
           if (data?.type === CHECK_CONNECTION_REQUEST) {
@@ -199,7 +173,7 @@ class ProxyCommunicationController {
           }
 
           if (data?.type === NEW_ACCOUNT_REQUEST) {
-            await this._sendNewAccountRequest();
+            await this._sendNewAccountRequest(data.data);
           }
 
           if (data?.type === TRANSFER_REQUEST) {
@@ -267,382 +241,573 @@ class ProxyCommunicationController {
   }
 
   private async _sendConnectionRequest(
-    suggestedPermissions: TPermissionsAllowedToSuggest
+    suggestedPermissions?: TPermissionsAllowedToSuggest
   ) {
-    let permissionsToSuggest: TPermissionsAllowedToSuggest;
-    if (suggestedPermissions) {
-      try {
-        permissionsToSuggest =
-          PermissionsAllowedToSuggest.parse(suggestedPermissions);
-      } catch (e) {
-        return this._sendConnectionResponse(false, InvalidPermission);
+    let requestWasSent = false;
+    try {
+      let permissionsToSuggest: TPermissionsAllowedToSuggest;
+      if (suggestedPermissions) {
+        try {
+          permissionsToSuggest =
+            PermissionsAllowedToSuggest.parse(suggestedPermissions);
+        } catch (e) {
+          return this._sendConnectionResponse(false, InvalidPermission);
+        }
       }
-    }
 
-    const message: ConnectionRequestMessage = {
-      type: CONNECTION_REQUEST_MESSAGE,
-      data: {
-        origin: window.location.origin,
-        faviconUrl: this._getFaviconUrl(),
-        suggestedPermissions: permissionsToSuggest,
-      },
-    };
+      const message: ConnectionRequestMessage = {
+        type: CONNECTION_REQUEST_MESSAGE,
+        data: {
+          origin: window.location.origin,
+          faviconUrl: this._getFaviconUrl(),
+          suggestedPermissions: permissionsToSuggest,
+        },
+      };
 
-    const response = await browser.runtime.sendMessage(message);
+      const response: ExternalConnectionResOnProxy =
+        await browser.runtime.sendMessage(message);
+      requestWasSent = true;
 
-    console.log("RESPONSE:", response);
+      console.log("RESPONSE:", response);
 
-    if (response?.type === CONNECTION_RESPONSE_MESSAGE) {
-      await this._handleConnectionResponse(response);
+      if (response?.type === CONNECTION_RESPONSE_MESSAGE) {
+        await this._handleConnectionResponse(response);
+      }
+    } catch (e) {
+      if (!requestWasSent) {
+        this._sendConnectionResponse(false, UnknownError);
+      }
     }
   }
 
   private async _handleConnectionResponse(
-    extensionResponse: ConnectionResponse
+    extensionResponse: ConnectionResponseFromBack
   ) {
-    console.log(extensionResponse);
-    const { error, data } = extensionResponse;
+    try {
+      console.log(extensionResponse);
+      const { error, data } = extensionResponse;
 
-    if (data) {
-      const { accepted, session } = data;
+      if (data) {
+        const { accepted, session } = data;
 
-      if (accepted && session) {
-        this._session = session;
+        if (accepted && session) {
+          this._session = session;
 
-        await browser.storage.local.set({
-          [`${window.location.origin}-session`]: session,
-        });
+          await browser.storage.local.set({
+            [`${window.location.origin}-session`]: session,
+          });
 
-        this._sendConnectionResponse(true);
+          this._sendConnectionResponse(true);
+        } else {
+          this._sendConnectionResponse(false);
+        }
       } else {
-        this._sendConnectionResponse(false);
+        this._sendConnectionResponse(false, error);
       }
-    } else {
-      this._sendConnectionResponse(false, error);
+    } catch (e) {
+      this._sendConnectionResponse(false, UnknownError);
     }
   }
 
   private _sendConnectionResponse(
     connectionEstablished: boolean,
-    error: ConnectionError | IsSessionValidError = null
+    error: ProxyConnectionErrors = null
   ) {
-    let permissions: TPermissionsAllowedToSuggest;
+    try {
+      let response: ProxyConnectionRes;
 
-    if (connectionEstablished) {
-      permissions = this._returnPermissions();
+      if (error) {
+        response = {
+          type: CONNECTION_RESPONSE_MESSAGE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error,
+        };
+      } else {
+        let permissions: TPermissionsAllowedToSuggest;
+        if (connectionEstablished) {
+          permissions = this._returnPermissions();
+        }
+
+        response = {
+          type: CONNECTION_RESPONSE_MESSAGE,
+          from: "VAULT_KEYRING",
+          error: null,
+          data: {
+            connectionEstablished,
+            permissions,
+          },
+        };
+      }
+
+      window.postMessage(response);
+    } catch (e) {
+      window.postMessage({
+        type: CONNECTION_RESPONSE_MESSAGE,
+        from: "VAULT_KEYRING",
+        data: null,
+        error: UnknownError,
+      } as ProxyConnectionRes);
     }
-
-    window.postMessage({
-      from: "VAULT_KEYRING",
-      type: CONNECTION_RESPONSE_MESSAGE,
-      data: {
-        connectionEstablished,
-        permissions,
-      },
-      error,
-    });
   }
 
   private _checkLastSession() {
-    browser.storage.local
-      .get({ [`${window.location.origin}-session`]: null })
-      .then(async (response) => {
-        const session: Session = response[`${window.location.origin}-session`];
+    try {
+      browser.storage.local
+        .get({ [`${window.location.origin}-session`]: null })
+        .then(async (response) => {
+          const session: Session =
+            response[`${window.location.origin}-session`];
 
-        if (session) {
-          const message: SessionValidRequestMessage = {
-            type: IS_SESSION_VALID_REQUEST,
-            data: {
-              sessionId: session.id,
-            },
-          };
+          if (session) {
+            const message: SessionValidRequestMessage = {
+              type: IS_SESSION_VALID_REQUEST,
+              data: {
+                sessionId: session.id,
+                origin: window.location.origin,
+              },
+            };
 
-          const messageResponse: IsSessionValidResponse =
-            await browser.runtime.sendMessage(message);
-          if (
-            messageResponse?.type === IS_SESSION_VALID_RESPONSE &&
-            messageResponse?.data
-          ) {
-            const isValid = messageResponse?.data?.isValid;
+            const messageResponse: IsSessionValidResponse =
+              await browser.runtime.sendMessage(message);
+            if (
+              messageResponse?.type === IS_SESSION_VALID_RESPONSE &&
+              messageResponse?.data
+            ) {
+              const isValid = messageResponse?.data?.isValid;
 
-            if (isValid) {
-              this._session = session;
-              this._sendConnectionResponse(true);
-            } else {
-              if (typeof isValid === "boolean") {
-                await browser.storage.local.remove(
-                  `${window.location.origin}-session`
-                );
+              if (isValid) {
+                this._session = session;
+                this._sendConnectionResponse(true);
+              } else {
+                if (typeof isValid === "boolean") {
+                  await browser.storage.local.remove(
+                    `${window.location.origin}-session`
+                  );
+                }
               }
             }
           }
-        }
-      });
+        });
+    } catch (e) {}
   }
 
   private async _checkConnectionResponse() {
-    let connected = false,
-      error: IsSessionValidError = null;
+    try {
+      let connected = false,
+        error: IsSessionValidRequestErrors;
 
-    if (this._session) {
-      const messageResponse: IsSessionValidResponse =
-        await browser.runtime.sendMessage({
+      if (this._session) {
+        const message: SessionValidRequestMessage = {
           type: IS_SESSION_VALID_REQUEST,
           data: {
             sessionId: this._session.id,
+            origin: window.location.origin,
           },
-        });
+        };
 
-      connected = messageResponse?.data?.isValid || false;
-      error = messageResponse?.error;
+        const messageResponse: IsSessionValidResponse =
+          await browser.runtime.sendMessage(message);
 
-      if (!connected) {
-        this._session = null;
+        connected = messageResponse?.data?.isValid || false;
+        error = messageResponse?.error;
+
+        if (!connected) {
+          this._session = null;
+        }
       }
-    }
 
-    this._sendConnectionResponse(connected, error);
+      this._sendConnectionResponse(error ? false : connected);
+    } catch (e) {
+      this._sendConnectionResponse(false, UnknownError);
+    }
   }
 
   private _returnPermissions(): TPermissionsAllowedToSuggest | null {
-    if (this._session) {
-      const permissions: TPermissionsAllowedToSuggest = [];
+    try {
+      if (this._session) {
+        const permissions: TPermissionsAllowedToSuggest = [];
 
-      for (const { resource, action } of this._session.permissions) {
-        if (resource === "transaction" && action === "sign") {
-          permissions.push("suggest_transfer");
-          continue;
+        for (const { resource, action } of this._session.permissions) {
+          if (resource === "transaction" && action === "sign") {
+            permissions.push("suggest_transfer");
+            continue;
+          }
+
+          if (resource === "account" && action === "create") {
+            permissions.push("create_accounts");
+            continue;
+          }
+
+          if (resource === "account" && action === "read") {
+            permissions.push("list_accounts");
+          }
         }
 
-        if (resource === "account" && action === "create") {
-          permissions.push("create_accounts");
-          continue;
-        }
-
-        if (resource === "account" && action === "read") {
-          permissions.push("list_accounts");
-        }
+        return permissions;
       }
-
-      return permissions;
-    }
+    } catch (e) {}
 
     return null;
   }
 
-  private async _sendNewAccountRequest() {
-    if (this._session) {
-      const message: NewAccountRequestMessage = {
-        type: NEW_ACCOUNT_REQUEST,
-        data: {
-          origin: window.location.origin,
-          faviconUrl: this._getFaviconUrl(),
-          sessionId: this._session.id,
-        },
-      };
-      const response = await browser.runtime.sendMessage(message);
+  private async _sendNewAccountRequest(data: ProxyNewAccountRequest["data"]) {
+    let requestWasSent = false;
+    try {
+      if (this._session) {
+        let protocol: TProtocol;
 
-      console.log("RESPONSE:", response);
+        if (data?.protocol) {
+          try {
+            protocol = Protocol.parse(data.protocol);
+          } catch (e) {
+            return this._sendNewAccountResponse(null, InvalidProtocol);
+          }
+        }
 
-      if (response?.type === NEW_ACCOUNT_RESPONSE) {
-        await this._handleNewAccountResponse(response);
+        const message: NewAccountRequestMessage = {
+          type: NEW_ACCOUNT_REQUEST,
+          data: {
+            origin: window.location.origin,
+            faviconUrl: this._getFaviconUrl(),
+            sessionId: this._session.id,
+            protocol,
+          },
+        };
+        const response: ExternalNewAccountResOnProxy =
+          await browser.runtime.sendMessage(message);
+
+        requestWasSent = true;
+        console.log("RESPONSE:", response);
+
+        if (response?.type === NEW_ACCOUNT_RESPONSE) {
+          await this._handleNewAccountResponse(response);
+        }
+      } else {
+        return this._sendNewAccountResponse(null, NotConnected);
       }
-    } else {
-      return this._sendNewAccountResponse(true, null, NotConnected);
+    } catch (e) {
+      console.log(e);
+      if (!requestWasSent) {
+        this._sendNewAccountResponse(null, UnknownError);
+      }
     }
   }
 
-  private async _handleNewAccountResponse(response: NewAccountResponse) {
-    console.log(response);
-    const { error, data } = response;
+  private async _handleNewAccountResponse(
+    response: NewAccountResponseFromBack
+  ) {
+    try {
+      console.log(response);
+      const { error, data } = response;
 
-    if (data) {
-      const { rejected, address } = data;
+      if (data) {
+        this._sendNewAccountResponse(data);
+      } else {
+        this._sendNewAccountResponse(null, error);
 
-      this._sendNewAccountResponse(rejected, address);
-    } else {
-      this._sendNewAccountResponse(false, null, error);
+        if (error.name === "INVALID_SESSION") {
+          this._sendDisconnectResponse(true);
+        }
+      }
+    } catch (e) {
+      this._sendNewAccountResponse(null, UnknownError);
     }
   }
 
   private _sendNewAccountResponse(
-    rejected: boolean,
-    address: string = null,
-    error: NewAccountError = null
+    data: NewAccountResponseFromBack["data"],
+    error: ProxyNewAccountRequestErrors = null
   ) {
-    window.postMessage({
-      from: "VAULT_KEYRING",
-      type: NEW_ACCOUNT_RESPONSE,
-      data: {
-        rejected,
-        address,
-      },
-      error,
-    });
-  }
+    try {
+      let response: ProxyNewAccountRes;
 
-  private async _sendTransferRequest(data: ProxyTransferRequest["data"]) {
-    if (this._session) {
-      let { fromAddress, toAddress, amount } = data || {};
-
-      if (!fromAddress) {
-        return this._sendTransferResponse(true, null, FromAddressNotPresented);
+      if (error) {
+        response = {
+          from: "VAULT_KEYRING",
+          type: NEW_ACCOUNT_RESPONSE,
+          data: null,
+          error,
+        };
+      } else {
+        response = {
+          from: "VAULT_KEYRING",
+          type: NEW_ACCOUNT_RESPONSE,
+          data: {
+            rejected: typeof data !== null ? data.rejected : true,
+            address: typeof data !== null ? data.address : null,
+            protocol: typeof data !== null ? data.protocol : null,
+          },
+          error: null,
+        };
       }
 
-      if (!toAddress) {
-        return this._sendTransferResponse(true, null, ToAddressNotPresented);
-      }
-
-      if (!amount) {
-        return this._sendTransferResponse(true, null, AmountNotPresented);
-      }
-
-      try {
-        TransferRequestBody.parse(data);
-      } catch (e) {
-        const zodError: ZodError = e;
-        const path = zodError?.issues?.[0]?.path?.[0];
-
-        switch (path) {
-          case "toAddress": {
-            return this._sendTransferResponse(true, null, ToAddressNotValid);
-          }
-          case "fromAddress": {
-            return this._sendTransferResponse(true, null, FromAddressNotValid);
-          }
-          case "amount": {
-            return this._sendTransferResponse(true, null, AmountNotValid);
-          }
-          default: {
-            return this._sendTransferResponse(true, null, InvalidBody);
-          }
-        }
-      }
-
-      const message: TransferRequestMessage = {
-        type: TRANSFER_REQUEST,
-        data: {
-          origin: window.location.origin,
-          faviconUrl: this._getFaviconUrl(),
-          sessionId: this._session.id,
-          fromAddress,
-          toAddress,
-          amount,
-        },
-      };
-
-      const response = await browser.runtime.sendMessage(message);
-
-      console.log("RESPONSE:", response);
-
-      if (response?.type === TRANSFER_RESPONSE) {
-        await this._handleTransferResponse(response);
-      }
-    } else {
-      return this._sendTransferResponse(true, null, NotConnected);
+      window.postMessage(response);
+    } catch (e) {
+      window.postMessage({
+        from: "VAULT_KEYRING",
+        type: NEW_ACCOUNT_RESPONSE,
+        data: null,
+        error: UnknownError,
+      } as ProxyNewAccountRes);
     }
   }
 
-  private async _handleTransferResponse(response: TransferResponse) {
-    console.log(response);
-    const { error, data } = response;
+  private async _sendTransferRequest(data: ProxyTransferRequest["data"]) {
+    let requestWasSent = false;
+    try {
+      if (this._session) {
+        const { fromAddress, toAddress, amount } = data || {};
+        let transferData: TTransferRequestBody;
 
-    if (data) {
-      const { rejected, hash } = data;
+        if (!fromAddress) {
+          return this._sendTransferResponse(null, FromAddressNotPresented);
+        }
 
-      this._sendTransferResponse(rejected, hash);
-    } else {
-      this._sendTransferResponse(false, null, error);
+        if (!toAddress) {
+          return this._sendTransferResponse(null, ToAddressNotPresented);
+        }
+
+        if (!amount) {
+          return this._sendTransferResponse(null, AmountNotPresented);
+        }
+
+        try {
+          transferData = TransferRequestBody.parse(data);
+        } catch (e) {
+          const zodError: ZodError = e;
+          const path = zodError?.issues?.[0]?.path?.[0];
+
+          switch (path) {
+            case "toAddress": {
+              return this._sendTransferResponse(null, ToAddressNotValid);
+            }
+            case "fromAddress": {
+              return this._sendTransferResponse(null, FromAddressNotValid);
+            }
+            case "amount": {
+              return this._sendTransferResponse(null, AmountNotValid);
+            }
+            case "memo": {
+              return this._sendTransferResponse(null, MemoNotValid);
+            }
+            case "protocol": {
+              return this._sendTransferResponse(null, InvalidProtocol);
+            }
+            default: {
+              return this._sendTransferResponse(null, InvalidBody);
+            }
+          }
+        }
+
+        const message: TransferRequestMessage = {
+          type: TRANSFER_REQUEST,
+          data: {
+            origin: window.location.origin,
+            faviconUrl: this._getFaviconUrl(),
+            sessionId: this._session.id,
+            ...transferData,
+          },
+        };
+
+        const response: ExternalTransferResOnProxy =
+          await browser.runtime.sendMessage(message);
+
+        requestWasSent = true;
+        console.log("RESPONSE:", response);
+
+        if (response?.type === TRANSFER_RESPONSE) {
+          await this._handleTransferResponse(response);
+        }
+      } else {
+        return this._sendTransferResponse(null, NotConnected);
+      }
+    } catch (e) {
+      if (!requestWasSent) {
+        this._sendTransferResponse(null, UnknownError);
+      }
+    }
+  }
+
+  private async _handleTransferResponse(response: TransferResponseFromBack) {
+    try {
+      console.log(response);
+      const { error, data } = response;
+
+      if (data) {
+        this._sendTransferResponse(data);
+      } else {
+        this._sendTransferResponse(null, error);
+
+        if (error.name === "INVALID_SESSION") {
+          this._sendDisconnectResponse(true);
+        }
+      }
+    } catch (e) {
+      this._sendTransferResponse(null, UnknownError);
     }
   }
 
   private _sendTransferResponse(
-    rejected: boolean,
-    hash: string = null,
-    error: TransferError = null
+    data: InternalTransferResponse["data"],
+    error: ProxyTransferError = null
   ) {
-    window.postMessage({
-      from: "VAULT_KEYRING",
-      type: TRANSFER_RESPONSE,
-      data: {
-        rejected,
-        hash,
-      },
-      error,
-    });
+    try {
+      let response: ProxyTransferRes;
+
+      if (error) {
+        response = {
+          from: "VAULT_KEYRING",
+          type: "TRANSFER_RESPONSE",
+          data: null,
+          error,
+        };
+      } else {
+        response = {
+          from: "VAULT_KEYRING",
+          type: "TRANSFER_RESPONSE",
+          data: {
+            rejected: typeof data !== null ? data.rejected : true,
+            hash: typeof data !== null ? data.hash : null,
+            protocol: typeof data !== null ? data.protocol : null,
+          },
+          error: null,
+        };
+      }
+
+      window.postMessage(response);
+    } catch (e) {
+      window.postMessage({
+        from: "VAULT_KEYRING",
+        type: "TRANSFER_RESPONSE",
+        data: null,
+        error,
+      } as ProxyTransferRes);
+    }
   }
 
   private async _handleDisconnectRequest() {
-    if (this._session) {
-      const message: DisconnectRequestMessage = {
-        type: DISCONNECT_REQUEST,
-        data: {
-          sessionId: this._session.id,
-        },
-      };
-      const response = await browser.runtime.sendMessage(message);
+    try {
+      if (this._session) {
+        const message: DisconnectRequestMessage = {
+          type: DISCONNECT_REQUEST,
+          data: {
+            sessionId: this._session.id,
+            origin: window.location.origin,
+          },
+        };
+        const response: DisconnectBackResponse =
+          await browser.runtime.sendMessage(message);
 
-      console.log("RESPONSE:", response);
+        console.log("RESPONSE:", response);
 
-      const disconnected = response?.data?.disconnected;
+        const disconnected =
+          response?.data?.disconnected ||
+          response?.error?.name === "INVALID_SESSION";
 
-      if (disconnected) {
-        this._session = null;
+        if (disconnected) {
+          this._session = null;
+        }
+
+        this._sendDisconnectResponse(
+          disconnected,
+          !disconnected ? response?.error : null
+        );
+      } else {
+        this._sendDisconnectResponse(false, NotConnected);
       }
-
-      this._sendDisconnectResponse(disconnected, response?.error || null);
-    } else {
-      this._sendDisconnectResponse(false, NotConnected);
+    } catch (e) {
+      this._sendDisconnectResponse(false, UnknownError);
     }
   }
 
-  private _sendDisconnectResponse(disconnect: boolean, error = null) {
-    if (disconnect) {
-      this._session = null;
-    }
+  private _sendDisconnectResponse(
+    disconnect: boolean,
+    error: ProxyDisconnectErrors = null
+  ) {
+    try {
+      let response: ProxyDisconnectRes;
+      if (disconnect) {
+        this._session = null;
+        response = {
+          from: "VAULT_KEYRING",
+          type: DISCONNECT_RESPONSE,
+          data: {
+            disconnected: true,
+          },
+          error: null,
+        };
+      } else {
+        response = {
+          from: "VAULT_KEYRING",
+          type: DISCONNECT_RESPONSE,
+          data: null,
+          error,
+        };
+      }
 
-    window.postMessage({
-      from: "VAULT_KEYRING",
-      type: DISCONNECT_RESPONSE,
-      data: disconnect
-        ? {
-            disconnect,
-          }
-        : null,
-      error,
-    });
+      window.postMessage(response);
+    } catch (e) {
+      window.postMessage({
+        from: "VAULT_KEYRING",
+        type: DISCONNECT_RESPONSE,
+        data: null,
+        error,
+      } as ProxyDisconnectRes);
+    }
   }
 
   private async _handleListAccountsRequest() {
-    if (this._session) {
-      const message: ListAccountsRequestMessage = {
-        type: LIST_ACCOUNTS_REQUEST,
-        data: {
-          sessionId: this._session.id,
-        },
-      };
-      const response = await browser.runtime.sendMessage(message);
+    try {
+      let proxyResponse: ProxyListAccountsRes;
+      if (this._session) {
+        const message: ListAccountsRequestMessage = {
+          type: LIST_ACCOUNTS_REQUEST,
+          data: {
+            sessionId: this._session.id,
+            origin: window.location.origin,
+          },
+        };
+        const response: ExternalListAccountsResponse =
+          await browser.runtime.sendMessage(message);
 
-      const accounts = response?.data?.accounts;
-      const data = accounts
-        ? {
-            accounts,
-          }
-        : null;
+        if (response?.error) {
+          proxyResponse = {
+            from: "VAULT_KEYRING",
+            type: LIST_ACCOUNTS_RESPONSE,
+            error: response?.error,
+            data: null,
+          };
+        } else {
+          proxyResponse = {
+            from: "VAULT_KEYRING",
+            type: LIST_ACCOUNTS_RESPONSE,
+            error: null,
+            data: {
+              accounts: response?.data?.accounts,
+            },
+          };
+        }
+      } else {
+        proxyResponse = {
+          from: "VAULT_KEYRING",
+          type: LIST_ACCOUNTS_RESPONSE,
+          error: NotConnected,
+          data: null,
+        };
+      }
+      window.postMessage(proxyResponse);
 
-      window.postMessage({
-        from: "VAULT_KEYRING",
-        type: LIST_ACCOUNTS_REQUEST,
-        data,
-        error: response?.error || null,
-      });
-    } else {
+      if (proxyResponse?.error?.name === "INVALID_SESSION") {
+        this._sendDisconnectResponse(true);
+      }
+    } catch (e) {
       window.postMessage({
         from: "VAULT_KEYRING",
         type: LIST_ACCOUNTS_RESPONSE,
+        error: UnknownError,
         data: null,
-        error: NotConnected,
-      });
+      } as ProxyListAccountsRes);
     }
   }
 }

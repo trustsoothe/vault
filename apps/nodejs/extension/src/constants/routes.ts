@@ -1,6 +1,6 @@
 export const INIT_VAULT = "/";
 export const ACCOUNTS_PAGE = "";
-export const SESSIONS_PAGE = "sessions";
+export const SESSIONS_PAGE = "connections";
 export const NETWORKS_PAGE = "networks";
 export const ASSETS_PAGE = "assets";
 export const REQUEST_CONNECTION_PAGE = "sessions/request";

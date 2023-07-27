@@ -1,53 +1,78 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import {
-  CONNECTION_REQUEST_MESSAGE,
-  NEW_ACCOUNT_REQUEST,
-  TRANSFER_REQUEST,
-} from "../../constants/communication";
-
-export interface ConnectionRequest {
-  type: typeof CONNECTION_REQUEST_MESSAGE;
-  origin: string;
-  faviconUrl: string;
-  tabId: number;
-  suggestedPermissions?: (
-    | "list_accounts"
-    | "create_accounts"
-    | "suggest_transfer"
-  )[];
-}
-
-export interface NewAccountRequest {
-  type: typeof NEW_ACCOUNT_REQUEST;
-  origin: string;
-  faviconUrl: string;
-  tabId: number;
-  sessionId: string;
-}
-
-export interface TransferRequest {
-  type: typeof TRANSFER_REQUEST;
-  origin: string;
-  faviconUrl: string;
-  tabId: number;
-  fromAddress: string;
-  toAddress: string;
-  amount: number;
-}
+import type {
+  ExternalConnectionRequest,
+  ExternalNewAccountRequest,
+  ExternalTransferRequest,
+} from "../../types/communication";
+import type { RootState } from "../store";
+import browser from "webextension-polyfill";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
 export type RequestsType =
-  | ConnectionRequest
-  | NewAccountRequest
-  | TransferRequest;
+  | ExternalConnectionRequest
+  | ExternalNewAccountRequest
+  | ExternalTransferRequest;
 
 interface GeneralAppSlice {
   requestsWindowId: number | null;
   externalRequests: RequestsType[];
+  blockedSites: {
+    loaded: boolean;
+    list: string[];
+  };
 }
+
+const BLOCKED_SITES_KEY = "BLOCKED_SITES";
+
+export const getBlockedSites = createAsyncThunk<string[]>(
+  "app/getBlockedSites",
+  async (_, context) => {
+    const { loaded, list } = (context.getState() as RootState).app.blockedSites;
+    if (loaded) {
+      return list;
+    }
+
+    const result = await browser.storage.local.get({ [BLOCKED_SITES_KEY]: [] });
+
+    return result[BLOCKED_SITES_KEY] || [];
+  }
+);
+
+export const toggleBlockWebsite = createAsyncThunk<string[], string>(
+  "app/toggleBlockWebsite",
+  async (website, context) => {
+    const { loaded, list } = (context.getState() as RootState).app.blockedSites;
+
+    let blockedSites: string[];
+
+    if (loaded) {
+      blockedSites = list;
+    } else {
+      const result = await browser.storage.local.get({
+        [BLOCKED_SITES_KEY]: [],
+      });
+
+      blockedSites = result[BLOCKED_SITES_KEY] || [];
+    }
+
+    if (blockedSites.includes(website)) {
+      blockedSites = blockedSites.filter((item) => item !== website);
+    } else {
+      blockedSites.push(website);
+    }
+
+    await browser.storage.local.set({ [BLOCKED_SITES_KEY]: blockedSites });
+
+    return blockedSites;
+  }
+);
 
 const initialState: GeneralAppSlice = {
   requestsWindowId: null,
   externalRequests: [],
+  blockedSites: {
+    loaded: false,
+    list: [],
+  },
 };
 
 const generalAppSlice = createSlice({
@@ -74,6 +99,16 @@ const generalAppSlice = createSlice({
         (request) => !(request.origin === origin && request.type === type)
       );
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(getBlockedSites.fulfilled, (state, action) => {
+      state.blockedSites.list = action.payload;
+      state.blockedSites.loaded = true;
+    });
+    builder.addCase(toggleBlockWebsite.fulfilled, (state, action) => {
+      state.blockedSites.list = action.payload;
+      state.blockedSites.loaded = true;
+    });
   },
 });
 
