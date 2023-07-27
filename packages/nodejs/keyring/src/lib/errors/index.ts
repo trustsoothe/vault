@@ -72,3 +72,22 @@ export class ProtocolNotSupported extends KeyringError {
     });
   }
 }
+
+export class ArgumentError extends KeyringError {
+  constructor(argument: string, message?: string) {
+    super({
+      name: 'ArgumentError',
+      message: message || `Invalid Argument: ${argument}`,
+    });
+  }
+}
+
+export class NetworkRequestError extends KeyringError {
+  constructor(message: string, innerError?: Error) {
+    super({
+      name: 'NetworkRequestError',
+      message,
+      innerError,
+    });
+  }
+}

@@ -12,8 +12,9 @@ import * as Path from "path";
 import {
   PocketRpcBalanceResponseSchema,
   PocketRpcCanSendTransactionResponseSchema,
-  PocketRpcFeeParamsResponseSchema
+  PocketRpcFeeParamsResponseSchema, PocketRpcFeeParamsResponseValue, PocketRpcFeeParamValueSchema
 } from "./schemas";
+import {ArgumentError, NetworkRequestError} from "../../../../errors";
 
 
 export class PocketNetworkProtocolService implements IProtocolService {
@@ -22,11 +23,11 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
     if (!options.asset) {
-       throw new Error('Invalid Operation: Asset instance not provided')
+      throw new ArgumentError('options.asset');
     }
 
     if (!options.passphrase) {
-        throw new Error('Invalid Operation: Passphrase instance not provided')
+      throw new ArgumentError('options.passphrase');
     }
 
     const shortPrivateKey = utils.randomPrivateKey()
@@ -69,20 +70,9 @@ export class PocketNetworkProtocolService implements IProtocolService {
   }
 
   async updateFeeStatus(network: Network): Promise<Network> {
-    if (!network || !(network instanceof Network)) {
-      throw new Error('Invalid Argument: Network instance not provided')
-    }
+    this.validateNetwork(network);
 
-    const FEE_PARAM_KEY = 'auth/FeeMultipliers'
-
-    const url = Path.join(network.rpcUrl, 'v1/query/param')
-
-    const response = await fetch(url, {
-      method: 'POST',
-      body: JSON.stringify({
-        key: FEE_PARAM_KEY,
-      })
-    })
+    const response = await this.requestFee(network);
 
     if (!response.ok) {
       network.status.updateFeeStatus(false);
@@ -102,15 +92,13 @@ export class PocketNetworkProtocolService implements IProtocolService {
   }
 
   async updateBalanceStatus(network: Network): Promise<Network> {
-    if (!network || !(network instanceof Network)) {
-      throw new Error('Invalid Argument: Network instance not provided')
-    }
+    this.validateNetwork(network);
 
     const url = Path.join(network.rpcUrl, 'v1/query/balance')
 
     const response = await fetch(url, {
       method: 'POST',
-    })
+    });
 
     if (!response.ok) {
       network.status.updateBalanceStatus(false);
@@ -130,9 +118,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
   }
 
   async updateSendTransactionStatus(network: Network): Promise<Network> {
-    if (!network || !(network instanceof Network)) {
-      throw new Error('Invalid Argument: Network instance not provided')
-    }
+    this.validateNetwork(network);
 
     const url = Path.join(network.rpcUrl, 'v1/client/rawtx')
 
@@ -157,10 +143,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
     return network; }
 
   async updateNetworkStatus(network: Network): Promise<Network> {
-    if (!network || !(network instanceof Network)) {
-      throw new Error('Invalid Argument: Network instance not provided')
-    }
-
+    this.validateNetwork(network);
     await this.updateFeeStatus(network);
     await this.updateBalanceStatus(network);
     await this.updateSendTransactionStatus(network);
@@ -168,11 +151,58 @@ export class PocketNetworkProtocolService implements IProtocolService {
     return network;
   }
 
-  getBalance(network: Network, account: AccountReference): Promise<number> {
-    return Promise.resolve(0);
+  async getBalance(network: Network, account: AccountReference): Promise<number> {
+    this.validateNetwork(network);
+
+    const url = Path.join(network.rpcUrl, 'v1/query/balance')
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({
+        address: account.address,
+      })
+    });
+
+    if (!response.ok) {
+      throw new NetworkRequestError('Failed to fetch balance');
+    }
+
+    const responseRawBody = await response.json();
+    const balanceResponse = PocketRpcBalanceResponseSchema.parse(responseRawBody);
+    return balanceResponse.balance;
   }
 
-  getFee(network: Network): Promise<number> {
-    return Promise.resolve(0);
+  async getFee(network: Network): Promise<number> {
+    this.validateNetwork(network);
+    const response = await this.requestFee(network);
+
+    if (!response.ok) {
+      throw new NetworkRequestError('Failed to fetch fee');
+    }
+
+    const responseRawBody = await response.json();
+
+    const feeResponse = PocketRpcFeeParamsResponseValue.parse(responseRawBody);
+
+    return feeResponse.param_value.fee_multiplier;
+  }
+
+  private validateNetwork(network: Network) {
+    if (!network || !(network instanceof Network)) {
+      throw new ArgumentError('network');
+    }
+  }
+
+  private async requestFee(network: Network) {
+    const FEE_PARAM_KEY = 'auth/FeeMultipliers'
+
+    const url = Path.join(network.rpcUrl, 'v1/query/param')
+
+    return await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({
+        key: FEE_PARAM_KEY,
+      })
+    });
   }
 }

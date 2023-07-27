@@ -8,8 +8,17 @@ export const queryBalanceHandlerFactory = (baseUrl: string) => {
     return res(
       ctx.status(200),
       ctx.json({
-        balance: 0,
+        balance: 200,
       }),
+    );
+  });
+}
+
+export const queryBalanceFailureHandlerFactory = (baseUrl: string) => {
+  const url = new Url.URL(Path.join(baseUrl, '/v1/query/balance'));
+  return rest.post(url.toString(), async (req, res, ctx) => {
+    return res(
+      ctx.status(500),
     );
   });
 }
