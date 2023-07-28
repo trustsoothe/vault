@@ -29,8 +29,8 @@ export class Session implements IEntity {
   private readonly _origin: OriginReference
   private _invalidated = false
   private _createdAt: number
-  private _invalidatedAt?: number = null
-  private _lastActivity: number = null
+  private _invalidatedAt: number = 0
+  private _lastActivity: number
 
   constructor(options: SessionOptions = {}, id?: string) {
     if (id && validate(id) === false) {
@@ -46,11 +46,11 @@ export class Session implements IEntity {
     }
 
     this._id = id || v4()
-    this._permissions = options.permissions
+    this._permissions = options.permissions?.slice() ?? []
     this._maxAge = options.maxAge ?? 3600
     this._createdAt = Date.now()
     this._lastActivity = Date.now()
-    this._origin = options.origin || null
+    this._origin = options.origin ?? OriginReference.empty()
   }
 
   get id(): string {
@@ -83,14 +83,14 @@ export class Session implements IEntity {
 
   serialize(): SerializedSession {
     return {
-      id: this._id,
-      permissions: this._permissions,
-      maxAge: this._maxAge,
+      id: this.id,
+      permissions: this.permissions.slice(),
+      maxAge: this.maxAge,
       invalidated: this._invalidated,
-      invalidatedAt: this._invalidatedAt,
-      origin: (this._origin && this._origin.value) ?? '',
-      createdAt: this._createdAt,
-      lastActivity: this._lastActivity,
+      invalidatedAt: this.invalidatedAt,
+      origin: (this.origin && this.origin.value) ?? '',
+      createdAt: this.createdAt,
+      lastActivity: this.lastActivity,
     }
   }
 
@@ -156,7 +156,7 @@ export class Session implements IEntity {
     const options: SessionOptions = {
       permissions: serializedSession.permissions,
       maxAge: serializedSession.maxAge,
-      origin: (serializedSession.origin && new OriginReference(serializedSession.origin)) || null,
+      origin: (serializedSession.origin && new OriginReference(serializedSession.origin)) || OriginReference.empty(),
     }
     const session = new Session(options, serializedSession.id)
     session._createdAt = serializedSession.createdAt

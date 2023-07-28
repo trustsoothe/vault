@@ -1,6 +1,7 @@
 import IStorage from "./IStorage";
 import {SerializedNetwork} from "../../network";
 import {SupportedProtocols} from "../values";
+import {Status} from "../../network/values/Status";
 
 export abstract class NetworkStorage implements IStorage<SerializedNetwork> {
   protected readonly _defaults: ReadonlyArray<SerializedNetwork> = [
@@ -12,6 +13,11 @@ export abstract class NetworkStorage implements IStorage<SerializedNetwork> {
       protocol: {
         name: SupportedProtocols.Pocket,
         chainID: 'testnet',
+      },
+      status: {
+        fee: false,
+        balance: false,
+        sendTransaction: false,
       },
       createdAt: 1688595970086,
       updatedAt: 1688595970086,

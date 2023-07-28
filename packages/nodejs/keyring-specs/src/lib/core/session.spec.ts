@@ -44,9 +44,10 @@ describe('session', () => {
 
     test('sets the invalidatedAt timestamp', () => {
       const session = new Session({ permissions: []})
-      expect(session.invalidatedAt).toBeNull();
+      expect(session.invalidatedAt).toBe(0)
+      clock.tick(2000) // Simulate 2 seconds has passed
       session.invalidate()
-      expect(session.invalidatedAt).not.toBeNull()
+      expect(session.invalidatedAt).not.toBe(0)
       expect(session.invalidatedAt).closeTo(Date.now(), 1000)
     })
 

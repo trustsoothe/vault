@@ -7,4 +7,8 @@ export class OriginReference {
   get value(): string {
     return this._value
   }
+
+  static empty(): OriginReference {
+    return new OriginReference('')
+  }
 }

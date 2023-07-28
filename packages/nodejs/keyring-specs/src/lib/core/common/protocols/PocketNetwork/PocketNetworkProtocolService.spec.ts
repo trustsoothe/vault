@@ -6,6 +6,7 @@ import {
   IEncryptionService, PocketNetworkProtocol
 } from "@poktscan/keyring";
 
+// @ts-ignore
 import {WebEncryptionService} from '@poktscan/keyring-encryption-web'
 
 describe('PocketNetworkProtocolService', () => {

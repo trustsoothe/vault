@@ -27,9 +27,9 @@ export default <
     TEncryptionServiceCreator: {  new (): TEncryptionService } | (() => TEncryptionService)
   ) => {
 
-  let vaultStore: TVaultStore = null
-  let sessionStore: TSessionStore = null
-  let encryptionService: TEncryptionService = null
+  let vaultStore: TVaultStore
+  let sessionStore: TSessionStore
+  let encryptionService: TEncryptionService
   const exampleOriginReference: OriginReference = new OriginReference('https://example.com')
   let exampleAsset: Asset
   let exampleAccount: Account
@@ -49,8 +49,6 @@ export default <
   }
 
   beforeEach(() => {
-    vaultStore = null
-
     encryptionService =
         isConstructor<TEncryptionService>(TEncryptionServiceCreator)
             // @ts-ignore
@@ -109,6 +107,7 @@ export default <
   describe('unlockVault', () => {
     test('throws an error if the passed passphrase is null or empty', async () => {
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      // @ts-ignore
       const authorizeOwnerOperation = vaultTeller.unlockVault(null)
       await expect(authorizeOwnerOperation).rejects.toThrow('Passphrase cannot be null or empty')
     })
@@ -157,11 +156,11 @@ export default <
       test('persists the newly created session', async () => {
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
-        await vaultTeller.initializeVault('passphrase');
+        await vaultTeller.initializeVault('passphrase')
         const session = await vaultTeller.unlockVault('passphrase')
         const serializedSession = await sessionStore.getById(session.id)
         expect(serializedSession, 'Session was not found').not.toBeNull()
-        const persistedSession = Session.deserialize(serializedSession)
+        const persistedSession = Session.deserialize(serializedSession!)
         expect(persistedSession).toStrictEqual(session)
       })
 
@@ -211,6 +210,7 @@ export default <
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
+      // @ts-ignore
       const authorizeExternalAccessOperation = vaultTeller.authorizeExternal(null)
       await expect(authorizeExternalAccessOperation).rejects.toThrow('ExternalAccessRequest object is required')
     })
@@ -270,7 +270,7 @@ export default <
         const session = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
         const persistedSession = await sessionStore.getById(session.id)
         expect(persistedSession, 'The session was expected to be found in the persistence storage.').not.toBeNull()
-        const expectedSession = Session.deserialize(persistedSession)
+        const expectedSession = Session.deserialize(persistedSession!)
         expect(session).toEqual(expectedSession)
       })
     })
@@ -291,6 +291,7 @@ export default <
     test('throws an error if the passed passphrase is null or empty', async () => {
       vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      // @ts-ignore
       const initializeVaultOperation = vaultTeller.initializeVault(null)
       await expect(initializeVaultOperation).rejects.toThrow('Passphrase cannot be null or empty')
     });
@@ -308,6 +309,7 @@ export default <
     test('returns false if the session id is null or undefined', async () => {
       vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService);
+      // @ts-ignore
       const isSessionValid = await vaultTeller.isSessionValid(null)
       expect(isSessionValid).toBe(false)
     })
@@ -335,6 +337,7 @@ export default <
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
+      // @ts-ignore
       const listSessionsOperation = vaultTeller.listSessions(null)
       await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session id is required')
     })
@@ -387,6 +390,7 @@ export default <
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
+      // @ts-ignore
       const listSessionsOperation = vaultTeller.revokeSession(null, null)
       await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session id is required')
     })
@@ -396,6 +400,7 @@ export default <
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
+      // @ts-ignore
       const listSessionsOperation = vaultTeller.revokeSession('not-found', null)
       await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session id not found')
     })
@@ -408,6 +413,7 @@ export default <
       await vaultTeller.unlockVault('passphrase')
       const session = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
       clock.tick(exampleExternalAccessRequest.maxAge * 1000 + 1)
+      // @ts-ignore
       const listSessionsOperation = vaultTeller.revokeSession(session.id, null)
       await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session is invalid')
       clock.restore()
@@ -428,13 +434,14 @@ export default <
       await vaultTeller.initializeVault('passphrase')
       await vaultTeller.unlockVault('passphrase')
       const session = await vaultTeller.authorizeExternal(externalAccessRequestWithoutDefaults)
+      // @ts-ignore
       const listSessionsOperation = vaultTeller.revokeSession(session.id, null)
       await expect(listSessionsOperation).rejects.toThrow('Unauthorized: Session is not allowed to perform this operation')
     })
 
     test('successfully revokes the session if the session id is found in the session store and is valid', async () => {
       vaultStore = createVaultStore()
-      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
       await vaultTeller.initializeVault('passphrase')
       const ownerSession = await vaultTeller.unlockVault('passphrase')
       const externalSession = await vaultTeller.authorizeExternal(exampleExternalAccessRequest)
@@ -443,9 +450,9 @@ export default <
       await vaultTeller.revokeSession(ownerSession.id, externalSession.id)
       const sessionsAfterRevoke = await vaultTeller.listSessions(ownerSession.id)
       const expectedRevokedSession = sessionsAfterRevoke.find(s => s.id === externalSession.id)
-      expect(expectedRevokedSession.isValid()).toBe(false);
-      expect(expectedRevokedSession.invalidatedAt).not.toBe(null);
-      expect(expectedRevokedSession.invalidatedAt).closeTo(Date.now(), 1000);
+      expect(expectedRevokedSession?.isValid()).toBe(false);
+      expect(expectedRevokedSession?.invalidatedAt).not.toBe(null);
+      expect(expectedRevokedSession?.invalidatedAt).closeTo(Date.now(), 1000);
     })
   })
 }
