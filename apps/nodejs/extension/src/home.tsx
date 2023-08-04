@@ -18,19 +18,26 @@ import NetworkList from "./components/Network/List";
 import AssetList from "./components/Asset/List";
 import { createHashRouter, RouterProvider } from "react-router-dom";
 import {
+  ACCOUNTS_DETAIL_PAGE,
   ACCOUNTS_PAGE,
   ASSETS_PAGE,
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
+  REMOVE_ACCOUNT_PAGE,
   REQUEST_CONNECTION_PAGE,
   SESSIONS_PAGE,
   TRANSFER_PAGE,
+  UPDATE_ACCOUNT_PAGE,
 } from "./constants/routes";
 import CreateNewAccount from "./components/Account/CreateNew";
 import ImportAccount from "./components/Account/Import";
 import RequestHandler from "./components/RequestHandler";
 import Transfer from "./components/Transfer";
+import ThemeProvider from "./theme";
+import AccountDetail from "./components/Account/AccountDetail";
+import RemoveAccount from "./components/Account/Remove";
+import UpdateAccount from "./components/Account/Update";
 
 const store = new Store();
 const storeWithMiddleware = applyMiddleware(store, thunkMiddleware);
@@ -43,6 +50,18 @@ const router = createHashRouter([
       {
         path: ACCOUNTS_PAGE,
         element: <AccountList />,
+      },
+      {
+        path: ACCOUNTS_DETAIL_PAGE,
+        element: <AccountDetail />,
+      },
+      {
+        path: REMOVE_ACCOUNT_PAGE,
+        element: <RemoveAccount />,
+      },
+      {
+        path: UPDATE_ACCOUNT_PAGE,
+        element: <UpdateAccount />,
       },
       {
         path: SESSIONS_PAGE,
@@ -198,7 +217,9 @@ storeWithMiddleware.ready().then(() => {
   root.render(
     <React.StrictMode>
       <Provider store={storeWithMiddleware}>
-        <ConnectedHome />
+        <ThemeProvider>
+          <ConnectedHome />
+        </ThemeProvider>
       </Provider>
     </React.StrictMode>
   );

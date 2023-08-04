@@ -1,23 +1,54 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Menu from "@mui/material/Menu";
+import { connect } from "react-redux";
 import MenuItem from "@mui/material/MenuItem";
+import ReplyIcon from "@mui/icons-material/Reply";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  ACCOUNTS_DETAIL_PAGE,
   ACCOUNTS_PAGE,
   ASSETS_PAGE,
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
+  REMOVE_ACCOUNT_PAGE,
   SESSIONS_PAGE,
   TRANSFER_PAGE,
+  UPDATE_ACCOUNT_PAGE,
 } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import { RootState } from "../../redux/store";
 
-const Header: React.FC = () => {
+const titleMap = {
+  [ACCOUNTS_PAGE]: "Accounts",
+  [ACCOUNTS_DETAIL_PAGE]: "Account Detail",
+  [UPDATE_ACCOUNT_PAGE]: "Update Account Name",
+  [REMOVE_ACCOUNT_PAGE]: "Remove Account",
+  [ASSETS_PAGE]: "Assets",
+  [CREATE_ACCOUNT_PAGE]: "Create Account",
+  [IMPORT_ACCOUNT_PAGE]: "Import Account",
+  [NETWORKS_PAGE]: "Networks",
+  [SESSIONS_PAGE]: "Connected Sites",
+  [TRANSFER_PAGE]: "New Transfer",
+};
+
+interface HeaderProps {
+  accountsLength: number;
+  networksLength: number;
+  assetsLength: number;
+}
+
+const Header: React.FC<HeaderProps> = ({
+  accountsLength,
+  networksLength,
+  assetsLength,
+}) => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = !!anchorEl;
 
@@ -29,10 +60,34 @@ const Header: React.FC = () => {
     setAnchorEl(null);
   }, []);
 
+  const goBack = useCallback(() => {
+    if (location.key !== "default") {
+      navigate(-1);
+    }
+  }, [navigate, location.key]);
+
   const onClickLock = useCallback(() => {
     AppToBackground.lockVault();
     closeMenu();
   }, [closeMenu]);
+
+  const items = useMemo(() => {
+    switch (location.pathname) {
+      case ACCOUNTS_PAGE: {
+        return accountsLength;
+      }
+      case NETWORKS_PAGE: {
+        return networksLength;
+      }
+      case ASSETS_PAGE: {
+        return assetsLength;
+      }
+    }
+
+    return 0;
+  }, [accountsLength, networksLength, assetsLength, location]);
+
+  const canGoBack = location.key !== "default";
 
   return (
     <Stack flexGrow={1} height={510 - 15 - 20}>
@@ -42,10 +97,50 @@ const Header: React.FC = () => {
         justifyContent={"space-between"}
         height={35}
       >
-        <Typography variant={"h5"}>Keyring Vault</Typography>
-        <IconButton sx={{ padding: 0, marginRight: "-5px" }} onClick={openMenu}>
-          <MoreVertRoundedIcon />
-        </IconButton>
+        <Stack direction={"row"} alignItems={"center"} spacing={"10px"}>
+          <Typography variant={"h6"}>
+            {titleMap[location.pathname] || "Keyring Vault"}
+          </Typography>
+          <Stack
+            justifyContent={"center"}
+            alignItems={"center"}
+            height={20}
+            paddingX={"5px"}
+            bgcolor={"#d3d3d3"}
+            borderRadius={"4px"}
+            display={items ? "flex" : "none"}
+          >
+            <Typography
+              fontSize={10}
+              fontWeight={600}
+              color={"#454545"}
+              letterSpacing={"0.5px"}
+            >
+              {items}
+            </Typography>
+          </Stack>
+        </Stack>
+        <Stack
+          direction={"row"}
+          alignItems={"center"}
+          spacing={"5px"}
+          marginRight={"-12px"}
+        >
+          <IconButton
+            sx={{
+              padding: 0,
+              marginRight: "-5px",
+              display: canGoBack ? "block" : "none",
+            }}
+            onClick={goBack}
+          >
+            <ReplyIcon />
+          </IconButton>
+          <IconButton sx={{ padding: 0 }} onClick={openMenu}>
+            <MoreVertRoundedIcon />
+          </IconButton>
+        </Stack>
+
         <Menu
           open={open}
           onClose={closeMenu}
@@ -124,4 +219,12 @@ const Header: React.FC = () => {
   );
 };
 
-export default Header;
+const mapStateToProps = (state: RootState) => {
+  return {
+    accountsLength: state.vault.entities.accounts.list.length,
+    networksLength: state.vault.entities.networks.list.length,
+    assetsLength: state.vault.entities.assets.list.length,
+  };
+};
+
+export default connect(mapStateToProps)(Header);

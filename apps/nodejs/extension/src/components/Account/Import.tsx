@@ -133,174 +133,189 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     }
 
     return (
-      <>
-        <Typography textAlign={"center"} variant={"h6"}>
-          Import Account
-        </Typography>
+      <Stack height={1} width={1}>
         <Stack
-          direction={"row"}
-          justifyContent={"space-between"}
-          alignItems={"center"}
+          maxHeight={"calc(100% - 50px)"}
+          spacing={1.8}
           width={1}
-          marginBottom={"15px"}
+          pt={1.5}
+          boxSizing={"border-box"}
         >
-          <Typography>Select Type</Typography>
-          <Controller
+          <AutocompleteAsset
             control={control}
-            name={"import_type"}
-            render={({ field }) => (
-              <TextField
-                select
-                size={"small"}
-                placeholder={"Type"}
-                sx={{
-                  "& .MuiInputBase-root": {
-                    minHeight: 30,
-                    maxHeight: 30,
-                    height: 30,
-                  },
-                }}
-                {...field}
-              >
-                <MenuItem value={"private_key"}>Private Key</MenuItem>
-                <MenuItem value={"json_file"}>Portable Wallet</MenuItem>
-              </TextField>
-            )}
+            textFieldProps={{ autoFocus: true }}
           />
-        </Stack>
-
-        <Divider
-          sx={{
-            marginY: "15px",
-            width: "calc(100% + 30px)",
-            marginLeft: "-5px",
-          }}
-          orientation={"horizontal"}
-        />
-
-        {type === "private_key" ? (
           <TextField
-            label={"Private Key"}
-            size={"small"}
             fullWidth
-            autoFocus
-            {...register("private_key", {
-              validate: (value, formValues) => {
-                if (!value && formValues.import_type === "private_key") {
-                  return "Required";
-                }
-
-                if (
-                  !isPrivateKey(value) &&
-                  formValues.import_type === "private_key"
-                ) {
-                  return "Invalid Private Key";
-                }
-
-                return true;
-              },
-            })}
-            error={!!formState?.errors?.private_key}
-            helperText={formState?.errors?.private_key?.message}
+            label={"Account Name"}
+            size={"small"}
+            {...register("account_name", nameRules)}
+            error={!!formState?.errors?.account_name}
+            helperText={formState?.errors?.account_name?.message}
           />
-        ) : (
-          <Stack
-            alignItems={"center"}
-            justifyContent={"center"}
-            spacing={"15px"}
-            width={1}
-          >
-            <Stack direction={"row"} spacing={"5px"} alignItems={"center"}>
-              <Typography fontSize={12}>Select Portable Wallet: </Typography>
-              <Controller
-                control={control}
-                name={"json_file"}
-                rules={{
-                  validate: (value, formValues) => {
-                    if (!value && formValues.import_type === "json_file") {
-                      return "Required";
-                    }
-                    return true;
-                  },
-                }}
-                render={({ field, fieldState: { error } }) => (
-                  <Stack>
-                    <input
-                      style={{ display: "block", width: "220px" }}
-                      type={"file"}
-                      accept={"application/json"}
-                      {...field}
-                      //@ts-ignore
-                      value={field?.value?.fileName}
-                      onChange={(event) => {
-                        console.log("FILE:", event?.target?.files?.[0] || null);
-                        field.onChange(event?.target?.files?.[0] || null);
-                      }}
-                    />
-                    {error && (
-                      <Typography
-                        color={"red"}
-                        fontSize={"10px"}
-                        sx={{ alignSelf: "flex-start" }}
-                      >
-                        {error.message}
-                      </Typography>
-                    )}
-                  </Stack>
-                )}
-              />
-            </Stack>
 
-            <TextField
-              fullWidth
-              label={"File Password (Optional)"}
-              size={"small"}
-              type={"password"}
-              {...register("file_password")}
+          <Divider
+            sx={{
+              width: "calc(100% + 10px)",
+              marginLeft: "-5px",
+            }}
+            orientation={"horizontal"}
+          />
+
+          <Stack
+            direction={"row"}
+            justifyContent={"space-between"}
+            alignItems={"center"}
+            width={1}
+            height={30}
+            marginTop={"15px!important"}
+          >
+            <Typography fontSize={14}>Import from</Typography>
+            <Controller
+              control={control}
+              name={"import_type"}
+              render={({ field }) => (
+                <TextField
+                  select
+                  size={"small"}
+                  placeholder={"Type"}
+                  sx={{
+                    width: 145,
+                    "& .MuiInputBase-root": {
+                      minHeight: 30,
+                      maxHeight: 30,
+                      height: 30,
+                      "& input": {
+                        minHeight: 30,
+                        maxHeight: 30,
+                        height: 30,
+                      },
+                    },
+                  }}
+                  {...field}
+                >
+                  <MenuItem value={"private_key"}>Private Key</MenuItem>
+                  <MenuItem value={"json_file"}>Portable Wallet</MenuItem>
+                </TextField>
+              )}
             />
           </Stack>
-        )}
 
-        <Divider
-          sx={{
-            marginY: "15px",
-            width: "calc(100% + 30px)",
-            marginLeft: "-5px",
-          }}
-          orientation={"horizontal"}
-        />
+          {type === "private_key" ? (
+            <TextField
+              label={"Private Key"}
+              size={"small"}
+              fullWidth
+              autoFocus
+              {...register("private_key", {
+                validate: (value, formValues) => {
+                  if (!value && formValues.import_type === "private_key") {
+                    return "Required";
+                  }
 
-        <AutocompleteAsset control={control} />
+                  if (
+                    !isPrivateKey(value) &&
+                    formValues.import_type === "private_key"
+                  ) {
+                    return "Invalid Private Key";
+                  }
 
-        <TextField
-          fullWidth
-          label={"Account Name"}
-          size={"small"}
-          {...register("account_name", nameRules)}
-          error={!!formState?.errors?.account_name}
-          helperText={formState?.errors?.account_name?.message}
-        />
-        <FormProvider {...methods}>
-          <Password
-            passwordName={"account_password"}
-            canGenerateRandom={false}
-            canGenerateRandomFirst={true}
-            canShowPassword={false}
-            labelPassword={"Account Password"}
-            labelConfirm={"Vault Password"}
-            hidePasswordStrong={true}
-            confirmPasswordName={
-              passwordRemembered ? undefined : "vault_password"
-            }
-            passwordAndConfirmEquals={false}
-            containerProps={{
-              width: 1,
-              marginTop: "0px!important",
-              spacing: "15px",
+                  return true;
+                },
+              })}
+              error={!!formState?.errors?.private_key}
+              helperText={formState?.errors?.private_key?.message}
+              sx={{
+                marginTop: "10px!important",
+              }}
+            />
+          ) : (
+            <Stack spacing={"15px"} width={1} marginTop={"10px!important"}>
+              <Stack direction={"row"} spacing={"5px"} alignItems={"center"}>
+                <Typography fontSize={12}>Select Portable Wallet: </Typography>
+                <Controller
+                  control={control}
+                  name={"json_file"}
+                  rules={{
+                    validate: (value, formValues) => {
+                      if (!value && formValues.import_type === "json_file") {
+                        return "Required";
+                      }
+                      return true;
+                    },
+                  }}
+                  render={({ field, fieldState: { error } }) => (
+                    <Stack>
+                      <input
+                        style={{
+                          display: "block",
+                          width: "200px",
+                          color: error ? "red" : "black",
+                        }}
+                        type={"file"}
+                        accept={"application/json"}
+                        {...field}
+                        //@ts-ignore
+                        value={field?.value?.fileName}
+                        onChange={(event) => {
+                          field.onChange(event?.target?.files?.[0] || null);
+                        }}
+                      />
+                    </Stack>
+                  )}
+                />
+              </Stack>
+
+              <TextField
+                fullWidth
+                label={"File Password (Optional)"}
+                size={"small"}
+                type={"password"}
+                {...register("file_password")}
+              />
+            </Stack>
+          )}
+
+          <Divider
+            sx={{
+              width: "calc(100% + 10px)",
+              marginLeft: "-5px",
             }}
+            orientation={"horizontal"}
           />
-        </FormProvider>
-        <Stack direction={"row"} spacing={"20px"} width={1} marginTop={"20px"}>
+
+          <FormProvider {...methods}>
+            <Password
+              passwordName={"account_password"}
+              canGenerateRandom={false}
+              canGenerateRandomFirst={true}
+              canShowPassword={true}
+              labelPassword={"Account Password"}
+              labelConfirm={"Vault Password"}
+              hidePasswordStrong={true}
+              confirmPasswordName={
+                passwordRemembered ? undefined : "vault_password"
+              }
+              passwordAndConfirmEquals={false}
+              containerProps={{
+                width: 1,
+                marginTop: "5px!important",
+                spacing: "18px",
+              }}
+              inputsContainerProps={{
+                spacing: "18px",
+              }}
+            />
+          </FormProvider>
+        </Stack>
+        <Stack
+          direction={"row"}
+          spacing={"20px"}
+          width={1}
+          paddingTop={"20px"}
+          height={50}
+          boxSizing={"border-box"}
+        >
           <Button
             onClick={onClickCancel}
             sx={{
@@ -308,6 +323,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
               fontWeight: 600,
               color: "gray",
               borderColor: "gray",
+              height: 30,
             }}
             variant={"outlined"}
             fullWidth
@@ -315,16 +331,15 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
             Cancel
           </Button>
           <Button
-            sx={{ textTransform: "none", fontWeight: 600 }}
+            sx={{ textTransform: "none", fontWeight: 600, height: 30 }}
             variant={"contained"}
             fullWidth
             type={"submit"}
-            // disabled={!isValid}
           >
             Import
           </Button>
         </Stack>
-      </>
+      </Stack>
     );
   }, [
     register,
@@ -335,6 +350,8 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     navigate,
     getValues,
     formState,
+    methods,
+    passwordRemembered,
   ]);
 
   return (
@@ -343,11 +360,10 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
       onSubmit={handleSubmit(onClickCreate)}
       alignItems={"center"}
       justifyContent={"center"}
-      height={"calc(100% - 20px)"}
-      paddingX={"20px"}
+      height={1}
+      paddingX={0.5}
       width={1}
       boxSizing={"border-box"}
-      spacing={"15px"}
     >
       {content}
     </Stack>

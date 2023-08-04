@@ -96,6 +96,7 @@ export interface AnswerNewAccountRequest {
 
 type AnswerNewAccountResponseData = BaseData & {
   address: string;
+  isPasswordWrong?: boolean;
 };
 
 export type AnswerNewAccountResponse = BaseResponse<
@@ -190,6 +191,7 @@ export interface UpdateAccountResponse {
   type: typeof UPDATE_ACCOUNT_RESPONSE;
   data: {
     answered: true;
+    isPasswordWrong?: boolean;
   } | null;
   error: UnknownErrorType | null;
 }
@@ -599,10 +601,23 @@ class InternalCommunicationController {
         data: {
           answered: true,
           address,
+          isPasswordWrong: false,
         },
         error: null,
       };
-    } catch (e) {
+    } catch (error) {
+      if (error?.name === "PassphraseIncorrectError") {
+        return {
+          type: ANSWER_NEW_ACCOUNT_RESPONSE,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+            address: null,
+          },
+          error: null,
+        };
+      }
+
       const tabId = message?.data?.request?.tabId;
 
       if (tabId) {
@@ -726,7 +741,17 @@ class InternalCommunicationController {
         },
         error: null,
       };
-    } catch (e) {
+    } catch (error) {
+      if (error?.name === "PassphraseIncorrectError") {
+        return {
+          type: UPDATE_ACCOUNT_RESPONSE,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+          },
+          error: null,
+        };
+      }
       return {
         type: UPDATE_ACCOUNT_RESPONSE,
         data: null,

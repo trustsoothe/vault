@@ -1,33 +1,200 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import Stack from "@mui/material/Stack";
+import Stack, { type StackProps } from "@mui/material/Stack";
+import { connect } from "react-redux";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import Skeleton from "@mui/material/Skeleton";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
 import CopyIcon from "@mui/icons-material/ContentCopy";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 import { getAccountBalance } from "../../redux/slices/vault";
 import { useAppDispatch } from "../../hooks/redux";
 import OperationFailed from "../common/OperationFailed";
+import {
+  ACCOUNTS_PAGE,
+  REMOVE_ACCOUNT_PAGE,
+  TRANSFER_PAGE,
+  UPDATE_ACCOUNT_PAGE,
+} from "../../constants/routes";
 
 interface AccountDetailProps {
-  account: SerializedAccountReference;
-  onClose: () => void;
+  accounts: RootState["vault"]["entities"]["accounts"]["list"];
 }
 
-const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
+interface DetailComponentProps {
+  account: SerializedAccountReference;
+  onUpdate?: () => void;
+  containerProps?: StackProps;
+  hideName?: boolean;
+}
+
+export const DetailComponent: React.FC<DetailComponentProps> = ({
+  account,
+  onUpdate,
+  containerProps,
+  hideName,
+}) => {
   const dispatch = useAppDispatch();
-  const [loadingBalance, setLoadingBalance] = useState(false);
-  const [errorBalance, setErrorBalance] = useState(true);
   const [showCopyAddressTooltip, setShowCopyAddressTooltip] = useState(false);
-  const [showCopyKeyTooltip, setShowCopyKeyTooltip] = useState(false);
+  const [loadingBalance, setLoadingBalance] = useState(false);
+  const [errorBalance, setErrorBalance] = useState(false);
   const [balance, setBalance] = useState(0);
+
+  const getBalance = useCallback(() => {
+    if (account) {
+      setLoadingBalance(true);
+      dispatch(
+        getAccountBalance({
+          address: account.address,
+          protocol: account.protocol,
+        })
+      )
+        .unwrap()
+        .then((result) => {
+          if (result) {
+            setBalance(result.amount);
+            setErrorBalance(false);
+          }
+        })
+        .catch(() => setErrorBalance(true))
+        .finally(() => setLoadingBalance(false));
+    }
+  }, [account]);
+
+  useEffect(() => {
+    getBalance();
+  }, [getBalance]);
+
+  const handleCopyAddress = useCallback(() => {
+    if (account?.address) {
+      navigator.clipboard.writeText(account.address).then(() => {
+        setShowCopyAddressTooltip(true);
+        setTimeout(() => setShowCopyAddressTooltip(false), 300);
+      });
+    }
+  }, [account?.address]);
+
+  const balanceComponent = useMemo(() => {
+    let component: React.ReactNode;
+    if (loadingBalance) {
+      component = <Skeleton width={150} height={18} variant={"rectangular"} />;
+    } else if (errorBalance) {
+      component = (
+        <Typography
+          fontSize={12}
+          color={"red"}
+          textAlign={"center"}
+          lineHeight={"24px"}
+        >
+          Error getting balance.{" "}
+          <span
+            style={{
+              textDecoration: "underline",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+            onClick={getBalance}
+          >
+            Retry
+          </span>
+        </Typography>
+      );
+    } else {
+      component = (
+        <Typography fontSize={14} lineHeight={"24px"} textAlign={"center"}>
+          Balance: <b> {balance} POKT</b>
+        </Typography>
+      );
+    }
+
+    return (
+      <Stack alignItems={"center"} justifyContent={"center"} height={24}>
+        {component}
+      </Stack>
+    );
+  }, [balance, loadingBalance, errorBalance, getBalance]);
+
+  return (
+    <Stack width={360} mt={"100px"} {...containerProps}>
+      <Stack
+        direction={"row"}
+        alignItems={"center"}
+        justifyContent={"center"}
+        width={1}
+        spacing={"10px"}
+        display={hideName ? "none" : "flex"}
+      >
+        <Typography>
+          Name: <b>{account?.name}</b>
+        </Typography>
+        {onUpdate && (
+          <IconButton sx={{ padding: 0 }} onClick={onUpdate}>
+            <EditOutlinedIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        )}
+      </Stack>
+      {balanceComponent}
+      <Stack
+        mt={"5px"}
+        direction={"row"}
+        alignItems={"center"}
+        justifyContent={"center"}
+        width={1}
+        spacing={"10px"}
+      >
+        <Typography fontSize={14}>{account?.address}</Typography>
+        <Tooltip title={"Copied"} open={showCopyAddressTooltip}>
+          <IconButton sx={{ padding: 0 }} onClick={handleCopyAddress}>
+            <CopyIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+      <Stack
+        mt={"5px"}
+        direction={"row"}
+        alignItems={"center"}
+        justifyContent={"center"}
+        width={1}
+        spacing={"10px"}
+      >
+        <Typography fontSize={14}>
+          Protocol: {labelByProtocolMap[account?.protocol?.name]}
+        </Typography>
+        <Typography fontSize={14}>
+          ChainID: {labelByChainID[account?.protocol?.chainID]}
+        </Typography>
+      </Stack>
+    </Stack>
+  );
+};
+
+const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [account, setAccount] = useState<SerializedAccountReference>(null);
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    const accountFromStore = accounts.find((item) => item.id === id);
+    if (accountFromStore && account?.id !== id) {
+      setAccount(accountFromStore);
+      return;
+    }
+
+    if (!accountFromStore) {
+      navigate(ACCOUNTS_PAGE);
+    }
+  }, [searchParams, accounts]);
+
+  const [showCopyKeyTooltip, setShowCopyKeyTooltip] = useState(false);
   const [accountPassphrase, setAccountPassphrase] = useState("");
   const [wrongPassphrase, setWrongPassphrase] = useState(false);
   const [loadingPrivateKey, setLoadingPrivateKey] = useState(false);
@@ -35,35 +202,21 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [errorPrivateKey, setErrorPrivateKey] = useState(false);
 
-  const getBalance = useCallback(() => {
-    setLoadingBalance(true);
-    dispatch(
-      getAccountBalance({
-        address: account.address,
-        protocol: account.protocol,
-      })
-    )
-      .unwrap()
-      .then((result) => {
-        if (result) {
-          setBalance(result.amount);
-          setErrorBalance(false);
-        }
-      })
-      .catch(() => setErrorBalance(true))
-      .finally(() => setLoadingBalance(false));
-  }, [dispatch]);
+  const onUpdateAccountName = useCallback(() => {
+    navigate(`${UPDATE_ACCOUNT_PAGE}?id=${account.id}`);
+  }, [account]);
 
-  useEffect(() => {
-    getBalance();
-  }, []);
+  const onClickTransfer = useCallback(() => {
+    if (account?.address) {
+      navigate(`${TRANSFER_PAGE}?fromAddress=${account.address}`);
+    }
+  }, [navigate, account?.address]);
 
-  const handleCopyAddress = useCallback(() => {
-    navigator.clipboard.writeText(account.address).then(() => {
-      setShowCopyAddressTooltip(true);
-      setTimeout(() => setShowCopyAddressTooltip(false), 300);
-    });
-  }, [account.address]);
+  const onClickRemoveAccount = useCallback(() => {
+    if (account?.id) {
+      navigate(`${REMOVE_ACCOUNT_PAGE}?id=${account.id}`);
+    }
+  }, [navigate, account?.id]);
 
   const handleCopyPrivateKey = useCallback(() => {
     if (privateKey) {
@@ -237,89 +390,9 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
     showCopyKeyTooltip,
   ]);
 
-  const balanceComponent = useMemo(() => {
-    let component: React.ReactNode;
-    if (loadingBalance) {
-      component = <Skeleton width={150} height={18} variant={"rectangular"} />;
-    } else if (errorBalance) {
-      component = (
-        <Typography
-          fontSize={12}
-          color={"red"}
-          textAlign={"center"}
-          lineHeight={"24px"}
-        >
-          Error getting balance.{" "}
-          <span
-            style={{
-              textDecoration: "underline",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-            onClick={getBalance}
-          >
-            Retry
-          </span>
-        </Typography>
-      );
-    } else {
-      component = (
-        <Typography fontSize={14} lineHeight={"24px"} textAlign={"center"}>
-          Balance: <b> {balance} POKT</b>
-        </Typography>
-      );
-    }
-
-    return (
-      <Stack alignItems={"center"} justifyContent={"center"} height={24}>
-        {component}
-      </Stack>
-    );
-  }, [balance, loadingBalance, errorBalance, getBalance]);
-
   return (
     <Stack width={360}>
-      <Stack
-        direction={"row"}
-        alignItems={"center"}
-        justifyContent={"space-between"}
-        width={1}
-        boxSizing={"border-box"}
-        marginY={"5px"}
-      >
-        <Typography variant={"h6"}>Account Detail</Typography>
-        <IconButton sx={{ padding: 0 }} onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      </Stack>
-      <Stack
-        mt={"80px"}
-        direction={"row"}
-        alignItems={"center"}
-        justifyContent={"center"}
-        width={1}
-        spacing={"10px"}
-      >
-        <Typography>
-          Name: <b>{account.name}</b>
-        </Typography>
-      </Stack>
-      {balanceComponent}
-      <Stack
-        mt={"5px"}
-        direction={"row"}
-        alignItems={"center"}
-        justifyContent={"center"}
-        width={1}
-        spacing={"10px"}
-      >
-        <Typography fontSize={14}>{account.address}</Typography>
-        <Tooltip title={"Copied"} open={showCopyAddressTooltip}>
-          <IconButton sx={{ padding: 0 }} onClick={handleCopyAddress}>
-            <CopyIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+      <DetailComponent account={account} onUpdate={onUpdateAccountName} />
       <Stack
         mt={"5px"}
         mb={"50px"}
@@ -329,12 +402,12 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
         width={1}
         spacing={"10px"}
       >
-        <Typography fontSize={14}>
-          Protocol: {labelByProtocolMap[account.protocol.name]}
-        </Typography>
-        <Typography fontSize={14}>
-          ChainID: {labelByChainID[account.protocol.chainID]}
-        </Typography>
+        <Button sx={{ height: 30 }} onClick={onClickTransfer}>
+          Transfer
+        </Button>
+        <Button sx={{ height: 30 }} onClick={onClickRemoveAccount}>
+          Remove
+        </Button>
       </Stack>
 
       {privateKeyComponent}
@@ -342,4 +415,8 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
   );
 };
 
-export default AccountDetail;
+const mapStateToProps = (state: RootState) => ({
+  accounts: state.vault.entities.accounts.list,
+});
+
+export default connect(mapStateToProps)(AccountDetail);

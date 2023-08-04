@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
-import { useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -16,9 +16,11 @@ import RequestFrom from "../common/RequestFrom";
 import { getAssetByProtocol } from "../../utils";
 import { useAppDispatch } from "../../hooks/redux";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import Password from "../common/Password";
 
 interface FormValues {
   account_name: string;
+  vault_password: string;
   password: string;
   asset: SerializedAsset | null;
 }
@@ -42,13 +44,26 @@ type FormStatus = "normal" | "loading" | "error" | "submitted";
 
 interface CreateNewAccountProps {
   assets: RootState["vault"]["entities"]["assets"]["list"];
+  passwordRemembered: RootState["vault"]["passwordRemembered"];
 }
 
-const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
+const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
+  assets,
+  passwordRemembered,
+}) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const currentRequest: ExternalNewAccountRequest = location?.state;
+
+  const methods = useForm<FormValues>({
+    defaultValues: {
+      account_name: "",
+      vault_password: "",
+      password: "",
+      asset: null,
+    },
+  });
 
   const {
     register,
@@ -58,14 +73,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
     control,
     setValue,
     watch,
-  } = useForm<FormValues>({
-    defaultValues: {
-      account_name: "",
-      password: "",
-      asset: null,
-    },
-  });
-
+  } = methods;
   const asset = watch("asset");
 
   useEffect(() => {
@@ -101,6 +109,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
       setStatus("loading");
       const result = await AppToBackground.answerNewAccount({
         rejected: false,
+        vaultPassword: passwordRemembered ? data.vault_password : undefined,
         accountData: {
           name: data.account_name,
           asset: data.asset,
@@ -112,7 +121,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
       const isError = !!result.error;
       setStatus(isError ? "error" : "submitted");
     },
-    [currentRequest, dispatch]
+    [currentRequest, dispatch, passwordRemembered]
   );
 
   const content = useMemo(() => {
@@ -147,16 +156,12 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
     const { errors, isValid } = formState;
 
     return (
-      <>
-        {currentRequest ? (
+      <Stack height={1} width={1} spacing={2} mt={2}>
+        {currentRequest && (
           <RequestFrom
             title={"New Account Request from:"}
             {...currentRequest}
           />
-        ) : (
-          <Typography textAlign={"center"} variant={"h6"}>
-            Create Account
-          </Typography>
         )}
         <AutocompleteAsset
           control={control}
@@ -171,18 +176,35 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
           helperText={errors?.account_name?.message}
           {...register("account_name", nameRules)}
         />
-        <TextField
-          label={"Account Password"}
-          size={"small"}
-          fullWidth
-          type={"password"}
-          error={!!errors?.password}
-          helperText={errors?.password?.message}
-          {...register("password", {
-            required: "Required",
-          })}
-        />
-        <Stack direction={"row"} spacing={"20px"} width={1} marginTop={"20px"}>
+        <FormProvider {...methods}>
+          <Password
+            passwordName={"password"}
+            canGenerateRandom={false}
+            canGenerateRandomFirst={true}
+            canShowPassword={true}
+            labelPassword={"Account Password"}
+            labelConfirm={"Vault Password"}
+            hidePasswordStrong={true}
+            confirmPasswordName={
+              passwordRemembered ? undefined : "vault_password"
+            }
+            passwordAndConfirmEquals={false}
+            containerProps={{
+              width: 1,
+              marginTop: "5px!important",
+              spacing: "18px",
+            }}
+            inputsContainerProps={{
+              spacing: "18px",
+            }}
+          />
+        </FormProvider>
+        <Stack
+          direction={"row"}
+          spacing={"20px"}
+          width={1}
+          marginTop={"25px!important"}
+        >
           <Button
             onClick={onClickCancel}
             sx={{
@@ -190,6 +212,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
               fontWeight: 600,
               color: "gray",
               borderColor: "gray",
+              height: 30,
             }}
             variant={"outlined"}
             fullWidth
@@ -197,7 +220,11 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
             Cancel
           </Button>
           <Button
-            sx={{ textTransform: "none", fontWeight: 600 }}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              height: 30,
+            }}
             variant={"contained"}
             fullWidth
             type={"submit"}
@@ -205,9 +232,18 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
             Create
           </Button>
         </Stack>
-      </>
+      </Stack>
     );
-  }, [status, onClickCancel, register, formState, getValues, navigate]);
+  }, [
+    status,
+    onClickCancel,
+    register,
+    formState,
+    getValues,
+    navigate,
+    methods,
+    passwordRemembered,
+  ]);
 
   return (
     <Stack
@@ -215,8 +251,8 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
       onSubmit={handleSubmit(onClickCreate)}
       alignItems={"center"}
       justifyContent={"center"}
-      height={"calc(100% - 50px)"}
-      paddingX={"20px"}
+      height={1}
+      paddingX={"5px"}
       spacing={"20px"}
       width={1}
       boxSizing={"border-box"}
@@ -228,6 +264,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
 
 const mapStateToProps = (state: RootState) => ({
   assets: state.vault.entities.assets.list,
+  passwordRemembered: state.vault.passwordRemembered,
 });
 
 export default connect(mapStateToProps)(CreateNewAccount);

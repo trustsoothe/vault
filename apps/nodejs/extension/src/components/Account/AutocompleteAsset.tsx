@@ -1,16 +1,17 @@
-import { RootState } from "../../redux/store";
+import type {
+  AutocompleteRenderOptionState,
+  FilterOptionsState,
+  TextFieldProps,
+} from "@mui/material";
+import type { SerializedAsset } from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
 import { connect } from "react-redux";
 import React, { useCallback } from "react";
 import { Controller } from "react-hook-form";
-import {
-  Autocomplete,
-  AutocompleteRenderOptionState,
-  FilterOptionsState,
-} from "@mui/material";
-import { SerializedAsset } from "@poktscan/keyring";
-import TextField from "@mui/material/TextField";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import Autocomplete from "@mui/material/Autocomplete";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 
 interface AutocompleteAssetProps {
@@ -18,6 +19,7 @@ interface AutocompleteAssetProps {
   control;
   name?: string;
   disabled?: boolean;
+  textFieldProps?: TextFieldProps;
 }
 
 const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
@@ -25,6 +27,7 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
   control,
   name = "asset",
   disabled,
+  textFieldProps,
 }) => {
   const filterOptions = useCallback(
     (
@@ -113,7 +116,7 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
         required: "Required",
       }}
       render={({
-        field: { onChange, value, ...otherProps },
+        field: { onChange, value, ref, ...otherProps },
         fieldState: { error },
       }) => {
         return (
@@ -135,12 +138,14 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
               return (
                 <TextField
                   {...params}
+                  inputRef={ref}
                   fullWidth
                   label={"Account Asset"}
                   size={"small"}
                   error={!!error}
                   helperText={error?.message}
                   disabled={disabled}
+                  {...textFieldProps}
                 />
               );
             }}

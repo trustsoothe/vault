@@ -22,8 +22,10 @@ interface PasswordProps {
   canShowPassword?: boolean;
   justRequire?: boolean;
   containerProps?: StackProps;
+  inputsContainerProps?: StackProps;
   errorPassword?: string;
   errorConfirm?: string;
+  horizontal?: boolean;
 }
 
 const Password: React.FC<PasswordProps> = function <T extends {}>({
@@ -41,6 +43,8 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
   containerProps,
   errorConfirm,
   errorPassword,
+  horizontal = false,
+  inputsContainerProps,
 }) {
   const { control, register, setValue, clearErrors, watch, setFocus } =
     useFormContext<T>();
@@ -128,6 +132,8 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
             sx={{
               fontSize: "12px",
               textTransform: "none",
+              height: 25,
+              paddingBottom: "3px",
             }}
             onClick={toggleRandomPassword}
           >
@@ -135,13 +141,15 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
           </Button>
         )}
         {canShowPassword &&
-          !random &&
-          !canGenerateRandomFirst &&
-          !canGenerateRandomSecond && (
+          !(random && !canGenerateRandomSecond && !confirmPasswordName) &&
+          !(random && canGenerateRandom) && (
             <Button
               sx={{
                 fontSize: "12px",
                 textTransform: "none",
+                width: 106,
+                height: 25,
+                paddingBottom: "3px",
               }}
               onClick={toggleShowPassword}
             >
@@ -155,13 +163,19 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
     showPassword,
     toggleRandomPassword,
     canGenerateRandomSecond,
+    confirmPasswordName,
+    canGenerateRandom,
     canGenerateRandomFirst,
     random,
   ]);
 
   const content = useMemo(() => {
     return (
-      <>
+      <Stack
+        direction={horizontal ? "row" : "column"}
+        spacing={"15px"}
+        {...inputsContainerProps}
+      >
         <Controller
           name={passwordName}
           control={control}
@@ -209,7 +223,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
                           onClick={onClickCopyPass}
                           sx={{ padding: 0, width: 30 }}
                         >
-                          <ContentCopy sx={{ fontSize: 20 }} />
+                          <ContentCopy sx={{ fontSize: 18 }} />
                         </IconButton>
                       </Tooltip>
                     ) : undefined,
@@ -278,7 +292,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
                           onClick={onClickCopyConfirm}
                           sx={{ padding: 0, width: 30 }}
                         >
-                          <ContentCopy sx={{ fontSize: 20 }} />
+                          <ContentCopy sx={{ fontSize: 18 }} />
                         </IconButton>
                       </Tooltip>
                     ) : undefined,
@@ -287,9 +301,11 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
             )}
           />
         )}
-      </>
+      </Stack>
     );
   }, [
+    horizontal,
+    inputsContainerProps,
     errorPassword,
     errorConfirm,
     passwordName,
@@ -312,7 +328,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
   ]);
 
   return (
-    <Stack spacing={"10px"} {...containerProps}>
+    <Stack spacing={"15px"} {...containerProps}>
       {actions}
       {content}
     </Stack>

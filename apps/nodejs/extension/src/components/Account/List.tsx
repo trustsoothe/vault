@@ -8,21 +8,15 @@ import Button from "@mui/material/Button";
 import { FixedSizeList } from "react-window";
 import { useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
-import EditIcon from "@mui/icons-material/Edit";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
-import ReplyIcon from "@mui/icons-material/Reply";
-import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
+  ACCOUNTS_DETAIL_PAGE,
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
-  TRANSFER_PAGE,
 } from "../../constants/routes";
-import UpdateAccount from "./Update";
-import RemoveAccount from "./Remove";
 import ListAccountItem from "./ListItem";
-import AccountDetail from "./AccountDetail";
 import useDebounce from "../../hooks/useDebounce";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 import { useAppDispatch } from "../../hooks/redux";
@@ -116,10 +110,9 @@ const AccountList: React.FC<AccountListProps> = ({
 
   const onClickViewAccount = useCallback(
     (account: SerializedAccountReference) => {
-      setSelectedAccount(account);
-      setView("detail");
+      navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${account.id}`);
     },
-    []
+    [navigate]
   );
 
   const onClickRemoveAccount = useCallback(
@@ -174,7 +167,7 @@ const AccountList: React.FC<AccountListProps> = ({
         width={"100%"}
         itemCount={searchedAccounts.length}
         itemSize={100}
-        height={350}
+        height={400}
         itemData={searchedAccounts}
       >
         {({ style, data, index }) => {
@@ -203,31 +196,9 @@ const AccountList: React.FC<AccountListProps> = ({
               >
                 <IconButton
                   sx={{ padding: 0 }}
-                  onClick={() =>
-                    navigate(`${TRANSFER_PAGE}?fromAddress=${account.address}`)
-                  }
-                >
-                  <ReplyIcon
-                    sx={{ fontSize: 18, transform: "rotateY(180deg)" }}
-                  />
-                </IconButton>
-                <IconButton
-                  sx={{ padding: 0 }}
                   onClick={() => onClickViewAccount(account)}
                 >
                   <VisibilityIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-                <IconButton
-                  sx={{ padding: 0 }}
-                  onClick={() => onClickUpdateAccount(account)}
-                >
-                  <EditIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-                <IconButton
-                  sx={{ padding: 0 }}
-                  onClick={() => onClickRemoveAccount(account)}
-                >
-                  <DeleteIcon sx={{ fontSize: 18 }} />
                 </IconButton>
               </Stack>
             </Stack>
@@ -244,75 +215,36 @@ const AccountList: React.FC<AccountListProps> = ({
   ]);
 
   const content = useMemo(() => {
-    if (selectedAccount && view === "update") {
-      return <UpdateAccount account={selectedAccount} onClose={onClose} />;
-    }
-
-    if (selectedAccount && view === "remove") {
-      return <RemoveAccount account={selectedAccount} onClose={onClose} />;
-    }
-
-    if (selectedAccount && view === "detail") {
-      return <AccountDetail account={selectedAccount} onClose={onClose} />;
-    }
-
     return (
       <>
         <Stack
           direction={"row"}
           justifyContent={"space-between"}
           alignItems={"center"}
-          marginY={"5px"}
+          spacing={0.5}
+          mt={1.5}
         >
-          <Stack direction={"row"} alignItems={"center"} spacing={"10px"}>
-            <Typography variant={"h6"}>Accounts</Typography>
-            <Stack
-              justifyContent={"center"}
-              alignItems={"center"}
-              height={20}
-              paddingX={"5px"}
-              bgcolor={"#d3d3d3"}
-              borderRadius={"4px"}
-            >
-              <Typography
-                fontSize={10}
-                fontWeight={600}
-                color={"#454545"}
-                letterSpacing={"0.5px"}
-              >
-                {accounts.length}
-              </Typography>
-            </Stack>
-          </Stack>
+          <TextField
+            fullWidth
+            size={"small"}
+            value={searchText}
+            onChange={onChangeSearchText}
+            disabled={!accounts.length}
+            placeholder={"Search by name / address"}
+          />
           <Stack
             direction={"row"}
             sx={{ "& button": { textTransform: "none" } }}
+            mr={"-5px!important"}
           >
             <Button onClick={onClickImport}>Import</Button>
-            <Button onClick={onClickNew}>New</Button>
+            <Button onClick={onClickNew} sx={{ width: 50, minWidth: 50 }}>
+              New
+            </Button>
           </Stack>
         </Stack>
-        <TextField
-          fullWidth
-          size={"small"}
-          value={searchText}
-          onChange={onChangeSearchText}
-          disabled={!accounts.length}
-          placeholder={"Search by name / address"}
-          sx={{
-            "& .MuiInputBase-root": {
-              height: 35,
-              minHeight: 35,
-              maxHeight: 35,
-            },
-            "& input": {
-              fontSize: 14,
-            },
-          }}
-        />
         <Stack
           flexGrow={1}
-          // border={"1px solid lightgray"}
           overflow={"auto"}
           paddingX={"5px"}
           marginTop={"10px"}

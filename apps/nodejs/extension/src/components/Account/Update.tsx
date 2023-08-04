@@ -1,30 +1,82 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
+import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
-import { useForm } from "react-hook-form";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import React, { useCallback, useMemo, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import OperationFailed from "../common/OperationFailed";
 import { nameRules } from "./CreateNew";
+import Password from "../common/Password";
+import { DetailComponent } from "./AccountDetail";
+import { ACCOUNTS_DETAIL_PAGE } from "../../constants/routes";
 
 interface FormValues {
   account_name: string;
+  vault_password?: string;
 }
 
 interface UpdateAccountProps {
-  account: SerializedAccountReference;
-  onClose: () => void;
+  accounts: RootState["vault"]["entities"]["accounts"]["list"];
+  passwordRemembered: RootState["vault"]["passwordRemembered"];
 }
 
-const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
-  const { handleSubmit, register, formState } = useForm<FormValues>({
+const UpdateAccount: React.FC<UpdateAccountProps> = ({
+  accounts,
+  passwordRemembered,
+}) => {
+  const [wrongPassword, setWrongPassword] = useState(false);
+  const [account, setAccount] = useState<SerializedAccountReference>(null);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const onCancel = useCallback(() => {
+    if (location.key !== "default") {
+      navigate(-1);
+    } else {
+      navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${account?.id}`);
+    }
+  }, [navigate, location, account]);
+
+  const onUpdatedSuccessful = useCallback(() => {
+    navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${account?.id}`);
+  }, [navigate, account]);
+
+  const methods = useForm<FormValues>({
     defaultValues: {
-      account_name: account.name,
+      account_name: "",
+      vault_password: "",
     },
   });
+  const { handleSubmit, register, formState, setValue, watch } = methods;
+  const pass = watch("vault_password");
+
+  useEffect(() => {
+    if (wrongPassword) {
+      setWrongPassword(false);
+    }
+  }, [pass]);
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    const accountFromStore = accounts.find((item) => item.id === id);
+    if (accountFromStore && account?.id !== id) {
+      setAccount(accountFromStore);
+      setValue("account_name", accountFromStore.name);
+      return;
+    }
+
+    if (!accountFromStore) {
+      onCancel();
+    }
+  }, [searchParams, accounts]);
+
   const [status, setStatus] = useState<
     "normal" | "loading" | "error" | "saved"
   >("normal");
@@ -35,12 +87,22 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
       AppToBackground.updateAccount({
         id: account.id,
         name: data.account_name,
+        vaultPassword: !passwordRemembered ? data?.vault_password : undefined,
       }).then((result) => {
-        const isError = !!result.error;
-        setStatus(isError ? "error" : "saved");
+        if (result.error) {
+          setStatus("error");
+          return;
+        }
+
+        if (result.data?.isPasswordWrong) {
+          setWrongPassword(true);
+          setStatus("normal");
+        } else {
+          setStatus("saved");
+        }
       });
     },
-    [account]
+    [account, passwordRemembered]
   );
 
   const content = useMemo(() => {
@@ -52,7 +114,7 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
       return (
         <OperationFailed
           text={"There was an error saving the account."}
-          onCancel={onClose}
+          onCancel={onCancel}
         />
       );
     }
@@ -65,9 +127,9 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
           justifyContent={"center"}
           marginTop={"-40px"}
         >
-          <Typography>Your account was saved successfully.</Typography>
-          <Button sx={{ textTransform: "none" }} onClick={onClose}>
-            Go to Account List
+          <Typography>Account name updated successfully.</Typography>
+          <Button sx={{ textTransform: "none" }} onClick={onUpdatedSuccessful}>
+            Go to Account Detail
           </Button>
         </Stack>
       );
@@ -75,12 +137,10 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
 
     return (
       <>
-        <Typography variant={"h6"}>Update Account</Typography>
-        <TextField
-          label={"Address"}
-          value={account.address}
-          size={"small"}
-          fullWidth
+        <DetailComponent
+          account={account}
+          hideName={true}
+          containerProps={{ marginTop: 2 }}
         />
         <TextField
           autoFocus
@@ -91,18 +151,34 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
           error={!!formState?.errors?.account_name}
           helperText={formState?.errors?.account_name?.message}
         />
+        {!passwordRemembered && (
+          <FormProvider {...methods}>
+            <Password
+              passwordName={"vault_password"}
+              labelPassword={"Vault Password"}
+              justRequire={true}
+              canGenerateRandom={false}
+              hidePasswordStrong={true}
+              containerProps={{
+                width: 1,
+                marginTop: "5px!important",
+              }}
+              errorPassword={wrongPassword ? "Wrong password" : undefined}
+            />
+          </FormProvider>
+        )}
         <Stack direction={"row"} spacing={"20px"} width={1}>
           <Button
             variant={"outlined"}
-            sx={{ textTransform: "none" }}
+            sx={{ height: 30 }}
             fullWidth
-            onClick={onClose}
+            onClick={onCancel}
           >
             Cancel
           </Button>
           <Button
             variant={"contained"}
-            sx={{ textTransform: "none", fontWeight: 600 }}
+            sx={{ height: 30, fontWeight: 600 }}
             fullWidth
             type={"submit"}
           >
@@ -111,20 +187,36 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
         </Stack>
       </>
     );
-  }, [onClose, register, account, formState]);
+  }, [
+    onCancel,
+    onUpdatedSuccessful,
+    register,
+    account,
+    formState,
+    passwordRemembered,
+    methods,
+    wrongPassword,
+  ]);
 
   return (
     <Stack
       component={"form"}
       flexGrow={1}
       alignItems={"center"}
-      justifyContent={"center"}
+      justifyContent={status === "normal" ? "flex-start" : "center"}
       onSubmit={handleSubmit(onSubmit)}
-      spacing={"15px"}
+      spacing={2.3}
     >
       {content}
     </Stack>
   );
 };
 
-export default UpdateAccount;
+const mapStateToProps = (state: RootState) => {
+  return {
+    passwordRemembered: state.vault.passwordRemembered,
+    accounts: state.vault.entities.accounts.list,
+  };
+};
+
+export default connect(mapStateToProps)(UpdateAccount);
