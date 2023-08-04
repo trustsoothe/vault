@@ -19,6 +19,7 @@ import {
   labelByProtocolMap,
 } from "../../constants/protocols";
 import OperationFailed from "../common/OperationFailed";
+import { isNetworkUrlHealthy } from "../../utils";
 
 interface FormValues {
   name: string;
@@ -55,12 +56,20 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const [status, setStatus] = useState<
-    "normal" | "loading" | "saved" | "error"
+    "normal" | "loading" | "saved" | "error" | "invalid_url"
   >("normal");
-  const { register, handleSubmit, formState, control, reset, watch, setValue } =
-    useForm<FormValues>({
-      defaultValues: { ...defaultFormValues },
-    });
+  const {
+    register,
+    handleSubmit,
+    formState,
+    control,
+    reset,
+    watch,
+    setValue,
+    setFocus,
+  } = useForm<FormValues>({
+    defaultValues: { ...defaultFormValues },
+  });
 
   const selectedProtocol = watch("protocol.name");
 
@@ -80,8 +89,20 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
   }, [networkToUpdate]);
 
   const onSubmit = useCallback(
-    (data: NetworkOptions) => {
+    async (data: NetworkOptions) => {
       setStatus("loading");
+
+      if (
+        !networkToUpdate ||
+        (networkToUpdate && networkToUpdate.rpcUrl !== data.rpcUrl)
+      ) {
+        const isHealthy = await isNetworkUrlHealthy(data);
+
+        if (!isHealthy) {
+          setStatus("invalid_url");
+          return;
+        }
+      }
 
       let id: string;
 
@@ -103,6 +124,11 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
     },
     [networkToUpdate]
   );
+
+  const onClickOk = useCallback(() => {
+    setStatus("normal");
+    setTimeout(() => setFocus("rpcUrl", { shouldSelect: true }), 25);
+  }, [setFocus]);
 
   const chainIDs: string[] = useMemo(() => {
     return chainIDsByProtocol[selectedProtocol] || [];
@@ -134,6 +160,22 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
         <OperationFailed
           text={"There was an error saving the network."}
           onCancel={onClose}
+        />
+      );
+    }
+
+    if (status === "invalid_url") {
+      return (
+        <OperationFailed
+          text={
+            "The provided RPC Url is not valid. Please introduce a valid one."
+          }
+          onCancel={onClose}
+          retryBtnText={"Ok"}
+          retryBtnProps={{
+            type: "button",
+          }}
+          onRetry={onClickOk}
         />
       );
     }
@@ -253,6 +295,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
     networkToUpdate,
     selectedProtocol,
     chainIDs,
+    onClickOk,
   ]);
 
   return (

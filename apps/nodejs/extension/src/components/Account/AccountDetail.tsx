@@ -12,6 +12,9 @@ import CopyIcon from "@mui/icons-material/ContentCopy";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
+import { getAccountBalance } from "../../redux/slices/vault";
+import { useAppDispatch } from "../../hooks/redux";
+import OperationFailed from "../common/OperationFailed";
 
 interface AccountDetailProps {
   account: SerializedAccountReference;
@@ -19,7 +22,9 @@ interface AccountDetailProps {
 }
 
 const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
+  const dispatch = useAppDispatch();
   const [loadingBalance, setLoadingBalance] = useState(false);
+  const [errorBalance, setErrorBalance] = useState(true);
   const [showCopyAddressTooltip, setShowCopyAddressTooltip] = useState(false);
   const [showCopyKeyTooltip, setShowCopyKeyTooltip] = useState(false);
   const [balance, setBalance] = useState(0);
@@ -28,17 +33,29 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
   const [loadingPrivateKey, setLoadingPrivateKey] = useState(false);
   const [privateKey, setPrivateKey] = useState<string>(null);
   const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [errorPrivateKey, setErrorPrivateKey] = useState(false);
 
-  const getAccountBalance = useCallback(() => {
+  const getBalance = useCallback(() => {
     setLoadingBalance(true);
-    setTimeout(() => {
-      setBalance(54.23);
-      setLoadingBalance(false);
-    }, 500);
-  }, []);
+    dispatch(
+      getAccountBalance({
+        address: account.address,
+        protocol: account.protocol,
+      })
+    )
+      .unwrap()
+      .then((result) => {
+        if (result) {
+          setBalance(result.amount);
+          setErrorBalance(false);
+        }
+      })
+      .catch(() => setErrorBalance(true))
+      .finally(() => setLoadingBalance(false));
+  }, [dispatch]);
 
   useEffect(() => {
-    getAccountBalance();
+    getBalance();
   }, []);
 
   const handleCopyAddress = useCallback(() => {
@@ -71,7 +88,9 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
     if (accountPassphrase) {
       setLoadingPrivateKey(true);
       setTimeout(() => {
-        if (accountPassphrase.length < 4) {
+        if (accountPassphrase.length < 3) {
+          setErrorPrivateKey(true);
+        } else if (accountPassphrase.length < 4) {
           setWrongPassphrase(true);
         } else {
           //todo: replace with functionality to get private key
@@ -89,10 +108,36 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
     setShowPrivateKey((prevState) => !prevState);
   }, []);
 
+  const onCancelErrPrivateKey = useCallback(() => {
+    setLoadingPrivateKey(false);
+    setPrivateKey(null);
+    setErrorPrivateKey(null);
+    setShowPrivateKey(null);
+    setWrongPassphrase(false);
+    setAccountPassphrase("");
+  }, []);
+
   const privateKeyComponent = useMemo(() => {
     if (loadingPrivateKey) {
       return (
-        <Typography textAlign={"center"}>Loading Private Key...</Typography>
+        <Stack height={110} alignItems={"center"} justifyContent={"center"}>
+          <Typography textAlign={"center"}>Loading Private Key...</Typography>
+        </Stack>
+      );
+    }
+
+    if (errorPrivateKey) {
+      return (
+        <OperationFailed
+          containerProps={{
+            height: 110,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          text={"There was an error loading the private key."}
+          onCancel={onCancelErrPrivateKey}
+          onRetry={loadPrivateKey}
+        />
       );
     }
 
@@ -178,6 +223,8 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
       </>
     );
   }, [
+    errorPrivateKey,
+    onCancelErrPrivateKey,
     toggleShowPrivateKey,
     loadingPrivateKey,
     privateKey,
@@ -189,6 +236,46 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
     handleCopyPrivateKey,
     showCopyKeyTooltip,
   ]);
+
+  const balanceComponent = useMemo(() => {
+    let component: React.ReactNode;
+    if (loadingBalance) {
+      component = <Skeleton width={150} height={18} variant={"rectangular"} />;
+    } else if (errorBalance) {
+      component = (
+        <Typography
+          fontSize={12}
+          color={"red"}
+          textAlign={"center"}
+          lineHeight={"24px"}
+        >
+          Error getting balance.{" "}
+          <span
+            style={{
+              textDecoration: "underline",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+            onClick={getBalance}
+          >
+            Retry
+          </span>
+        </Typography>
+      );
+    } else {
+      component = (
+        <Typography fontSize={14} lineHeight={"24px"} textAlign={"center"}>
+          Balance: <b> {balance} POKT</b>
+        </Typography>
+      );
+    }
+
+    return (
+      <Stack alignItems={"center"} justifyContent={"center"} height={24}>
+        {component}
+      </Stack>
+    );
+  }, [balance, loadingBalance, errorBalance, getBalance]);
 
   return (
     <Stack width={360}>
@@ -206,28 +293,18 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, onClose }) => {
         </IconButton>
       </Stack>
       <Stack
-        mt={"100px"}
+        mt={"80px"}
         direction={"row"}
         alignItems={"center"}
         justifyContent={"center"}
         width={1}
         spacing={"10px"}
       >
-        <Typography fontWeight={600}>{account.name}</Typography>
-        {loadingBalance ? (
-          <Skeleton width={100} height={15} variant={"rectangular"} />
-        ) : (
-          //todo: replace POKT with asset symbol
-          <Typography
-            fontSize={14}
-            lineHeight={"24px"}
-            fontWeight={600}
-            color={"gray"}
-          >
-            {balance} POKT
-          </Typography>
-        )}
+        <Typography>
+          Name: <b>{account.name}</b>
+        </Typography>
       </Stack>
+      {balanceComponent}
       <Stack
         mt={"5px"}
         direction={"row"}

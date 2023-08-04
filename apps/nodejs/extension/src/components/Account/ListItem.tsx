@@ -1,4 +1,4 @@
-import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { AccountWithBalance } from "../../types";
 import React from "react";
 import Stack, { StackProps } from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -6,7 +6,7 @@ import Skeleton from "@mui/material/Skeleton";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 
 interface ListAccountItemProps {
-  account: SerializedAccountReference;
+  account: AccountWithBalance;
   isLoadingTokens?: boolean;
   containerProps?: StackProps;
 }
@@ -32,7 +32,7 @@ const ListAccountItem: React.FC<ListAccountItemProps> = ({
             color={"dimgrey"}
             fontWeight={600}
           >
-            2 POKT
+            {account?.balance || 0} POKT
           </Typography>
         )}
       </Stack>

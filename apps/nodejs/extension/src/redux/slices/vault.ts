@@ -8,6 +8,7 @@ import type {
   AccountUpdateOptions,
 } from "@poktscan/keyring";
 import type { RootState } from "../store";
+import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import type { DisconnectBackResponse } from "../../types/communication";
 import { v4 } from "uuid";
 import browser from "webextension-polyfill";
@@ -19,7 +20,13 @@ import {
   Passphrase,
 } from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
-import { AssetStorage, getVault, NetworkStorage } from "../../utils";
+import {
+  AssetStorage,
+  getVault,
+  NetworkStorage,
+  getAccountBalance as getBalance,
+  getBalances,
+} from "../../utils";
 import { DISCONNECT_RESPONSE } from "../../constants/communication";
 
 const webEncryptionService = new WebEncryptionService();
@@ -30,6 +37,7 @@ type InitializeStatus = "loading" | "exists" | "none";
 export interface VaultSlice {
   initializeStatus?: InitializeStatus;
   isUnlockedStatus: "no" | "yes" | "unlocking";
+  passwordRemembered: boolean;
   vaultSession: SerializedSession | null;
   entities: {
     sessions: {
@@ -47,6 +55,16 @@ export interface VaultSlice {
     accounts: {
       loading: boolean;
       list: SerializedAccountReference[];
+      balances: {
+        loading: boolean;
+        byId: Record<
+          string,
+          {
+            amount: number;
+            lastUpdatedAt: number;
+          }
+        >;
+      };
     };
   };
 }
@@ -56,27 +74,36 @@ export const PASSPHRASE = v4();
 
 export const unlockVault = createAsyncThunk(
   "vault/unlockVault",
-  async (password: string) => {
+  async ({ password, remember }: { password: string; remember: boolean }) => {
     const session = await ExtensionVaultInstance.unlockVault(password);
-    const passphrase = new Passphrase(PASSPHRASE);
 
-    const passwordEncrypted = await webEncryptionService.encrypt(
-      passphrase,
-      password
-    );
+    let passwordEncrypted: string;
+    if (remember) {
+      const passphrase = new Passphrase(PASSPHRASE);
+
+      passwordEncrypted = await webEncryptionService.encrypt(
+        passphrase,
+        password
+      );
+    }
 
     const [sessions, networks, assets, accounts] = await Promise.all([
       ExtensionVaultInstance.listSessions(session.id),
       NetworkStorage.list(),
       AssetStorage.list(),
       ExtensionVaultInstance.listAccounts(session.id),
-      // @ts-ignore
-      (browser.storage.session as typeof browser.storage.local).set({
-        [session.id]: passwordEncrypted,
-      }),
+      ...(remember
+        ? [
+            // @ts-ignore
+            (browser.storage.session as typeof browser.storage.local).set({
+              [session.id]: passwordEncrypted,
+            }),
+          ]
+        : []),
     ]);
 
     return {
+      passwordRemembered: remember,
       session: session.serialize(),
       entities: {
         sessions: sessions
@@ -90,6 +117,104 @@ export const unlockVault = createAsyncThunk(
   }
 );
 
+interface GetAccountBalanceParam {
+  address: string;
+  protocol: Protocol;
+}
+
+interface GetAccountBalanceResult {
+  address: string;
+  amount: number;
+  update: boolean;
+}
+
+export const getAccountBalance = createAsyncThunk<
+  GetAccountBalanceResult,
+  GetAccountBalanceParam
+>("vault/getAccountBalance", async ({ address, protocol }, { getState }) => {
+  const state = getState() as RootState;
+  const map = state.vault.entities.accounts.balances.byId;
+  const isLoading = state.vault.entities.accounts.balances.loading;
+  const networks = state.vault.entities.networks.list;
+
+  const accountFromSaved = state.vault.entities.accounts.list.find(
+    (item) => item.address === address
+  );
+
+  if (accountFromSaved && map[accountFromSaved.id]) {
+    const value = map[accountFromSaved.id];
+
+    if (value.lastUpdatedAt > new Date().getTime() - 60000) {
+      return {
+        address,
+        amount: value.amount,
+        update: false,
+      };
+    }
+  }
+
+  if (isLoading) {
+    return null;
+  }
+
+  const balance = await getBalance(address, protocol, networks);
+
+  return {
+    address,
+    amount: balance,
+    update: !!accountFromSaved,
+  };
+});
+
+export const getAllBalances = createAsyncThunk<
+  VaultSlice["entities"]["accounts"]["balances"]["byId"]
+>("vault/getAllBalances", async (_, { getState }) => {
+  const state = getState() as RootState;
+
+  const accounts = state.vault.entities.accounts.list;
+  const networks = state.vault.entities.networks.list;
+  const map = state.vault.entities.accounts.balances.byId;
+
+  const accountsToGetBalance: SerializedAccountReference[] = [];
+  const idByAccount: Record<string, string> = {};
+
+  for (const account of accounts) {
+    const {
+      id,
+      address,
+      protocol: { chainID, name },
+    } = account;
+    if (map[id]) {
+      const value = map[id];
+
+      if (value.lastUpdatedAt > new Date().getTime() - 60000) {
+        continue;
+      }
+    }
+
+    accountsToGetBalance.push({ ...account });
+    idByAccount[`${address}_${name}_${chainID}`] = account.id;
+  }
+
+  const response = await getBalances(accountsToGetBalance, networks);
+  const lastUpdatedAt = new Date().getTime();
+
+  const resultConvertedToMap = response.reduce(
+    (acc, { address, balance, protocol: { chainID, name } }) => ({
+      ...acc,
+      [idByAccount[`${address}_${name}_${chainID}`]]: {
+        amount: balance,
+        lastUpdatedAt,
+      },
+    }),
+    {}
+  );
+
+  return {
+    ...map,
+    ...resultConvertedToMap,
+  };
+});
 export const addNewAccount = createAsyncThunk<
   {
     accountReference: SerializedAccountReference;
@@ -100,37 +225,43 @@ export const addNewAccount = createAsyncThunk<
     password: string;
     name: string;
     asset: SerializedAsset;
+    vaultPassword?: string;
   }
 >("vault/addNewAccount", async (args, context) => {
   const {
-    vault: { vaultSession },
+    vault: { vaultSession, passwordRemembered },
   } = context.getState() as RootState;
-  const passwordEncryptedObj = await // @ts-ignore
-  (browser.storage.session as typeof browser.storage.local).get(
-    vaultSession.id
-  );
+  let vaultPassword: string;
+  if (passwordRemembered) {
+    const passwordEncryptedObj = await // @ts-ignore
+    (browser.storage.session as typeof browser.storage.local).get(
+      vaultSession.id
+    );
 
-  const passphraseEncrypted: string = passwordEncryptedObj[vaultSession.id];
+    const passphraseEncrypted: string = passwordEncryptedObj[vaultSession.id];
 
-  if (!passphraseEncrypted) {
-    throw Error("Password not found");
+    if (!passphraseEncrypted) {
+      throw Error("Password not found");
+    }
+
+    const decryptPassphrase = new Passphrase(PASSPHRASE);
+    vaultPassword = await webEncryptionService.decrypt(
+      decryptPassphrase,
+      passphraseEncrypted
+    );
+  } else {
+    vaultPassword = args.vaultPassword;
   }
 
-  const decryptPassphrase = new Passphrase(PASSPHRASE);
-  const passphraseDecrypted = await webEncryptionService.decrypt(
-    decryptPassphrase,
-    passphraseEncrypted
-  );
-
+  const vaultPassphrase = new Passphrase(vaultPassword);
   const session = args.sessionId || vaultSession.id;
-  const vaultPassphrase = new Passphrase(passphraseDecrypted);
   const accountPassphrase = new Passphrase(args.password);
 
   const accountReference = await ExtensionVaultInstance.createAccount(
     session,
     vaultPassphrase,
     {
-      name: args.name,
+      name: args.name.trim(),
       asset: Asset.deserialize(args.asset),
       passphrase: accountPassphrase,
     }
@@ -146,45 +277,58 @@ export const addNewAccount = createAsyncThunk<
 
 export const updateAccount = createAsyncThunk<
   SerializedAccountReference,
-  AccountUpdateOptions
+  AccountUpdateOptions & { vaultPassword?: string }
 >("vault/updateAccount", async (arg, context) => {
   const {
-    vault: { vaultSession },
+    vault: { vaultSession, passwordRemembered },
   } = context.getState() as RootState;
+  let vaultPassword: string;
+  if (passwordRemembered) {
+    const passwordEncryptedObj = await // @ts-ignore
+    (browser.storage.session as typeof browser.storage.local).get(
+      vaultSession.id
+    );
 
-  const passwordEncryptedObj = await // @ts-ignore
-  (browser.storage.session as typeof browser.storage.local).get(
-    vaultSession.id
-  );
+    const passphraseEncrypted: string = passwordEncryptedObj[vaultSession.id];
 
-  const passphraseEncrypted: string = passwordEncryptedObj[vaultSession.id];
+    if (!passphraseEncrypted) {
+      throw Error("Password not found");
+    }
 
-  const decryptPassphrase = new Passphrase(PASSPHRASE);
-  const passphraseDecrypted = await webEncryptionService.decrypt(
-    decryptPassphrase,
-    passphraseEncrypted
-  );
-  const vaultPassphrase = new Passphrase(passphraseDecrypted);
+    const decryptPassphrase = new Passphrase(PASSPHRASE);
+    vaultPassword = await webEncryptionService.decrypt(
+      decryptPassphrase,
+      passphraseEncrypted
+    );
+  } else {
+    vaultPassword = arg.vaultPassword;
+  }
+
+  const vaultPassphrase = new Passphrase(vaultPassword);
 
   const accountReference = await ExtensionVaultInstance.updateAccountName(
     vaultSession.id,
     vaultPassphrase,
-    arg
+    {
+      id: arg.id,
+      name: arg.name.trim(),
+    }
   );
 
   return accountReference.serialize();
 });
 
-export const initVault = createAsyncThunk<void, string>(
-  "vault/initVault",
-  async (password: string) => {
-    await ExtensionVaultInstance.initializeVault(password).then(() => {
-      return browser.storage.local.set({
-        [VAULT_HAS_BEEN_INITIALIZED_KEY]: "true",
-      });
+export const initVault = createAsyncThunk<
+  void,
+  { password: string; remember: boolean }
+>("vault/initVault", async ({ password, remember }, { dispatch }) => {
+  await ExtensionVaultInstance.initializeVault(password).then(() => {
+    return browser.storage.local.set({
+      [VAULT_HAS_BEEN_INITIALIZED_KEY]: "true",
     });
-  }
-);
+  });
+  await dispatch(unlockVault({ password, remember })).unwrap();
+});
 
 export const checkInitializeStatus = createAsyncThunk<InitializeStatus>(
   "vault/checkInitializeStatus",
@@ -305,7 +449,7 @@ export const removeAsset = createAsyncThunk<string, string>(
   }
 );
 
-const emptyEntities = {
+const emptyEntities: VaultSlice["entities"] = {
   sessions: {
     loading: false,
     list: [],
@@ -321,11 +465,16 @@ const emptyEntities = {
   accounts: {
     loading: false,
     list: [],
+    balances: {
+      loading: false,
+      byId: {},
+    },
   },
 };
 
 const initialState: VaultSlice = {
   vaultSession: null,
+  passwordRemembered: false,
   initializeStatus: "loading",
   isUnlockedStatus: "no",
   entities: {
@@ -341,7 +490,7 @@ const vaultSlice = createSlice({
       ExtensionVaultInstance.lockVault();
       state.vaultSession = null;
       state.isUnlockedStatus = "no";
-
+      state.passwordRemembered = false;
       state.entities = { ...emptyEntities };
     },
   },
@@ -350,6 +499,7 @@ const vaultSlice = createSlice({
       const {
         session,
         entities: { sessions, networks, assets, accounts },
+        passwordRemembered,
       } = action.payload;
       state.vaultSession = session;
       state.isUnlockedStatus = "yes";
@@ -358,6 +508,7 @@ const vaultSlice = createSlice({
       state.entities.networks.list = networks;
       state.entities.assets.list = [...assets];
       state.entities.accounts.list = accounts;
+      state.passwordRemembered = passwordRemembered;
     });
 
     builder.addCase(initVault.fulfilled, (state) => {
@@ -535,6 +686,35 @@ const vaultSlice = createSlice({
 
       if (index !== -1) {
         state.entities.accounts.list.splice(index, 1, account);
+      }
+    });
+
+    //balances
+    builder.addCase(getAccountBalance.fulfilled, (state, action) => {
+      const result = action.payload;
+
+      if (result) {
+        const { address, amount, update } = result;
+        if (update) {
+          state.entities.accounts.balances.byId[address] = {
+            lastUpdatedAt: new Date().getTime(),
+            amount,
+          };
+        }
+      }
+    });
+
+    builder.addCase(getAllBalances.pending, (state) => {
+      state.entities.accounts.balances.loading = true;
+    });
+    builder.addCase(getAllBalances.rejected, (state) => {
+      state.entities.accounts.balances.loading = false;
+    });
+    builder.addCase(getAllBalances.fulfilled, (state, action) => {
+      const result = action.payload;
+      if (result) {
+        state.entities.accounts.balances.loading = false;
+        state.entities.accounts.balances.byId = action.payload;
       }
     });
   },

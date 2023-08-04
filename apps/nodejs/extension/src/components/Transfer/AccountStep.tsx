@@ -4,10 +4,11 @@ import type {
 } from "@mui/material";
 import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { ExternalTransferRequest } from "../../types/communication";
+import type { AccountWithBalance } from "../../types";
 import type { RootState } from "../../redux/store";
 import type { FormValues } from "./index";
 import { connect } from "react-redux";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import Stack from "@mui/material/Stack";
 import MenuItem from "@mui/material/MenuItem";
@@ -17,6 +18,8 @@ import Autocomplete from "@mui/material/Autocomplete";
 import { filterAccounts } from "../Account/List";
 import ListAccountItem from "../Account/ListItem";
 import AutocompleteAsset from "../Account/AutocompleteAsset";
+import { getAllBalances } from "../../redux/slices/vault";
+import { useAppDispatch } from "../../hooks/redux";
 
 export const isHex = (str: string) => {
   return str.match(/^[0-9a-fA-F]+$/g);
@@ -30,21 +33,40 @@ const isPrivateKey = (str: string) => isHex(str) && byteLength(str) === 128;
 interface AccountsAutocompleteProps {
   accounts: RootState["vault"]["entities"]["accounts"]["list"];
   fromAddressStatus: string | null;
+  balanceByIdMap: RootState["vault"]["entities"]["accounts"]["balances"]["byId"];
 }
 
 const AccountsAutocompleteFC: React.FC<AccountsAutocompleteProps> = ({
   accounts,
   fromAddressStatus,
+  balanceByIdMap,
 }) => {
+  const dispatch = useAppDispatch();
   const { control } = useFormContext<FormValues>();
+
+  useEffect(() => {
+    dispatch(getAllBalances());
+    const timeout = setInterval(() => {
+      dispatch(getAllBalances());
+    }, 60000);
+
+    return () => clearInterval(timeout);
+  }, [dispatch]);
+
+  const accountsWithBalance: AccountWithBalance[] = useMemo(() => {
+    return accounts.map((item) => ({
+      ...item,
+      balance: balanceByIdMap[item.id]?.amount || 0,
+    }));
+  }, [accounts, balanceByIdMap]);
 
   const accountsMap: Record<string, SerializedAccountReference> =
     useMemo(() => {
-      return accounts.reduce(
+      return accountsWithBalance.reduce(
         (acc, item) => ({ ...acc, [item.address]: item }),
         {}
       );
-    }, [accounts]);
+    }, [accountsWithBalance]);
 
   const filterOptions = useCallback(
     (_: never, state: FilterOptionsState<string>) => {
@@ -151,6 +173,7 @@ const AccountsAutocompleteFC: React.FC<AccountsAutocompleteProps> = ({
 const mapStateToAccountProps = (state: RootState) => {
   return {
     accounts: state.vault.entities.accounts.list,
+    balanceByIdMap: state.vault.entities.accounts.balances.byId,
   };
 };
 
@@ -217,11 +240,11 @@ const NetworkAutocompleteFC: React.FC<NetworkAutocompleteProps> = ({
               fontSize: "12px!important",
             },
           }}
+          direction={"row"}
+          spacing={"5px"}
         >
-          <Typography>
-            <b>{option.name}</b> ({option.isDefault ? "Default" : "Custom"})
-          </Typography>
-          <Typography>RPC Url: {option.rpcUrl}</Typography>
+          <Typography fontWeight={600}>{option.rpcUrl}</Typography>
+          <Typography>({option.isDefault ? "Default" : "Custom"})</Typography>
         </Stack>
       );
     },
@@ -229,9 +252,7 @@ const NetworkAutocompleteFC: React.FC<NetworkAutocompleteProps> = ({
   );
 
   const getOptionLabel = useCallback((option: TNetwork[0]) => {
-    return option
-      ? `${option.name} (${option.isDefault ? "Default" : "Custom"})`
-      : "";
+    return option ? option.rpcUrl : "";
   }, []);
 
   const isOptionEqualToValue = useCallback(
@@ -241,13 +262,15 @@ const NetworkAutocompleteFC: React.FC<NetworkAutocompleteProps> = ({
     []
   );
 
+  const disabled = !asset || allowedNetworks?.length === 1;
+
   return (
     <Controller
       name={"network"}
       control={control}
       rules={{ required: "Required" }}
       render={({
-        field: { onChange, value, ...otherProps },
+        field: { onChange, value, ref, ...otherProps },
         fieldState: { error },
       }) => (
         <Autocomplete
@@ -262,21 +285,28 @@ const NetworkAutocompleteFC: React.FC<NetworkAutocompleteProps> = ({
           sx={{
             width: 1,
           }}
+          openOnFocus
           ListboxProps={{
             sx: {
               maxHeight: 225,
             },
           }}
-          disabled={!asset}
+          disabled={disabled}
           renderInput={(params) => (
             <TextField
               {...params}
-              label={"Network"}
+              inputRef={ref}
+              label={"RPC Endpoint"}
               fullWidth
               size={"small"}
-              disabled={!asset}
+              disabled={disabled}
               error={!!error}
               helperText={error?.message}
+              sx={{
+                "& input": {
+                  fontSize: 14,
+                },
+              }}
             />
           )}
         />

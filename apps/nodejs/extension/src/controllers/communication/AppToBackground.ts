@@ -66,21 +66,27 @@ export default class AppToBackground {
   }
 
   static async initializeVault(
-    password: string
+    password: string,
+    rememberPass: boolean
   ): Promise<InitializeVaultResponse> {
     return browser.runtime.sendMessage({
       type: INITIALIZE_VAULT_REQUEST,
       data: {
         password,
+        remember: rememberPass,
       },
     } as InitializeVaultRequest);
   }
 
-  static async unlockVault(password: string): Promise<UnlockVaultResponse> {
+  static async unlockVault(
+    password: string,
+    rememberPass: boolean
+  ): Promise<UnlockVaultResponse> {
     return browser.runtime.sendMessage({
       type: UNLOCK_VAULT_REQUEST,
       data: {
         password,
+        remember: rememberPass,
       },
     } as UnlockVaultRequest);
   }

@@ -25,6 +25,7 @@ import {
   TRANSFER_RESPONSE,
 } from "../constants/communication";
 import {
+  AmountHigherThanBalance,
   AmountNotPresented,
   AmountNotValid,
   ForbiddenSession,
@@ -38,6 +39,7 @@ import {
   NotConnected,
   OriginBlocked,
   OriginNotPresented,
+  ProtocolNotPresented,
   RequestConnectionExists,
   RequestNewAccountExists,
   RequestTransferExists,
@@ -288,7 +290,8 @@ export type ExternalTransferErrors =
   | typeof SessionIdNotPresented
   | typeof InvalidSession
   | typeof ForbiddenSession
-  | typeof RequestTransferExists;
+  | typeof RequestTransferExists
+  | typeof AmountHigherThanBalance;
 
 export type ProxyTransferError =
   | ExternalTransferErrors
@@ -302,6 +305,7 @@ export type ProxyTransferError =
   | typeof ToAddressNotValid
   | typeof MemoNotValid
   | typeof InvalidProtocol
+  | typeof ProtocolNotPresented
   | null;
 
 export interface ProxyTransferRequest extends BaseProxyRequest {
@@ -415,7 +419,9 @@ export type ListAccountsRequestMessage = BaseRequestWithSession<
   typeof LIST_ACCOUNTS_REQUEST
 >;
 
-export type AccountItem = SerializedAccountReference;
+export interface AccountItem extends SerializedAccountReference {
+  balance: number;
+}
 
 export type ExternalListAccountsErrors =
   | BaseErrors

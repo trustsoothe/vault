@@ -64,6 +64,7 @@ import {
   InvalidProtocol,
   MemoNotValid,
   NotConnected,
+  ProtocolNotPresented,
   ToAddressNotPresented,
   ToAddressNotValid,
   UnknownError,
@@ -557,7 +558,7 @@ class ProxyCommunicationController {
     let requestWasSent = false;
     try {
       if (this._session) {
-        const { fromAddress, toAddress, amount } = data || {};
+        const { fromAddress, toAddress, amount, protocol } = data || {};
         let transferData: TTransferRequestBody;
 
         if (!fromAddress) {
@@ -570,6 +571,10 @@ class ProxyCommunicationController {
 
         if (!amount) {
           return this._sendTransferResponse(null, AmountNotPresented);
+        }
+
+        if (!protocol) {
+          return this._sendTransferResponse(null, ProtocolNotPresented);
         }
 
         try {

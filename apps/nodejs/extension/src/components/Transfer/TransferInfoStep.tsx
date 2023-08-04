@@ -17,17 +17,25 @@ const isAddress = (str: string) => isHex(str) && byteLength(str) === 40;
 interface TransferInfoStepProps {
   fromBalance: number;
   isLoadingBalance?: boolean;
+  errorBalance?: boolean;
+  getBalance?: () => void;
   isLoadingFee?: boolean;
+  errorFee?: boolean;
+  getFee?: () => void;
   fee: number;
   request?: ExternalTransferRequest;
 }
 
 const TransferInfoStep: React.FC<TransferInfoStepProps> = ({
-  isLoadingFee,
   request,
   fromBalance,
   isLoadingBalance,
+  errorBalance,
+  getBalance,
   fee,
+  isLoadingFee,
+  errorFee,
+  getFee,
 }) => {
   const { control, register, setValue, clearErrors, formState } =
     useFormContext<FormValues>();
@@ -49,13 +57,13 @@ const TransferInfoStep: React.FC<TransferInfoStepProps> = ({
         rules={{
           required: "Required",
           min: {
-            value: 0.01,
+            value: fromBalance === 0 ? 0 : 0.01,
             message: "Min is 0.01",
           },
           max: fromBalance
             ? {
-                value: fromBalance,
-                message: `Max is ${fromBalance}`,
+                value: fromBalance - fee || 0,
+                message: `Max is ${fromBalance - fee || 0}`,
               }
             : undefined,
         }}
@@ -66,16 +74,22 @@ const TransferInfoStep: React.FC<TransferInfoStepProps> = ({
             autoFocus
             size={"small"}
             type={"number"}
-            disabled={!!request?.amount}
-            error={!!error?.message}
+            disabled={!!request?.amount || fromBalance === 0}
+            error={
+              !!error?.message || fromBalance === 0 || errorFee || errorBalance
+            }
             InputLabelProps={{ shrink: !!field.value }}
             helperText={
               <AmountHelperText
                 isLoadingBalance={isLoadingBalance}
                 accountBalance={fromBalance}
+                errorBalance={errorBalance}
+                getBalance={getBalance}
                 disableAll={!!request?.amount}
                 transferFee={fee}
                 isLoadingFee={isLoadingFee}
+                errorFee={errorFee}
+                getFee={getFee}
                 onClickAll={onClickAll}
               />
             }

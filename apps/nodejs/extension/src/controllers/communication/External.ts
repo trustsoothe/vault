@@ -17,6 +17,7 @@ import type {
 } from "../../types/communication";
 import browser, { type Runtime } from "webextension-polyfill";
 import {
+  AmountHigherThanBalance,
   OriginBlocked,
   OriginNotPresented,
   RequestConnectionExists,
@@ -48,8 +49,19 @@ import {
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
-import { getVault, returnExtensionErr } from "../../utils";
-import { revokeSession } from "../../redux/slices/vault";
+import {
+  getAccountBalance,
+  getFee,
+  getVault,
+  NetworkStorage,
+  returnExtensionErr,
+} from "../../utils";
+import {
+  getAccountBalance as getAccountBalanceFromState,
+  getAllBalances,
+  revokeSession,
+} from "../../redux/slices/vault";
+import { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -276,6 +288,42 @@ class ExternalCommunicationController {
         return returnExtensionErr(error, TRANSFER_RESPONSE);
       }
 
+      const state = store.getState();
+      let balance, networks;
+
+      const isUnlocked = state.vault.isUnlockedStatus === "yes";
+
+      if (isUnlocked) {
+        networks = state.vault.entities.networks.list;
+
+        const result = await store
+          .dispatch(
+            getAccountBalanceFromState({
+              address: fromAddress,
+              protocol: protocol as Protocol,
+            })
+          )
+          .unwrap();
+        balance = result.amount;
+      } else {
+        networks = await NetworkStorage.list();
+        balance = await getAccountBalance(
+          fromAddress,
+          protocol as Protocol,
+          networks
+        );
+      }
+
+      const fee = await getFee(protocol as Protocol, networks);
+
+      if (amount > balance - fee) {
+        return {
+          type: TRANSFER_RESPONSE,
+          error: AmountHigherThanBalance,
+          data: null,
+        };
+      }
+
       return this._addExternalRequest(
         {
           type: TRANSFER_REQUEST,
@@ -462,12 +510,15 @@ class ExternalCommunicationController {
       }
 
       const accounts = await ExtensionVaultInstance.listAccounts(sessionId);
+      const balanceByIdMap = await store.dispatch(getAllBalances()).unwrap();
 
       return {
         type: LIST_ACCOUNTS_RESPONSE,
         data: {
-          // todo: add logic to add balance
-          accounts: accounts.map((item) => item.serialize()),
+          accounts: accounts.map((item) => ({
+            ...item.serialize(),
+            balance: balanceByIdMap[item.id]?.amount || 0,
+          })),
         },
         error: null,
       };

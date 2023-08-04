@@ -8,6 +8,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import OperationFailed from "../common/OperationFailed";
+import { nameRules } from "./CreateNew";
 
 interface FormValues {
   account_name: string;
@@ -86,7 +87,7 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({ account, onClose }) => {
           label={"Account Name"}
           size={"small"}
           fullWidth
-          {...register("account_name", { required: "Required" })}
+          {...register("account_name", nameRules)}
           error={!!formState?.errors?.account_name}
           helperText={formState?.errors?.account_name?.message}
         />

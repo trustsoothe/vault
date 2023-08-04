@@ -23,6 +23,21 @@ interface FormValues {
   asset: SerializedAsset | null;
 }
 
+export const nameRules = {
+  required: "Required",
+  maxLength: {
+    value: 50,
+    message: "The max amount of characters is 50.",
+  },
+  validate: (value) => {
+    if (!value.trim()) {
+      return "Required";
+    }
+
+    return true;
+  },
+};
+
 type FormStatus = "normal" | "loading" | "error" | "submitted";
 
 interface CreateNewAccountProps {
@@ -151,20 +166,10 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
           label={"Account Name"}
           size={"small"}
           fullWidth
-          autoFocus
           autoComplete={"off"}
           error={!!errors?.account_name}
           helperText={errors?.account_name?.message}
-          {...register("account_name", {
-            required: "Required",
-            validate: (value) => {
-              if (!value.trim()) {
-                return "Required";
-              }
-
-              return true;
-            },
-          })}
+          {...register("account_name", nameRules)}
         />
         <TextField
           label={"Account Password"}
@@ -196,7 +201,6 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({ assets }) => {
             variant={"contained"}
             fullWidth
             type={"submit"}
-            disabled={!isValid}
           >
             Create
           </Button>

@@ -76,10 +76,22 @@ export const MemoNotValid = createError(
   "memo is not valid."
 );
 
+export const ProtocolNotPresented = createError(
+  "PROTOCOL_NOT_PRESENTED",
+  17,
+  "protocol was not presented in the payload."
+);
+
 export const InvalidProtocol = createError(
   "INVALID_PROTOCOL",
   14,
   "The protocol passed is not valid."
+);
+
+export const AmountHigherThanBalance = createError(
+  "AMOUNT_HIGHER_THAN_BALANCE",
+  15,
+  "The amount passed is higher than the account balance."
 );
 
 export const InvalidBody = createError(

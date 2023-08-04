@@ -1,8 +1,10 @@
 import type { RootState } from "../redux/store";
 import type { RequestsType } from "../redux/slices/app";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import { FormProvider, useForm } from "react-hook-form";
 import Typography from "@mui/material/Typography";
-import TextField from "@mui/material/TextField";
+import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { connect } from "react-redux";
@@ -10,6 +12,7 @@ import RequestFrom from "./common/RequestFrom";
 import AppToBackground from "../controllers/communication/AppToBackground";
 import CircularLoading from "./common/CircularLoading";
 import OperationFailed from "./common/OperationFailed";
+import Password from "./common/Password";
 
 interface UnlockVaultProps {
   currentRequest?: RequestsType;
@@ -19,44 +22,52 @@ const UnlockVault: React.FC<UnlockVaultProps> = ({ currentRequest }) => {
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
   );
+  const methods = useForm({
+    defaultValues: {
+      password: "",
+    },
+  });
+  const { handleSubmit, watch } = methods;
+  const [password] = watch(["password"]);
+  const [rememberPass, setRememberPass] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [password, setPassword] = useState("");
   const [wrongPassword, setWrongPassword] = useState(false);
 
   useEffect(() => {
     setIsRequesting(window.location.search.includes("view=request"));
   }, []);
 
-  const toggleShowPassword = useCallback(() => {
-    setShowPassword((prevState) => !prevState);
-  }, []);
-
-  const onChangePasswordText = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setPassword(event.target.value);
-      if (wrongPassword) {
-        setWrongPassword(false);
-      }
-    },
-    [wrongPassword]
-  );
-
-  const onClickUnlock = useCallback(() => {
-    if (password) {
-      setStatus("loading");
-      AppToBackground.unlockVault(password).then((response) => {
-        if (response.error) {
-          setStatus("error");
-        } else {
-          setStatus("normal");
-          if (response?.data?.isPasswordWrong) {
-            setWrongPassword(true);
-          }
-        }
-      });
+  useEffect(() => {
+    if (wrongPassword) {
+      setWrongPassword(false);
     }
   }, [password]);
+
+  const onChangeRemember = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setRememberPass(event.target.checked);
+    },
+    []
+  );
+
+  const onSubmit = useCallback(
+    (data) => {
+      setStatus("loading");
+      AppToBackground.unlockVault(data.password, rememberPass).then(
+        (response) => {
+          if (response.error) {
+            setStatus("error");
+          } else {
+            setStatus("normal");
+            if (response?.data?.isPasswordWrong) {
+              setWrongPassword(true);
+            }
+          }
+        }
+      );
+    },
+    [rememberPass]
+  );
 
   const requestComponent = useMemo(() => {
     if (!isRequesting || !currentRequest) {
@@ -105,42 +116,51 @@ const UnlockVault: React.FC<UnlockVaultProps> = ({ currentRequest }) => {
 
   if (status === "error") {
     return (
-      <OperationFailed
-        text={"There was an error trying unlock the vault."}
-        onRetry={onClickUnlock}
-      />
+      <OperationFailed text={"There was an error trying unlock the vault."} />
     );
   }
 
   return (
-    <Stack flexGrow={1}>
+    <Stack flexGrow={1} component={"form"} onSubmit={handleSubmit(onSubmit)}>
       <Typography variant={"h5"}>Unlock Vault</Typography>
       <Typography fontSize={14} marginY={"10px"}>
         Make sure no one is looking when you type your password.
       </Typography>
       {requestComponent}
-      <Button
-        onClick={toggleShowPassword}
+      <FormProvider {...methods}>
+        <Password
+          passwordName={"password"}
+          canGenerateRandom={false}
+          hidePasswordStrong={true}
+          labelPassword={"Password"}
+          justRequire={true}
+          containerProps={{
+            spacing: "10px",
+          }}
+          errorPassword={wrongPassword ? "Wrong password" : undefined}
+        />
+      </FormProvider>
+      <FormControlLabel
         sx={{
-          fontSize: "12px",
-          textTransform: "none",
-          width: 50,
-          minWidth: 50,
-          alignSelf: "flex-end",
-          marginTop: requestComponent ? "25px" : "50px",
+          userSelect: "none",
+          alignSelf: "flex-start",
+          mt: "10px!important",
+          ml: "10px!important",
+          "& .MuiButtonBase-root": {
+            padding: 0,
+          },
+          "& svg": {
+            fontSize: "18px!important",
+          },
+          "& .MuiTypography-root": {
+            marginLeft: "5px",
+            fontSize: "12px!important",
+          },
         }}
-      >
-        {showPassword ? "Hide" : "Show"}
-      </Button>
-      <TextField
-        autoFocus
-        label={"Password"}
-        size={"small"}
-        value={password}
-        onChange={onChangePasswordText}
-        type={showPassword ? "text" : "password"}
-        error={wrongPassword}
-        helperText={wrongPassword ? "Wrong password" : undefined}
+        control={
+          <Checkbox onChange={onChangeRemember} checked={rememberPass} />
+        }
+        label={"Remember password for session"}
       />
       <Button
         sx={{
@@ -153,8 +173,7 @@ const UnlockVault: React.FC<UnlockVaultProps> = ({ currentRequest }) => {
           borderRadius: "100px",
         }}
         variant={"contained"}
-        disabled={!password}
-        onClick={onClickUnlock}
+        type={"submit"}
       >
         Unlock Vault
       </Button>

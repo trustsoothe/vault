@@ -18,7 +18,14 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 import AccountStep from "./AccountStep";
 import TransferInfoStep from "./TransferInfoStep";
 import OperationFailed from "../common/OperationFailed";
-import { getAssetByProtocol } from "../../utils";
+import {
+  getAssetByProtocol,
+  getFee,
+  isAddress,
+  isTransferHealthyForNetwork,
+} from "../../utils";
+import { useAppDispatch } from "../../hooks/redux";
+import { getAccountBalance } from "../../redux/slices/vault";
 
 export interface FormValues {
   fromType: "saved_account" | "private_key";
@@ -34,16 +41,23 @@ export interface FormValues {
 interface TransferProps {
   accounts: SerializedAccountReference[];
   assets: SerializedAsset[];
+  networks: SerializedNetwork[];
 }
 
-const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
+const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const requesterInfo: ExternalTransferRequest = location.state;
   const [searchParams] = useSearchParams();
 
   const [status, setStatus] = useState<
-    "loading" | "error" | "setAccount" | "setTransferData" | "submitted"
+    | "loading"
+    | "error"
+    | "setAccount"
+    | "setTransferData"
+    | "submitted"
+    | "invalid_network"
   >("setAccount");
   const methods = useForm<FormValues>({
     mode: "onChange",
@@ -67,6 +81,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
     handleSubmit,
     formState,
     getFieldState,
+    setFocus,
   } = methods;
 
   const [fromAddressStatus, setFromAddressStatus] = useState<string>(null);
@@ -96,8 +111,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
   }, [fromType]);
 
   useEffect(() => {
-    const fromState = getFieldState("from");
-    if (from && !fromState.invalid && fromType === "saved_account") {
+    if (from && isAddress(from) && fromType === "saved_account") {
       const account = accounts.find((value) => value.address === from);
 
       if (account) {
@@ -108,22 +122,44 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
     }
   }, [from]);
 
+  useEffect(() => {
+    if (asset) {
+      const networkToSelect = networks.find(
+        (item) =>
+          item.protocol.chainID === asset.protocol.chainID &&
+          item.protocol.name === asset.protocol.name &&
+          item.isDefault
+      );
+
+      if (networkToSelect) {
+        setValue("network", networkToSelect);
+      }
+    }
+  }, [asset, networks]);
+
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [fromBalance, setFromBalance] = useState<number>(null);
+  const [errorBalance, setErrorBalance] = useState(false);
 
   const getFromBalance = useCallback(() => {
     const fromState = getFieldState("from");
-    if (from && !fromState.invalid) {
+    if (from && asset && !fromState.invalid) {
       setIsLoadingBalance(true);
-      //todo: add logic to fetch from balance
-      setTimeout(() => {
-        setFromBalance(502.31);
-        setIsLoadingBalance(false);
-      }, 1000);
+      const address = fromType === "saved_account" ? from : from.slice(0, 40);
+      dispatch(getAccountBalance({ address, protocol: asset.protocol }))
+        .unwrap()
+        .then((result) => {
+          if (result) {
+            setFromBalance(result.amount);
+            setErrorBalance(false);
+          }
+        })
+        .catch((e) => setErrorBalance(true))
+        .finally(() => setIsLoadingBalance(false));
     } else {
       setFromBalance(null);
     }
-  }, [from, getFieldState]);
+  }, [from, getFieldState, dispatch, fromType, asset]);
 
   useEffect(() => {
     getFromBalance();
@@ -131,19 +167,22 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
 
   const [isLoadingFee, setIsLoadingFee] = useState<boolean>(false);
   const [assetFee, setAssetFee] = useState<number>(null);
+  const [errorFee, setErrorFee] = useState(false);
 
   const getAssetFee = useCallback(() => {
     if (asset?.id) {
       setIsLoadingFee(true);
-      //todo: add logic to fetch fee
-      setTimeout(() => {
-        setAssetFee(0.01);
-        setIsLoadingFee(false);
-      }, 1000);
+      getFee(asset.protocol, networks)
+        .then((result) => {
+          setAssetFee(result);
+          setErrorFee(false);
+        })
+        .catch((e) => setErrorFee(true))
+        .finally(() => setIsLoadingFee(false));
     } else {
       setAssetFee(null);
     }
-  }, [asset]);
+  }, [asset, networks]);
 
   useEffect(() => {
     getAssetFee();
@@ -157,7 +196,13 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
     const address = fromAddress;
 
     if (address) {
-      if (accounts.some((account) => account.address === address)) {
+      const account = accounts.find((account) => account.address === address);
+      if (
+        (requesterInfo &&
+          requesterInfo.protocol.name === account.protocol.name &&
+          requesterInfo.protocol.chainID === account.protocol.chainID) ||
+        (!requesterInfo && account)
+      ) {
         setValue("from", address);
         setFromAddressStatus("is_account_saved");
       } else {
@@ -189,6 +234,14 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
       }
 
       setStatus("loading");
+
+      const isHealthy = await isTransferHealthyForNetwork(data.network);
+
+      if (!isHealthy) {
+        setStatus("invalid_network");
+        return;
+      }
+
       const response = await AppToBackground.sendRequestToAnswerTransfer({
         rejected: false,
         transferData: {
@@ -210,6 +263,12 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
     },
     [requesterInfo, status]
   );
+
+  const onClickOk = useCallback(() => {
+    setStatus("setAccount");
+    setValue("network", null);
+    setTimeout(() => setFocus("network"), 25);
+  }, [setFocus, setValue]);
 
   const onClickCancel = useCallback(async () => {
     if (status === "setTransferData") {
@@ -246,6 +305,22 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
       );
     }
 
+    if (status === "invalid_network") {
+      return (
+        <OperationFailed
+          text={
+            "The provided network is unhealthy at the moment. Please select another one."
+          }
+          onCancel={onClickCancel}
+          retryBtnText={"Ok"}
+          retryBtnProps={{
+            type: "button",
+          }}
+          onRetry={onClickOk}
+        />
+      );
+    }
+
     if (status === "submitted") {
       return (
         <>
@@ -274,6 +349,10 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
         fromBalance={fromBalance}
         isLoadingBalance={isLoadingBalance}
         request={requesterInfo}
+        errorBalance={errorBalance}
+        errorFee={errorFee}
+        getBalance={getFromBalance}
+        getFee={getAssetFee}
       />
     );
 
@@ -327,6 +406,9 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
               backgroundColor: "rgb(29, 138, 237)",
               fontWeight: 600,
             }}
+            disabled={
+              status === "setTransferData" && (errorFee || errorBalance)
+            }
             type={"submit"}
           >
             {primaryBtnText}
@@ -335,6 +417,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
       </>
     );
   }, [
+    onClickOk,
     status,
     register,
     control,
@@ -350,6 +433,10 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
     fromType,
     accounts,
     navigate,
+    errorBalance,
+    errorFee,
+    getFromBalance,
+    getAssetFee,
   ]);
 
   return (
@@ -373,6 +460,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets }) => {
 const mapStateToProps = (state: RootState) => ({
   accounts: state.vault.entities.accounts.list,
   assets: state.vault.entities.assets.list,
+  networks: state.vault.entities.networks.list,
 });
 
 export default connect(mapStateToProps)(Transfer);

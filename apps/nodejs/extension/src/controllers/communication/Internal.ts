@@ -84,6 +84,7 @@ export interface AnswerNewAccountRequest {
   type: typeof ANSWER_NEW_ACCOUNT_REQUEST;
   data: {
     rejected?: boolean;
+    vaultPassword?: string;
     accountData: {
       name: string;
       password: string;
@@ -106,6 +107,7 @@ export interface AnswerTransferRequest {
   type: typeof ANSWER_TRANSFER_REQUEST;
   data: {
     rejected?: boolean;
+    vaultPassword?: string;
     transferData: {
       from:
         | string
@@ -133,7 +135,8 @@ export type AnswerTransferResponse = BaseResponse<
 export interface VaultRequestWithPass<T extends string> {
   type: T;
   data: {
-    password;
+    password: string;
+    remember: boolean;
   };
 }
 
@@ -177,6 +180,7 @@ export type RevokeSessionResponse = BaseResponse<
 export interface UpdateAccountMessage {
   type: typeof UPDATE_ACCOUNT_REQUEST;
   data: {
+    vaultPassword?: string;
     id: string;
     name: string;
   };
@@ -273,11 +277,11 @@ class InternalCommunicationController {
     }
 
     if (message?.type === INITIALIZE_VAULT_REQUEST) {
-      return this._handleInitializeVault(message.data.password);
+      return this._handleInitializeVault(message.data);
     }
 
     if (message?.type === UNLOCK_VAULT_REQUEST) {
-      return this._handleUnlockVault(message.data.password);
+      return this._handleUnlockVault(message.data);
     }
 
     if (message?.type === LOCK_VAULT_REQUEST) {
@@ -294,10 +298,10 @@ class InternalCommunicationController {
   }
 
   private async _handleInitializeVault(
-    password: string
+    data: InitializeVaultRequest["data"]
   ): Promise<InitializeVaultResponse> {
     try {
-      await store.dispatch(initVault(password)).unwrap();
+      await store.dispatch(initVault(data)).unwrap();
 
       return {
         type: INITIALIZE_VAULT_RESPONSE,
@@ -316,10 +320,10 @@ class InternalCommunicationController {
   }
 
   private async _handleUnlockVault(
-    password: string
+    data: UnlockVaultRequest["data"]
   ): Promise<UnlockVaultResponse> {
     try {
-      await store.dispatch(unlockVault(password)).unwrap();
+      await store.dispatch(unlockVault(data)).unwrap();
 
       return {
         type: UNLOCK_VAULT_RESPONSE,
@@ -524,7 +528,8 @@ class InternalCommunicationController {
     message: AnswerNewAccountRequest
   ): Promise<AnswerNewAccountResponse> {
     try {
-      const { rejected, request, accountData } = message?.data;
+      const { rejected, request, accountData, vaultPassword } =
+        message?.data || {};
 
       let address: string | null = null;
       let response: InternalNewAccountResponse;
@@ -556,6 +561,7 @@ class InternalCommunicationController {
               asset: accountData.asset,
               password: accountData.password,
               name: accountData.name,
+              vaultPassword,
             })
           )
           .unwrap();
@@ -622,7 +628,8 @@ class InternalCommunicationController {
     message: AnswerTransferRequest
   ): Promise<AnswerTransferResponse> {
     try {
-      const { rejected, request, transferData } = message?.data;
+      const { rejected, request, transferData, vaultPassword } =
+        message?.data || {};
 
       let hash: string | null = null;
       let response: InternalTransferResponse;

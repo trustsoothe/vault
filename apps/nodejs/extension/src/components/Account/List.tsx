@@ -1,4 +1,5 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { AccountWithBalance } from "../../types";
 import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { connect } from "react-redux";
@@ -24,9 +25,13 @@ import ListAccountItem from "./ListItem";
 import AccountDetail from "./AccountDetail";
 import useDebounce from "../../hooks/useDebounce";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
+import { useAppDispatch } from "../../hooks/redux";
+import { getAllBalances } from "../../redux/slices/vault";
 
 interface AccountListProps {
   accounts: SerializedAccountReference[];
+  isLoadingTokens: boolean;
+  balanceByIdMap: RootState["vault"]["entities"]["accounts"]["balances"]["byId"];
 }
 
 export const filterAccounts = (
@@ -62,7 +67,12 @@ export const filterAccounts = (
   });
 };
 
-const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
+const AccountList: React.FC<AccountListProps> = ({
+  accounts,
+  balanceByIdMap,
+  isLoadingTokens,
+}) => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [view, setView] = useState<"list" | "update" | "remove" | "detail">(
     "list"
@@ -71,13 +81,15 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
     useState<SerializedAccountReference>(null);
   const [searchText, setSearchText] = useState("");
   const debouncedSearchText = useDebounce(searchText);
-  const [isLoadingTokens, setIsLoadingTokens] = useState(true);
 
   useEffect(() => {
-    const timeout = setTimeout(() => setIsLoadingTokens(false), 3000);
+    dispatch(getAllBalances());
+    const timeout = setInterval(() => {
+      dispatch(getAllBalances());
+    }, 60000);
 
-    return () => clearTimeout(timeout);
-  }, []);
+    return () => clearInterval(timeout);
+  }, [dispatch]);
 
   const onChangeSearchText = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,13 +135,20 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
     setView("list");
   }, []);
 
-  const searchedAccounts: SerializedAccountReference[] = useMemo(() => {
-    return filterAccounts(debouncedSearchText, accounts);
-  }, [accounts, debouncedSearchText]);
+  const accountsWithBalance: AccountWithBalance[] = useMemo(() => {
+    return accounts.map((item) => ({
+      ...item,
+      balance: balanceByIdMap[item.id]?.amount || 0,
+    }));
+  }, [accounts, balanceByIdMap]);
+
+  const searchedAccounts: AccountWithBalance[] = useMemo(() => {
+    return filterAccounts(debouncedSearchText, accountsWithBalance);
+  }, [accountsWithBalance, debouncedSearchText]);
 
   const accountListComponent = useMemo(() => {
-    if (!accounts.length || !searchedAccounts.length) {
-      const text = !accounts.length
+    if (!accountsWithBalance.length || !searchedAccounts.length) {
+      const text = !accountsWithBalance.length
         ? "You do not have any account yet."
         : "No Results.";
       return (
@@ -217,7 +236,7 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
       </FixedSizeList>
     );
   }, [
-    accounts,
+    accountsWithBalance,
     onClickUpdateAccount,
     onClickRemoveAccount,
     isLoadingTokens,
@@ -328,6 +347,8 @@ const AccountList: React.FC<AccountListProps> = ({ accounts }) => {
 const mapStateToProps = (state: RootState) => {
   return {
     accounts: state.vault.entities.accounts.list,
+    isLoadingTokens: state.vault.entities.accounts.balances.loading,
+    balanceByIdMap: state.vault.entities.accounts.balances.byId,
   };
 };
 

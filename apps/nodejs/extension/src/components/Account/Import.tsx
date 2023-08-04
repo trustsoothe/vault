@@ -6,13 +6,15 @@ import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import { useLocation, useNavigate } from "react-router-dom";
 import Divider from "@mui/material/Divider";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 import CircularLoading from "../common/CircularLoading";
 import { RootState } from "../../redux/store";
 import { connect } from "react-redux";
 import { SerializedAsset } from "@poktscan/keyring";
 import AutocompleteAsset from "./AutocompleteAsset";
 import OperationFailed from "../common/OperationFailed";
+import { nameRules } from "./CreateNew";
+import Password from "../common/Password";
 
 export const isHex = (str: string) => {
   return str.match(/^[0-9a-fA-F]+$/g);
@@ -37,24 +39,18 @@ type FormStatus = "normal" | "loading" | "error" | "submitted";
 
 interface ImportAccountProps {
   assets: RootState["vault"]["entities"]["assets"]["list"];
+  passwordRemembered: RootState["vault"]["passwordRemembered"];
 }
 
-const ImportAccount: React.FC<ImportAccountProps> = ({ assets }) => {
+const ImportAccount: React.FC<ImportAccountProps> = ({
+  passwordRemembered,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [status, setStatus] = useState<FormStatus>("normal");
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    formState,
-    watch,
-    clearErrors,
-    setValue,
-    getValues,
-  } = useForm<FormValues>({
+  const methods = useForm<FormValues>({
     defaultValues: {
       import_type: "private_key",
       private_key: "",
@@ -65,6 +61,16 @@ const ImportAccount: React.FC<ImportAccountProps> = ({ assets }) => {
       asset: null,
     },
   });
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState,
+    watch,
+    clearErrors,
+    setValue,
+    getValues,
+  } = methods;
 
   const type = watch("import_type");
 
@@ -157,7 +163,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({ assets }) => {
                 {...field}
               >
                 <MenuItem value={"private_key"}>Private Key</MenuItem>
-                <MenuItem value={"json_file"}>JSON File</MenuItem>
+                <MenuItem value={"json_file"}>Portable Wallet</MenuItem>
               </TextField>
             )}
           />
@@ -205,7 +211,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({ assets }) => {
             width={1}
           >
             <Stack direction={"row"} spacing={"5px"} alignItems={"center"}>
-              <Typography fontSize={12}>Select JSON file: </Typography>
+              <Typography fontSize={12}>Select Portable Wallet: </Typography>
               <Controller
                 control={control}
                 name={"json_file"}
@@ -270,19 +276,30 @@ const ImportAccount: React.FC<ImportAccountProps> = ({ assets }) => {
           fullWidth
           label={"Account Name"}
           size={"small"}
-          {...register("account_name", { required: "Required" })}
+          {...register("account_name", nameRules)}
           error={!!formState?.errors?.account_name}
           helperText={formState?.errors?.account_name?.message}
         />
-        <TextField
-          fullWidth
-          label={"Account Password"}
-          size={"small"}
-          type={"password"}
-          {...register("account_password", { required: "Required" })}
-          error={!!formState?.errors?.account_password}
-          helperText={formState?.errors?.account_password?.message}
-        />
+        <FormProvider {...methods}>
+          <Password
+            passwordName={"account_password"}
+            canGenerateRandom={false}
+            canGenerateRandomFirst={true}
+            canShowPassword={false}
+            labelPassword={"Account Password"}
+            labelConfirm={"Vault Password"}
+            hidePasswordStrong={true}
+            confirmPasswordName={
+              passwordRemembered ? undefined : "vault_password"
+            }
+            passwordAndConfirmEquals={false}
+            containerProps={{
+              width: 1,
+              marginTop: "0px!important",
+              spacing: "15px",
+            }}
+          />
+        </FormProvider>
         <Stack direction={"row"} spacing={"20px"} width={1} marginTop={"20px"}>
           <Button
             onClick={onClickCancel}
@@ -340,6 +357,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({ assets }) => {
 const mapStateToProps = (state: RootState) => {
   return {
     assets: state.vault.entities.assets.list,
+    passwordRemembered: state.vault.passwordRemembered,
   };
 };
 

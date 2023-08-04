@@ -157,7 +157,7 @@ const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
           >
             <Typography fontSize={14}>Defaults</Typography>
           </Divider>
-          <Stack divider={<Divider sx={{ marginY: "10px" }} />}>
+          <Stack>
             {defaultNetworks.map((network, index) => (
               <NetworkItem
                 network={network}
