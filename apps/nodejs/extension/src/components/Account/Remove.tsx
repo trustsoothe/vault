@@ -126,7 +126,16 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
         </Typography>
         <DetailComponent
           account={account}
-          containerProps={{ my: "30px!important" }}
+          containerProps={{
+            my: "10px!important",
+            sx: {
+              transform: "scale(0.9)",
+              border: "1px solid lightgray",
+              padding: 1,
+              boxSizing: "border-box",
+              borderRadius: "6px",
+            },
+          }}
         />
         <Typography fontSize={14} width={1} marginTop={"0!important"}>
           To continue, introduce the vault's password:

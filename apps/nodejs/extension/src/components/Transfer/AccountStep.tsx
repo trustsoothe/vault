@@ -20,6 +20,8 @@ import ListAccountItem from "../Account/ListItem";
 import AutocompleteAsset from "../Account/AutocompleteAsset";
 import { getAllBalances } from "../../redux/slices/vault";
 import { useAppDispatch } from "../../hooks/redux";
+import AmountHelperText from "./AmountHelperText";
+import { isAddress } from "../../utils";
 
 export const isHex = (str: string) => {
   return str.match(/^[0-9a-fA-F]+$/g);
@@ -145,6 +147,8 @@ const AccountsAutocompleteFC: React.FC<AccountsAutocompleteProps> = ({
           {...otherProps}
           sx={{
             width: 1,
+            order: 1,
+            marginTop: !fromAddressStatus ? "10px!important" : undefined,
           }}
           ListboxProps={{
             sx: {
@@ -190,7 +194,7 @@ const NetworkAutocompleteFC: React.FC<NetworkAutocompleteProps> = ({
 }) => {
   const { control, watch } = useFormContext<FormValues>();
 
-  const [asset] = watch(["asset"]);
+  const [asset, fromType] = watch(["asset", "fromType"]);
 
   const allowedNetworks: TNetwork = useMemo(() => {
     if (!asset) {
@@ -284,6 +288,7 @@ const NetworkAutocompleteFC: React.FC<NetworkAutocompleteProps> = ({
           {...otherProps}
           sx={{
             width: 1,
+            order: fromType === "private_key" ? 2 : 3,
           }}
           openOnFocus
           ListboxProps={{
@@ -331,24 +336,56 @@ interface AccountStepProps {
   fromAddressStatus: string | null;
   fromAddress: string;
   request?: ExternalTransferRequest;
+  fromBalance: number;
+  isLoadingBalance?: boolean;
+  errorBalance?: boolean;
+  getBalance?: () => void;
+  isLoadingFee?: boolean;
+  errorFee?: boolean;
+  getFee?: () => void;
+  fee: number;
 }
 
 const AccountStep: React.FC<AccountStepProps> = ({
   fromAddressStatus,
   fromAddress,
   request,
+  fromBalance,
+  isLoadingBalance,
+  errorBalance,
+  getBalance,
+  fee,
+  isLoadingFee,
+  errorFee,
+  getFee,
 }) => {
-  const { control, watch, register, formState } = useFormContext<FormValues>();
-  const [fromType, asset] = watch(["fromType", "asset"]);
+  const { control, watch, register, formState, setValue, clearErrors } =
+    useFormContext<FormValues>();
+  const [fromType, asset, feeFromForm, from] = watch([
+    "fromType",
+    "asset",
+    "fee",
+    "from",
+  ]);
+
+  const onClickAll = useCallback(() => {
+    const transferFromBalance = (fromBalance || 0) - (Number(feeFromForm) || 0);
+
+    if (transferFromBalance) {
+      setValue("amount", (transferFromBalance || "").toString());
+      clearErrors("amount");
+    }
+  }, [fromBalance, setValue, clearErrors, feeFromForm]);
 
   return (
-    <Stack width={1} spacing={"20px"}>
+    <Stack width={1} spacing={"23px"}>
       <Stack
         direction={"row"}
         alignItems={"center"}
         justifyContent={"space-between"}
         display={fromAddressStatus ? "none" : "flex"}
         width={1}
+        height={30}
       >
         <Typography>Account from</Typography>
         <Controller
@@ -360,6 +397,9 @@ const AccountStep: React.FC<AccountStepProps> = ({
               size={"small"}
               placeholder={"Type"}
               sx={{
+                minHeight: 30,
+                maxHeight: 30,
+                height: 30,
                 "& input": {
                   fontSize: 14,
                 },
@@ -377,17 +417,6 @@ const AccountStep: React.FC<AccountStepProps> = ({
           )}
         />
       </Stack>
-      <Typography
-        fontSize={10}
-        color={"gray"}
-        component={"span"}
-        display={
-          fromAddressStatus === "private_key_required" ? "block" : "none"
-        }
-      >
-        Introduce the private key of the following wallet:
-        <br /> <b>{fromAddress}</b>.
-      </Typography>
       {fromType === "private_key" ? (
         <TextField
           label={"Private Key"}
@@ -407,7 +436,17 @@ const AccountStep: React.FC<AccountStepProps> = ({
             },
           })}
           error={!!formState?.errors?.from}
-          helperText={formState?.errors?.from?.message as string}
+          helperText={
+            (formState?.errors?.from?.message as string) ||
+            (fromAddressStatus === "private_key_required" ? (
+              <span>
+                Of <b>{fromAddress}</b> wallet
+              </span>
+            ) : null)
+          }
+          sx={{
+            order: 3,
+          }}
         />
       ) : (
         <AccountsAutocomplete fromAddressStatus={fromAddressStatus} />
@@ -416,21 +455,172 @@ const AccountStep: React.FC<AccountStepProps> = ({
         <AutocompleteAsset
           control={control}
           disabled={!!request?.protocol && !!asset}
+          autocompleteProps={{
+            sx: {
+              order: 1,
+              marginTop: !fromAddressStatus ? "10px!important" : undefined,
+            },
+          }}
         />
-      ) : (
-        <TextField
-          label={"Account Password"}
-          fullWidth
-          size={"small"}
-          type={"password"}
-          {...register("accountPassword", {
-            required: "Required",
-          })}
-          error={!!formState?.errors?.accountPassword}
-          helperText={formState?.errors?.accountPassword?.message as string}
-        />
-      )}
+      ) : null}
       <NetworkAutocomplete />
+      <Stack
+        direction={"row"}
+        alignItems={"center"}
+        sx={{
+          order: 4,
+          "& .MuiFormHelperText-root": {
+            bottom: "-24px",
+            width: "calc(100% - 30px)",
+          },
+        }}
+        spacing={"10px"}
+      >
+        <Controller
+          control={control}
+          name={"amount"}
+          rules={{
+            required: "Required",
+            validate: (value, formValues: FormValues) => {
+              const amount = Number(value);
+              const fee = Number(formValues.fee);
+
+              if (isNaN(amount) || isNaN(fee)) {
+                return "Invalid amount";
+              }
+
+              if (
+                errorFee ||
+                errorBalance ||
+                isLoadingFee ||
+                isLoadingBalance
+              ) {
+                return "";
+              }
+
+              const total = amount + fee;
+
+              if (amount <= 0) {
+                return "Min is 0";
+              }
+
+              return total > fromBalance
+                ? `Amount + Fee cannot be higher than ${fromBalance}`
+                : true;
+            },
+          }}
+          render={({ field, fieldState: { error } }) => (
+            <TextField
+              label={asset ? `Amount (${asset.symbol})` : "Amount"}
+              fullWidth
+              size={"small"}
+              type={"number"}
+              disabled={
+                !!request?.amount ||
+                fromBalance === 0 ||
+                isLoadingBalance ||
+                errorBalance
+              }
+              error={!!error?.message || fromBalance === 0 || errorBalance}
+              InputLabelProps={{ shrink: !!field.value }}
+              helperText={
+                <AmountHelperText
+                  isLoadingBalance={isLoadingBalance}
+                  accountBalance={fromBalance}
+                  errorBalance={errorBalance}
+                  getBalance={getBalance}
+                  disableAll={!!request?.amount}
+                  onClickAll={onClickAll}
+                  hideBalance={!asset || !from}
+                  hideFee={true}
+                />
+              }
+              {...field}
+            />
+          )}
+        />
+        <Controller
+          name={"fee"}
+          control={control}
+          rules={{
+            deps: ["amount"],
+            min: {
+              value: fee || 0,
+              message: `Min: ${fee || 0}`,
+            },
+          }}
+          render={({ field, fieldState: { error } }) => (
+            <TextField
+              {...field}
+              label={asset ? `Fee (${asset.symbol})` : "Fee"}
+              disabled={isLoadingFee || errorFee}
+              InputLabelProps={{ shrink: !!field.value }}
+              sx={{
+                width: 150,
+              }}
+              error={!!error?.message || errorFee}
+              helperText={
+                <AmountHelperText
+                  hideBalance={true}
+                  hideFee={!asset}
+                  transferFee={fee}
+                  isLoadingFee={isLoadingFee}
+                  errorFee={errorFee}
+                  getFee={getFee}
+                />
+              }
+            />
+          )}
+        />
+      </Stack>
+
+      <Controller
+        control={control}
+        name={"toAddress"}
+        rules={{
+          required: "Required",
+          validate: (value) => {
+            if (!isAddress(value)) {
+              return "Invalid Address";
+            }
+
+            return true;
+          },
+        }}
+        render={({ field, fieldState: { error } }) => (
+          <TextField
+            label={"To Address"}
+            fullWidth
+            size={"small"}
+            disabled={!!request?.toAddress}
+            {...field}
+            error={!!error}
+            helperText={error?.message}
+            sx={{
+              order: 5,
+            }}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name={"memo"}
+        render={({ field }) => (
+          <TextField
+            label={"Memo"}
+            fullWidth
+            size={"small"}
+            rows={2}
+            multiline
+            disabled={!!request?.memo}
+            {...field}
+            sx={{
+              order: 6,
+            }}
+          />
+        )}
+      />
     </Stack>
   );
 };

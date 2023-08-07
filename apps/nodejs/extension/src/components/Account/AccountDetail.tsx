@@ -208,7 +208,9 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
 
   const onClickTransfer = useCallback(() => {
     if (account?.address) {
-      navigate(`${TRANSFER_PAGE}?fromAddress=${account.address}`);
+      navigate(
+        `${TRANSFER_PAGE}?fromAddress=${account.address}&protocol=${account.protocol.name}&chainID=${account.protocol.chainID}`
+      );
     }
   }, [navigate, account?.address]);
 

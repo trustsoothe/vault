@@ -20,9 +20,9 @@ const RequestFrom: React.FC<RequestFromProps> = ({
   containerMetaProps,
 }) => {
   return (
-    <Stack spacing={"10px"} {...containerProps}>
+    <Stack spacing={"5px"} {...containerProps}>
       {title && (
-        <Typography fontSize={20} textAlign={"center"}>
+        <Typography fontSize={18} textAlign={"center"}>
           {title}
         </Typography>
       )}
@@ -34,7 +34,7 @@ const RequestFrom: React.FC<RequestFromProps> = ({
         width={1}
         {...containerMetaProps}
       >
-        <img width={24} height={24} alt={"favicon-ico"} src={faviconUrl} />
+        <img width={20} height={20} alt={"favicon-ico"} src={faviconUrl} />
         <Typography
           fontSize={16}
           fontWeight={500}

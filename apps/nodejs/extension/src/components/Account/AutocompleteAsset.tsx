@@ -1,4 +1,5 @@
 import type {
+  AutocompleteProps,
   AutocompleteRenderOptionState,
   FilterOptionsState,
   TextFieldProps,
@@ -20,6 +21,7 @@ interface AutocompleteAssetProps {
   name?: string;
   disabled?: boolean;
   textFieldProps?: TextFieldProps;
+  autocompleteProps?: Partial<AutocompleteProps<any, any, any, any>>;
 }
 
 const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
@@ -28,6 +30,7 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
   name = "asset",
   disabled,
   textFieldProps,
+  autocompleteProps,
 }) => {
   const filterOptions = useCallback(
     (
@@ -130,9 +133,6 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
             onChange={(_, newValue: SerializedAsset) => onChange(newValue)}
             value={value || null}
             {...otherProps}
-            sx={{
-              width: 1,
-            }}
             disabled={disabled}
             renderInput={(params) => {
               return (
@@ -148,6 +148,11 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
                   {...textFieldProps}
                 />
               );
+            }}
+            {...autocompleteProps}
+            sx={{
+              width: 1,
+              ...autocompleteProps?.sx,
             }}
           />
         );

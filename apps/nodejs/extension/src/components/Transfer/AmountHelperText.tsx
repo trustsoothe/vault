@@ -5,8 +5,8 @@ import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 
 interface AmountHelperTextProps {
-  accountBalance: number;
-  transferFee: number;
+  accountBalance?: number;
+  transferFee?: number;
   isLoadingBalance?: boolean;
   errorBalance?: boolean;
   getBalance?: () => void;
@@ -14,7 +14,9 @@ interface AmountHelperTextProps {
   errorFee?: boolean;
   getFee?: () => void;
   disableAll?: boolean;
-  onClickAll: () => void;
+  onClickAll?: () => void;
+  hideBalance?: boolean;
+  hideFee?: boolean;
 }
 
 const AmountHelperText: React.FC<AmountHelperTextProps> = ({
@@ -28,12 +30,18 @@ const AmountHelperText: React.FC<AmountHelperTextProps> = ({
   errorBalance,
   getBalance,
   getFee,
+  hideBalance = false,
+  hideFee = false,
 }) => {
   const content = useMemo(() => {
-    if (accountBalance === 0) {
+    if (
+      typeof accountBalance === "number" &&
+      accountBalance === 0 &&
+      !errorBalance
+    ) {
       return (
         <Typography fontSize={12}>
-          This account doesn't have balance. Select another.
+          This account doesn't have balance.
         </Typography>
       );
     }
@@ -52,10 +60,10 @@ const AmountHelperText: React.FC<AmountHelperTextProps> = ({
           }
         };
       } else if (errorBalance) {
-        text = "Error getting the account balance.";
+        text = "Error getting the balance.";
         onClick = getBalance;
       } else {
-        text = "Error getting the transfer fee.";
+        text = "Error.";
         onClick = getFee;
       }
 
@@ -77,53 +85,57 @@ const AmountHelperText: React.FC<AmountHelperTextProps> = ({
     return (
       <>
         <Stack direction={"row"} alignItems={"center"} spacing={"10px"}>
-          <Stack direction={"row"} alignItems={"center"}>
-            <Typography fontSize={12} fontWeight={600}>
-              Available:
-            </Typography>
-            {isLoadingBalance ? (
-              <Skeleton width={75} height={20} sx={{ marginLeft: "5px" }} />
-            ) : (
-              <Typography fontSize={12} sx={{ marginLeft: "5px" }}>
-                {accountBalance}
+          {!hideBalance && (
+            <Stack direction={"row"} alignItems={"center"}>
+              <Typography fontSize={12} fontWeight={600}>
+                Available:
               </Typography>
-            )}
-          </Stack>
-
-          <Stack direction={"row"} alignItems={"center"}>
-            <Typography fontSize={12} fontWeight={600}>
-              Fee:
-            </Typography>
-            {isLoadingFee ? (
-              <Skeleton width={50} height={15} sx={{ marginLeft: "5px" }} />
-            ) : (
-              <Typography fontSize={12} sx={{ marginLeft: "5px" }}>
-                {transferFee}
-                {/*{roundAndSeparate(transferFee, 6, typeof transferFee === 'number' ? '0' : '-')}*/}
+              {isLoadingBalance ? (
+                <Skeleton width={75} height={20} sx={{ marginLeft: "5px" }} />
+              ) : (
+                <Typography fontSize={12} sx={{ marginLeft: "5px" }}>
+                  {accountBalance}
+                </Typography>
+              )}
+            </Stack>
+          )}
+          {!hideFee && (
+            <Stack direction={"row"} alignItems={"center"}>
+              <Typography fontSize={12} fontWeight={600}>
+                Min:
               </Typography>
-            )}
-          </Stack>
+              {isLoadingFee ? (
+                <Skeleton width={50} height={15} sx={{ marginLeft: "5px" }} />
+              ) : (
+                <Typography fontSize={12} sx={{ marginLeft: "5px" }}>
+                  {transferFee}
+                </Typography>
+              )}
+            </Stack>
+          )}
         </Stack>
 
-        <Button
-          sx={{
-            textAlign: "right",
-            padding: 0,
-            fontWeight: 600,
-            fontSize: 12,
-            minWidth: 30,
-            width: 30,
-            marginRight: "-15px",
-            textDecoration: "underline",
-            "&:hover": {
+        {onClickAll && (
+          <Button
+            sx={{
+              textAlign: "right",
+              padding: 0,
+              fontWeight: 600,
+              fontSize: 12,
+              minWidth: 30,
+              width: 30,
+              marginRight: "-15px",
               textDecoration: "underline",
-            },
-          }}
-          disabled={disableAll || !accountBalance}
-          onClick={onClickAll}
-        >
-          All
-        </Button>
+              "&:hover": {
+                textDecoration: "underline",
+              },
+            }}
+            disabled={disableAll || !accountBalance}
+            onClick={onClickAll}
+          >
+            All
+          </Button>
+        )}
       </>
     );
   }, [
@@ -137,6 +149,8 @@ const AmountHelperText: React.FC<AmountHelperTextProps> = ({
     disableAll,
     onClickAll,
     transferFee,
+    hideBalance,
+    hideFee,
   ]);
 
   return (
@@ -145,19 +159,9 @@ const AmountHelperText: React.FC<AmountHelperTextProps> = ({
       alignItems={"center"}
       justifyContent={"space-between"}
       height={30}
-      marginTop={"-10px"}
       width={"100%"}
       component={"span"}
-      display={
-        !accountBalance &&
-        !transferFee &&
-        !isLoadingFee &&
-        !isLoadingBalance &&
-        !errorBalance &&
-        !errorFee
-          ? "none"
-          : "flex"
-      }
+      display={hideBalance && hideFee ? "none" : "flex"}
     >
       {content}
     </Stack>

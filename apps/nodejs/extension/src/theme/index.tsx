@@ -32,6 +32,10 @@ const theme = createTheme({
           fontSize: 11,
         },
       },
+      defaultProps: {
+        //@ts-ignore
+        component: "div",
+      },
     },
     MuiSelect: {
       styleOverrides: {
@@ -66,7 +70,7 @@ const theme = createTheme({
         root: {
           height: 35,
           "& legend": {
-            fontSize: "0.64em",
+            fontSize: "0.645em",
           },
           "& .MuiFormLabel-root": {
             left: "-4px",

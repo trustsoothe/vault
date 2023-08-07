@@ -160,7 +160,7 @@ const RequestHandler: React.FC<RequestHandlerProps> = ({
           textDecoration: "underline",
           fontSize: 14,
           right: "5px",
-          top: "5px",
+          top: "0px",
         }}
         onClick={toggleBlockOriginRequest}
       >
