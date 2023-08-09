@@ -16,6 +16,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import { useForm, FormProvider } from "react-hook-form";
 import RequestFrom from "../common/RequestFrom";
 import CircularLoading from "../common/CircularLoading";
@@ -26,12 +27,14 @@ import {
   getAssetByProtocol,
   getFee,
   isAddress,
+  isPrivateKey,
   isTransferHealthyForNetwork,
 } from "../../utils";
 import { useAppDispatch } from "../../hooks/redux";
 import { getAccountBalance } from "../../redux/slices/vault";
 import SummaryStep from "./Summary/Step";
 import TransferSubmittedStep from "./TransferSubmitted";
+import { DetailComponent } from "../Account/AccountDetail";
 
 export interface FormValues {
   fromType: "saved_account" | "private_key";
@@ -51,6 +54,16 @@ interface TransferProps {
   networks: SerializedNetwork[];
 }
 
+type Status =
+  | "loading"
+  | "error"
+  | "setData"
+  | "summary"
+  | "submitted"
+  | "invalid_network";
+
+export type FromAddressStatus = "is_account_saved" | "private_key_required";
+
 const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -59,14 +72,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
   const [searchParams] = useSearchParams();
   const previousAsset = useRef<string>(null);
 
-  const [status, setStatus] = useState<
-    | "loading"
-    | "error"
-    | "setData"
-    | "summary"
-    | "submitted"
-    | "invalid_network"
-  >("setData");
+  const [status, setStatus] = useState<Status>("loading");
   const [transferHash, setTransferHash] = useState<string>(null);
   const [sendingStatus, setSendingStatus] = useState<
     "check_network" | "sending"
@@ -97,8 +103,35 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
     setFocus,
   } = methods;
 
-  const [fromAddressStatus, setFromAddressStatus] = useState<string>(null);
-  const [fromType, from, asset] = watch(["fromType", "from", "asset"]);
+  const [fromAddressStatus, setFromAddressStatus] =
+    useState<FromAddressStatus>(null);
+  const [accountFromAddress, setAccountFromAddress] =
+    useState<SerializedAccountReference>(null);
+  const [fromType, from, asset, accountPassword] = watch([
+    "fromType",
+    "from",
+    "asset",
+    "accountPassword",
+  ]);
+  const [wrongPassword, setWrongPassword] = useState(false);
+
+  useEffect(() => {
+    if (wrongPassword) {
+      setWrongPassword(false);
+    }
+  }, [accountPassword]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const statusToSet =
+        requesterInfo && fromAddressStatus === "is_account_saved"
+          ? "summary"
+          : "setData";
+      setStatus(statusToSet);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [fromAddressStatus, requesterInfo]);
 
   useEffect(() => {
     setValue("from", "");
@@ -158,7 +191,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
 
   const getFromBalance = useCallback(() => {
     const fromState = getFieldState("from");
-    if (from && asset && !fromState.invalid) {
+    if (from && asset && (isAddress(from) || isPrivateKey(from))) {
       setIsLoadingBalance(true);
       const address = fromType === "saved_account" ? from : from.slice(0, 40);
       dispatch(getAccountBalance({ address, protocol: asset.protocol }))
@@ -169,7 +202,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
             setErrorBalance(false);
           }
         })
-        .catch((e) => setErrorBalance(true))
+        .catch(() => setErrorBalance(true))
         .finally(() => setIsLoadingBalance(false));
     } else {
       setFromBalance(null);
@@ -227,6 +260,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       if (account) {
         setValue("from", address);
         setFromAddressStatus("is_account_saved");
+        setAccountFromAddress(account);
       } else {
         setValue("fromType", "private_key");
         setFromAddressStatus("private_key_required");
@@ -243,6 +277,10 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
         setValue("toAddress", requesterInfo.toAddress);
         if (requesterInfo.memo) {
           setValue("memo", requesterInfo.memo);
+        }
+
+        if (fromAddressStatus === "is_account_saved") {
+          setStatus("summary");
         }
       }
     }, 100);
@@ -288,10 +326,24 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
         request: requesterInfo,
       });
 
-      if (response.data && response.data.hash) {
-        setTransferHash(response.data.hash);
+      if (response.error) {
+        setStatus("error");
+      } else {
+        if (
+          response?.data?.isPasswordWrong ||
+          data.accountPassword.length < 4
+        ) {
+          setWrongPassword(true);
+          setStatus("summary");
+        } else {
+          if (response.data && response.data.hash) {
+            setTransferHash(response.data.hash);
+            setStatus("submitted");
+          } else {
+            setStatus("setData");
+          }
+        }
       }
-      setStatus(response.error ? "error" : "submitted");
       setSendingStatus(null);
     },
     [
@@ -409,7 +461,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
         getFee={getAssetFee}
       />
     ) : (
-      <SummaryStep fromBalance={fromBalance} />
+      <SummaryStep fromBalance={fromBalance} wrongPassword={wrongPassword} />
     );
 
     const secondaryBtnText = settingAccount ? "Cancel" : "Back";
@@ -428,7 +480,66 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
             }}
           />
         )}
-        <Stack flexGrow={1} sx={{ overflowY: "auto" }}>
+        <Stack
+          flexGrow={1}
+          sx={{
+            overflowY:
+              requesterInfo && fromAddressStatus === "is_account_saved"
+                ? undefined
+                : "auto",
+            marginRight: -1,
+            paddingRight: 1,
+            position: "relative",
+
+            boxSizing: "border-box",
+          }}
+          width={"calc(100% + 10px)"}
+        >
+          {fromAddressStatus === "is_account_saved" &&
+            accountFromAddress?.address === from &&
+            status === "setData" && (
+              <>
+                <Typography
+                  sx={{
+                    fontSize: 14,
+                    transform: "scale(0.75)",
+                    color: "rgba(0, 0, 0, 0.6)",
+                    position: "absolute",
+                    left: 5,
+                    top: -1,
+                    zIndex: 2,
+                    backgroundColor: "white",
+                    paddingX: "7px",
+                  }}
+                >
+                  From
+                </Typography>
+                <Stack
+                  sx={{
+                    border: "1px solid lightgray",
+                    padding: 0.5,
+                    boxSizing: "border-box",
+                    borderRadius: "6px",
+                    width: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                  marginTop={1}
+                >
+                  <DetailComponent
+                    account={accountFromAddress}
+                    hideCopy={true}
+                    containerProps={{
+                      my: "0px!important",
+                      sx: {
+                        transform: "scale(0.9)",
+                        width: 1,
+                      },
+                    }}
+                  />
+                </Stack>
+              </>
+            )}
           {component}
         </Stack>
         <Stack
@@ -443,6 +554,10 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
             sx={{
               height: 30,
               fontWeight: 600,
+              display:
+                requesterInfo && fromAddressStatus === "is_account_saved"
+                  ? "none"
+                  : undefined,
             }}
             onClick={onClickCancel}
           >
@@ -465,6 +580,8 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       </>
     );
   }, [
+    accountFromAddress,
+    wrongPassword,
     onClickOk,
     status,
     register,

@@ -96,6 +96,7 @@ export interface AnswerNewAccountRequest {
 
 type AnswerNewAccountResponseData = BaseData & {
   address: string;
+  accountId: string;
   isPasswordWrong?: boolean;
 };
 
@@ -126,6 +127,7 @@ export interface AnswerTransferRequest {
 
 type AnswerTransferResponseData = BaseData & {
   hash: string;
+  isPasswordWrong?: boolean;
 };
 
 export type AnswerTransferResponse = BaseResponse<
@@ -532,8 +534,8 @@ class InternalCommunicationController {
     try {
       const { rejected, request, accountData, vaultPassword } =
         message?.data || {};
-
-      let address: string | null = null;
+      let address: string | null = null,
+        accountId: string = null;
       let response: InternalNewAccountResponse;
 
       if (typeof rejected === "boolean" && rejected && request) {
@@ -569,6 +571,7 @@ class InternalCommunicationController {
           .unwrap();
 
         address = responseVault.accountReference.address;
+        accountId = responseVault.accountReference.id;
 
         if (request) {
           response = {
@@ -601,6 +604,7 @@ class InternalCommunicationController {
         data: {
           answered: true,
           address,
+          accountId,
           isPasswordWrong: false,
         },
         error: null,
@@ -613,6 +617,7 @@ class InternalCommunicationController {
             answered: true,
             isPasswordWrong: true,
             address: null,
+            accountId: null,
           },
           error: null,
         };
@@ -707,7 +712,19 @@ class InternalCommunicationController {
         },
         error: null,
       };
-    } catch (e) {
+    } catch (error) {
+      if (error?.name === "PassphraseIncorrectError") {
+        return {
+          type: ANSWER_TRANSFER_RESPONSE,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+            hash: null,
+          },
+          error: null,
+        };
+      }
+
       const tabId = message?.data?.request?.tabId;
 
       if (tabId) {

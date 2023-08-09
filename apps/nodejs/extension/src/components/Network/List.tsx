@@ -1,20 +1,23 @@
 import type { SerializedNetwork } from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
-import React, { CSSProperties, useCallback, useMemo, useState } from "react";
+import React, { CSSProperties, useCallback, useMemo } from "react";
 import Box from "@mui/material/Box";
 import groupBy from "lodash/groupBy";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
-import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
+import { useNavigate } from "react-router-dom";
 import { FixedSizeList } from "react-window";
 import EditIcon from "@mui/icons-material/Edit";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import DeleteIcon from "@mui/icons-material/Delete";
-import AddUpdateNetwork from "./AddUpdate";
-import RemoveNetwork from "./Remove";
 import { labelByProtocolMap, labelByChainID } from "../../constants/protocols";
+import {
+  ADD_NETWORK_PAGE,
+  REMOVE_NETWORK_PAGE,
+  UPDATE_NETWORK_PAGE,
+} from "../../constants/routes";
 
 interface NetworkItemProps {
   network: SerializedNetwork;
@@ -88,28 +91,25 @@ interface NetworkListProps {
 }
 
 const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
-  const [selectedNetwork, setSelectedNetwork] =
-    useState<SerializedNetwork>(null);
-  const [view, setView] = useState<"list" | "addUpdate" | "remove">("list");
+  const navigate = useNavigate();
 
   const onClickAdd = useCallback(() => {
-    setView("addUpdate");
-  }, []);
+    navigate(ADD_NETWORK_PAGE);
+  }, [navigate]);
 
-  const onClickUpdate = useCallback((network: SerializedNetwork) => {
-    setSelectedNetwork(network);
-    setView("addUpdate");
-  }, []);
+  const onClickUpdate = useCallback(
+    (network: SerializedNetwork) => {
+      navigate(`${UPDATE_NETWORK_PAGE}?id=${network.id}`);
+    },
+    [navigate]
+  );
 
-  const onClickRemove = useCallback((network: SerializedNetwork) => {
-    setSelectedNetwork(network);
-    setView("remove");
-  }, []);
-
-  const onClose = useCallback(() => {
-    setSelectedNetwork(null);
-    setView("list");
-  }, []);
+  const onClickRemove = useCallback(
+    (network: SerializedNetwork) => {
+      navigate(`${REMOVE_NETWORK_PAGE}?id=${network.id}`);
+    },
+    [navigate]
+  );
 
   const [defaultNetworks, customNetworks] = useMemo(() => {
     const groupedNetworks = groupBy(networks, "isDefault");
@@ -117,31 +117,13 @@ const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
   }, [networks]);
 
   const content = useMemo(() => {
-    if (view === "addUpdate") {
-      return (
-        <AddUpdateNetwork onClose={onClose} networkToUpdate={selectedNetwork} />
-      );
-    }
-
-    if (selectedNetwork && view === "remove") {
-      return <RemoveNetwork network={selectedNetwork} onClose={onClose} />;
-    }
-
     return (
-      <Stack height={1} boxSizing={"border-box"} paddingBottom={"20px"}>
-        <Stack
-          marginRight={"-10px"}
-          marginTop={"15px"}
-          direction={"row"}
-          alignItems={"center"}
-          justifyContent={"space-between"}
-        >
-          <Typography fontSize={18}>Network List</Typography>
-          <Button sx={{ textTransform: "none" }} onClick={onClickAdd}>
-            + Add
-          </Button>
-        </Stack>
-
+      <Stack
+        height={1}
+        boxSizing={"border-box"}
+        paddingBottom={"20px"}
+        marginTop={1}
+      >
         <Box marginRight={"-10px"} paddingRight={"10px"}>
           <Divider
             textAlign={"left"}
@@ -214,16 +196,7 @@ const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
         </Box>
       </Stack>
     );
-  }, [
-    selectedNetwork,
-    onClose,
-    networks,
-    isLoading,
-    onClickRemove,
-    onClickUpdate,
-    onClickAdd,
-    view,
-  ]);
+  }, [networks, isLoading, onClickRemove, onClickUpdate, onClickAdd]);
 
   return (
     <Stack flexGrow={1} height={1}>

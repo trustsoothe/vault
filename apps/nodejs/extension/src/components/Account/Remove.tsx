@@ -6,6 +6,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
+import { enqueueSnackbar } from "notistack";
 import Typography from "@mui/material/Typography";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
@@ -49,10 +50,6 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
     }
   }, [navigate, location, account]);
 
-  const onRemoveSuccessful = useCallback(() => {
-    navigate(ACCOUNTS_PAGE);
-  }, [navigate]);
-
   useEffect(() => {
     const id = searchParams.get("id");
     const accountFromStore = accounts.find((item) => item.id === id);
@@ -66,42 +63,35 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
     }
   }, [searchParams, accounts]);
 
-  const [status, setStatus] = useState<
-    "normal" | "loading" | "removed" | "error"
-  >("normal");
+  const [status, setStatus] = useState<"normal" | "loading" | "error">(
+    "normal"
+  );
 
-  const removeAccount = useCallback((data: FormValues) => {
-    setStatus("loading");
-    setTimeout(() => {
-      if (data.vault_password.length < 5) {
-        setWrongPassword(true);
-        setStatus("normal");
-      } else {
-        setWrongPassword(false);
-        setStatus("removed");
-      }
-    }, 1000);
-  }, []);
+  const removeAccount = useCallback(
+    (data: FormValues) => {
+      setStatus("loading");
+      setTimeout(() => {
+        if (data.vault_password.length < 5) {
+          setWrongPassword(true);
+          setStatus("normal");
+        } else {
+          setWrongPassword(false);
+          enqueueSnackbar({
+            style: { width: 225, minWidth: "225px!important" },
+            message: `Account removed successfully.`,
+            variant: "success",
+            autoHideDuration: 3000,
+          });
+          navigate(ACCOUNTS_PAGE);
+        }
+      }, 1000);
+    },
+    [navigate]
+  );
 
   return useMemo(() => {
     if (status === "loading") {
       return <CircularLoading />;
-    }
-
-    if (status === "removed") {
-      return (
-        <Stack
-          flexGrow={1}
-          alignItems={"center"}
-          justifyContent={"center"}
-          marginTop={"-40px"}
-        >
-          <Typography>The account was removed successfully.</Typography>
-          <Button sx={{ textTransform: "none" }} onClick={onRemoveSuccessful}>
-            Go to Account List
-          </Button>
-        </Stack>
-      );
     }
 
     if (status === "error") {
@@ -189,7 +179,6 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
     methods,
     account,
     onCancel,
-    onRemoveSuccessful,
     wrongPassword,
   ]);
 };

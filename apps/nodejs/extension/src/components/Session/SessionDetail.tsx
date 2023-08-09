@@ -1,30 +1,61 @@
-import type { Session } from "@poktscan/keyring";
-import React from "react";
+import type { SerializedSession } from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import React, { useCallback, useEffect, useState } from "react";
 import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
 import Typography from "@mui/material/Typography";
 import DeleteIcon from "@mui/icons-material/Delete";
 import BlockIcon from "@mui/icons-material/Block";
+import { connect } from "react-redux";
+import {
+  BLOCK_SITE_PAGE,
+  DISCONNECT_SITE_PAGE,
+  SESSIONS_PAGE,
+} from "../../constants/routes";
 
 interface SessionDetailProps {
-  session: Session;
-  onClose: () => void;
-  onDisconnect: () => void;
-  openToggleBlockSite: (
-    site: string,
-    toBlock?: boolean,
-    session?: Session
-  ) => void;
+  sessions: SerializedSession[];
 }
 
-const SessionDetail: React.FC<SessionDetailProps> = ({
-  session,
-  onClose,
-  onDisconnect,
-  openToggleBlockSite,
-}) => {
+const SessionDetail: React.FC<SessionDetailProps> = ({ sessions }) => {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [session, setSession] = useState<SerializedSession>(null);
+
+  const onCancel = useCallback(() => {
+    if (location.key !== "default") {
+      navigate(-1);
+    } else {
+      navigate(SESSIONS_PAGE);
+    }
+  }, [navigate, location]);
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    const sessionFromStore = sessions.find((item) => item.id === id);
+    if (sessionFromStore && session?.id !== id) {
+      setSession(sessionFromStore);
+      return;
+    }
+
+    if (!sessionFromStore) {
+      onCancel();
+    }
+  }, [searchParams, sessions]);
+
+  const onDisconnectSite = useCallback(() => {
+    navigate(`${DISCONNECT_SITE_PAGE}?id=${session.id}`);
+  }, [session, navigate]);
+
+  const onBlockSite = useCallback(() => {
+    navigate(
+      `${BLOCK_SITE_PAGE}?site=${session.origin}&sessionId=${session.id}`
+    );
+  }, [session, navigate]);
+
   return (
     <Stack
       sx={{ "& p": { fontSize: "12px!important" } }}
@@ -37,20 +68,12 @@ const SessionDetail: React.FC<SessionDetailProps> = ({
         justifyContent={"space-between"}
         alignItems={"center"}
       >
-        <Typography>Origin: {session?.origin?.value || "Extension"}</Typography>
+        <Typography>Origin: {session?.origin || "Extension"}</Typography>
         <Stack direction={"row"} alignItems={"center"} spacing={"5px"}>
-          <IconButton sx={{ padding: 0 }} onClick={onClose}>
-            <CloseIcon />
-          </IconButton>
-          <IconButton
-            sx={{ padding: 0 }}
-            onClick={() =>
-              openToggleBlockSite(session.origin.value, false, session)
-            }
-          >
+          <IconButton sx={{ padding: 0 }} onClick={onBlockSite}>
             <BlockIcon sx={{ fontSize: 18 }} />
           </IconButton>
-          <IconButton sx={{ padding: 0 }} onClick={onDisconnect}>
+          <IconButton sx={{ padding: 0 }} onClick={onDisconnectSite}>
             <DeleteIcon />
           </IconButton>
         </Stack>
@@ -60,7 +83,7 @@ const SessionDetail: React.FC<SessionDetailProps> = ({
 
       <Typography>Permissions: </Typography>
       <Stack paddingX={"10px"}>
-        {session.permissions.map((permission, index) => {
+        {session?.permissions?.map((permission, index) => {
           return (
             <Stack
               key={`${permission.resource}-${permission.action}`}
@@ -98,4 +121,8 @@ const SessionDetail: React.FC<SessionDetailProps> = ({
   );
 };
 
-export default SessionDetail;
+const mapStateToProps = (state: RootState) => ({
+  sessions: state.vault.entities.sessions.list,
+});
+
+export default connect(mapStateToProps)(SessionDetail);

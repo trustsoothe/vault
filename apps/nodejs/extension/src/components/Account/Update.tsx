@@ -4,8 +4,8 @@ import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
 import { FormProvider, useForm } from "react-hook-form";
+import { enqueueSnackbar } from "notistack";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import CircularLoading from "../common/CircularLoading";
@@ -44,10 +44,6 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({
     }
   }, [navigate, location, account]);
 
-  const onUpdatedSuccessful = useCallback(() => {
-    navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${account?.id}`);
-  }, [navigate, account]);
-
   const methods = useForm<FormValues>({
     defaultValues: {
       account_name: "",
@@ -77,9 +73,9 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({
     }
   }, [searchParams, accounts]);
 
-  const [status, setStatus] = useState<
-    "normal" | "loading" | "error" | "saved"
-  >("normal");
+  const [status, setStatus] = useState<"normal" | "loading" | "error">(
+    "normal"
+  );
 
   const onSubmit = useCallback(
     (data: FormValues) => {
@@ -98,11 +94,17 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({
           setWrongPassword(true);
           setStatus("normal");
         } else {
-          setStatus("saved");
+          enqueueSnackbar({
+            style: { width: 250, minWidth: "250px!important" },
+            message: `Account name updated successfully.`,
+            variant: "success",
+            autoHideDuration: 3000,
+          });
+          navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${account?.id}`);
         }
       });
     },
-    [account, passwordRemembered]
+    [account, passwordRemembered, navigate]
   );
 
   const content = useMemo(() => {
@@ -116,22 +118,6 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({
           text={"There was an error saving the account."}
           onCancel={onCancel}
         />
-      );
-    }
-
-    if (status === "saved") {
-      return (
-        <Stack
-          flexGrow={1}
-          alignItems={"center"}
-          justifyContent={"center"}
-          marginTop={"-40px"}
-        >
-          <Typography>Account name updated successfully.</Typography>
-          <Button sx={{ textTransform: "none" }} onClick={onUpdatedSuccessful}>
-            Go to Account Detail
-          </Button>
-        </Stack>
       );
     }
 
@@ -189,7 +175,6 @@ const UpdateAccount: React.FC<UpdateAccountProps> = ({
     );
   }, [
     onCancel,
-    onUpdatedSuccessful,
     register,
     account,
     formState,

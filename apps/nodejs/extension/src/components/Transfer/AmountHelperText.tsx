@@ -91,7 +91,7 @@ const AmountHelperText: React.FC<AmountHelperTextProps> = ({
                 Available:
               </Typography>
               {isLoadingBalance ? (
-                <Skeleton width={75} height={20} sx={{ marginLeft: "5px" }} />
+                <Skeleton width={75} height={17} sx={{ marginLeft: "5px" }} />
               ) : (
                 <Typography fontSize={12} sx={{ marginLeft: "5px" }}>
                   {accountBalance}
@@ -105,7 +105,12 @@ const AmountHelperText: React.FC<AmountHelperTextProps> = ({
                 Min:
               </Typography>
               {isLoadingFee ? (
-                <Skeleton width={50} height={15} sx={{ marginLeft: "5px" }} />
+                <Skeleton
+                  width={40}
+                  height={20}
+                  variant={"rectangular"}
+                  sx={{ marginLeft: "5px" }}
+                />
               ) : (
                 <Typography fontSize={12} sx={{ marginLeft: "5px" }}>
                   {transferFee}

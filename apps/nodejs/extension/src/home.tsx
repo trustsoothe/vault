@@ -20,15 +20,23 @@ import { createHashRouter, RouterProvider } from "react-router-dom";
 import {
   ACCOUNTS_DETAIL_PAGE,
   ACCOUNTS_PAGE,
+  ADD_NETWORK_PAGE,
   ASSETS_PAGE,
+  BLOCK_SITE_PAGE,
+  BLOCKED_SITES_PAGE,
+  CONNECTED_SITE_DETAIL_PAGE,
   CREATE_ACCOUNT_PAGE,
+  DISCONNECT_SITE_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
   REMOVE_ACCOUNT_PAGE,
+  REMOVE_NETWORK_PAGE,
   REQUEST_CONNECTION_PAGE,
   SESSIONS_PAGE,
   TRANSFER_PAGE,
+  UNBLOCK_SITE_PAGE,
   UPDATE_ACCOUNT_PAGE,
+  UPDATE_NETWORK_PAGE,
 } from "./constants/routes";
 import CreateNewAccount from "./components/Account/CreateNew";
 import ImportAccount from "./components/Account/Import";
@@ -38,6 +46,13 @@ import ThemeProvider from "./theme";
 import AccountDetail from "./components/Account/AccountDetail";
 import RemoveAccount from "./components/Account/Remove";
 import UpdateAccount from "./components/Account/Update";
+import { SnackbarProvider } from "notistack";
+import AddUpdateNetwork from "./components/Network/AddUpdate";
+import RemoveNetwork from "./components/Network/Remove";
+import SessionDetail from "./components/Session/SessionDetail";
+import BlockedList from "./components/Session/BlockedList";
+import DisconnectSite from "./components/Session/DisconnectSite";
+import ToggleBlockSite from "./components/Session/ToggleBlockSite";
 
 const store = new Store();
 const storeWithMiddleware = applyMiddleware(store, thunkMiddleware);
@@ -68,8 +83,40 @@ const router = createHashRouter([
         element: <ListSessions />,
       },
       {
+        path: CONNECTED_SITE_DETAIL_PAGE,
+        element: <SessionDetail />,
+      },
+      {
+        path: DISCONNECT_SITE_PAGE,
+        element: <DisconnectSite />,
+      },
+      {
+        path: BLOCKED_SITES_PAGE,
+        element: <BlockedList />,
+      },
+      {
+        path: BLOCK_SITE_PAGE,
+        element: <ToggleBlockSite />,
+      },
+      {
+        path: UNBLOCK_SITE_PAGE,
+        element: <ToggleBlockSite />,
+      },
+      {
         path: NETWORKS_PAGE,
         element: <NetworkList />,
+      },
+      {
+        path: ADD_NETWORK_PAGE,
+        element: <AddUpdateNetwork />,
+      },
+      {
+        path: UPDATE_NETWORK_PAGE,
+        element: <AddUpdateNetwork />,
+      },
+      {
+        path: REMOVE_NETWORK_PAGE,
+        element: <RemoveNetwork />,
       },
       {
         path: ASSETS_PAGE,
@@ -194,10 +241,36 @@ const Home: React.FC<HomeProps> = ({
           paddingTop: "15px",
           paddingBottom: "20px",
           boxSizing: "border-box",
+          position: "relative",
           display: "flex",
+          "& .notistack-SnackbarContainer": {
+            position: "absolute",
+            height: 30,
+          },
+          "& .notistack-CollapseWrapper": {
+            padding: 0,
+          },
+          "& .notistack-Snackbar": {
+            minWidth: "0!important",
+          },
+          "& #notistack-snackbar": {
+            padding: 0,
+            marginLeft: 1,
+          },
         }}
         elevation={2}
       >
+        <SnackbarProvider
+          style={{
+            height: 30,
+            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            padding: 0,
+          }}
+          maxSnack={1}
+          preventDuplicate={true}
+        />
         {content}
       </Paper>
     </Box>

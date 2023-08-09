@@ -1,44 +1,86 @@
 import type { RootState } from "../../redux/store";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
+import { enqueueSnackbar } from "notistack";
 import { useAppDispatch } from "../../hooks/redux";
 import CircularLoading from "../common/CircularLoading";
 import { toggleBlockWebsite } from "../../redux/slices/app";
 import { revokeSession } from "../../redux/slices/vault";
 import OperationFailed from "../common/OperationFailed";
+import { BLOCKED_SITES_PAGE, SESSIONS_PAGE } from "../../constants/routes";
 
 interface ToggleBlockSiteProps {
-  site: string;
+  site?: string;
   sessionId?: string;
-  onClose: () => void;
+  onClose?: () => void;
   onBlocked?: () => void;
   blockedList: RootState["app"]["blockedSites"]["list"];
+  sessionList: RootState["vault"]["entities"]["sessions"]["list"];
 }
 
 const ToggleBlockSite: React.FC<ToggleBlockSiteProps> = ({
-  site,
+  site: siteFromProps,
   onClose,
   blockedList,
-  sessionId,
+  sessionId: sessionFromProps,
+  sessionList,
   onBlocked,
 }) => {
   const dispatch = useAppDispatch();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [site, setSite] = useState<string>(null);
+  const [sessionId, setSessionId] = useState<string>(null);
   const [status, setStatus] = useState<
-    "loading" | "success" | "block" | "unblock" | "error"
+    "loading" | "block" | "unblock" | "error"
   >("loading");
-  const wasBlocking = useRef<boolean>(null);
+  const onCancel = useCallback(() => {
+    if (onClose) {
+      return onClose();
+    }
+
+    if (location.key !== "default") {
+      navigate(-1);
+    } else {
+      navigate(BLOCKED_SITES_PAGE);
+    }
+  }, [navigate, location, onClose]);
 
   useEffect(() => {
-    const isBlocked = blockedList.includes(site);
+    if (siteFromProps) {
+      setSite(siteFromProps);
+    } else {
+      const website = searchParams.get("site");
 
-    setStatus(!isBlocked ? "unblock" : "block");
+      if (website) {
+        setSite(website);
+      } else {
+        onCancel();
+      }
+    }
+
+    if (sessionFromProps) {
+      setSessionId(sessionFromProps);
+    } else {
+      const session = searchParams.get("sessionId");
+
+      const includes = sessionList.some((item) => item.id === session);
+
+      if (includes) {
+        setSessionId(session);
+      }
+    }
+  }, [searchParams, blockedList, sessionList]);
+
+  useEffect(() => {
+    if (site) {
+      const isBlocked = blockedList.includes(site);
+
+      setStatus(!isBlocked ? "unblock" : "block");
+    }
   }, [site]);
 
   const onClickYes = useCallback(async () => {
@@ -56,15 +98,23 @@ const ToggleBlockSite: React.FC<ToggleBlockSiteProps> = ({
     }
 
     await Promise.all(promises)
-      .then(() => setStatus("success"))
+      .then(() => {
+        if (isBlocking && onBlocked) {
+          onBlocked();
+        } else {
+          enqueueSnackbar({
+            style: { width: 250, minWidth: "250px!important" },
+            message: `Site ${
+              isBlocking ? "blocked" : "unblocked"
+            } successfully.`,
+            variant: "success",
+            autoHideDuration: 3000,
+          });
+          navigate(isBlocking ? BLOCKED_SITES_PAGE : SESSIONS_PAGE);
+        }
+      })
       .catch(() => setStatus("error"));
-
-    wasBlocking.current = isBlocking;
-
-    if (isBlocking && onBlocked) {
-      onBlocked();
-    }
-  }, [dispatch, site, status, sessionId, onBlocked]);
+  }, [dispatch, site, status, sessionId, onBlocked, navigate]);
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -77,34 +127,20 @@ const ToggleBlockSite: React.FC<ToggleBlockSiteProps> = ({
     if (status === "error") {
       text = `There was a problem trying to ${nextStatus} "${site}" website.`;
       btnText = "Retry";
-    } else if (status === "success") {
-      const nextStatus = !wasBlocking.current ? "unblock" : "block";
-
-      text = `The website "${site}" was successfully ${nextStatus}ed`;
-      btnText = "Ok";
     } else {
       text = `Are you sure you want to ${nextStatus} "${site}" website?`;
       btnText = "Yes";
     }
 
-    const isSuccess = status === "success";
-
-    const action = isSuccess ? onClose : onClickYes;
-
     return (
       <OperationFailed
         text={text}
-        onCancel={onClose}
-        onRetry={action}
+        onCancel={onCancel}
+        onRetry={onClickYes}
         retryBtnText={btnText}
-        cancelBtnProps={{
-          sx: {
-            display: status !== "success" ? "inline-flex" : "none",
-          },
-        }}
       />
     );
-  }, [status, site, onClose]);
+  }, [status, site, onCancel, onClickYes]);
 
   return (
     <Stack flexGrow={1} justifyContent={"center"} alignItems={"center"}>
@@ -116,6 +152,7 @@ const ToggleBlockSite: React.FC<ToggleBlockSiteProps> = ({
 const mapStateToProps = (state: RootState) => {
   return {
     blockedList: state.app.blockedSites.list,
+    sessionList: state.vault.entities.sessions.list,
   };
 };
 

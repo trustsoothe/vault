@@ -26,6 +26,7 @@ import {
   NetworkStorage,
   getAccountBalance as getBalance,
   getBalances,
+  wait,
 } from "../../utils";
 import { DISCONNECT_RESPONSE } from "../../constants/communication";
 
@@ -132,9 +133,22 @@ export const getAccountBalance = createAsyncThunk<
   GetAccountBalanceResult,
   GetAccountBalanceParam
 >("vault/getAccountBalance", async ({ address, protocol }, { getState }) => {
+  let counter = 1;
+
+  while (counter <= 5) {
+    const state = getState() as RootState;
+    const isLoading = state.vault.entities.accounts.balances.loading;
+
+    if (isLoading) {
+      await wait(100);
+      counter++;
+    } else {
+      counter = 6;
+    }
+  }
+
   const state = getState() as RootState;
   const map = state.vault.entities.accounts.balances.byId;
-  const isLoading = state.vault.entities.accounts.balances.loading;
   const networks = state.vault.entities.networks.list;
 
   const accountFromSaved = state.vault.entities.accounts.list.find(
@@ -151,10 +165,6 @@ export const getAccountBalance = createAsyncThunk<
         update: false,
       };
     }
-  }
-
-  if (isLoading) {
-    return null;
   }
 
   const balance = await getBalance(address, protocol, networks);

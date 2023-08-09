@@ -1,18 +1,22 @@
 import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
+import type { RootState } from "../../redux/store";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import Stack from "@mui/material/Stack";
-import MenuItem from "@mui/material/MenuItem";
-import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import { enqueueSnackbar } from "notistack";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import { connect } from "react-redux";
 import {
   type NetworkOptions,
   SupportedProtocols,
   SerializedNetwork,
 } from "@poktscan/keyring";
-import CircularLoading from "../common/CircularLoading";
-import Button from "@mui/material/Button";
 import { useAppDispatch } from "../../hooks/redux";
+import { NETWORKS_PAGE } from "../../constants/routes";
+import CircularLoading from "../common/CircularLoading";
 import { saveNetwork } from "../../redux/slices/vault";
 import {
   chainIDsByProtocol,
@@ -46,17 +50,18 @@ const protocols: { protocol: SupportedProtocols; label: string }[] =
   }));
 
 interface AddUpdateNetworkProps {
-  onClose: () => void;
-  networkToUpdate?: SerializedNetwork;
+  networks: SerializedNetwork[];
 }
 
-const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
-  onClose,
-  networkToUpdate,
-}) => {
+const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
   const dispatch = useAppDispatch();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [networkToUpdate, setNetworkToUpdate] =
+    useState<SerializedNetwork>(null);
   const [status, setStatus] = useState<
-    "normal" | "loading" | "saved" | "error" | "invalid_url"
+    "normal" | "loading" | "error" | "invalid_url"
   >("normal");
   const {
     register,
@@ -76,6 +81,29 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
   useEffect(() => {
     setValue("protocol.chainID", "");
   }, [selectedProtocol]);
+
+  const onCancel = useCallback(() => {
+    if (location.key !== "default") {
+      navigate(-1);
+    } else {
+      navigate(NETWORKS_PAGE);
+    }
+  }, [navigate, location]);
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    const networkFromStore = networks.find(
+      (item) => item.id === id && !item.isDefault
+    );
+    if (networkFromStore && networkToUpdate?.id !== id) {
+      setNetworkToUpdate(networkFromStore);
+      return;
+    }
+
+    if (!networkFromStore) {
+      setNetworkToUpdate(null);
+    }
+  }, [searchParams, networks]);
 
   useEffect(() => {
     reset({
@@ -118,11 +146,19 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
       )
         .unwrap()
         .then(() => {
-          setStatus("saved");
+          enqueueSnackbar({
+            style: { width: 250, minWidth: "250px!important" },
+            message: `Network ${
+              networkToUpdate ? "updated" : "added"
+            } successfully.`,
+            variant: "success",
+            autoHideDuration: 2500,
+          });
+          navigate(NETWORKS_PAGE);
         })
         .catch(() => setStatus("error"));
     },
-    [networkToUpdate]
+    [networkToUpdate, navigate]
   );
 
   const onClickOk = useCallback(() => {
@@ -139,27 +175,11 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
       return <CircularLoading />;
     }
 
-    if (status === "saved") {
-      return (
-        <Stack
-          flexGrow={1}
-          alignItems={"center"}
-          justifyContent={"center"}
-          marginTop={"-40px"}
-        >
-          <Typography>Your network was saved successfully.</Typography>
-          <Button sx={{ textTransform: "none" }} onClick={onClose}>
-            Go to Network List
-          </Button>
-        </Stack>
-      );
-    }
-
     if (status === "error") {
       return (
         <OperationFailed
           text={"There was an error saving the network."}
-          onCancel={onClose}
+          onCancel={onCancel}
         />
       );
     }
@@ -170,7 +190,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
           text={
             "The provided RPC Url is not valid. Please introduce a valid one."
           }
-          onCancel={onClose}
+          onCancel={onCancel}
           retryBtnText={"Ok"}
           retryBtnProps={{
             type: "button",
@@ -188,19 +208,10 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
         component={"form"}
         onSubmit={handleSubmit(onSubmit)}
         boxSizing={"border-box"}
-        paddingX={"20px"}
         justifyContent={"space-between"}
+        paddingTop={2}
       >
         <Stack spacing={"20px"}>
-          <Typography
-            fontSize={18}
-            textAlign={"center"}
-            marginTop={"25px"}
-            marginBottom={"10px"}
-          >
-            {networkToUpdate ? "Update" : "Add"} Network
-          </Typography>
-
           <TextField
             autoFocus
             size={"small"}
@@ -268,15 +279,15 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
         <Stack direction={"row"} spacing={"20px"}>
           <Button
             variant={"outlined"}
-            sx={{ textTransform: "none" }}
+            sx={{ height: 30 }}
             fullWidth
-            onClick={onClose}
+            onClick={onCancel}
           >
             Cancel
           </Button>
           <Button
             variant={"contained"}
-            sx={{ textTransform: "none", fontWeight: 600 }}
+            sx={{ height: 30, fontWeight: 600 }}
             fullWidth
             type={"submit"}
           >
@@ -291,8 +302,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
     handleSubmit,
     onSubmit,
     formState,
-    onClose,
-    networkToUpdate,
+    onCancel,
     selectedProtocol,
     chainIDs,
     onClickOk,
@@ -305,4 +315,8 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({
   );
 };
 
-export default AddUpdateNetwork;
+const mapStateToProps = (state: RootState) => ({
+  networks: state.vault.entities.networks.list,
+});
+
+export default connect(mapStateToProps)(AddUpdateNetwork);

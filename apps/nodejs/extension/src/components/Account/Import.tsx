@@ -1,16 +1,17 @@
+import type { SerializedAsset } from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import Stack from "@mui/material/Stack";
+import { Controller, FormProvider, useForm } from "react-hook-form";
+import { useLocation, useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
-import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
-import { useLocation, useNavigate } from "react-router-dom";
 import Divider from "@mui/material/Divider";
-import { Controller, FormProvider, useForm } from "react-hook-form";
-import CircularLoading from "../common/CircularLoading";
-import { RootState } from "../../redux/store";
+import { enqueueSnackbar } from "notistack";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
 import { connect } from "react-redux";
-import { SerializedAsset } from "@poktscan/keyring";
+import CircularLoading from "../common/CircularLoading";
 import AutocompleteAsset from "./AutocompleteAsset";
 import OperationFailed from "../common/OperationFailed";
 import { nameRules } from "./CreateNew";
@@ -35,7 +36,7 @@ interface FormValues {
   asset?: SerializedAsset;
 }
 
-type FormStatus = "normal" | "loading" | "error" | "submitted";
+type FormStatus = "normal" | "loading" | "error";
 
 interface ImportAccountProps {
   assets: RootState["vault"]["entities"]["assets"]["list"];
@@ -89,19 +90,29 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     }
   }, [navigate, location]);
 
-  const onClickCreate = useCallback(async (data: FormValues) => {
-    let text;
+  const onClickCreate = useCallback(
+    async (data: FormValues) => {
+      let text;
 
-    if (data.json_file) {
-      text = await data.json_file.text();
-    }
+      if (data.json_file) {
+        text = await data.json_file.text();
+      }
 
-    setStatus("loading");
+      setStatus("loading");
 
-    setTimeout(() => {
-      setStatus("submitted");
-    }, 1500);
-  }, []);
+      setTimeout(() => {
+        enqueueSnackbar({
+          style: { width: 200, minWidth: "200px!important" },
+          message: `Account imported successfully.`,
+          variant: "success",
+          autoHideDuration: 2500,
+        });
+        // todo: navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${result.data.accountId}`);
+        navigate("/");
+      }, 1500);
+    },
+    [navigate]
+  );
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -114,21 +125,6 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
           text={"There was an error importing the account."}
           onCancel={onClickCancel}
         />
-      );
-    }
-
-    if (status === "submitted") {
-      const accountName = getValues("account_name");
-
-      return (
-        <>
-          <Typography textAlign={"center"}>
-            The account "{accountName}" was imported successfully!
-          </Typography>
-          <Button sx={{ textTransform: "none" }} onClick={() => navigate("/")}>
-            Accept
-          </Button>
-        </>
       );
     }
 
@@ -347,7 +343,6 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     onClickCancel,
     type,
     status,
-    navigate,
     getValues,
     formState,
     methods,

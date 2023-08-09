@@ -4,6 +4,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Menu from "@mui/material/Menu";
 import { connect } from "react-redux";
+import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import ReplyIcon from "@mui/icons-material/Reply";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
@@ -11,14 +12,20 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   ACCOUNTS_DETAIL_PAGE,
   ACCOUNTS_PAGE,
+  ADD_NETWORK_PAGE,
   ASSETS_PAGE,
+  BLOCK_SITE_PAGE,
+  BLOCKED_SITES_PAGE,
+  CONNECTED_SITE_DETAIL_PAGE,
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
   REMOVE_ACCOUNT_PAGE,
   SESSIONS_PAGE,
   TRANSFER_PAGE,
+  UNBLOCK_SITE_PAGE,
   UPDATE_ACCOUNT_PAGE,
+  UPDATE_NETWORK_PAGE,
 } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { RootState } from "../../redux/store";
@@ -32,7 +39,14 @@ const titleMap = {
   [CREATE_ACCOUNT_PAGE]: "Create Account",
   [IMPORT_ACCOUNT_PAGE]: "Import Account",
   [NETWORKS_PAGE]: "Networks",
+  [ADD_NETWORK_PAGE]: "Add Network",
+  [UPDATE_NETWORK_PAGE]: "Update Network",
+  [REMOVE_ACCOUNT_PAGE]: "Remove Network",
   [SESSIONS_PAGE]: "Connected Sites",
+  [CONNECTED_SITE_DETAIL_PAGE]: "Connection Detail",
+  [BLOCKED_SITES_PAGE]: "Blocked Sites",
+  [UNBLOCK_SITE_PAGE]: "Unblock Site",
+  [BLOCK_SITE_PAGE]: "Block Site",
   [TRANSFER_PAGE]: "New Transfer",
 };
 
@@ -87,6 +101,51 @@ const Header: React.FC<HeaderProps> = ({
     return 0;
   }, [accountsLength, networksLength, assetsLength, location]);
 
+  const complementaryComponent = useMemo(() => {
+    if (location.pathname === NETWORKS_PAGE) {
+      return (
+        <Button
+          sx={{ textTransform: "none", height: 30, minWidth: 40, width: 40 }}
+          onClick={() => navigate(ADD_NETWORK_PAGE)}
+        >
+          Add
+        </Button>
+      );
+    }
+    if (items) {
+      return (
+        <Stack
+          justifyContent={"center"}
+          alignItems={"center"}
+          height={20}
+          paddingX={"5px"}
+          bgcolor={"#d3d3d3"}
+          borderRadius={"4px"}
+        >
+          <Typography
+            fontSize={10}
+            fontWeight={600}
+            color={"#454545"}
+            letterSpacing={"0.5px"}
+          >
+            {items}
+          </Typography>
+        </Stack>
+      );
+    }
+
+    if (location.pathname === SESSIONS_PAGE) {
+      return (
+        <Button
+          sx={{ color: "red", fontWeight: 600 }}
+          onClick={() => navigate(BLOCKED_SITES_PAGE)}
+        >
+          Blocks
+        </Button>
+      );
+    }
+  }, [items, navigate, location.pathname]);
+
   const canGoBack = location.key !== "default";
 
   return (
@@ -101,24 +160,7 @@ const Header: React.FC<HeaderProps> = ({
           <Typography variant={"h6"}>
             {titleMap[location.pathname] || "Keyring Vault"}
           </Typography>
-          <Stack
-            justifyContent={"center"}
-            alignItems={"center"}
-            height={20}
-            paddingX={"5px"}
-            bgcolor={"#d3d3d3"}
-            borderRadius={"4px"}
-            display={items ? "flex" : "none"}
-          >
-            <Typography
-              fontSize={10}
-              fontWeight={600}
-              color={"#454545"}
-              letterSpacing={"0.5px"}
-            >
-              {items}
-            </Typography>
-          </Stack>
+          {complementaryComponent}
         </Stack>
         <Stack
           direction={"row"}

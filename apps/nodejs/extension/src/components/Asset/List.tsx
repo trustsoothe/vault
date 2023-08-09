@@ -62,7 +62,6 @@ interface AssetListProps {
 }
 
 const AssetList: React.FC<AssetListProps> = ({ assets, isLoading }) => {
-  const [error, setError] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<SerializedAsset>(null);
   const [view, setView] = useState<"list" | "addUpdate" | "remove">("list");
 
@@ -95,22 +94,12 @@ const AssetList: React.FC<AssetListProps> = ({ assets, isLoading }) => {
     }
 
     return (
-      <Stack height={1} boxSizing={"border-box"} paddingBottom={"20px"}>
-        <Stack
-          marginRight={"-10px"}
-          marginTop={"15px"}
-          direction={"row"}
-          alignItems={"center"}
-          justifyContent={"space-between"}
-        >
-          <Typography variant={"h6"}>Assets</Typography>
-          {/*{false && (*/}
-          {/*  <Button sx={{ textTransform: "none" }} onClick={onClickAdd}>*/}
-          {/*    + Add*/}
-          {/*  </Button>*/}
-          {/*)}*/}
-        </Stack>
-
+      <Stack
+        height={1}
+        boxSizing={"border-box"}
+        paddingBottom={"20px"}
+        marginTop={1}
+      >
         <Box
           overflow={"auto"}
           marginRight={"-10px"}
@@ -130,7 +119,6 @@ const AssetList: React.FC<AssetListProps> = ({ assets, isLoading }) => {
     onClose,
     assets,
     isLoading,
-    error,
     onClickRemove,
     onClickUpdate,
     onClickAdd,

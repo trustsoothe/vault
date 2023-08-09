@@ -2,25 +2,21 @@ import type { RootState } from "../../redux/store";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
+import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import React, { useEffect, useMemo } from "react";
 import { useAppDispatch } from "../../hooks/redux";
 import { getBlockedSites } from "../../redux/slices/app";
+import { UNBLOCK_SITE_PAGE } from "../../constants/routes";
 
 interface BlockedListProps {
   blockedList: RootState["app"]["blockedSites"]["list"];
   loaded: RootState["app"]["blockedSites"]["loaded"];
-  toggleBlockSite: (site: string, toBlockList?: boolean) => void;
-  onClose: () => void;
 }
 
-const BlockedList: React.FC<BlockedListProps> = ({
-  blockedList,
-  loaded,
-  toggleBlockSite,
-  onClose,
-}) => {
+const BlockedList: React.FC<BlockedListProps> = ({ blockedList, loaded }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!loaded) {
@@ -52,7 +48,7 @@ const BlockedList: React.FC<BlockedListProps> = ({
           >
             <Typography>{site}</Typography>
             <Button
-              onClick={() => toggleBlockSite(site, true)}
+              onClick={() => navigate(`${UNBLOCK_SITE_PAGE}?site=${site}`)}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
               Unblock
@@ -61,29 +57,11 @@ const BlockedList: React.FC<BlockedListProps> = ({
         ))}
       </Stack>
     );
-  }, [blockedList, toggleBlockSite]);
+  }, [blockedList]);
 
   return (
     <>
-      <Stack flexGrow={1}>
-        <Stack
-          marginTop={"15px"}
-          direction={"row"}
-          justifyContent={"space-between"}
-          alignItems={"center"}
-          width={1}
-        >
-          <Typography variant={"h5"}>Blocked Sites</Typography>
-          <Button
-            onClick={onClose}
-            variant={"contained"}
-            sx={{ textTransform: "none", height: 30, width: 60 }}
-          >
-            Close
-          </Button>
-        </Stack>
-        {content}
-      </Stack>
+      <Stack flexGrow={1}>{content}</Stack>
     </>
   );
 };

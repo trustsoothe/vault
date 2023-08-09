@@ -50,6 +50,9 @@ export const byteLength = (str: string) => new Blob([str]).size;
 
 export const isAddress = (str: string) => isHex(str) && byteLength(str) === 40;
 
+export const isPrivateKey = (str: string) =>
+  isHex(str) && byteLength(str) === 128;
+
 export const getAssetByProtocol = (
   assets: SerializedAsset[],
   protocol: TProtocol | Protocol
@@ -249,3 +252,6 @@ export const isTransferHealthyForNetwork = async (
     return false;
   }
 };
+
+export const wait = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));

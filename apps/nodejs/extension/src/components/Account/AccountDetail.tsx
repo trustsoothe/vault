@@ -10,10 +10,12 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import CopyIcon from "@mui/icons-material/ContentCopy";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import { SupportedProtocols } from "@poktscan/keyring";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 import { getAccountBalance } from "../../redux/slices/vault";
 import { useAppDispatch } from "../../hooks/redux";
@@ -34,6 +36,7 @@ interface DetailComponentProps {
   onUpdate?: () => void;
   containerProps?: StackProps;
   hideName?: boolean;
+  hideCopy?: boolean;
 }
 
 export const DetailComponent: React.FC<DetailComponentProps> = ({
@@ -41,6 +44,7 @@ export const DetailComponent: React.FC<DetailComponentProps> = ({
   onUpdate,
   containerProps,
   hideName,
+  hideCopy = false,
 }) => {
   const dispatch = useAppDispatch();
   const [showCopyAddressTooltip, setShowCopyAddressTooltip] = useState(false);
@@ -49,7 +53,7 @@ export const DetailComponent: React.FC<DetailComponentProps> = ({
   const [balance, setBalance] = useState(0);
 
   const getBalance = useCallback(() => {
-    if (account) {
+    if (account?.address) {
       setLoadingBalance(true);
       dispatch(
         getAccountBalance({
@@ -67,9 +71,10 @@ export const DetailComponent: React.FC<DetailComponentProps> = ({
         .catch(() => setErrorBalance(true))
         .finally(() => setLoadingBalance(false));
     }
-  }, [account]);
+  }, [account?.address, account?.protocol?.name, account?.protocol?.chainID]);
 
   useEffect(() => {
+    if (loadingBalance) return;
     getBalance();
   }, [getBalance]);
 
@@ -151,11 +156,13 @@ export const DetailComponent: React.FC<DetailComponentProps> = ({
         spacing={"10px"}
       >
         <Typography fontSize={14}>{account?.address}</Typography>
-        <Tooltip title={"Copied"} open={showCopyAddressTooltip}>
-          <IconButton sx={{ padding: 0 }} onClick={handleCopyAddress}>
-            <CopyIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
+        {!hideCopy && (
+          <Tooltip title={"Copied"} open={showCopyAddressTooltip}>
+            <IconButton sx={{ padding: 0 }} onClick={handleCopyAddress}>
+              <CopyIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Stack>
       <Stack
         mt={"5px"}
@@ -224,7 +231,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
     if (privateKey) {
       navigator.clipboard.writeText(privateKey).then(() => {
         setShowCopyKeyTooltip(true);
-        setTimeout(() => setShowCopyKeyTooltip(false), 300);
+        setTimeout(() => setShowCopyKeyTooltip(false), 500);
       });
     }
   }, [privateKey]);
@@ -348,7 +355,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
             variant={"contained"}
             disabled={!privateKey}
           >
-            Export PPK
+            Export Portable Wallet
           </Button>
         </>
       );
@@ -392,12 +399,28 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
     showCopyKeyTooltip,
   ]);
 
+  const explorerLink = useMemo(() => {
+    if (account) {
+      const { name, chainID } = account.protocol;
+
+      if (name === SupportedProtocols.Pocket) {
+        return `https://poktscan.com/account/${account.address}`;
+      }
+    }
+
+    return null;
+  }, [account]);
+
   return (
     <Stack width={360}>
-      <DetailComponent account={account} onUpdate={onUpdateAccountName} />
+      <DetailComponent
+        account={account}
+        onUpdate={onUpdateAccountName}
+        containerProps={{ mt: 5 }}
+      />
       <Stack
         mt={"5px"}
-        mb={"50px"}
+        mb={!explorerLink ? "50px" : 0}
         direction={"row"}
         alignItems={"center"}
         justifyContent={"center"}
@@ -410,7 +433,26 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
         <Button sx={{ height: 30 }} onClick={onClickRemoveAccount}>
           Remove
         </Button>
+        <Button sx={{ height: 30 }}>Reimport</Button>
       </Stack>
+      {explorerLink && (
+        <Stack
+          direction={"row"}
+          alignItems={"center"}
+          justifyContent={"center"}
+          component={"a"}
+          color={"#1976d2"}
+          spacing={0.5}
+          href={explorerLink}
+          mb={5}
+          target={"_blank"}
+        >
+          <Typography fontSize={12} textAlign={"center"} color={"#1976d2"}>
+            View on Explorer
+          </Typography>
+          <OpenInNewIcon sx={{ fontSize: 14 }} />
+        </Stack>
+      )}
 
       {privateKeyComponent}
     </Stack>

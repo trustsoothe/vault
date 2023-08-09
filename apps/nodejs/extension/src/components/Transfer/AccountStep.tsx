@@ -6,11 +6,12 @@ import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { ExternalTransferRequest } from "../../types/communication";
 import type { AccountWithBalance } from "../../types";
 import type { RootState } from "../../redux/store";
-import type { FormValues } from "./index";
+import type { FormValues, FromAddressStatus } from "./index";
 import { connect } from "react-redux";
 import React, { useCallback, useEffect, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -333,7 +334,7 @@ const NetworkAutocomplete = connect(mapStateToNetworkProps)(
 type TNetwork = RootState["vault"]["entities"]["networks"]["list"];
 
 interface AccountStepProps {
-  fromAddressStatus: string | null;
+  fromAddressStatus: FromAddressStatus | null;
   fromAddress: string;
   request?: ExternalTransferRequest;
   fromBalance: number;
@@ -376,6 +377,8 @@ const AccountStep: React.FC<AccountStepProps> = ({
       clearErrors("amount");
     }
   }, [fromBalance, setValue, clearErrors, feeFromForm]);
+
+  const fromIsAccountSaved = fromAddressStatus === "is_account_saved";
 
   return (
     <Stack width={1} spacing={"23px"}>
@@ -448,9 +451,9 @@ const AccountStep: React.FC<AccountStepProps> = ({
             order: 3,
           }}
         />
-      ) : (
+      ) : !fromIsAccountSaved ? (
         <AccountsAutocomplete fromAddressStatus={fromAddressStatus} />
-      )}
+      ) : null}
       {fromType === "private_key" ? (
         <AutocompleteAsset
           control={control}
@@ -500,12 +503,13 @@ const AccountStep: React.FC<AccountStepProps> = ({
 
               const total = amount + fee;
 
-              if (amount <= 0) {
-                return "Min is 0";
+              const min = 1 / 1e6;
+              if (amount < min) {
+                return `Min is ${min}`;
               }
 
               return total > fromBalance
-                ? `Amount + Fee cannot be higher than ${fromBalance}`
+                ? `Amount + Fee must be lower than balance`
                 : true;
             },
           }}
@@ -523,17 +527,41 @@ const AccountStep: React.FC<AccountStepProps> = ({
               }
               error={!!error?.message || fromBalance === 0 || errorBalance}
               InputLabelProps={{ shrink: !!field.value }}
+              sx={{
+                "& .MuiFormHelperText-root": {
+                  bottom: fromIsAccountSaved ? "-16px" : undefined,
+                },
+              }}
+              InputProps={{
+                endAdornment: fromIsAccountSaved ? (
+                  <Button
+                    onClick={onClickAll}
+                    disabled={!!request?.amount}
+                    sx={{
+                      minWidth: 45,
+                      height: 30,
+                      marginTop: 0.2,
+                    }}
+                  >
+                    All
+                  </Button>
+                ) : null,
+              }}
               helperText={
-                <AmountHelperText
-                  isLoadingBalance={isLoadingBalance}
-                  accountBalance={fromBalance}
-                  errorBalance={errorBalance}
-                  getBalance={getBalance}
-                  disableAll={!!request?.amount}
-                  onClickAll={onClickAll}
-                  hideBalance={!asset || !from}
-                  hideFee={true}
-                />
+                fromIsAccountSaved ? (
+                  error?.message
+                ) : (
+                  <AmountHelperText
+                    isLoadingBalance={isLoadingBalance}
+                    accountBalance={fromBalance}
+                    errorBalance={errorBalance}
+                    getBalance={getBalance}
+                    disableAll={!!request?.amount}
+                    onClickAll={onClickAll}
+                    hideBalance={!asset || !from}
+                    hideFee={true}
+                  />
+                )
               }
               {...field}
             />
@@ -556,7 +584,7 @@ const AccountStep: React.FC<AccountStepProps> = ({
               disabled={isLoadingFee || errorFee}
               InputLabelProps={{ shrink: !!field.value }}
               sx={{
-                width: 150,
+                width: 125,
               }}
               error={!!error?.message || errorFee}
               helperText={
@@ -611,8 +639,6 @@ const AccountStep: React.FC<AccountStepProps> = ({
             label={"Memo"}
             fullWidth
             size={"small"}
-            rows={2}
-            multiline
             disabled={!!request?.memo}
             {...field}
             sx={{

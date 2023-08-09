@@ -7,9 +7,13 @@ import Summary from "./Component";
 
 interface SummaryStepProps {
   fromBalance: number;
+  wrongPassword?: boolean;
 }
 
-const SummaryStep: React.FC<SummaryStepProps> = ({ fromBalance }) => {
+const SummaryStep: React.FC<SummaryStepProps> = ({
+  fromBalance,
+  wrongPassword,
+}) => {
   const { watch, register, formState } = useFormContext<FormValues>();
 
   const [fromType] = watch(["fromType"]);
@@ -26,8 +30,12 @@ const SummaryStep: React.FC<SummaryStepProps> = ({ fromBalance }) => {
           {...register("accountPassword", {
             required: "Required",
           })}
-          error={!!formState?.errors?.accountPassword}
-          helperText={formState?.errors?.accountPassword?.message as string}
+          error={!!formState?.errors?.accountPassword || wrongPassword}
+          helperText={
+            formState?.errors?.accountPassword?.message || wrongPassword
+              ? "Wrong Password"
+              : undefined
+          }
           sx={{
             order: 2,
           }}
