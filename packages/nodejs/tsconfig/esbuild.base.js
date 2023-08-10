@@ -12,6 +12,7 @@ const keyringPackages = packages.map(function (source) {
 const allowList = [
     ...keyringPackages,
     '@noble/ed25519',
+    'url-join',
 ]
 
 const baseConfig = {

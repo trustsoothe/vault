@@ -7,7 +7,7 @@ import {Buffer} from "buffer";
 import IEncryptionService from "../../encryption/IEncryptionService";
 import { Network } from '../../../network';
 import {AccountReference} from "../../values";
-import * as Path from "path";
+import urlJoin from "url-join";
 import {
   PocketRpcBalanceResponseSchema,
   PocketRpcCanSendTransactionResponseSchema,
@@ -93,7 +93,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
   async updateBalanceStatus(network: Network): Promise<Network> {
     this.validateNetwork(network);
 
-    const url = Path.join(network.rpcUrl, 'v1/query/balance')
+    const url = urlJoin(network.rpcUrl, 'v1/query/balance')
 
     const response = await globalThis.fetch(url, {
       method: 'POST',
@@ -119,7 +119,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
   async updateSendTransactionStatus(network: Network): Promise<Network> {
     this.validateNetwork(network);
 
-    const url = Path.join(network.rpcUrl, 'v1/client/rawtx')
+    const url = urlJoin(network.rpcUrl, 'v1/client/rawtx')
 
     const response = await globalThis.fetch(url, {
       method: 'POST',
@@ -153,7 +153,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
   async getBalance(network: Network, account: AccountReference): Promise<number> {
     this.validateNetwork(network);
 
-    const url = Path.join(network.rpcUrl, 'v1/query/balance')
+    const url = urlJoin(network.rpcUrl, 'v1/query/balance')
 
     const response = await globalThis.fetch(url, {
       method: 'POST',
@@ -195,7 +195,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
   private async requestFee(network: Network) {
     const FEE_PARAM_KEY = 'auth/FeeMultipliers'
 
-    const url = Path.join(network.rpcUrl, 'v1/query/param')
+    const url = urlJoin(network.rpcUrl, 'v1/query/param')
 
     // @ts-ignore
     return await globalThis.fetch(url, {
