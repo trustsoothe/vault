@@ -7,7 +7,6 @@ import {Buffer} from "buffer";
 import IEncryptionService from "../../encryption/IEncryptionService";
 import { Network } from '../../../network';
 import {AccountReference} from "../../values";
-import fetch from 'isomorphic-fetch'
 import * as Path from "path";
 import {
   PocketRpcBalanceResponseSchema,
@@ -96,7 +95,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
     const url = Path.join(network.rpcUrl, 'v1/query/balance')
 
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
       method: 'POST',
     });
 
@@ -122,7 +121,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
     const url = Path.join(network.rpcUrl, 'v1/client/rawtx')
 
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
       method: 'POST',
     })
 
@@ -156,7 +155,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
     const url = Path.join(network.rpcUrl, 'v1/query/balance')
 
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
       method: 'POST',
       body: JSON.stringify({
         address: account.address,
@@ -198,7 +197,8 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
     const url = Path.join(network.rpcUrl, 'v1/query/param')
 
-    return await fetch(url, {
+    // @ts-ignore
+    return await globalThis.fetch(url, {
       method: 'POST',
       body: JSON.stringify({
         key: FEE_PARAM_KEY,
