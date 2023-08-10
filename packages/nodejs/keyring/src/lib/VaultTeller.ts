@@ -13,7 +13,7 @@ import {
   ForbiddenSessionError,
   InvalidSessionError,
   SessionIdRequiredError,
-  SessionNotFoundError, VaultIsLockedError,
+  SessionNotFoundError, VaultIsLockedError, VaultRestoreError,
 } from "./errors";
 import {CreateAccountOptions, ProtocolServiceFactory} from "./core/common/protocols";
 import {v4} from "uuid";
@@ -275,7 +275,7 @@ export class VaultTeller {
         encryptedVault.contents
       );
     } catch (error) {
-      throw new Error("Unable to restore vault. Is passphrase incorrect?");
+      throw new VaultRestoreError();
     }
 
     try {

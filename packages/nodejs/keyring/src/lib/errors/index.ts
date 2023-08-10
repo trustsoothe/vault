@@ -1,3 +1,5 @@
+import {Account} from "../core/vault";
+
 interface IKeyringError {
   name: string;
   message: string;
@@ -64,6 +66,15 @@ export class VaultIsLockedError extends KeyringError {
   }
 }
 
+export class VaultRestoreError extends KeyringError {
+  constructor() {
+    super({
+      name: "VaultRestoreError",
+      message: "Invalid Operation: Vault can not be restored. Make sure the passphrase is correct.",
+    });
+  }
+}
+
 export class ProtocolNotSupported extends KeyringError {
   constructor(protocol?: string) {
     super({
@@ -88,6 +99,15 @@ export class NetworkRequestError extends KeyringError {
       name: 'NetworkRequestError',
       message,
       innerError,
+    });
+  }
+}
+
+export class AccountExistError extends KeyringError {
+  constructor(account: Account) {
+    super({
+      name: 'AccountExistError',
+      message: `An account with address: ${account.address} and protocol: "${account.asset.protocol.name} | ${account.asset.protocol.chainID}" already exists within the vault.`,
     });
   }
 }

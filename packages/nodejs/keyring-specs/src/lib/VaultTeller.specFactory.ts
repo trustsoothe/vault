@@ -1,17 +1,18 @@
 import {
   Account,
-  AccountOptions, AccountReference,
+  AccountOptions, AccountReference, ArgumentError,
   Asset,
-  ExternalAccessRequest,
+  ExternalAccessRequest, ForbiddenSessionError,
   IEncryptionService,
   IStorage,
   IVaultStore,
-  OriginReference,
+  OriginReference, Passphrase,
   Permission,
   PermissionsBuilder,
   SerializedSession,
-  Session,
+  Session, SessionIdRequiredError,
   SupportedProtocols,
+  VaultRestoreError,
   VaultTeller,
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
@@ -125,7 +126,7 @@ export default <
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault('passphrase')
       const authorizeOwnerOperation = vaultTeller.unlockVault('wrong-passphrase')
-      await expect(authorizeOwnerOperation).rejects.toThrow('Unable to restore vault. Is passphrase incorrect?')
+      await expect(authorizeOwnerOperation).rejects.toThrow(VaultRestoreError)
     })
 
     describe('when the vault is initialized and the passphrase is correct', () => {
@@ -454,5 +455,72 @@ export default <
       expect(expectedRevokedSession?.invalidatedAt).not.toBe(null);
       expect(expectedRevokedSession?.invalidatedAt).closeTo(Date.now(), 1000);
     })
+  })
+
+  describe('createAccount', () => {
+    const pocketAsset = new Asset({
+      name: 'Example Asset',
+      protocol: {
+        name: SupportedProtocols.Pocket,
+        chainID: 'testnet'
+      },
+      symbol: 'POKT'
+    });
+
+    test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const passphrase = new Passphrase('passphrase');
+      // @ts-ignore
+      const createAccountOperation = vaultTeller.createAccount(null, passphrase, {
+        name: 'example-account',
+        asset: pocketAsset,
+        passphrase,
+      })
+
+      await expect(createAccountOperation).rejects.toThrow(SessionIdRequiredError)
+    })
+
+    test('throws "ArgumentError" if the vault passphrase is not provided', async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault('passphrase')
+      const session = await vaultTeller.unlockVault('passphrase')
+      // @ts-ignore
+      const createAccountOperation = vaultTeller.createAccount(session.id, null, {
+        name: 'example-account',
+        asset: pocketAsset,
+        passphrase: new Passphrase('passphrase'),
+      })
+
+      await expect(createAccountOperation).rejects.toThrow(VaultRestoreError)
+    })
+
+    test('throws "ForbiddenSessionError" if the session id is found in the session store but "account:create" is not allowed', async () => {
+      vaultStore = createVaultStore()
+      const externalAccessRequestWithoutDefaults = new ExternalAccessRequest(
+        exampleExternalAccessRequest.permissions as Permission[],
+        exampleExternalAccessRequest.maxAge,
+        exampleExternalAccessRequest.origin,
+        exampleExternalAccessRequest.accounts as AccountReference[],
+        false
+      )
+
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const session = await vaultTeller.authorizeExternal(externalAccessRequestWithoutDefaults)
+      const passphrase = new Passphrase('passphrase');
+      // @ts-ignore
+      const createAccountOperation = vaultTeller.createAccount(session.id, passphrase, {
+        name: 'example-account',
+        asset: pocketAsset,
+        passphrase,
+      })
+
+      await expect(createAccountOperation).rejects.toThrow(ForbiddenSessionError)
+    });
   })
 }
