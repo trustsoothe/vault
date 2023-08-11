@@ -165,4 +165,25 @@ export class Session implements IEntity {
     session._lastActivity = serializedSession.lastActivity
     return session
   }
+
+  removeAccount(accountReference: AccountReference) {
+    if (!this.isValid()) {
+      throw new InvalidSessionError()
+    }
+
+    if (!this.isAllowed('account', 'delete', [])) {
+      throw new ForbiddenSessionError();
+    }
+
+    this._permissions = this.permissions.map((permission) => {
+      if (permission.resource === 'account') {
+        return {
+          ...permission,
+          identities: permission.identities.filter((id) => id !== accountReference.id)
+        }
+      }
+
+      return permission
+    });
+  }
 }

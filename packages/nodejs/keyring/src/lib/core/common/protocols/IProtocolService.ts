@@ -9,8 +9,13 @@ export interface CreateAccountOptions {
   passphrase: Passphrase
 }
 
+export interface CreateAccountFromPrivateKeyOptions extends CreateAccountOptions {
+  privateKey: string
+}
+
 export interface IProtocolService {
   createAccount(options: CreateAccountOptions): Promise<Account>
+  createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account>
   updateFeeStatus(network: Network): Promise<Network>
   updateBalanceStatus(network: Network): Promise<Network>
   updateSendTransactionStatus(network: Network): Promise<Network>

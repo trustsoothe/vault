@@ -1,6 +1,6 @@
 // @ts-ignore
 import {fromUint8Array} from 'hex-lite';
-import {CreateAccountOptions, IProtocolService} from '../IProtocolService';
+import {CreateAccountFromPrivateKeyOptions, CreateAccountOptions, IProtocolService} from '../IProtocolService';
 import {Account} from "../../../vault";
 import {utils,  getPublicKeyAsync} from '@noble/ed25519';
 import {Buffer} from "buffer";
@@ -42,6 +42,36 @@ export class PocketNetworkProtocolService implements IProtocolService {
       publicKey: Buffer.from(publicKey).toString('hex'),
       privateKey: encryptedPrivateKey,
     })
+  }
+
+  async createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
+    if (!options.asset) {
+      throw new ArgumentError('options.asset');
+    }
+
+    if (!options.passphrase) {
+      throw new ArgumentError('options.passphrase');
+    }
+
+    if (!options.privateKey) {
+      throw new ArgumentError('options.privateKey');
+    }
+
+    const publicKey = this.getPublicKeyFromPrivateKey(options.privateKey)
+    const address = await this.getAddressFromPublicKey(publicKey)
+    const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, options.privateKey)
+
+    return new Account({
+      name: options.name,
+      asset: options.asset,
+      address,
+      publicKey,
+      privateKey: encryptedPrivateKey,
+    });
+  }
+
+  private getPublicKeyFromPrivateKey(privateKey: string): string {
+    return privateKey.slice(64, privateKey.length)
   }
 
   private async getAddressFromPublicKey(

@@ -1,7 +1,8 @@
 import {
   Passphrase,
   EncryptedVault,
-  ExternalAccessRequest, AccountReference,
+  ExternalAccessRequest,
+  AccountReference,
 } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
 import IEncryptionService from "./core/common/encryption/IEncryptionService";
@@ -13,9 +14,15 @@ import {
   ForbiddenSessionError,
   InvalidSessionError,
   SessionIdRequiredError,
-  SessionNotFoundError, VaultIsLockedError, VaultRestoreError,
+  SessionNotFoundError,
+  VaultIsLockedError,
+  VaultRestoreError,
 } from "./errors";
-import {CreateAccountOptions, ProtocolServiceFactory} from "./core/common/protocols";
+import {
+  CreateAccountFromPrivateKeyOptions,
+  CreateAccountOptions,
+  ProtocolServiceFactory
+} from "./core/common/protocols";
 import {v4} from "uuid";
 
 export class VaultTeller {
@@ -156,6 +163,23 @@ export class VaultTeller {
     return account.asAccountReference();
   }
 
+  async createAccountFromPrivateKey(sessionId: string, vaultPassphrase: Passphrase, options: CreateAccountFromPrivateKeyOptions): Promise<AccountReference> {
+    await this.validateSessionForPermissions(sessionId, "account", "create");
+
+    const protocolService=
+      ProtocolServiceFactory.getProtocolService(options.asset.protocol, this.encryptionService);
+
+    const account = await protocolService.createAccountFromPrivateKey(options);
+
+    await this.addVaultAccount(account, vaultPassphrase);
+
+    await this.addAccountToSession(sessionId, account);
+
+    await this.updateSessionLastActivity(sessionId);
+
+    return account.asAccountReference();
+  }
+
   async updateAccountName(sessionId: string, vaultPassphrase: Passphrase, options: AccountUpdateOptions): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "update");
 
@@ -199,9 +223,9 @@ export class VaultTeller {
 
     await this.removeVaultAccount(accountReference, vaultPassphrase);
 
-    // await this.removeAccountFromSession(sessionId, accountReference);
+    await this.removeAccountFromSession(sessionId, accountReference);
 
-    // await this.updateSessionLastActivity(sessionId);
+    await this.updateSessionLastActivity(sessionId);
   }
 
   async revokeSession(
@@ -369,10 +393,23 @@ export class VaultTeller {
   private async removeVaultAccount(accountReference: AccountReference, vaultPassphrase: Passphrase) {
     const vault = await this.getVault(vaultPassphrase);
 
-    // vault.removeAccount(accountReference);
+    vault.removeAccount(accountReference);
 
-    // const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
-    //
-    // await this.vaultStore.save(encryptedUpdatedVault.serialize());
+    const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
+
+    await this.vaultStore.save(encryptedUpdatedVault.serialize());
+
+    /**
+     * Once the persisted vault is updated, we can perform our in-memory update
+     */
+    this._vault?.removeAccount(accountReference);
+  }
+
+  private async removeAccountFromSession(sessionId: string, accountReference: AccountReference) {
+    const session = await this.getSession(sessionId);
+    if (session) {
+      session.removeAccount(accountReference);
+      await this.sessionStore.save(session.serialize());
+    }
   }
 }
