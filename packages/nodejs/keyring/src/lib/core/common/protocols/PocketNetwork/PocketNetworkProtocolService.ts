@@ -1,10 +1,15 @@
 // @ts-ignore
 import {fromUint8Array} from 'hex-lite';
-import {CreateAccountFromPrivateKeyOptions, CreateAccountOptions, IProtocolService} from '../IProtocolService';
+import {
+  CreateAccountFromPPKFileOptions,
+  CreateAccountFromPrivateKeyOptions,
+  CreateAccountOptions,
+  IProtocolService
+} from '../IProtocolService';
 import {Account} from "../../../vault";
 import {utils,  getPublicKeyAsync} from '@noble/ed25519';
 import {Buffer} from "buffer";
-import IEncryptionService from "../../encryption/IEncryptionService";
+import {ScryptParams, IEncryptionService} from "../../encryption/IEncryptionService";
 import { Network } from '../../../network';
 import {AccountReference} from "../../values";
 import urlJoin from "url-join";
@@ -12,9 +17,10 @@ import {
   PocketPPKFileSchema,
   PocketRpcBalanceResponseSchema,
   PocketRpcCanSendTransactionResponseSchema,
-  PocketRpcFeeParamsResponseSchema, PocketRpcFeeParamsResponseValue, PocketRpcFeeParamValueSchema
+  PocketRpcFeeParamsResponseSchema,
+  PocketRpcFeeParamsResponseValue,
 } from "./schemas";
-import {ArgumentError, NetworkRequestError} from "../../../../errors";
+import {ArgumentError, InvalidPPKFileError, NetworkRequestError} from "../../../../errors";
 
 
 export class PocketNetworkProtocolService implements IProtocolService {
@@ -61,6 +67,50 @@ export class PocketNetworkProtocolService implements IProtocolService {
     const publicKey = this.getPublicKeyFromPrivateKey(options.privateKey)
     const address = await this.getAddressFromPublicKey(publicKey)
     const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, options.privateKey)
+
+    return new Account({
+      name: options.name,
+      asset: options.asset,
+      address,
+      publicKey,
+      privateKey: encryptedPrivateKey,
+    });
+  }
+
+  async createAccountFromPPKFile(options: CreateAccountFromPPKFileOptions): Promise<Account> {
+    if (!options.asset) {
+      throw new ArgumentError('options.asset');
+    }
+
+    if (!options.passphrase) {
+      throw new ArgumentError('options.passphrase');
+    }
+
+    if (!options.ppkFileContent) {
+      throw new ArgumentError('options.ppkFileContent');
+    }
+
+    if (!this.isValidPPKFileStructure(options.ppkFileContent)) {
+      throw new InvalidPPKFileError();
+    }
+
+    const ppkFile = PocketPPKFileSchema.parse(JSON.parse(options.ppkFileContent));
+
+    const params: ScryptParams = {
+      N: 32768,
+      r: 8,
+      p: 1,
+      dkLen: 32,
+      ivLen: ppkFile.secparam,
+      algorithm: 'aes-256-gcm',
+      tagLen: 16,
+    }
+
+    const privateKey = await this.IEncryptionService.decryptScrypt(ppkFile.ciphertext, ppkFile.salt, options.ppkFilePassphrase, params);
+
+    const publicKey = this.getPublicKeyFromPrivateKey(privateKey)
+    const address = await this.getAddressFromPublicKey(publicKey)
+    const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, privateKey)
 
     return new Account({
       name: options.name,

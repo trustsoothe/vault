@@ -111,3 +111,12 @@ export class AccountExistError extends KeyringError {
     });
   }
 }
+
+export class InvalidPPKFileError extends KeyringError {
+  constructor() {
+    super({
+      name: 'InvalidPPKFileError',
+      message: 'The provided file is not a valid PPK file.',
+    });
+  }
+}

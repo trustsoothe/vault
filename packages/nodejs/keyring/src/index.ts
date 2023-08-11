@@ -11,7 +11,7 @@ export * from './lib/core/common/storage/AssetStorage'
 export * from './lib/core/common/storage/NetworkStorage'
 export * from './lib/errors'
 
-import type IEncryptionService from './lib/core/common/encryption/IEncryptionService'
+import type {ScryptParams, IEncryptionService} from './lib/core/common/encryption/IEncryptionService'
 import type IVaultStore from './lib/core/common/storage/IVaultStorage'
 import type IStorage from './lib/core/common/storage/IStorage'
 import type IEntity from './lib/core/common/IEntity'
@@ -20,7 +20,8 @@ export type {
   IEncryptionService,
   IVaultStore,
   IStorage,
-  IEntity
+  IEntity,
+  ScryptParams,
 }
 
 export {
