@@ -1,8 +1,11 @@
 import {
   Account,
-  AccountOptions, AccountReference,
+  AccountExistError,
+  AccountOptions,
+  AccountReference,
   Asset,
-  ExternalAccessRequest, ForbiddenSessionError,
+  ExternalAccessRequest,
+  ForbiddenSessionError,
   IEncryptionService,
   IStorage,
   IVaultStore,
@@ -713,6 +716,54 @@ export default <
 
       const accounts = await vaultTeller.listAccounts(session.id)
       expect(accounts).toEqual([account])
+    })
+
+    test('throws "AccountExistsError" if the account already exists in the vault', async () => {
+      vaultStore = createVaultStore()
+      const passphrase = new Passphrase('passphrase');
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault(passphrase.get())
+      const session = await vaultTeller.unlockVault(passphrase.get())
+      await vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
+        name: 'example-account',
+        asset: pocketAsset,
+        passphrase,
+        privateKey: examplePrivateKey,
+      })
+
+      const createAccountOperation = vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
+        name: 'example-account',
+        asset: pocketAsset,
+        passphrase,
+        privateKey: examplePrivateKey,
+      })
+
+      await expect(createAccountOperation).rejects.toThrow(AccountExistError)
+    })
+
+    test('replaces the account if it already exists in the vault and "replace" is set to true', async () => {
+      vaultStore = createVaultStore()
+      const passphrase = new Passphrase('passphrase');
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault(passphrase.get())
+      const session = await vaultTeller.unlockVault(passphrase.get())
+      const account = await vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
+        name: 'example-account',
+        asset: pocketAsset,
+        passphrase,
+        privateKey: examplePrivateKey,
+      })
+
+      const accountWithSameName = await vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
+        name: 'example-account',
+        asset: pocketAsset,
+        passphrase,
+        privateKey: examplePrivateKey,
+      }, true)
+
+      expect(accountWithSameName.name).toEqual(account.name)
+      expect(accountWithSameName.address).toEqual(account.address)
+      expect(accountWithSameName.protocol).toEqual(account.protocol)
     })
   })
 }

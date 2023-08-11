@@ -163,7 +163,7 @@ export class VaultTeller {
     return account.asAccountReference();
   }
 
-  async createAccountFromPrivateKey(sessionId: string, vaultPassphrase: Passphrase, options: CreateAccountFromPrivateKeyOptions): Promise<AccountReference> {
+  async createAccountFromPrivateKey(sessionId: string, vaultPassphrase: Passphrase, options: CreateAccountFromPrivateKeyOptions, replace = false): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "create");
 
     const protocolService=
@@ -171,7 +171,13 @@ export class VaultTeller {
 
     const account = await protocolService.createAccountFromPrivateKey(options);
 
-    await this.addVaultAccount(account, vaultPassphrase);
+    const preExistingAccount = await this.getVaultAccountByReference(account.asAccountReference(), vaultPassphrase);
+
+    await this.addVaultAccount(account, vaultPassphrase, replace);
+
+    if (preExistingAccount && replace) {
+      await this.removeAccountFromSession(sessionId, preExistingAccount.asAccountReference());
+    }
 
     await this.addAccountToSession(sessionId, account);
 
@@ -183,7 +189,7 @@ export class VaultTeller {
   async updateAccountName(sessionId: string, vaultPassphrase: Passphrase, options: AccountUpdateOptions): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "update");
 
-    const account = await this.getVaultAccount(options.id, vaultPassphrase);
+    const account = await this.getVaultAccountById(options.id, vaultPassphrase);
 
     account.updateName(options.name);
 
@@ -337,10 +343,10 @@ export class VaultTeller {
     }
   }
 
-  private async addVaultAccount(account: Account, vaultPassphrase: Passphrase) {
+  private async addVaultAccount(account: Account, vaultPassphrase: Passphrase, replace = false) {
     const vault = await this.getVault(vaultPassphrase);
 
-    vault.addAccount(account);
+    vault.addAccount(account, replace);
 
     const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
 
@@ -349,10 +355,10 @@ export class VaultTeller {
     /**
      * Once the persisted vault is updated, we can perform our in-memory update
      */
-    this._vault?.addAccount(account);
+    this._vault?.addAccount(account, replace);
   }
 
-  private async getVaultAccount(accountId: string, vaultPassphrase: Passphrase): Promise<Account> {
+  private async getVaultAccountById(accountId: string, vaultPassphrase: Passphrase): Promise<Account> {
     const vault = await this.getVault(vaultPassphrase);
 
     const account = vault.accounts.find((account) => account.id === accountId);
@@ -362,6 +368,13 @@ export class VaultTeller {
     }
 
     return account
+  }
+
+  private async getVaultAccountByReference(accountReference: AccountReference, vaultPassphrase: Passphrase): Promise<Account | undefined> {
+    const vault = await this.getVault(vaultPassphrase)
+    return vault.accounts.find((a) => {
+      return a.address === accountReference.address && a.asset.protocol === accountReference.protocol;
+    })
   }
 
   private async updateVaultAccount(account: Account, vaultPassphrase: Passphrase) {
