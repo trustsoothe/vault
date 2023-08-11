@@ -1,4 +1,5 @@
-import {IEncryptionService, MnemonicPhrase, Passphrase} from "@poktscan/keyring";
+import {IEncryptionService, MnemonicPhrase, Passphrase, ScryptParams} from "@poktscan/keyring";
+import {scrypt} from '@noble/hashes/scrypt';
 
 const DERIVED_KEY_FORMAT = 'AES-GCM';
 const STRING_ENCODING = 'utf-8';
@@ -10,7 +11,9 @@ const PBKDF2_KEY_LENGTH_IN_BITS = 512;
 export class WebEncryptionService implements IEncryptionService {
     async decrypt(passphrase: Passphrase, data: string): Promise<string> {
         const { salt, ...payload } = JSON.parse(data)
-        const key = await this.deriveKeyFromPassphrase(passphrase, salt)
+        const passBuffer = Buffer.from(passphrase.get(), STRING_ENCODING)
+        const saltBuffer = Buffer.from(salt, 'base64')
+        const key = await this.deriveKeyFromPassphrase(passBuffer, saltBuffer)
         const encryptedData = Buffer.from(payload.data, 'base64');
         const vector = Buffer.from(payload.iv, 'base64');
         try {
@@ -30,7 +33,10 @@ export class WebEncryptionService implements IEncryptionService {
     async encrypt(passphrase: Passphrase, data: string): Promise<string> {
         const salt = this.generateSalt()
 
-        const derivedKey = await this.deriveKeyFromPassphrase(passphrase, salt)
+        const passBuffer = Buffer.from(passphrase.get(), STRING_ENCODING)
+        const saltBuffer = Buffer.from(salt, 'base64')
+
+        const derivedKey = await this.deriveKeyFromPassphrase(passBuffer, saltBuffer)
 
         const dataBuffer = Buffer.from(data, STRING_ENCODING);
         const vector = globalThis.crypto.getRandomValues(new Uint8Array(16))
@@ -98,16 +104,47 @@ export class WebEncryptionService implements IEncryptionService {
           .join('');
     }
 
+    async decryptScrypt(content: string, salt: string, passphrase: Passphrase, scryptParams: ScryptParams): Promise<string> {
+        const scryptOptions = {
+            N: scryptParams.N,
+            r: scryptParams.r,
+            p: scryptParams.p,
+            dkLen: scryptParams.dkLen,
+        };
+
+        const saltBuffer = Buffer.from(salt, 'hex')
+        const passBuffer = Buffer.from(passphrase.get(), STRING_ENCODING)
+
+        const hashedPassphrase = scrypt(passBuffer, saltBuffer, {
+            N: scryptOptions.N,
+            r: scryptOptions.r,
+            p: scryptOptions.p,
+            dkLen: scryptOptions.dkLen,
+        })
+
+        const inputBuffer = Buffer.from(content, 'base64')
+        const iv = hashedPassphrase.slice(0, scryptParams.ivLen)
+        const tag = inputBuffer.slice(inputBuffer.length - scryptParams.tagLen)
+        const data = inputBuffer.slice(0, inputBuffer.length - scryptParams.tagLen)
+
+        const key = await this.deriveKeyFromScryptHash(hashedPassphrase, saltBuffer, scryptParams);
+
+        const decryptedData = await globalThis.crypto.subtle.decrypt(
+          {
+            name: 'AES-GCM',
+            length: 256,
+        }, key, data);
+
+        return Buffer.from(decryptedData).toString('hex');
+    }
+
     private generateSalt(byteCount = 32): string {
         const view = new Uint8Array(byteCount);
         globalThis.crypto.getRandomValues(view);
         return Buffer.from(view).toString('base64');
     }
 
-    private async deriveKeyFromPassphrase(passphrase: Passphrase, salt: string): Promise<CryptoKey> {
-        const saltBuffer = Buffer.from(salt, 'base64')
-        const passBuffer = Buffer.from(passphrase.get(), STRING_ENCODING)
-
+    private async deriveKeyFromPassphrase(passBuffer: Buffer, saltBuffer: Buffer): Promise<CryptoKey> {
         const key = await globalThis.crypto.subtle.importKey(
           'raw',
           passBuffer,
@@ -132,5 +169,28 @@ export class WebEncryptionService implements IEncryptionService {
 
     private normalizeString(str: string): string {
         return str.normalize('NFKD');
+    }
+
+    private async deriveKeyFromScryptHash(scryptHash: Uint8Array, salt: Buffer, scryptOptions: ScryptParams) {
+        const derivedKey = await window.crypto.subtle.importKey(
+          'raw',
+           scryptHash,
+          'PBKDF2',
+          false,
+          ['deriveKey']
+        );
+
+        return await window.crypto.subtle.deriveKey(
+          {
+              name: 'PBKDF2',
+              salt: salt,
+              iterations: scryptOptions.N,
+              hash: 'SHA-256',
+          },
+          derivedKey,
+          { name: 'AES-GCM', length: 256 },
+          true, // For encryption
+          ['encrypt', 'decrypt']
+        );
     }
 }

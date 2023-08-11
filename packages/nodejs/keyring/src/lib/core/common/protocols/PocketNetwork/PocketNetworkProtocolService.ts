@@ -1,20 +1,26 @@
 // @ts-ignore
 import {fromUint8Array} from 'hex-lite';
-import {CreateAccountOptions, IProtocolService} from '../IProtocolService';
+import {
+  CreateAccountFromPPKFileOptions,
+  CreateAccountFromPrivateKeyOptions,
+  CreateAccountOptions,
+  IProtocolService
+} from '../IProtocolService';
 import {Account} from "../../../vault";
 import {utils,  getPublicKeyAsync} from '@noble/ed25519';
 import {Buffer} from "buffer";
-import IEncryptionService from "../../encryption/IEncryptionService";
+import {ScryptParams, IEncryptionService} from "../../encryption/IEncryptionService";
 import { Network } from '../../../network';
 import {AccountReference} from "../../values";
-import fetch from 'isomorphic-fetch'
-import * as Path from "path";
+import urlJoin from "url-join";
 import {
+  PocketPPKFileSchema,
   PocketRpcBalanceResponseSchema,
   PocketRpcCanSendTransactionResponseSchema,
-  PocketRpcFeeParamsResponseSchema, PocketRpcFeeParamsResponseValue, PocketRpcFeeParamValueSchema
+  PocketRpcFeeParamsResponseSchema,
+  PocketRpcFeeParamsResponseValue,
 } from "./schemas";
-import {ArgumentError, NetworkRequestError} from "../../../../errors";
+import {ArgumentError, InvalidPPKFileError, NetworkRequestError} from "../../../../errors";
 
 
 export class PocketNetworkProtocolService implements IProtocolService {
@@ -45,28 +51,74 @@ export class PocketNetworkProtocolService implements IProtocolService {
     })
   }
 
-  private async getAddressFromPublicKey(
-    publicKey: string
-  ): Promise<string> {
-    // @ts-ignore
-    const hash = await globalThis.crypto.subtle.digest(
-      {
-        name: 'SHA-256',
-      },
-      this.hexStringToByteArray(publicKey)
-    )
-
-    return fromUint8Array(new Uint8Array(hash)).slice(0, 40)
-  }
-
-  private  hexStringToByteArray(str: string): Uint8Array {
-    const hexRegExp = str.match(/.{1,2}/g)
-
-    if (hexRegExp) {
-      return Uint8Array.from(hexRegExp.map((byte) => parseInt(byte, 16)))
+  async createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
+    if (!options.asset) {
+      throw new ArgumentError('options.asset');
     }
 
-    throw new Error('Invalid hex string')
+    if (!options.passphrase) {
+      throw new ArgumentError('options.passphrase');
+    }
+
+    if (!options.privateKey) {
+      throw new ArgumentError('options.privateKey');
+    }
+
+    const publicKey = this.getPublicKeyFromPrivateKey(options.privateKey)
+    const address = await this.getAddressFromPublicKey(publicKey)
+    const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, options.privateKey)
+
+    return new Account({
+      name: options.name,
+      asset: options.asset,
+      address,
+      publicKey,
+      privateKey: encryptedPrivateKey,
+    });
+  }
+
+  async createAccountFromPPKFile(options: CreateAccountFromPPKFileOptions): Promise<Account> {
+    if (!options.asset) {
+      throw new ArgumentError('options.asset');
+    }
+
+    if (!options.passphrase) {
+      throw new ArgumentError('options.passphrase');
+    }
+
+    if (!options.ppkFileContent) {
+      throw new ArgumentError('options.ppkFileContent');
+    }
+
+    if (!this.isValidPPKFileStructure(options.ppkFileContent)) {
+      throw new InvalidPPKFileError();
+    }
+
+    const ppkFile = PocketPPKFileSchema.parse(JSON.parse(options.ppkFileContent));
+
+    const params: ScryptParams = {
+      N: 32768,
+      r: 8,
+      p: 1,
+      dkLen: 32,
+      ivLen: ppkFile.secparam,
+      algorithm: 'aes-256-gcm',
+      tagLen: 16,
+    }
+
+    const privateKey = await this.IEncryptionService.decryptScrypt(ppkFile.ciphertext, ppkFile.salt, options.ppkFilePassphrase, params);
+
+    const publicKey = this.getPublicKeyFromPrivateKey(privateKey)
+    const address = await this.getAddressFromPublicKey(publicKey)
+    const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, privateKey)
+
+    return new Account({
+      name: options.name,
+      asset: options.asset,
+      address,
+      publicKey,
+      privateKey: encryptedPrivateKey,
+    });
   }
 
   async updateFeeStatus(network: Network): Promise<Network> {
@@ -94,9 +146,9 @@ export class PocketNetworkProtocolService implements IProtocolService {
   async updateBalanceStatus(network: Network): Promise<Network> {
     this.validateNetwork(network);
 
-    const url = Path.join(network.rpcUrl, 'v1/query/balance')
+    const url = urlJoin(network.rpcUrl, 'v1/query/balance')
 
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
       method: 'POST',
     });
 
@@ -120,9 +172,9 @@ export class PocketNetworkProtocolService implements IProtocolService {
   async updateSendTransactionStatus(network: Network): Promise<Network> {
     this.validateNetwork(network);
 
-    const url = Path.join(network.rpcUrl, 'v1/client/rawtx')
+    const url = urlJoin(network.rpcUrl, 'v1/client/rawtx')
 
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
       method: 'POST',
     })
 
@@ -154,9 +206,9 @@ export class PocketNetworkProtocolService implements IProtocolService {
   async getBalance(network: Network, account: AccountReference): Promise<number> {
     this.validateNetwork(network);
 
-    const url = Path.join(network.rpcUrl, 'v1/query/balance')
+    const url = urlJoin(network.rpcUrl, 'v1/query/balance')
 
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
       method: 'POST',
       body: JSON.stringify({
         address: account.address,
@@ -187,6 +239,16 @@ export class PocketNetworkProtocolService implements IProtocolService {
     return feeResponse.param_value.fee_multiplier;
   }
 
+  isValidPPKFileStructure(fileContent: string): boolean {
+    try {
+      const parsedFileContent = JSON.parse(fileContent);
+      PocketPPKFileSchema.parse(parsedFileContent);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private validateNetwork(network: Network) {
     if (!network || !(network instanceof Network)) {
       throw new ArgumentError('network');
@@ -196,13 +258,44 @@ export class PocketNetworkProtocolService implements IProtocolService {
   private async requestFee(network: Network) {
     const FEE_PARAM_KEY = 'auth/FeeMultipliers'
 
-    const url = Path.join(network.rpcUrl, 'v1/query/param')
+    const url = urlJoin(network.rpcUrl, 'v1/query/param')
 
-    return await fetch(url, {
+    // @ts-ignore
+    return await globalThis.fetch(url, {
       method: 'POST',
       body: JSON.stringify({
         key: FEE_PARAM_KEY,
       })
     });
   }
+
+
+  private getPublicKeyFromPrivateKey(privateKey: string): string {
+    return privateKey.slice(64, privateKey.length)
+  }
+
+  private async getAddressFromPublicKey(
+    publicKey: string
+  ): Promise<string> {
+    // @ts-ignore
+    const hash = await globalThis.crypto.subtle.digest(
+      {
+        name: 'SHA-256',
+      },
+      this.hexStringToByteArray(publicKey)
+    )
+
+    return fromUint8Array(new Uint8Array(hash)).slice(0, 40)
+  }
+
+  private  hexStringToByteArray(str: string): Uint8Array {
+    const hexRegExp = str.match(/.{1,2}/g)
+
+    if (hexRegExp) {
+      return Uint8Array.from(hexRegExp.map((byte) => parseInt(byte, 16)))
+    }
+
+    throw new Error('Invalid hex string')
+  }
+
 }

@@ -8,6 +8,7 @@ export interface SerializedNetwork extends IEntity {
   name: string
   rpcUrl: string
   isDefault: boolean
+  isPreferred?: boolean
   protocol: Protocol
   createdAt: number
   updatedAt: number
@@ -26,6 +27,7 @@ export interface NetworkOptions {
   rpcUrl: string
   protocol: Protocol
   isDefault?: boolean
+  isPreferred?: boolean
 }
 
 export class Network implements IEntity {
@@ -34,6 +36,7 @@ export class Network implements IEntity {
   private readonly _rpcUrl: string
   private readonly _protocol: Protocol
   private readonly _isDefault: boolean
+  private _isPreferred: boolean
   private _status: Status
   private _createdAt: number
   private _updatedAt: number
@@ -50,6 +53,7 @@ export class Network implements IEntity {
     this._createdAt = Date.now()
     this._updatedAt = this._createdAt
     this._isDefault = options.isDefault || false
+    this._isPreferred = options.isPreferred || false
     this._status = new Status()
   }
 
@@ -77,12 +81,17 @@ export class Network implements IEntity {
     return this._status
   }
 
+  get isPreferred(): boolean {
+    return this._isPreferred
+  }
+
   serialize(): SerializedNetwork {
     return {
       id: this._id,
       name: this._name,
       rpcUrl: this._rpcUrl,
       isDefault: this._isDefault,
+      isPreferred: this._isPreferred,
       protocol: this._protocol,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
@@ -102,7 +111,8 @@ export class Network implements IEntity {
       name: serializedNetwork.name,
       rpcUrl: serializedNetwork.rpcUrl,
       protocol: serializedNetwork.protocol,
-      isDefault: serializedNetwork.isDefault
+      isDefault: serializedNetwork.isDefault,
+      isPreferred: serializedNetwork.isPreferred,
     }
 
     const deserializedNetwork = new Network(options, serializedNetwork.id)

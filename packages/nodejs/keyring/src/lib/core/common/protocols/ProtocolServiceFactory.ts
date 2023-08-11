@@ -1,6 +1,6 @@
 import {SupportedProtocols} from "../values";
 import {PocketNetworkProtocolService} from "./PocketNetwork";
-import IEncryptionService from "../encryption/IEncryptionService";
+import {IEncryptionService} from "../encryption/IEncryptionService";
 import {Protocol} from "../Protocol";
 
 export class ProtocolServiceFactory {

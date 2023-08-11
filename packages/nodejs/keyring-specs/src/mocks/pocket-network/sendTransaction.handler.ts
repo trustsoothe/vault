@@ -1,9 +1,9 @@
 import {rest} from "msw";
 import Url from 'node:url';
-import Path from 'node:path';
+import urlJoin from "url-join";
 
 export const sendTransactionHandlerFactory = (baseUrl: string) => {
-  const url = new Url.URL(Path.join(baseUrl, '/v1/client/rawtx'));
+  const url = new Url.URL(urlJoin(baseUrl, '/v1/client/rawtx'));
   return rest.post(url.toString(), async (req, res, ctx) => {
     return res(
       ctx.status(200),

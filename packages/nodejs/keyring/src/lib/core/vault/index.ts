@@ -1,6 +1,8 @@
 import {v4, validate} from 'uuid'
 import {Account, SerializedAccount} from "./entities/Account"
 import IEntity from "../common/IEntity";
+import {AccountReference} from "../common/values";
+import {AccountExistError} from "../../errors";
 export * from './entities/Account'
 
 export interface SerializedVault extends IEntity {
@@ -61,7 +63,21 @@ export class Vault implements IEntity {
     return new Vault(serializedVault.id, accounts, serializedVault.createdAt, serializedVault.updatedAt)
   }
 
-  addAccount(account: Account) {
+  addAccount(account: Account, replace = false) {
+    const accountExists = this._accounts.some((a) => {
+      return a.address === account.address && a.asset.protocol === account.asset.protocol;
+    })
+
+    if (accountExists && !replace) {
+      throw new AccountExistError(account);
+    }
+
+    if (accountExists && replace) {
+      this._accounts = this._accounts.filter((a) => {
+        return a.address !== account.address && a.asset.protocol !== account.asset.protocol;
+      });
+    }
+
     this._accounts.push(account);
   }
 
@@ -73,5 +89,9 @@ export class Vault implements IEntity {
 
       return a;
     });
+  }
+
+  removeAccount(account: AccountReference) {
+    this._accounts = this._accounts.filter((a) => a.id !== account.id);
   }
 }

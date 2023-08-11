@@ -1,4 +1,4 @@
-import IEncryptionService from './IEncryptionService';
+import {IEncryptionService} from './IEncryptionService';
 import {MnemonicPhrase} from "../values";
 
 

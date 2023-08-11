@@ -1,9 +1,9 @@
 import {rest} from "msw";
 import Url from 'node:url';
-import Path from 'node:path';
+import urlJoin from "url-join";
 
 export const queryBalanceHandlerFactory = (baseUrl: string) => {
-  const url = new Url.URL(Path.join(baseUrl, '/v1/query/balance'));
+  const url = new Url.URL(urlJoin(baseUrl, '/v1/query/balance'));
   return rest.post(url.toString(), async (req, res, ctx) => {
     return res(
       ctx.status(200),
@@ -15,7 +15,7 @@ export const queryBalanceHandlerFactory = (baseUrl: string) => {
 }
 
 export const queryBalanceFailureHandlerFactory = (baseUrl: string) => {
-  const url = new Url.URL(Path.join(baseUrl, '/v1/query/balance'));
+  const url = new Url.URL(urlJoin(baseUrl, '/v1/query/balance'));
   return rest.post(url.toString(), async (req, res, ctx) => {
     return res(
       ctx.status(500),
