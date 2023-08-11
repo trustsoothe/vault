@@ -1,6 +1,7 @@
 import {v4, validate} from 'uuid'
 import {Account, SerializedAccount} from "./entities/Account"
 import IEntity from "../common/IEntity";
+import {AccountReference} from "../common/values";
 export * from './entities/Account'
 
 export interface SerializedVault extends IEntity {
@@ -73,5 +74,9 @@ export class Vault implements IEntity {
 
       return a;
     });
+  }
+
+  removeAccount(account: AccountReference) {
+    this._accounts = this._accounts.filter((a) => a.id !== account.id);
   }
 }

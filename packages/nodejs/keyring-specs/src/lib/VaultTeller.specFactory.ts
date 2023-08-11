@@ -1,6 +1,6 @@
 import {
   Account,
-  AccountOptions, AccountReference, ArgumentError,
+  AccountOptions, AccountReference,
   Asset,
   ExternalAccessRequest, ForbiddenSessionError,
   IEncryptionService,
@@ -32,10 +32,19 @@ export default <
   let sessionStore: TSessionStore
   let encryptionService: TEncryptionService
   const exampleOriginReference: OriginReference = new OriginReference('https://example.com')
-  let exampleAsset: Asset
+  let unspecifiedNetworkAsset: Asset
   let exampleAccount: Account
   let exampleExternalPermissions: Permission[]
   let exampleExternalAccessRequest: ExternalAccessRequest
+
+  const pocketAsset = new Asset({
+    name: 'Example Asset',
+    protocol: {
+      name: SupportedProtocols.Pocket,
+      chainID: 'testnet'
+    },
+    symbol: 'POKT'
+  });
 
   function isConstructor<T>(creator: {  new (): T } | (() => T)) {
     return !!creator && !!creator.prototype && !!creator.prototype.constructor
@@ -57,7 +66,7 @@ export default <
             // @ts-ignore
           : TEncryptionServiceCreator()
 
-    exampleAsset = new Asset({
+    unspecifiedNetworkAsset = new Asset({
       name: 'Example Asset',
       protocol: {
         name: SupportedProtocols.Unspecified,
@@ -70,7 +79,7 @@ export default <
       publicKey: '1234',
       privateKey: '1234',
       address: 'derived-address',
-      asset: exampleAsset
+      asset: unspecifiedNetworkAsset
     }
 
     exampleAccount =
@@ -458,15 +467,6 @@ export default <
   })
 
   describe('createAccount', () => {
-    const pocketAsset = new Asset({
-      name: 'Example Asset',
-      protocol: {
-        name: SupportedProtocols.Pocket,
-        chainID: 'testnet'
-      },
-      symbol: 'POKT'
-    });
-
     test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
       vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
@@ -483,7 +483,7 @@ export default <
       await expect(createAccountOperation).rejects.toThrow(SessionIdRequiredError)
     })
 
-    test('throws "ArgumentError" if the vault passphrase is not provided', async () => {
+    test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
       vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
       await vaultTeller.initializeVault('passphrase')
@@ -522,5 +522,100 @@ export default <
 
       await expect(createAccountOperation).rejects.toThrow(ForbiddenSessionError)
     });
+
+    test('successfully creates an account', async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault('passphrase')
+      const session = await vaultTeller.unlockVault('passphrase')
+      const passphrase = new Passphrase('passphrase');
+      const account = await vaultTeller.createAccount(session.id, passphrase, {
+        name: 'example-account',
+        asset: pocketAsset,
+        passphrase,
+      })
+
+      expect(account.name).toBe('example-account')
+    })
+
+    test('Tests that an account can be listed immediately after creation', async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault('passphrase')
+      const session = await vaultTeller.unlockVault('passphrase')
+      const passphrase = new Passphrase('passphrase');
+      const account = await vaultTeller.createAccount(session.id, passphrase, {
+        name: 'example-account',
+        asset: pocketAsset,
+        passphrase,
+      })
+
+      const accounts = await vaultTeller.listAccounts(session.id)
+      expect(accounts).toEqual([account])
+    });
+  })
+
+  describe('removeAccount', () => {
+    test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const passphrase = new Passphrase('passphrase');
+      // @ts-ignore
+      const createAccountOperation = vaultTeller.removeAccount(null, passphrase, null);
+
+      await expect(createAccountOperation).rejects.toThrow(SessionIdRequiredError)
+    })
+
+    test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault('passphrase')
+      const session = await vaultTeller.unlockVault('passphrase')
+      // @ts-ignore
+      const createAccountOperation = vaultTeller.removeAccount(session.id, null, null);
+
+      await expect(createAccountOperation).rejects.toThrow(VaultRestoreError)
+    })
+
+    test('throws "ForbiddenSessionError" if the session id is found in the session store but "account:delete" is not allowed', async () => {
+      vaultStore = createVaultStore()
+      const externalAccessRequestWithoutDefaults = new ExternalAccessRequest(
+        exampleExternalAccessRequest.permissions as Permission[],
+        exampleExternalAccessRequest.maxAge,
+        exampleExternalAccessRequest.origin,
+        exampleExternalAccessRequest.accounts as AccountReference[],
+        false
+      )
+
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const session = await vaultTeller.authorizeExternal(externalAccessRequestWithoutDefaults)
+      const passphrase = new Passphrase('passphrase');
+      // @ts-ignore
+      const createAccountOperation = vaultTeller.removeAccount(session.id, passphrase, null)
+
+      await expect(createAccountOperation).rejects.toThrow(ForbiddenSessionError)
+    });
+
+    describe('when the account is found in the vault', () => {
+      const passphrase = new Passphrase('passphrase')
+
+      test('removes the account from the vault', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault(passphrase.get())
+        const session = await vaultTeller.unlockVault(passphrase.get())
+        const account = await vaultTeller.createAccount(session.id, passphrase, {
+          name: 'example-account',
+          asset: pocketAsset,
+          passphrase,
+        });
+        const accounts = await vaultTeller.listAccounts(session.id)
+        expect(accounts).toEqual([account])
+      })
+    })
   })
 }

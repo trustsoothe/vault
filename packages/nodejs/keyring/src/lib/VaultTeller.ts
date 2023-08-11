@@ -191,7 +191,17 @@ export class VaultTeller {
 
     await this.updateSessionLastActivity(sessionId);
 
-    return authorizedAccounts || [];
+    return authorizedAccounts?.map((a) => a.asAccountReference()) || [];
+  }
+
+  async removeAccount(sessionId: string, vaultPassphrase: Passphrase, accountReference: AccountReference): Promise<void> {
+    await this.validateSessionForPermissions(sessionId, "account", "delete");
+
+    await this.removeVaultAccount(accountReference, vaultPassphrase);
+
+    // await this.removeAccountFromSession(sessionId, accountReference);
+
+    // await this.updateSessionLastActivity(sessionId);
   }
 
   async revokeSession(
@@ -304,41 +314,22 @@ export class VaultTeller {
   }
 
   private async addVaultAccount(account: Account, vaultPassphrase: Passphrase) {
-    const serializedEncryptedVault = await this.vaultStore.get();
-
-    if (!serializedEncryptedVault) {
-      throw new Error("Vault is not initialized");
-    }
-
-    const encryptedOriginalVault = EncryptedVault.deserialize(serializedEncryptedVault);
-
-    if (!encryptedOriginalVault) {
-      throw new Error("Vault is not initialized");
-    }
-
-    const vault = await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
+    const vault = await this.getVault(vaultPassphrase);
 
     vault.addAccount(account);
 
     const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
 
     await this.vaultStore.save(encryptedUpdatedVault.serialize());
+
+    /**
+     * Once the persisted vault is updated, we can perform our in-memory update
+     */
+    this._vault?.addAccount(account);
   }
 
   private async getVaultAccount(accountId: string, vaultPassphrase: Passphrase): Promise<Account> {
-    const serializedEncryptedVault = await this.vaultStore.get();
-
-    if (!serializedEncryptedVault) {
-      throw new Error("Vault is not initialized");
-    }
-
-    const encryptedOriginalVault = EncryptedVault.deserialize(serializedEncryptedVault);
-
-    if (!encryptedOriginalVault) {
-      throw new Error("Vault is not initialized");
-    }
-
-    const vault = await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
+    const vault = await this.getVault(vaultPassphrase);
 
     const account = vault.accounts.find((account) => account.id === accountId);
 
@@ -350,6 +341,16 @@ export class VaultTeller {
   }
 
   private async updateVaultAccount(account: Account, vaultPassphrase: Passphrase) {
+    const vault = await this.getVault(vaultPassphrase);
+
+    vault.updateAccount(account);
+
+    const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
+
+    await this.vaultStore.save(encryptedUpdatedVault.serialize());
+  }
+
+  private async getVault(vaultPassphrase: Passphrase) {
     const serializedEncryptedVault = await this.vaultStore.get();
 
     if (!serializedEncryptedVault) {
@@ -362,12 +363,16 @@ export class VaultTeller {
       throw new Error("Vault is not initialized");
     }
 
-    const vault = await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
+    return await this.decryptVault(vaultPassphrase, encryptedOriginalVault)
+  }
 
-    vault.updateAccount(account);
+  private async removeVaultAccount(accountReference: AccountReference, vaultPassphrase: Passphrase) {
+    const vault = await this.getVault(vaultPassphrase);
 
-    const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
+    // vault.removeAccount(accountReference);
 
-    await this.vaultStore.save(encryptedUpdatedVault.serialize());
+    // const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
+    //
+    // await this.vaultStore.save(encryptedUpdatedVault.serialize());
   }
 }
