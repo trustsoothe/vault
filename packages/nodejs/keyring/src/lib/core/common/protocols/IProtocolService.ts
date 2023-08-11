@@ -16,6 +16,7 @@ export interface CreateAccountFromPrivateKeyOptions extends CreateAccountOptions
 export interface IProtocolService {
   createAccount(options: CreateAccountOptions): Promise<Account>
   createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account>
+  isValidPPKFileStructure(fileContent: string): boolean
   updateFeeStatus(network: Network): Promise<Network>
   updateBalanceStatus(network: Network): Promise<Network>
   updateSendTransactionStatus(network: Network): Promise<Network>

@@ -248,4 +248,21 @@ export default <T extends IProtocolService>(TProtocolServiceCreator: () => T, as
       })
     })
   })
+
+  describe('isValidPPKFileStructure', () => {
+    const validPPK: string = '{"kdf":"scrypt","salt":"ebcab6c38f0f746f26e8c2572126e842","secparam":"12","hint":"pocket wallet","ciphertext":"4DrS59EDl1Ekc+aEQrjRoe92FXwY4IYaDG2hwp952AHwIXcr5ge8ZTlYVA+sNvNYuBMJAT83ToCyV90n66ol6cMkajLqITDuXASpyxI5/B1NjceOmX+uZeqT7yq1DJnhubiVPI3/YBDUEUAiVYDGocFfuiCAI5kHtu+JNWKNu0e7p/VkK6Pk5ukTCBKu3Bfg"}';
+
+    test('returns false if the file is not a valid JSON', () => {
+      expect(protocolService.isValidPPKFileStructure('')).toBe(false)
+    })
+
+    test('returns false if the file is not a valid PPK file', () => {
+      const notAPPK = {};
+      expect(protocolService.isValidPPKFileStructure(JSON.stringify(notAPPK))).toBe(false)
+    })
+
+    test('returns true if the file is a valid PPK file', () => {
+      expect(protocolService.isValidPPKFileStructure(validPPK)).toBe(true)
+    })
+  })
 }

@@ -9,6 +9,7 @@ import { Network } from '../../../network';
 import {AccountReference} from "../../values";
 import urlJoin from "url-join";
 import {
+  PocketPPKFileSchema,
   PocketRpcBalanceResponseSchema,
   PocketRpcCanSendTransactionResponseSchema,
   PocketRpcFeeParamsResponseSchema, PocketRpcFeeParamsResponseValue, PocketRpcFeeParamValueSchema
@@ -68,34 +69,6 @@ export class PocketNetworkProtocolService implements IProtocolService {
       publicKey,
       privateKey: encryptedPrivateKey,
     });
-  }
-
-  private getPublicKeyFromPrivateKey(privateKey: string): string {
-    return privateKey.slice(64, privateKey.length)
-  }
-
-  private async getAddressFromPublicKey(
-    publicKey: string
-  ): Promise<string> {
-    // @ts-ignore
-    const hash = await globalThis.crypto.subtle.digest(
-      {
-        name: 'SHA-256',
-      },
-      this.hexStringToByteArray(publicKey)
-    )
-
-    return fromUint8Array(new Uint8Array(hash)).slice(0, 40)
-  }
-
-  private  hexStringToByteArray(str: string): Uint8Array {
-    const hexRegExp = str.match(/.{1,2}/g)
-
-    if (hexRegExp) {
-      return Uint8Array.from(hexRegExp.map((byte) => parseInt(byte, 16)))
-    }
-
-    throw new Error('Invalid hex string')
   }
 
   async updateFeeStatus(network: Network): Promise<Network> {
@@ -216,6 +189,16 @@ export class PocketNetworkProtocolService implements IProtocolService {
     return feeResponse.param_value.fee_multiplier;
   }
 
+  isValidPPKFileStructure(fileContent: string): boolean {
+    try {
+      const parsedFileContent = JSON.parse(fileContent);
+      PocketPPKFileSchema.parse(parsedFileContent);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private validateNetwork(network: Network) {
     if (!network || !(network instanceof Network)) {
       throw new ArgumentError('network');
@@ -235,4 +218,34 @@ export class PocketNetworkProtocolService implements IProtocolService {
       })
     });
   }
+
+
+  private getPublicKeyFromPrivateKey(privateKey: string): string {
+    return privateKey.slice(64, privateKey.length)
+  }
+
+  private async getAddressFromPublicKey(
+    publicKey: string
+  ): Promise<string> {
+    // @ts-ignore
+    const hash = await globalThis.crypto.subtle.digest(
+      {
+        name: 'SHA-256',
+      },
+      this.hexStringToByteArray(publicKey)
+    )
+
+    return fromUint8Array(new Uint8Array(hash)).slice(0, 40)
+  }
+
+  private  hexStringToByteArray(str: string): Uint8Array {
+    const hexRegExp = str.match(/.{1,2}/g)
+
+    if (hexRegExp) {
+      return Uint8Array.from(hexRegExp.map((byte) => parseInt(byte, 16)))
+    }
+
+    throw new Error('Invalid hex string')
+  }
+
 }
