@@ -28,6 +28,8 @@ import {
   AmountHigherThanBalance,
   AmountNotPresented,
   AmountNotValid,
+  FeeLowerThanMinFee,
+  FeeNotValid,
   ForbiddenSession,
   FromAddressNotPresented,
   FromAddressNotValid,
@@ -288,6 +290,7 @@ export type ProxyNewAccountRes =
 export type ExternalTransferErrors =
   | BaseErrors
   | typeof SessionIdNotPresented
+  | typeof FeeLowerThanMinFee
   | typeof InvalidSession
   | typeof ForbiddenSession
   | typeof RequestTransferExists
@@ -295,6 +298,7 @@ export type ExternalTransferErrors =
 
 export type ProxyTransferError =
   | ExternalTransferErrors
+  | typeof FeeNotValid
   | typeof AmountNotPresented
   | typeof ToAddressNotPresented
   | typeof FromAddressNotPresented

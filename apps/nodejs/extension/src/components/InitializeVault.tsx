@@ -72,6 +72,7 @@ const InitializeVault: React.FC = () => {
         </Stack>
         <FormProvider {...methods}>
           <Password
+            autofocusPassword={true}
             passwordName={"password"}
             confirmPasswordName={"confirmPassword"}
             containerProps={{

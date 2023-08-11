@@ -23,15 +23,10 @@ import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import AccountStep from "./AccountStep";
 import OperationFailed from "../common/OperationFailed";
-import {
-  getAssetByProtocol,
-  getFee,
-  isAddress,
-  isPrivateKey,
-  isTransferHealthyForNetwork,
-} from "../../utils";
+import { getAssetByProtocol, isAddress, isPrivateKey } from "../../utils";
+import { isTransferHealthyForNetwork } from "../../utils/networkOperations";
 import { useAppDispatch } from "../../hooks/redux";
-import { getAccountBalance } from "../../redux/slices/vault";
+import { getAccountBalance, getProtocolFee } from "../../redux/slices/vault";
 import SummaryStep from "./Summary/Step";
 import TransferSubmittedStep from "./TransferSubmitted";
 import { DetailComponent } from "../Account/AccountDetail";
@@ -99,7 +94,6 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
     clearErrors,
     handleSubmit,
     formState,
-    getFieldState,
     setFocus,
   } = methods;
 
@@ -190,7 +184,6 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
   const [errorBalance, setErrorBalance] = useState(false);
 
   const getFromBalance = useCallback(() => {
-    const fromState = getFieldState("from");
     if (from && asset && (isAddress(from) || isPrivateKey(from))) {
       setIsLoadingBalance(true);
       const address = fromType === "saved_account" ? from : from.slice(0, 40);
@@ -207,7 +200,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
     } else {
       setFromBalance(null);
     }
-  }, [from, getFieldState, dispatch, fromType, asset]);
+  }, [from, dispatch, fromType, asset]);
 
   useEffect(() => {
     getFromBalance();
@@ -221,18 +214,19 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
     if (asset?.id && asset.id !== previousAsset.current) {
       previousAsset.current = asset.id;
       setIsLoadingFee(true);
-      getFee(asset.protocol, networks)
+      dispatch(getProtocolFee(asset.protocol))
+        .unwrap()
         .then((result) => {
-          setAssetFee(result);
-          setValue("fee", result.toString());
+          setAssetFee(result.fee);
+          setValue("fee", result.fee.toString());
           setErrorFee(false);
         })
-        .catch((e) => setErrorFee(true))
+        .catch(() => setErrorFee(true))
         .finally(() => setIsLoadingFee(false));
     } else if (!asset) {
       setAssetFee(null);
     }
-  }, [asset, networks]);
+  }, [asset, networks, dispatch]);
 
   useEffect(() => {
     getAssetFee();
@@ -277,6 +271,10 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
         setValue("toAddress", requesterInfo.toAddress);
         if (requesterInfo.memo) {
           setValue("memo", requesterInfo.memo);
+        }
+
+        if (requesterInfo.fee) {
+          setValue("fee", requesterInfo.fee.toString());
         }
 
         if (fromAddressStatus === "is_account_saved") {
@@ -548,21 +546,19 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
           marginTop={"20px!important"}
           width={1}
         >
-          <Button
-            fullWidth
-            variant={"outlined"}
-            sx={{
-              height: 30,
-              fontWeight: 600,
-              display:
-                requesterInfo && fromAddressStatus === "is_account_saved"
-                  ? "none"
-                  : undefined,
-            }}
-            onClick={onClickCancel}
-          >
-            {secondaryBtnText}
-          </Button>
+          {!(requesterInfo && fromAddressStatus === "is_account_saved") && (
+            <Button
+              fullWidth
+              variant={"outlined"}
+              sx={{
+                height: 30,
+                fontWeight: 600,
+              }}
+              onClick={onClickCancel}
+            >
+              {secondaryBtnText}
+            </Button>
+          )}
           <Button
             fullWidth
             variant={"contained"}

@@ -6,6 +6,21 @@ import ExternalCommunicationController from "./controllers/communication/Externa
 
 wrapStore(store);
 
+async function createOffscreen() {
+  // @ts-ignore
+  await browser.offscreen
+    .createDocument({
+      url: "offscreen.html",
+      reasons: ["BLOBS"],
+      justification: "keep service worker running",
+    })
+    .catch(() => {});
+}
+
+browser.runtime.onStartup.addListener(createOffscreen);
+self.onmessage = (e) => {}; // keepAlive
+createOffscreen();
+
 browser.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
     browser.tabs

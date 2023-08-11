@@ -18,6 +18,7 @@ import type {
 import browser, { type Runtime } from "webextension-polyfill";
 import {
   AmountHigherThanBalance,
+  FeeLowerThanMinFee,
   OriginBlocked,
   OriginNotPresented,
   RequestConnectionExists,
@@ -49,16 +50,12 @@ import {
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
-import {
-  getAccountBalance,
-  getFee,
-  getVault,
-  NetworkStorage,
-  returnExtensionErr,
-} from "../../utils";
+import { getVault, NetworkStorage, returnExtensionErr } from "../../utils";
+import { getFee, getAccountBalance } from "../../utils/networkOperations";
 import {
   getAccountBalance as getAccountBalanceFromState,
   getAllBalances,
+  getProtocolFee,
   revokeSession,
 } from "../../redux/slices/vault";
 import { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
@@ -268,6 +265,7 @@ class ExternalCommunicationController {
         amount,
         memo,
         protocol,
+        fee: feeFromData,
       } = message?.data || {};
 
       if (!sessionId) {
@@ -289,13 +287,11 @@ class ExternalCommunicationController {
       }
 
       const state = store.getState();
-      let balance, networks;
+      let balance, minFee;
 
       const isUnlocked = state.vault.isUnlockedStatus === "yes";
 
       if (isUnlocked) {
-        networks = state.vault.entities.networks.list;
-
         const result = await store
           .dispatch(
             getAccountBalanceFromState({
@@ -305,16 +301,32 @@ class ExternalCommunicationController {
           )
           .unwrap();
         balance = result.amount;
+        const feeResult = await store
+          .dispatch(getProtocolFee(protocol as Protocol))
+          .unwrap();
+        minFee = feeResult.fee;
       } else {
-        networks = await NetworkStorage.list();
+        const networks = await NetworkStorage.list().then((items) =>
+          items.concat()
+        );
         balance = await getAccountBalance(
           fromAddress,
           protocol as Protocol,
           networks
         );
+        const feeResult = await getFee(protocol as Protocol, networks);
+        minFee = feeResult.fee;
       }
 
-      const fee = await getFee(protocol as Protocol, networks);
+      if (feeFromData && minFee > feeFromData) {
+        return {
+          type: TRANSFER_RESPONSE,
+          error: FeeLowerThanMinFee,
+          data: null,
+        };
+      }
+
+      const fee = feeFromData || minFee;
 
       if (amount > balance - fee) {
         return {
@@ -336,6 +348,7 @@ class ExternalCommunicationController {
           amount,
           memo,
           protocol,
+          fee,
         },
         TRANSFER_RESPONSE
       );

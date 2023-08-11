@@ -23,7 +23,7 @@ import {
   labelByProtocolMap,
 } from "../../constants/protocols";
 import OperationFailed from "../common/OperationFailed";
-import { isNetworkUrlHealthy } from "../../utils";
+import { isNetworkUrlHealthy } from "../../utils/networkOperations";
 
 interface FormValues {
   name: string;

@@ -26,6 +26,7 @@ interface PasswordProps {
   errorPassword?: string;
   errorConfirm?: string;
   horizontal?: boolean;
+  autofocusPassword?: boolean;
 }
 
 const Password: React.FC<PasswordProps> = function <T extends {}>({
@@ -45,6 +46,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
   errorPassword,
   horizontal = false,
   inputsContainerProps,
+  autofocusPassword = false,
 }) {
   const { control, register, setValue, clearErrors, watch, setFocus } =
     useFormContext<T>();
@@ -75,13 +77,9 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
       } else {
         if (canGenerateRandomFirst) {
           setValue(passwordName, "" as PathValue<any, any>);
-          setFocus(passwordName);
         }
         if (confirmPasswordName && canGenerateRandomSecond) {
           setValue(confirmPasswordName, "" as PathValue<any, any>);
-          if (!canGenerateRandomFirst) {
-            setFocus(confirmPasswordName);
-          }
         }
       }
       clearErrors(passwordName);
@@ -115,7 +113,22 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
 
   const toggleRandomPassword = useCallback(() => {
     setRandom((prevState) => !prevState);
-  }, []);
+    if (canGenerateRandomFirst) {
+      setFocus(passwordName);
+    }
+    if (confirmPasswordName && canGenerateRandomSecond) {
+      if (!canGenerateRandomFirst) {
+        setFocus(confirmPasswordName);
+      }
+    }
+  }, [
+    random,
+    setFocus,
+    canGenerateRandomFirst,
+    passwordName,
+    confirmPasswordName,
+    canGenerateRandomSecond,
+  ]);
 
   const actions = useMemo(() => {
     if (!canGenerateRandomSecond && !canGenerateRandomFirst && !canShowPassword)
@@ -199,6 +212,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
           render={({ field: { ref, ...field }, fieldState: { error } }) => (
             <>
               <TextField
+                autoFocus={autofocusPassword}
                 label={labelPassword}
                 size={"small"}
                 type={
@@ -304,6 +318,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
       </Stack>
     );
   }, [
+    autofocusPassword,
     horizontal,
     inputsContainerProps,
     errorPassword,

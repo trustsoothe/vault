@@ -581,7 +581,7 @@ const AccountStep: React.FC<AccountStepProps> = ({
             <TextField
               {...field}
               label={asset ? `Fee (${asset.symbol})` : "Fee"}
-              disabled={isLoadingFee || errorFee}
+              disabled={isLoadingFee || errorFee || !!request?.fee}
               InputLabelProps={{ shrink: !!field.value }}
               sx={{
                 width: 125,

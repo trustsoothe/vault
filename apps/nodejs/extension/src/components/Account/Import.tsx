@@ -32,7 +32,9 @@ interface FormValues {
   json_file?: File | null;
   file_password?: string;
   account_name: string;
-  account_password: string;
+  password: string;
+  confirm_password: string;
+  vault_password: string;
   asset?: SerializedAsset;
 }
 
@@ -50,6 +52,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
   const location = useLocation();
 
   const [status, setStatus] = useState<FormStatus>("normal");
+  const [wrongPassword, setWrongPassword] = useState(false);
 
   const methods = useForm<FormValues>({
     defaultValues: {
@@ -58,7 +61,9 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
       json_file: null,
       file_password: "",
       account_name: "",
-      account_password: "",
+      password: "",
+      confirm_password: "",
+      vault_password: "",
       asset: null,
     },
   });
@@ -73,7 +78,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     getValues,
   } = methods;
 
-  const type = watch("import_type");
+  const [type, asset] = watch(["import_type", "asset"]);
 
   useEffect(() => {
     setValue("private_key", "");
@@ -109,7 +114,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
         });
         // todo: navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${result.data.accountId}`);
         navigate("/");
-      }, 1500);
+      }, 1000);
     },
     [navigate]
   );
@@ -129,16 +134,20 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     }
 
     return (
-      <Stack height={1} width={1}>
+      <Stack height={1} width={1} justifyContent={"space-between"}>
         <Stack
           maxHeight={"calc(100% - 50px)"}
-          spacing={1.8}
-          width={1}
+          flexGrow={1}
+          spacing={2.3}
+          width={"calc(100%  + 10px)"}
           pt={1.5}
           boxSizing={"border-box"}
+          sx={{ overflowY: "auto", overflowX: "hidden" }}
+          paddingRight={1}
         >
           <AutocompleteAsset
             control={control}
+            autocompleteProps={{ openOnFocus: true }}
             textFieldProps={{ autoFocus: true }}
           />
           <TextField
@@ -152,7 +161,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 
           <Divider
             sx={{
-              width: "calc(100% + 10px)",
+              width: "calc(100% + 5px)",
               marginLeft: "-5px",
             }}
             orientation={"horizontal"}
@@ -175,6 +184,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
                   select
                   size={"small"}
                   placeholder={"Type"}
+                  disabled={!asset}
                   sx={{
                     width: 145,
                     "& .MuiInputBase-root": {
@@ -202,7 +212,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
               label={"Private Key"}
               size={"small"}
               fullWidth
-              autoFocus
+              disabled={!asset}
               {...register("private_key", {
                 validate: (value, formValues) => {
                   if (!value && formValues.import_type === "private_key") {
@@ -274,25 +284,18 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 
           <Divider
             sx={{
-              width: "calc(100% + 10px)",
-              marginLeft: "-5px",
+              width: "calc(100% + 5px)",
+              marginBottom: "5px!important",
             }}
             orientation={"horizontal"}
           />
 
           <FormProvider {...methods}>
             <Password
-              passwordName={"account_password"}
-              canGenerateRandom={false}
-              canGenerateRandomFirst={true}
-              canShowPassword={true}
+              passwordName={"password"}
               labelPassword={"Account Password"}
-              labelConfirm={"Vault Password"}
+              confirmPasswordName={"confirm_password"}
               hidePasswordStrong={true}
-              confirmPasswordName={
-                passwordRemembered ? undefined : "vault_password"
-              }
-              passwordAndConfirmEquals={false}
               containerProps={{
                 width: 1,
                 marginTop: "5px!important",
@@ -300,6 +303,25 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
               }}
               inputsContainerProps={{
                 spacing: "18px",
+              }}
+            />
+            <Divider
+              sx={{
+                width: "calc(100% + 5px)",
+                marginBottom: "5px!important",
+              }}
+              orientation={"horizontal"}
+            />
+            <Password
+              passwordName={"vault_password"}
+              canGenerateRandom={false}
+              justRequire={true}
+              canShowPassword={true}
+              labelPassword={"Vault Password"}
+              hidePasswordStrong={true}
+              errorPassword={wrongPassword ? "Wrong password" : undefined}
+              containerProps={{
+                marginTop: "10px!important",
               }}
             />
           </FormProvider>

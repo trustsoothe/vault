@@ -57,6 +57,7 @@ import {
 import {
   AmountNotPresented,
   AmountNotValid,
+  FeeNotValid,
   FromAddressNotPresented,
   FromAddressNotValid,
   InvalidBody,
@@ -139,6 +140,7 @@ const TransferRequestBody = z
       .length(40)
       .refine(isHex, "fromAddress is not a valid address"),
     amount: z.number().min(0.01),
+    fee: z.number().min(0).optional(),
     memo: z.string().trim().max(50).optional(),
     protocol: Protocol,
   })
@@ -592,6 +594,9 @@ class ProxyCommunicationController {
             }
             case "amount": {
               return this._sendTransferResponse(null, AmountNotValid);
+            }
+            case "fee": {
+              return this._sendTransferResponse(null, FeeNotValid);
             }
             case "memo": {
               return this._sendTransferResponse(null, MemoNotValid);

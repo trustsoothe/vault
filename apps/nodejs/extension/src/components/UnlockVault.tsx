@@ -16,9 +16,13 @@ import Password from "./common/Password";
 
 interface UnlockVaultProps {
   currentRequest?: RequestsType;
+  lockedForWrongPasswords: boolean;
 }
 
-const UnlockVault: React.FC<UnlockVaultProps> = ({ currentRequest }) => {
+const UnlockVault: React.FC<UnlockVaultProps> = ({
+  currentRequest,
+  lockedForWrongPasswords,
+}) => {
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
   );
@@ -95,7 +99,8 @@ const UnlockVault: React.FC<UnlockVaultProps> = ({ currentRequest }) => {
         faviconUrl={currentRequest.faviconUrl}
         containerProps={{
           alignItems: "center",
-          marginTop: "25px",
+          marginTop: 1,
+          marginBottom: 2,
         }}
         containerMetaProps={{
           sx: {
@@ -123,19 +128,28 @@ const UnlockVault: React.FC<UnlockVaultProps> = ({ currentRequest }) => {
   return (
     <Stack flexGrow={1} component={"form"} onSubmit={handleSubmit(onSubmit)}>
       <Typography variant={"h5"}>Unlock Vault</Typography>
-      <Typography fontSize={14} marginY={"10px"}>
-        Make sure no one is looking when you type your password.
+      <Typography
+        fontSize={14}
+        marginY={1.5}
+        fontWeight={lockedForWrongPasswords ? 600 : 400}
+        color={lockedForWrongPasswords ? "#d50000" : "inherit"}
+      >
+        {lockedForWrongPasswords
+          ? "The vault was locked due to many wrong password."
+          : "Make sure no one is looking when you type your password."}
       </Typography>
       {requestComponent}
+
       <FormProvider {...methods}>
         <Password
+          autofocusPassword={true}
           passwordName={"password"}
           canGenerateRandom={false}
           hidePasswordStrong={true}
           labelPassword={"Password"}
           justRequire={true}
           containerProps={{
-            spacing: "10px",
+            spacing: 1.7,
           }}
           errorPassword={wrongPassword ? "Wrong password" : undefined}
         />
@@ -184,9 +198,12 @@ const UnlockVault: React.FC<UnlockVaultProps> = ({ currentRequest }) => {
 const mapStateToProps = (state: RootState) => {
   const requests = state.app.externalRequests;
   const currentRequest = requests.length ? requests[0] : null;
+  const lockedForWrongPasswords =
+    state.vault.isUnlockedStatus === "locked_due_wrong_password";
 
   return {
     currentRequest,
+    lockedForWrongPasswords,
   };
 };
 

@@ -70,6 +70,12 @@ export const AmountNotValid = createError(
   "amount is not valid."
 );
 
+export const FeeNotValid = createError(
+  "FEE_NOT_VALID",
+  19,
+  "fee is not valid."
+);
+
 export const MemoNotValid = createError(
   "MEMO_NOT_VALID",
   13,
@@ -91,7 +97,13 @@ export const InvalidProtocol = createError(
 export const AmountHigherThanBalance = createError(
   "AMOUNT_HIGHER_THAN_BALANCE",
   15,
-  "The amount passed is higher than the account balance."
+  "The amount passed + the fee is higher than the account balance."
+);
+
+export const FeeLowerThanMinFee = createError(
+  "FEE_HIGHER_THAN_MIN_FEE",
+  20,
+  "The passed fee is lower than the min fee supported."
 );
 
 export const InvalidBody = createError(
