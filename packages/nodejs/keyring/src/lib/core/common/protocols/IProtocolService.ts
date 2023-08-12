@@ -6,7 +6,8 @@ import {Network} from "../../network";
 export interface CreateAccountOptions {
   name?: string
   asset: Asset
-  passphrase: Passphrase
+  passphrase?: Passphrase
+  skipEncryption?: boolean
 }
 
 export interface CreateAccountFromPrivateKeyOptions extends CreateAccountOptions {

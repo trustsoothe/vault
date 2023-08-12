@@ -32,7 +32,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
       throw new ArgumentError('options.asset');
     }
 
-    if (!options.passphrase) {
+    if (!options.passphrase && !options.skipEncryption) {
       throw new ArgumentError('options.passphrase');
     }
 
@@ -40,14 +40,18 @@ export class PocketNetworkProtocolService implements IProtocolService {
     const publicKey = await getPublicKeyAsync(shortPrivateKey)
     const address = await this.getAddressFromPublicKey(Buffer.from(publicKey).toString('hex'))
     const privateKey = `${Buffer.from(shortPrivateKey).toString('hex')}${Buffer.from(publicKey).toString('hex')}`
-    const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, privateKey)
+    let finalPrivateKey = privateKey
+
+    if (options.passphrase) {
+      finalPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, privateKey)
+    }
 
     return new Account({
       asset: options.asset,
       name: options.name,
       address,
       publicKey: Buffer.from(publicKey).toString('hex'),
-      privateKey: encryptedPrivateKey,
+      privateKey: finalPrivateKey,
     })
   }
 
@@ -56,7 +60,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
       throw new ArgumentError('options.asset');
     }
 
-    if (!options.passphrase) {
+    if (!options.passphrase && !options.skipEncryption) {
       throw new ArgumentError('options.passphrase');
     }
 
@@ -66,14 +70,17 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
     const publicKey = this.getPublicKeyFromPrivateKey(options.privateKey)
     const address = await this.getAddressFromPublicKey(publicKey)
-    const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, options.privateKey)
+    let finalPrivateKey = options.privateKey
+    if (options.passphrase) {
+      finalPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, options.privateKey)
+    }
 
     return new Account({
       name: options.name,
       asset: options.asset,
       address,
       publicKey,
-      privateKey: encryptedPrivateKey,
+      privateKey: finalPrivateKey,
     });
   }
 
@@ -82,7 +89,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
       throw new ArgumentError('options.asset');
     }
 
-    if (!options.passphrase) {
+    if (!options.passphrase && !options.skipEncryption) {
       throw new ArgumentError('options.passphrase');
     }
 
@@ -110,14 +117,18 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
     const publicKey = this.getPublicKeyFromPrivateKey(privateKey)
     const address = await this.getAddressFromPublicKey(publicKey)
-    const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, privateKey)
+    let finalPrivateKey = privateKey
+
+    if (options.passphrase) {
+      finalPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, privateKey)
+    }
 
     return new Account({
       name: options.name,
       asset: options.asset,
       address,
       publicKey,
-      privateKey: encryptedPrivateKey,
+      privateKey: finalPrivateKey,
     });
   }
 
