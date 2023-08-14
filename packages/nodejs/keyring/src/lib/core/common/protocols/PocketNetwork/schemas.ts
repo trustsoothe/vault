@@ -76,30 +76,3 @@ export const PocketRpcCanSendTransactionResponseSchema = z.object({
   code: z.literal(2),
   raw_log: z.string().regex(/^.*txBytes are empty.*$/),
 });
-
-export const PocketPPKFileSchema = z.object({
-  kdf: z.literal('scrypt'),
-  salt: z.string().regex(/^[0-9a-fA-F]+$/),
-  secparam: z.string().transform((value, ctx) => {
-    const secparam = parseInt(value)
-
-    if (isNaN(secparam)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'The secparam value is not a valid number.'
-      })
-      return z.NEVER
-    }
-
-    if (secparam <= 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'The secparam value must be greater than 0.'
-      })
-      return z.NEVER
-    }
-
-    return secparam
-  }),
-  ciphertext: z.string().min(1),
-})

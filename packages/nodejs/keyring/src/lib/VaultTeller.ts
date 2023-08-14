@@ -186,16 +186,6 @@ export class VaultTeller {
     return account.asAccountReference();
   }
 
-  async deriveAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
-    const protocolService=
-      ProtocolServiceFactory.getProtocolService(options.asset.protocol, this.encryptionService);
-
-    return await protocolService.createAccountFromPrivateKey({
-      ...options,
-      skipEncryption: true,
-    });
-  }
-
   async updateAccountName(sessionId: string, vaultPassphrase: Passphrase, options: AccountUpdateOptions): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "update");
 
