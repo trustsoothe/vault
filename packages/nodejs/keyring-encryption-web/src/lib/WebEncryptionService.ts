@@ -1,4 +1,4 @@
-import {IEncryptionService, MnemonicPhrase, Passphrase, ScryptParams} from "@poktscan/keyring";
+import {IEncryptionService, MnemonicPhrase, Passphrase} from "@poktscan/keyring";
 import {scrypt} from '@noble/hashes/scrypt';
 
 const DERIVED_KEY_FORMAT = 'AES-GCM';
