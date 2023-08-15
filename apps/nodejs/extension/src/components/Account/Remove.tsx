@@ -13,6 +13,8 @@ import OperationFailed from "../common/OperationFailed";
 import { ACCOUNTS_DETAIL_PAGE, ACCOUNTS_PAGE } from "../../constants/routes";
 import { DetailComponent } from "./AccountDetail";
 import Password from "../common/Password";
+import { useAppDispatch } from "../../hooks/redux";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface FormValues {
   vault_password: string;
@@ -23,6 +25,7 @@ interface RemoveAccountProps {
 }
 
 const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
+  const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const [account, setAccount] = useState<SerializedAccountReference>(null);
   const [wrongPassword, setWrongPassword] = useState(false);
@@ -70,23 +73,29 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
   const removeAccount = useCallback(
     (data: FormValues) => {
       setStatus("loading");
-      setTimeout(() => {
-        if (data.vault_password.length < 5) {
-          setWrongPassword(true);
-          setStatus("normal");
+      AppToBackground.removeAccount({
+        serializedAccount: account,
+        vaultPassword: data.vault_password,
+      }).then((response) => {
+        if (response.error) {
+          setStatus("error");
         } else {
-          setWrongPassword(false);
-          enqueueSnackbar({
-            style: { width: 225, minWidth: "225px!important" },
-            message: `Account removed successfully.`,
-            variant: "success",
-            autoHideDuration: 3000,
-          });
-          navigate(ACCOUNTS_PAGE);
+          if (response.data.isPasswordWrong) {
+            setStatus("normal");
+            setWrongPassword(true);
+          } else {
+            enqueueSnackbar({
+              style: { width: 225, minWidth: "225px!important" },
+              message: `Account removed successfully.`,
+              variant: "success",
+              autoHideDuration: 3000,
+            });
+            navigate(ACCOUNTS_PAGE);
+          }
         }
-      }, 1000);
+      });
     },
-    [navigate]
+    [navigate, dispatch, account]
   );
 
   return useMemo(() => {

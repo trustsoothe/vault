@@ -5,7 +5,7 @@ import {
   AccountReference,
 } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
-import {IEncryptionService} from "./core/common/encryption/IEncryptionService";
+import { IEncryptionService } from "./core/common/encryption/IEncryptionService";
 import { Account, AccountUpdateOptions,Vault } from "./core/vault";
 import { SerializedSession, Session, SessionOptions } from "./core/session";
 import { Permission,PermissionsBuilder } from "./core/common/permissions";
@@ -186,20 +186,33 @@ export class VaultTeller {
     return account.asAccountReference();
   }
 
-  async createAccountFromPrivateKey(sessionId: string, vaultPassphrase: Passphrase, options: CreateAccountFromPrivateKeyOptions, replace = false): Promise<AccountReference> {
+  async createAccountFromPrivateKey(
+    sessionId: string,
+    vaultPassphrase: Passphrase,
+    options: CreateAccountFromPrivateKeyOptions,
+    replace = false
+  ): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "create");
 
-    const protocolService=
-      ProtocolServiceFactory.getProtocolService(options.asset.protocol, this.encryptionService);
+    const protocolService = ProtocolServiceFactory.getProtocolService(
+      options.asset.protocol,
+      this.encryptionService
+    );
 
     const account = await protocolService.createAccountFromPrivateKey(options);
 
-    const preExistingAccount = await this.getVaultAccountByReference(account.asAccountReference(), vaultPassphrase);
+    const preExistingAccount = await this.getVaultAccountByReference(
+      account.asAccountReference(),
+      vaultPassphrase
+    );
 
     await this.addVaultAccount(account, vaultPassphrase, replace);
 
     if (preExistingAccount && replace) {
-      await this.removeAccountFromSession(sessionId, preExistingAccount.asAccountReference());
+      await this.removeAccountFromSession(
+        sessionId,
+        preExistingAccount.asAccountReference()
+      );
     }
 
     await this.addAccountToSession(sessionId, account);
@@ -281,7 +294,11 @@ export class VaultTeller {
     return authorizedAccounts?.map((a) => a.asAccountReference()) || [];
   }
 
-  async removeAccount(sessionId: string, vaultPassphrase: Passphrase, accountReference: AccountReference): Promise<void> {
+  async removeAccount(
+    sessionId: string,
+    vaultPassphrase: Passphrase,
+    accountReference: AccountReference
+  ): Promise<void> {
     await this.validateSessionForPermissions(sessionId, "account", "delete");
 
     await this.removeVaultAccount(accountReference, vaultPassphrase);
@@ -498,7 +515,11 @@ export class VaultTeller {
     }
   }
 
-  private async addVaultAccount(account: Account, vaultPassphrase: Passphrase, replace = false) {
+  private async addVaultAccount(
+    account: Account,
+    vaultPassphrase: Passphrase,
+    replace = false
+  ) {
     const vault = await this.getVault(vaultPassphrase);
 
     vault.addAccount(account, replace);
@@ -516,7 +537,10 @@ export class VaultTeller {
     this._vault?.addAccount(account, replace);
   }
 
-  private async getVaultAccountById(accountId: string, vaultPassphrase: Passphrase): Promise<Account> {
+  private async getVaultAccountById(
+    accountId: string,
+    vaultPassphrase: Passphrase
+  ): Promise<Account> {
     const vault = await this.getVault(
       vaultPassphrase
     );
@@ -530,11 +554,18 @@ export class VaultTeller {
     return account;
   }
 
-  private async getVaultAccountByReference(accountReference: AccountReference, vaultPassphrase: Passphrase): Promise<Account | undefined> {
-    const vault = await this.getVault(vaultPassphrase)
+  private async getVaultAccountByReference(
+    accountReference: AccountReference,
+    vaultPassphrase: Passphrase
+  ): Promise<Account | undefined> {
+    const vault = await this.getVault(vaultPassphrase);
     return vault.accounts.find((a) => {
-      return a.address === accountReference.address && a.asset.protocol === accountReference.protocol;
-    })
+      return (
+        a.address === accountReference.address &&
+        a.asset.protocol.chainID === accountReference.protocol.chainID &&
+        a.asset.protocol.name === accountReference.protocol.name
+      );
+    });
   }
 
   private async updateVaultAccount(
@@ -545,7 +576,10 @@ export class VaultTeller {
 
     vault.updateAccount(account);
 
-    const encryptedUpdatedVault = await this.encryptVault(vaultPassphrase, vault);
+    const encryptedUpdatedVault = await this.encryptVault(
+      vaultPassphrase,
+      vault
+    );
 
     await this.vaultStore.save(encryptedUpdatedVault.serialize());
   }
@@ -568,10 +602,13 @@ export class VaultTeller {
     return await this.decryptVault(
       vaultPassphrase,
       encryptedOriginalVault
-    )
+    );
   }
 
-  private async removeVaultAccount(accountReference: AccountReference, vaultPassphrase: Passphrase) {
+  private async removeVaultAccount(
+    accountReference: AccountReference,
+    vaultPassphrase: Passphrase
+  ) {
     const vault = await this.getVault(vaultPassphrase);
 
     vault.removeAccount(accountReference);
@@ -589,7 +626,10 @@ export class VaultTeller {
     this._vault?.removeAccount(accountReference);
   }
 
-  private async removeAccountFromSession(sessionId: string, accountReference: AccountReference) {
+  private async removeAccountFromSession(
+    sessionId: string,
+    accountReference: AccountReference
+  ) {
     const session = await this.getSession(sessionId);
     if (session) {
       session.removeAccount(accountReference);

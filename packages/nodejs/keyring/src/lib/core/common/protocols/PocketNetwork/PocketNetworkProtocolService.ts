@@ -283,6 +283,12 @@ export class PocketNetworkProtocolService implements IProtocolService<PocketNetw
     });
   }
 
+  public async getAddressFromPrivateKey(privateKey: string): Promise<string> {
+    const publicKey = this.getPublicKeyFromPrivateKey(privateKey);
+
+    return this.getAddressFromPublicKey(publicKey);
+  }
+
   private getPublicKeyFromPrivateKey(privateKey: string): string {
     return privateKey.slice(64, privateKey.length);
   }

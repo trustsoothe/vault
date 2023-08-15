@@ -22,6 +22,7 @@ import { useAppDispatch } from "../../hooks/redux";
 import OperationFailed from "../common/OperationFailed";
 import {
   ACCOUNTS_PAGE,
+  IMPORT_ACCOUNT_PAGE,
   REMOVE_ACCOUNT_PAGE,
   TRANSFER_PAGE,
   UPDATE_ACCOUNT_PAGE,
@@ -226,6 +227,12 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
       navigate(`${REMOVE_ACCOUNT_PAGE}?id=${account.id}`);
     }
   }, [navigate, account?.id]);
+
+  const onClickReimport = useCallback(() => {
+    if (account?.id) {
+      navigate(`${IMPORT_ACCOUNT_PAGE}?reimport=${account.id}`);
+    }
+  }, [account?.id, navigate]);
 
   const handleCopyPrivateKey = useCallback(() => {
     if (privateKey) {
@@ -433,7 +440,9 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
         <Button sx={{ height: 30 }} onClick={onClickRemoveAccount}>
           Remove
         </Button>
-        <Button sx={{ height: 30 }}>Reimport</Button>
+        <Button sx={{ height: 30 }} onClick={onClickReimport}>
+          Reimport
+        </Button>
       </Stack>
       {explorerLink && (
         <Stack

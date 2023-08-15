@@ -197,6 +197,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
             inputsContainerProps={{
               spacing: "18px",
             }}
+            randomKey={"new-acc"}
           />
           <Password
             passwordName={"vault_password"}

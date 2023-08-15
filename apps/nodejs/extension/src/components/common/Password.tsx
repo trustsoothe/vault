@@ -27,6 +27,7 @@ interface PasswordProps {
   errorConfirm?: string;
   horizontal?: boolean;
   autofocusPassword?: boolean;
+  randomKey?: string;
 }
 
 const Password: React.FC<PasswordProps> = function <T extends {}>({
@@ -47,9 +48,17 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
   horizontal = false,
   inputsContainerProps,
   autofocusPassword = false,
+  randomKey,
 }) {
-  const { control, register, setValue, clearErrors, watch, setFocus } =
-    useFormContext<T>();
+  const {
+    control,
+    register,
+    setValue,
+    clearErrors,
+    watch,
+    setFocus,
+    getValues,
+  } = useFormContext<T>();
   const [showPassword, setShowPassword] = useState(false);
   const [random, setRandom] = useState(false);
   const [showCopyPassTooltip, setShowCopyPassTooltip] = useState(false);
@@ -58,36 +67,44 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
   const [pass, confirm] = watch([passwordName, confirmPasswordName]);
 
   useEffect(() => {
-    if (canGenerateRandomFirst || canGenerateRandomSecond) {
-      if (random) {
-        const pass = generateRandomPassword() as PathValue<any, any>;
-        if (canGenerateRandomFirst) {
-          setValue(passwordName, pass);
-        }
-        if (confirmPasswordName && canGenerateRandomSecond) {
-          if (passwordAndConfirmEquals) {
-            setValue(confirmPasswordName, pass);
-          } else {
-            setValue(
-              confirmPasswordName,
-              generateRandomPassword() as PathValue<any, any>
-            );
+    if (randomKey) {
+      const wasRandom = localStorage.getItem(randomKey) === "true";
+
+      if (wasRandom) {
+        if (
+          passwordName &&
+          confirmPasswordName &&
+          canGenerateRandomSecond &&
+          canGenerateRandomFirst
+        ) {
+          try {
+            const pass = getValues(passwordName);
+            const confirm = getValues(confirmPasswordName);
+            console.log(pass);
+            console.log(confirm);
+            verifyPassword(pass as unknown as string);
+            verifyPassword(confirm as unknown as string);
+
+            setRandom(true);
+            return;
+          } catch (e) {}
+        } else {
+          if (canGenerateRandomFirst) {
+            try {
+              const pass = getValues(passwordName);
+              console.log(pass);
+              verifyPassword(pass as unknown as string);
+
+              setRandom(true);
+              return;
+            } catch (e) {}
           }
         }
-      } else {
-        if (canGenerateRandomFirst) {
-          setValue(passwordName, "" as PathValue<any, any>);
-        }
-        if (confirmPasswordName && canGenerateRandomSecond) {
-          setValue(confirmPasswordName, "" as PathValue<any, any>);
-        }
-      }
-      clearErrors(passwordName);
-      if (confirmPasswordName) {
-        clearErrors(confirmPasswordName);
+
+        localStorage.removeItem(randomKey);
       }
     }
-  }, [random]);
+  }, []);
 
   const onClickCopyPass = useCallback(() => {
     if (pass) {
@@ -112,22 +129,56 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
   }, []);
 
   const toggleRandomPassword = useCallback(() => {
-    setRandom((prevState) => !prevState);
-    if (canGenerateRandomFirst) {
-      setFocus(passwordName);
-    }
-    if (confirmPasswordName && canGenerateRandomSecond) {
-      if (!canGenerateRandomFirst) {
-        setFocus(confirmPasswordName);
+    const newRandom = !random;
+    if (canGenerateRandomFirst || canGenerateRandomSecond) {
+      if (newRandom) {
+        const pass = generateRandomPassword() as PathValue<any, any>;
+        if (canGenerateRandomFirst) {
+          setValue(passwordName, pass);
+          setFocus(passwordName);
+        }
+        if (confirmPasswordName && canGenerateRandomSecond) {
+          if (passwordAndConfirmEquals) {
+            setValue(confirmPasswordName, pass);
+          } else {
+            setValue(
+              confirmPasswordName,
+              generateRandomPassword() as PathValue<any, any>
+            );
+          }
+        }
+      } else {
+        if (canGenerateRandomFirst) {
+          setValue(passwordName, "" as PathValue<any, any>);
+        }
+        if (confirmPasswordName && canGenerateRandomSecond) {
+          setValue(confirmPasswordName, "" as PathValue<any, any>);
+          if (!canGenerateRandomFirst) {
+            setFocus(confirmPasswordName);
+          }
+        }
       }
+      clearErrors(passwordName);
+      if (confirmPasswordName) {
+        clearErrors(confirmPasswordName);
+      }
+
+      if (randomKey) {
+        localStorage.setItem(randomKey, `${newRandom}`);
+      }
+      setRandom(newRandom);
     }
   }, [
+    randomKey,
     random,
+    setValue,
     setFocus,
     canGenerateRandomFirst,
+    passwordAndConfirmEquals,
     passwordName,
     confirmPasswordName,
     canGenerateRandomSecond,
+    clearErrors,
   ]);
 
   const actions = useMemo(() => {

@@ -39,4 +39,5 @@ export interface IProtocolService<T extends Protocol> {
   updateNetworkStatus(network: Network): Promise<Network>
   getFee(network: Network): Promise<number>
   getBalance(network: Network, account: AccountReference): Promise<number>
+  getAddressFromPrivateKey(privateKey: string): Promise<string>
 }

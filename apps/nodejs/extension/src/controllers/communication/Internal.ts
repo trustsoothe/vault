@@ -8,12 +8,14 @@ import type {
 } from "../../types/communication";
 import browser, { type Runtime } from "webextension-polyfill";
 import {
+  AccountExistError,
   ExternalAccessRequest,
   OriginReference,
-  PassphraseIncorrectError,
   PermissionResources,
   PermissionsBuilder,
+  SerializedAccountReference,
   SerializedAsset,
+  VaultRestoreError,
 } from "@poktscan/keyring";
 import store from "../../redux/store";
 import {
@@ -25,11 +27,15 @@ import {
   ANSWER_TRANSFER_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  IMPORT_ACCOUNT_REQUEST,
+  IMPORT_ACCOUNT_RESPONSE,
   INITIALIZE_VAULT_REQUEST,
   INITIALIZE_VAULT_RESPONSE,
   LOCK_VAULT_REQUEST,
   LOCK_VAULT_RESPONSE,
   NEW_ACCOUNT_RESPONSE,
+  REMOVE_ACCOUNT_REQUEST,
+  REMOVE_ACCOUNT_RESPONSE,
   REVOKE_SESSION_REQUEST,
   REVOKE_SESSION_RESPONSE,
   TRANSFER_REQUEST,
@@ -47,8 +53,11 @@ import {
 import {
   addNewAccount,
   authorizeExternalSession,
+  importAccount,
+  ImportAccountParam,
   initVault,
   lockVault,
+  removeAccount,
   revokeSession,
   unlockVault,
   updateAccount,
@@ -198,6 +207,39 @@ export interface UpdateAccountResponse {
   error: UnknownErrorType | null;
 }
 
+export interface RemoveAccountMessage {
+  type: typeof REMOVE_ACCOUNT_REQUEST;
+  data: {
+    serializedAccount: SerializedAccountReference;
+    vaultPassword: string;
+  };
+}
+
+export interface RemoveAccountResponse {
+  type: typeof REMOVE_ACCOUNT_RESPONSE;
+  data: {
+    answered: true;
+    isPasswordWrong?: boolean;
+  } | null;
+  error: UnknownErrorType | null;
+}
+
+export interface ImportAccountMessage {
+  type: typeof IMPORT_ACCOUNT_REQUEST;
+  data: ImportAccountParam;
+}
+
+export interface ImportAccountResponse {
+  type: typeof IMPORT_ACCOUNT_RESPONSE;
+  data: {
+    answered: true;
+    accountId: string;
+    isPasswordWrong?: boolean;
+    accountAlreadyExists?: boolean;
+  } | null;
+  error: UnknownErrorType | null;
+}
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
@@ -206,7 +248,9 @@ export type Message =
   | UnlockVaultRequest
   | LockVaultMessage
   | RevokeSessionMessage
-  | UpdateAccountMessage;
+  | UpdateAccountMessage
+  | RemoveAccountMessage
+  | ImportAccountMessage;
 
 // Controller to manage the communication between extension views and the background
 class InternalCommunicationController {
@@ -299,6 +343,14 @@ class InternalCommunicationController {
     if (message?.type === UPDATE_ACCOUNT_REQUEST) {
       return this._handleUpdateAccount(message);
     }
+
+    if (message?.type === REMOVE_ACCOUNT_REQUEST) {
+      return this._handleRemoveAccount(message);
+    }
+
+    if (message?.type === IMPORT_ACCOUNT_REQUEST) {
+      return this._handleImportAccount(message);
+    }
   }
 
   private async _handleInitializeVault(
@@ -338,7 +390,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === "PassphraseIncorrectError") {
+      if (error?.name === VaultRestoreError.name) {
         return {
           type: UNLOCK_VAULT_RESPONSE,
           data: {
@@ -610,7 +662,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === "PassphraseIncorrectError") {
+      if (error?.name === VaultRestoreError.name) {
         return {
           type: ANSWER_NEW_ACCOUNT_RESPONSE,
           data: {
@@ -713,7 +765,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === "PassphraseIncorrectError") {
+      if (error?.name === VaultRestoreError.name) {
         return {
           type: ANSWER_TRANSFER_RESPONSE,
           data: {
@@ -759,7 +811,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === "PassphraseIncorrectError") {
+      if (error?.name === VaultRestoreError.name) {
         return {
           type: UPDATE_ACCOUNT_RESPONSE,
           data: {
@@ -771,6 +823,86 @@ class InternalCommunicationController {
       }
       return {
         type: UPDATE_ACCOUNT_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _handleRemoveAccount(
+    message: RemoveAccountMessage
+  ): Promise<RemoveAccountResponse> {
+    try {
+      await store.dispatch(removeAccount(message.data)).unwrap();
+
+      return {
+        type: REMOVE_ACCOUNT_RESPONSE,
+        data: {
+          answered: true,
+        },
+        error: null,
+      };
+    } catch (error) {
+      if (error?.name === "VaultRestoreError") {
+        return {
+          type: REMOVE_ACCOUNT_RESPONSE,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+          },
+          error: null,
+        };
+      }
+      return {
+        type: REMOVE_ACCOUNT_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _handleImportAccount(
+    message: ImportAccountMessage
+  ): Promise<ImportAccountResponse> {
+    try {
+      const account = await store
+        .dispatch(importAccount(message.data))
+        .unwrap();
+
+      return {
+        type: IMPORT_ACCOUNT_RESPONSE,
+        data: {
+          answered: true,
+          accountId: account.id,
+        },
+        error: null,
+      };
+    } catch (error) {
+      if (error?.name === "VaultRestoreError") {
+        return {
+          type: IMPORT_ACCOUNT_RESPONSE,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+            accountId: null,
+          },
+          error: null,
+        };
+      }
+
+      if (error?.name === AccountExistError.name) {
+        return {
+          type: IMPORT_ACCOUNT_RESPONSE,
+          data: {
+            answered: true,
+            accountAlreadyExists: true,
+            accountId: null,
+          },
+          error: null,
+        };
+      }
+      return {
+        type: IMPORT_ACCOUNT_RESPONSE,
         data: null,
         error: UnknownError,
       };

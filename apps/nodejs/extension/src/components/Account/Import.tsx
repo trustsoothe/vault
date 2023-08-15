@@ -1,8 +1,11 @@
-import type { SerializedAsset } from "@poktscan/keyring";
+import type {
+  SerializedAccountReference,
+  SerializedAsset,
+} from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
@@ -16,6 +19,15 @@ import AutocompleteAsset from "./AutocompleteAsset";
 import OperationFailed from "../common/OperationFailed";
 import { nameRules } from "./CreateNew";
 import Password from "../common/Password";
+import AppToBackground from "../../controllers/communication/AppToBackground";
+import { ACCOUNTS_DETAIL_PAGE } from "../../constants/routes";
+import { DetailComponent } from "./AccountDetail";
+import {
+  getAddressFromPrivateKey,
+  getPrivateKeyFromPPK,
+  isValidPPK,
+  protocolsAreEquals,
+} from "../../utils/networkOperations";
 
 export const isHex = (str: string) => {
   return str.match(/^[0-9a-fA-F]+$/g);
@@ -38,21 +50,29 @@ interface FormValues {
   asset?: SerializedAsset;
 }
 
-type FormStatus = "normal" | "loading" | "error";
+type FormStatus = "normal" | "loading" | "error" | "account_exists";
 
 interface ImportAccountProps {
+  accounts: RootState["vault"]["entities"]["accounts"]["list"];
   assets: RootState["vault"]["entities"]["assets"]["list"];
   passwordRemembered: RootState["vault"]["passwordRemembered"];
 }
 
 const ImportAccount: React.FC<ImportAccountProps> = ({
   passwordRemembered,
+  accounts,
+  assets,
 }) => {
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [accountToReimport, setAccountToReImport] =
+    useState<SerializedAccountReference>(null);
 
   const [status, setStatus] = useState<FormStatus>("normal");
   const [wrongPassword, setWrongPassword] = useState(false);
+  const [wrongFilePassword, setWrongFilePassword] = useState(false);
+  const [errorPpk, setErrorPpk] = useState(false);
 
   const methods = useForm<FormValues>({
     defaultValues: {
@@ -78,7 +98,34 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     getValues,
   } = methods;
 
-  const [type, asset] = watch(["import_type", "asset"]);
+  const { isValidating } = formState;
+
+  useEffect(() => {
+    const id = searchParams.get("reimport");
+    const accountFromStore = accounts.find((item) => item.id === id);
+    if (accountFromStore && accountToReimport?.id !== id) {
+      setAccountToReImport(accountFromStore);
+
+      const asset = assets.find((item) =>
+        protocolsAreEquals(item.protocol, accountFromStore.protocol)
+      );
+
+      setValue("asset", asset);
+      setValue("account_name", accountFromStore.name);
+      return;
+    }
+
+    if (!accountFromStore) {
+      setAccountToReImport(null);
+    }
+  }, [searchParams, accounts]);
+
+  const [type, asset, file_password, json_file] = watch([
+    "import_type",
+    "asset",
+    "file_password",
+    "json_file",
+  ]);
 
   useEffect(() => {
     setValue("private_key", "");
@@ -86,6 +133,18 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     setValue("file_password", "");
     clearErrors(["private_key", "json_file"]);
   }, [type]);
+
+  useEffect(() => {
+    if (wrongFilePassword) {
+      setWrongFilePassword(false);
+    }
+  }, [file_password]);
+
+  useEffect(() => {
+    if (errorPpk) {
+      setErrorPpk(false);
+    }
+  }, [json_file]);
 
   const onClickCancel = useCallback(() => {
     if (location.key !== "default") {
@@ -97,26 +156,64 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 
   const onClickCreate = useCallback(
     async (data: FormValues) => {
-      let text;
-
-      if (data.json_file) {
-        text = await data.json_file.text();
-      }
-
       setStatus("loading");
 
-      setTimeout(() => {
-        enqueueSnackbar({
-          style: { width: 200, minWidth: "200px!important" },
-          message: `Account imported successfully.`,
-          variant: "success",
-          autoHideDuration: 2500,
-        });
-        // todo: navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${result.data.accountId}`);
-        navigate("/");
-      }, 1000);
+      let privateKey;
+
+      if (data.json_file) {
+        const contentFile = await data.json_file.text();
+
+        try {
+          privateKey = getPrivateKeyFromPPK(contentFile, data.file_password);
+        } catch (e) {
+          if (
+            e?.message === "Unsupported state or unable to authenticate data"
+          ) {
+            setWrongFilePassword(true);
+          } else {
+            setErrorPpk(true);
+          }
+          setStatus("normal");
+          return;
+        }
+      } else {
+        privateKey = data.private_key;
+      }
+
+      AppToBackground.importAccount({
+        accountData: {
+          asset: data.asset,
+          name: data.account_name,
+          accountPassword: data.password,
+          privateKey,
+        },
+        replace: !!accountToReimport,
+        vaultPassword: passwordRemembered ? undefined : data.vault_password,
+      }).then((response) => {
+        if (response.error) {
+          setStatus("error");
+        } else {
+          if (response.data.isPasswordWrong) {
+            setWrongPassword(true);
+            setStatus("normal");
+          } else if (response.data.accountAlreadyExists) {
+            setStatus("account_exists");
+            //todo: with function to generate address from private key, get the address
+          } else {
+            enqueueSnackbar({
+              style: { width: 200, minWidth: "200px!important" },
+              message: `Account ${
+                accountToReimport ? "re" : ""
+              }imported successfully.`,
+              variant: "success",
+              autoHideDuration: 2500,
+            });
+            navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${response.data.accountId}`);
+          }
+        }
+      });
     },
-    [navigate]
+    [navigate, accountToReimport]
   );
 
   const content = useMemo(() => {
@@ -133,8 +230,31 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
       );
     }
 
+    if (status === "account_exists") {
+      return (
+        <OperationFailed
+          text={"This account already exists."}
+          cancelBtnProps={{
+            sx: { display: "none" },
+          }}
+          retryBtnProps={{
+            type: "button",
+          }}
+          retryBtnText={"Go to Account"}
+          onRetry={() => navigate("/")}
+        />
+      );
+    }
+
     return (
-      <Stack height={1} width={1} justifyContent={"space-between"}>
+      <Stack
+        height={1}
+        width={1}
+        justifyContent={"space-between"}
+        sx={{
+          position: "relative",
+        }}
+      >
         <Stack
           maxHeight={"calc(100% - 50px)"}
           flexGrow={1}
@@ -145,24 +265,72 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
           sx={{ overflowY: "auto", overflowX: "hidden" }}
           paddingRight={1}
         >
-          <AutocompleteAsset
-            control={control}
-            autocompleteProps={{ openOnFocus: true }}
-            textFieldProps={{ autoFocus: true }}
-          />
-          <TextField
-            fullWidth
-            label={"Account Name"}
-            size={"small"}
-            {...register("account_name", nameRules)}
-            error={!!formState?.errors?.account_name}
-            helperText={formState?.errors?.account_name?.message}
-          />
+          {accountToReimport ? (
+            <Stack position={"relative"}>
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  transform: "scale(0.75)",
+                  color: "rgba(0, 0, 0, 0.6)",
+                  position: "absolute",
+                  left: -7,
+                  top: -15,
+                  zIndex: 2,
+                  backgroundColor: "white",
+                  paddingX: "7px",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Account to Reimport
+              </Typography>
+              <Stack
+                sx={{
+                  border: "1px solid lightgray",
+                  padding: 0.5,
+                  boxSizing: "border-box",
+                  borderRadius: "6px",
+                  width: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginTop: "-4px!important",
+                }}
+              >
+                <DetailComponent
+                  account={accountToReimport}
+                  hideCopy={true}
+                  containerProps={{
+                    my: "0px!important",
+                    sx: {
+                      transform: "scale(0.9)",
+                      width: 1,
+                    },
+                  }}
+                />
+              </Stack>
+            </Stack>
+          ) : (
+            <>
+              <AutocompleteAsset
+                control={control}
+                autocompleteProps={{ openOnFocus: true }}
+                textFieldProps={{ autoFocus: true }}
+              />
+              <TextField
+                fullWidth
+                label={"Account Name"}
+                size={"small"}
+                {...register("account_name", nameRules)}
+                error={!!formState?.errors?.account_name}
+                helperText={formState?.errors?.account_name?.message}
+              />
+            </>
+          )}
 
           <Divider
             sx={{
               width: "calc(100% + 5px)",
               marginLeft: "-5px",
+              marginTop: accountToReimport ? "15px!important" : undefined,
             }}
             orientation={"horizontal"}
           />
@@ -173,7 +341,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
             alignItems={"center"}
             width={1}
             height={30}
-            marginTop={"15px!important"}
+            marginTop={accountToReimport ? "20px!important" : "15px!important"}
           >
             <Typography fontSize={14}>Import from</Typography>
             <Controller
@@ -214,16 +382,27 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
               fullWidth
               disabled={!asset}
               {...register("private_key", {
-                validate: (value, formValues) => {
-                  if (!value && formValues.import_type === "private_key") {
-                    return "Required";
-                  }
+                validate: async (value, formValues) => {
+                  if (formValues.import_type === "private_key") {
+                    if (!value) {
+                      return "Required";
+                    }
 
-                  if (
-                    !isPrivateKey(value) &&
-                    formValues.import_type === "private_key"
-                  ) {
-                    return "Invalid Private Key";
+                    if (!isPrivateKey(value)) {
+                      return "Invalid Private Key";
+                    }
+
+                    if (accountToReimport && formValues.asset) {
+                      const addressOfPrivateKey =
+                        await getAddressFromPrivateKey(
+                          value,
+                          formValues.asset.protocol
+                        );
+
+                      if (accountToReimport.address !== addressOfPrivateKey) {
+                        return "This is not the PK of the account to reimport";
+                      }
+                    }
                   }
 
                   return true;
@@ -243,10 +422,19 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
                   control={control}
                   name={"json_file"}
                   rules={{
-                    validate: (value, formValues) => {
-                      if (!value && formValues.import_type === "json_file") {
-                        return "Required";
+                    validate: async (value, formValues) => {
+                      if (formValues.import_type === "json_file") {
+                        if (!value) {
+                          return "Required";
+                        }
+
+                        const content = await value.text();
+
+                        if (!isValidPPK(content)) {
+                          return "File is not valid";
+                        }
                       }
+
                       return true;
                     },
                   }}
@@ -256,7 +444,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
                         style={{
                           display: "block",
                           width: "200px",
-                          color: error ? "red" : "black",
+                          color: error || errorPpk ? "red" : "black",
                         }}
                         type={"file"}
                         accept={"application/json"}
@@ -277,6 +465,8 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
                 label={"File Password (Optional)"}
                 size={"small"}
                 type={"password"}
+                error={wrongFilePassword}
+                helperText={wrongFilePassword ? "Invalid password" : undefined}
                 {...register("file_password")}
               />
             </Stack>
@@ -304,6 +494,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
               inputsContainerProps={{
                 spacing: "18px",
               }}
+              randomKey={"import-acc"}
             />
             <Divider
               sx={{
@@ -353,6 +544,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
             variant={"contained"}
             fullWidth
             type={"submit"}
+            disabled={isValidating}
           >
             Import
           </Button>
@@ -360,6 +552,9 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
       </Stack>
     );
   }, [
+    errorPpk,
+    wrongFilePassword,
+    accountToReimport,
     register,
     control,
     onClickCancel,
@@ -369,6 +564,8 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     formState,
     methods,
     passwordRemembered,
+    navigate,
+    isValidating,
   ]);
 
   return (
@@ -389,6 +586,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 
 const mapStateToProps = (state: RootState) => {
   return {
+    accounts: state.vault.entities.accounts.list,
     assets: state.vault.entities.assets.list,
     passwordRemembered: state.vault.passwordRemembered,
   };

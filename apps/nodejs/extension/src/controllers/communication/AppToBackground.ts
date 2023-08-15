@@ -1,19 +1,23 @@
 import type {
   AnswerConnectionRequest,
-  AnswerNewAccountRequest,
-  UpdateAccountMessage,
-  AnswerTransferRequest,
-  InitializeVaultResponse,
-  UnlockVaultResponse,
-  LockVaultResponse,
-  RevokeSessionResponse,
   AnswerConnectionResponse,
+  AnswerNewAccountRequest,
   AnswerNewAccountResponse,
+  AnswerTransferRequest,
   AnswerTransferResponse,
+  ImportAccountMessage,
+  ImportAccountResponse,
   InitializeVaultRequest,
+  InitializeVaultResponse,
   LockVaultMessage,
+  LockVaultResponse,
+  RemoveAccountMessage,
+  RemoveAccountResponse,
   RevokeSessionMessage,
+  RevokeSessionResponse,
   UnlockVaultRequest,
+  UnlockVaultResponse,
+  UpdateAccountMessage,
   UpdateAccountResponse,
 } from "./Internal";
 import browser from "webextension-polyfill";
@@ -21,8 +25,10 @@ import {
   ANSWER_CONNECTION_REQUEST,
   ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_TRANSFER_REQUEST,
+  IMPORT_ACCOUNT_REQUEST,
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
+  REMOVE_ACCOUNT_REQUEST,
   REVOKE_SESSION_REQUEST,
   UNLOCK_VAULT_REQUEST,
   UPDATE_ACCOUNT_REQUEST,
@@ -47,6 +53,17 @@ export default class AppToBackground {
     } as AnswerNewAccountRequest);
   }
 
+  static async importAccount(
+    data: ImportAccountMessage["data"]
+  ): Promise<ImportAccountResponse> {
+    const message: ImportAccountMessage = {
+      type: IMPORT_ACCOUNT_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
   static async updateAccount(
     data: UpdateAccountMessage["data"]
   ): Promise<UpdateAccountResponse> {
@@ -54,6 +71,16 @@ export default class AppToBackground {
       type: UPDATE_ACCOUNT_REQUEST,
       data,
     } as UpdateAccountMessage);
+  }
+
+  static async removeAccount(
+    data: RemoveAccountMessage["data"]
+  ): Promise<RemoveAccountResponse> {
+    const message: RemoveAccountMessage = {
+      type: REMOVE_ACCOUNT_REQUEST,
+      data,
+    };
+    return browser.runtime.sendMessage(message);
   }
 
   static async sendRequestToAnswerTransfer(

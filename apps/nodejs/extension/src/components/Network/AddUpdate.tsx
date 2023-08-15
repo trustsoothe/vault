@@ -2,9 +2,11 @@ import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
 import type { RootState } from "../../redux/store";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import { useForm, Controller } from "react-hook-form";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
+import Checkbox from "@mui/material/Checkbox";
 import { enqueueSnackbar } from "notistack";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -32,6 +34,7 @@ interface FormValues {
     name: SupportedProtocols;
     chainID: ChainID<SupportedProtocols> | "";
   };
+  isPreferred: boolean;
 }
 
 const defaultFormValues: FormValues = {
@@ -41,6 +44,7 @@ const defaultFormValues: FormValues = {
     name: SupportedProtocols.Pocket,
     chainID: "mainnet",
   },
+  isPreferred: false,
 };
 
 const protocols: { protocol: SupportedProtocols; label: string }[] =
@@ -106,14 +110,14 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
   }, [searchParams, networks]);
 
   useEffect(() => {
-    reset({
-      ...defaultFormValues,
-      ...(networkToUpdate && {
+    if (networkToUpdate) {
+      reset({
         name: networkToUpdate.name,
         rpcUrl: networkToUpdate.rpcUrl,
         protocol: networkToUpdate.protocol,
-      }),
-    });
+        isPreferred: networkToUpdate.isPreferred || false,
+      });
+    }
   }, [networkToUpdate]);
 
   const onSubmit = useCallback(
@@ -273,6 +277,36 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
             {...register("rpcUrl", { required: "Required" })}
             error={!!errors?.rpcUrl}
             helperText={errors?.rpcUrl?.message}
+          />
+          <Controller
+            control={control}
+            name={"isPreferred"}
+            render={({ field }) => (
+              <FormControlLabel
+                {...field}
+                onChange={(_, checked) => {
+                  field.onChange(checked);
+                }}
+                checked={field.value}
+                control={<Checkbox />}
+                label="Preferred"
+                sx={{
+                  marginTop: "15px!important",
+                  "& .MuiButtonBase-root": {
+                    padding: 0,
+                  },
+                  "& svg": {
+                    fontSize: 20,
+                  },
+                  "& .MuiTypography-root": {
+                    userSelect: "none",
+                    marginLeft: 0.7,
+                    fontSize: 14,
+                    lineHeight: "20px",
+                  },
+                }}
+              />
+            )}
           />
         </Stack>
 

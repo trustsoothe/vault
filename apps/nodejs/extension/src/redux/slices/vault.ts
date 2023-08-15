@@ -9,11 +9,13 @@ import type {
   SerializedSession,
 } from "@poktscan/keyring";
 import {
+  AccountReference,
   Asset,
   ExternalAccessRequest,
   Network,
   Passphrase,
   SupportedProtocols,
+  VaultRestoreError,
 } from "@poktscan/keyring";
 import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import type { RootState } from "../store";
@@ -23,7 +25,6 @@ import browser from "webextension-polyfill";
 import {
   createAsyncThunk,
   createSlice,
-  PayloadAction,
   SerializedError,
 } from "@reduxjs/toolkit";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
@@ -43,20 +44,16 @@ const ExtensionVaultInstance = getVault();
 
 type InitializeStatus = "loading" | "exists" | "none";
 
-export interface NetworkOperations {
-  fee: number;
-  balance: number;
-  transfer: number;
-}
+export type ErrorsByNetwork = Record<string, number>;
 
 export interface ErrorsPreferredNetwork {
   [SupportedProtocols.Pocket]: Record<
     ChainID<SupportedProtocols.Pocket>,
-    NetworkOperations
+    ErrorsByNetwork
   >;
   [SupportedProtocols.Unspecified]: Record<
     ChainID<SupportedProtocols.Unspecified>,
-    NetworkOperations
+    ErrorsByNetwork
   >;
 }
 
@@ -147,7 +144,7 @@ export const unlockVault = createAsyncThunk(
 export const getProtocolFee = createAsyncThunk<
   {
     fee: number;
-    errorUsingPreferred: boolean;
+    networksWithErrors: string[];
   },
   Protocol
 >("vault/getProtocolFee", async (protocol, context) => {
@@ -170,7 +167,7 @@ interface GetAccountBalanceResult {
   address: string;
   amount: number;
   update: boolean;
-  errorUsingPreferred: boolean;
+  networksWithErrors: string[];
 }
 
 export const getAccountBalance = createAsyncThunk<
@@ -208,7 +205,7 @@ export const getAccountBalance = createAsyncThunk<
         address,
         amount: value.amount,
         update: false,
-        errorUsingPreferred: false,
+        networksWithErrors: [],
       };
     }
   }
@@ -224,7 +221,7 @@ export const getAccountBalance = createAsyncThunk<
     address,
     amount: result.balance,
     update: !!accountFromSaved,
-    errorUsingPreferred: result.errorUsingPreferred,
+    networksWithErrors: result.networksWithErrors,
   };
 });
 
@@ -281,11 +278,18 @@ export const getAllBalances = createAsyncThunk<{
   const newErrorsCounter = { ...errorsPreferredNetwork };
 
   response.forEach((item) => {
-    if (item.errorUsingPreferred) {
+    if (item.networksWithErrors.length) {
       const {
         protocol: { name, chainID },
       } = item;
-      newErrorsCounter[name][chainID]["balance"]++;
+
+      for (const networkId of item.networksWithErrors) {
+        if (newErrorsCounter[name][chainID][networkId]) {
+          newErrorsCounter[name][chainID][networkId]++;
+        } else {
+          newErrorsCounter[name][chainID][networkId] = 1;
+        }
+      }
     }
   });
 
@@ -357,6 +361,63 @@ export const addNewAccount = createAsyncThunk<
   };
 });
 
+export interface ImportAccountParam {
+  accountData: {
+    asset: SerializedAsset;
+    name: string;
+    accountPassword: string;
+    privateKey: string;
+  };
+  replace: boolean;
+  vaultPassword?: string;
+}
+
+export const importAccount = createAsyncThunk<
+  SerializedAccountReference,
+  ImportAccountParam
+>("vault/importAccount", async (args, context) => {
+  const {
+    vault: { vaultSession, passwordRemembered },
+  } = context.getState() as RootState;
+  let vaultPassword: string;
+  if (passwordRemembered) {
+    const passwordEncryptedObj = await browser.storage.session.get(
+      vaultSession.id
+    );
+
+    const passphraseEncrypted: string = passwordEncryptedObj[vaultSession.id];
+
+    if (!passphraseEncrypted) {
+      throw Error("Password not found");
+    }
+
+    const decryptPassphrase = new Passphrase(PASSPHRASE);
+    vaultPassword = await webEncryptionService.decrypt(
+      decryptPassphrase,
+      passphraseEncrypted
+    );
+  } else {
+    vaultPassword = args.vaultPassword;
+  }
+
+  const vaultPassphrase = new Passphrase(vaultPassword);
+  const accountPassphrase = new Passphrase(args.accountData.accountPassword);
+  const accountReference =
+    await ExtensionVaultInstance.createAccountFromPrivateKey(
+      vaultSession.id,
+      vaultPassphrase,
+      {
+        asset: Asset.deserialize(args.accountData.asset),
+        passphrase: accountPassphrase,
+        name: args.accountData.name,
+        privateKey: args.accountData.privateKey,
+      },
+      args.replace
+    );
+
+  return accountReference.serialize();
+});
+
 export const updateAccount = createAsyncThunk<
   SerializedAccountReference,
   AccountUpdateOptions & { vaultPassword?: string }
@@ -398,6 +459,30 @@ export const updateAccount = createAsyncThunk<
 
   return accountReference.serialize();
 });
+
+export const removeAccount = createAsyncThunk(
+  "vault/removeAccount",
+  async (
+    args: {
+      serializedAccount: SerializedAccountReference;
+      vaultPassword: string;
+    },
+    context
+  ) => {
+    const {
+      vault: { vaultSession },
+    } = context.getState() as RootState;
+    const { vaultPassword, serializedAccount } = args;
+    const account = AccountReference.deserialize(serializedAccount);
+    const vaultPassphrase = new Passphrase(vaultPassword);
+
+    return await ExtensionVaultInstance.removeAccount(
+      vaultSession.id,
+      vaultPassphrase,
+      account
+    );
+  }
+);
 
 export const initVault = createAsyncThunk<
   void,
@@ -539,7 +624,7 @@ const increaseWrongPasswordCounter = (
   state: VaultSlice,
   error: SerializedError
 ) => {
-  if (error.name === "PassphraseIncorrectError") {
+  if (error.name === VaultRestoreError.name) {
     const currentCounter = state.wrongPasswordCounter[VAULT_PASSWORD_ID];
 
     if (currentCounter === MAX_PASSWORDS_TRIES) {
@@ -592,23 +677,11 @@ const initialState: VaultSlice = {
   wrongPasswordCounter: {},
   errorsPreferredNetwork: {
     [SupportedProtocols.Pocket]: {
-      ["mainnet"]: {
-        fee: 0,
-        balance: 0,
-        transfer: 0,
-      },
-      ["testnet"]: {
-        fee: 0,
-        balance: 0,
-        transfer: 0,
-      },
+      ["mainnet"]: {},
+      ["testnet"]: {},
     },
     [SupportedProtocols.Unspecified]: {
-      ["unspecified"]: {
-        fee: 0,
-        balance: 0,
-        transfer: 0,
-      },
+      ["unspecified"]: {},
     },
   },
 };
@@ -625,17 +698,6 @@ const vaultSlice = createSlice({
       state.entities = { ...emptyEntities };
       state.wrongPasswordCounter = {};
       state.errorsPreferredNetwork = { ...initialState.errorsPreferredNetwork };
-    },
-    increaseErrorPreferredNetwork: (
-      state,
-      action: PayloadAction<{
-        protocol: SupportedProtocols;
-        chainID: ChainID<SupportedProtocols>;
-        operation: keyof NetworkOperations;
-      }>
-    ) => {
-      const { protocol, chainID, operation } = action.payload;
-      state.errorsPreferredNetwork[protocol][chainID][operation]++;
     },
   },
   extraReducers: (builder) => {
@@ -814,6 +876,28 @@ const vaultSlice = createSlice({
       resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
     });
 
+    // accounts: import
+    builder.addCase(importAccount.pending, (state) => {
+      state.entities.accounts.loading = true;
+    });
+
+    builder.addCase(importAccount.rejected, (state, action) => {
+      state.entities.accounts.loading = false;
+
+      increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
+    });
+
+    builder.addCase(importAccount.fulfilled, (state, action) => {
+      const accountReference = action.payload;
+      state.entities.accounts.loading = false;
+
+      if (!action.meta.arg.replace) {
+        state.entities.accounts.list.push(accountReference);
+      }
+
+      resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+    });
+
     //accounts: updateAccount
     builder.addCase(updateAccount.pending, (state) => {
       state.entities.accounts.loading = true;
@@ -822,6 +906,21 @@ const vaultSlice = createSlice({
     builder.addCase(updateAccount.rejected, (state, action) => {
       state.entities.accounts.loading = false;
 
+      increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
+    });
+
+    //accounts: remove account
+    builder.addCase(removeAccount.fulfilled, (state, action) => {
+      const accountId = action.meta.arg.serializedAccount.id;
+
+      state.entities.accounts.list = state.entities.accounts.list.filter(
+        (item) => item.id !== accountId
+      );
+
+      resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+    });
+
+    builder.addCase(removeAccount.rejected, (state, action) => {
       increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
     });
 
@@ -846,7 +945,7 @@ const vaultSlice = createSlice({
       const result = action.payload;
 
       if (result) {
-        const { address, amount, update, errorUsingPreferred } = result;
+        const { address, amount, update, networksWithErrors } = result;
         if (update) {
           state.entities.accounts.balances.byId[address] = {
             lastUpdatedAt: new Date().getTime(),
@@ -854,9 +953,16 @@ const vaultSlice = createSlice({
           };
         }
 
-        if (errorUsingPreferred) {
+        if (networksWithErrors.length) {
           const { name, chainID } = action.meta.arg.protocol;
-          state.errorsPreferredNetwork[name][chainID]["balance"]++;
+
+          for (const networkId of networksWithErrors) {
+            if (state.errorsPreferredNetwork[name][chainID][networkId]) {
+              state.errorsPreferredNetwork[name][chainID][networkId]++;
+            } else {
+              state.errorsPreferredNetwork[name][chainID][networkId] = 1;
+            }
+          }
         }
       }
     });
@@ -877,14 +983,22 @@ const vaultSlice = createSlice({
     });
 
     builder.addCase(getProtocolFee.fulfilled, (state, action) => {
-      if (action.payload.errorUsingPreferred) {
+      const { networksWithErrors } = action.payload;
+      if (networksWithErrors.length) {
         const { name, chainID } = action.meta.arg;
-        state.errorsPreferredNetwork[name][chainID]["fee"]++;
+
+        for (const networkId of networksWithErrors) {
+          if (state.errorsPreferredNetwork[name][chainID][networkId]) {
+            state.errorsPreferredNetwork[name][chainID][networkId]++;
+          } else {
+            state.errorsPreferredNetwork[name][chainID][networkId] = 1;
+          }
+        }
       }
     });
   },
 });
 
-export const { lockVault, increaseErrorPreferredNetwork } = vaultSlice.actions;
+export const { lockVault } = vaultSlice.actions;
 
 export default vaultSlice.reducer;

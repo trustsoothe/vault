@@ -1,7 +1,13 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { AccountWithBalance } from "../../types";
 import type { RootState } from "../../redux/store";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
@@ -67,22 +73,24 @@ const AccountList: React.FC<AccountListProps> = ({
   isLoadingTokens,
 }) => {
   const dispatch = useAppDispatch();
+  const isLoading = useRef(false);
   const navigate = useNavigate();
-  const [view, setView] = useState<"list" | "update" | "remove" | "detail">(
-    "list"
-  );
-  const [selectedAccount, setSelectedAccount] =
-    useState<SerializedAccountReference>(null);
   const [searchText, setSearchText] = useState("");
   const debouncedSearchText = useDebounce(searchText);
 
   useEffect(() => {
-    dispatch(getAllBalances());
-    const timeout = setInterval(() => {
+    if (!isLoading.current) {
+      dispatch(getAllBalances()).finally(() => {
+        isLoading.current = false;
+      });
+    }
+    isLoading.current = true;
+
+    const interval = setInterval(() => {
       dispatch(getAllBalances());
     }, 60000);
 
-    return () => clearInterval(timeout);
+    return () => clearInterval(interval);
   }, [dispatch]);
 
   const onChangeSearchText = useCallback(
@@ -100,33 +108,12 @@ const AccountList: React.FC<AccountListProps> = ({
     navigate(CREATE_ACCOUNT_PAGE);
   }, [navigate]);
 
-  const onClickUpdateAccount = useCallback(
-    (account: SerializedAccountReference) => {
-      setSelectedAccount(account);
-      setView("update");
-    },
-    []
-  );
-
   const onClickViewAccount = useCallback(
     (account: SerializedAccountReference) => {
       navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${account.id}`);
     },
     [navigate]
   );
-
-  const onClickRemoveAccount = useCallback(
-    (account: SerializedAccountReference) => {
-      setSelectedAccount(account);
-      setView("remove");
-    },
-    []
-  );
-
-  const onClose = useCallback(() => {
-    setSelectedAccount(null);
-    setView("list");
-  }, []);
 
   const accountsWithBalance: AccountWithBalance[] = useMemo(() => {
     return accounts.map((item) => ({
@@ -206,13 +193,7 @@ const AccountList: React.FC<AccountListProps> = ({
         }}
       </FixedSizeList>
     );
-  }, [
-    accountsWithBalance,
-    onClickUpdateAccount,
-    onClickRemoveAccount,
-    isLoadingTokens,
-    searchedAccounts,
-  ]);
+  }, [accountsWithBalance, isLoadingTokens, searchedAccounts]);
 
   const content = useMemo(() => {
     return (
@@ -262,14 +243,11 @@ const AccountList: React.FC<AccountListProps> = ({
   }, [
     onClickImport,
     onClickNew,
-    view,
     accountListComponent,
     navigate,
     isLoadingTokens,
     searchText,
     onChangeSearchText,
-    onClose,
-    selectedAccount,
     accounts.length,
   ]);
 

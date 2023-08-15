@@ -65,8 +65,12 @@ export class Vault implements IEntity {
 
   addAccount(account: Account, replace = false) {
     const accountExists = this._accounts.some((a) => {
-      return a.address === account.address && a.asset.protocol === account.asset.protocol;
-    })
+      return (
+        a.address === account.address &&
+        a.asset.protocol.name === account.asset.protocol.name &&
+        a.asset.protocol.chainID === account.asset.protocol.chainID
+      );
+    });
 
     if (accountExists && !replace) {
       throw new AccountExistError(account);
