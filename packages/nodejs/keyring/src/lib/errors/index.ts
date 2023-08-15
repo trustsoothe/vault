@@ -111,3 +111,39 @@ export class AccountExistError extends KeyringError {
     });
   }
 }
+
+export class ProtocolMismatchError extends KeyringError {
+  constructor(message?: string) {
+    super({
+      name: 'ProtocolMismatchError',
+      message: message || `Mismatching protocols have been provided`,
+    });
+  }
+}
+
+export class InvalidPrivateKeyError extends KeyringError {
+  constructor(message?: string) {
+    super({
+      name: 'InvalidPrivateKeyError',
+      message: message || 'The provided private key is invalid',
+    });
+  }
+}
+
+export class AccountNotFoundError extends KeyringError {
+  constructor(message?: string) {
+    super({
+      name: 'AccountNotFoundError',
+      message: message || 'The provided account was not found',
+    });
+  }
+}
+
+export class ProtocolTransactionError extends KeyringError {
+  constructor(message?: string) {
+    super({
+      name: 'ProtocolTransactionError',
+      message: message || 'The provided transaction failed',
+    });
+  }
+}

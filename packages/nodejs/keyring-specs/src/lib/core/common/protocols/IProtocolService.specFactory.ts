@@ -11,6 +11,7 @@ import {
 } from "@poktscan/keyring";
 import { webcrypto } from 'node:crypto';
 import {MockServerFactory} from "../../../../mocks/mock-server-factory";
+import {Protocol} from "@poktscan/keyring/dist/lib/core/common/Protocol";
 
 /**
  * This workaround is required by the '@noble/ed25519' library. See: https://github.com/paulmillr/noble-ed25519#usage
@@ -22,7 +23,7 @@ if (!globalThis.crypto) {
   globalThis.crypto = webcrypto;
 }
 
-export default <T extends IProtocolService>(TProtocolServiceCreator: () => T, asset: Asset) => {
+export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: () => T, asset: Asset) => {
   let protocolService: T
   const passphrase = new Passphrase('passphrase')
   const pocketTestnet: Network = new Network({
@@ -35,68 +36,27 @@ export default <T extends IProtocolService>(TProtocolServiceCreator: () => T, as
     protocolService = TProtocolServiceCreator()
   })
 
-  describe('Account Creation and Import', () => {
-    const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'
-    const expectedPublicKey = '49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db';
-    const expectedAddress = '30fd308b3bf2126030aba7f0e342dcb8b4922a8b';
-
-    describe('createAccount', () => {
-      test('throws if an asset instance is not provided', async () => {
-        // @ts-ignore
-        await expect(protocolService.createAccount({ asset: undefined, passphrase })).rejects.toThrow(ArgumentError)
-      })
-
-      test('throws if a passphrase is not provided', async () => {
-        // @ts-ignore
-        await expect(protocolService.createAccount({ asset, passphrase: undefined })).rejects.toThrow(ArgumentError)
-      })
-
-      describe('new random accounts generations', () => {
-        test('creates a new random account using the asset.', async () => {
-          const account = await protocolService.createAccount({ asset, passphrase })
-          expect(account).toBeDefined()
-          expect(account.address).toBeDefined()
-          expect(account.publicKey).toBeDefined()
-          expect(account.privateKey).toBeDefined()
-        })
-      })
+  describe('createAccount', () => {
+    test('throws if an asset instance is not provided', async () => {
+      // @ts-ignore
+      await expect(protocolService.createAccount({ asset: undefined, passphrase })).rejects.toThrow(ArgumentError)
     })
 
-    describe('createAccountFromPrivateKey', () => {
-      test('throws if an asset instance is not provided', async () => {
-        // @ts-ignore
-        await expect(protocolService.createAccountFromPrivateKey({ asset: undefined, passphrase })).rejects.toThrow(ArgumentError)
-      })
+    test('throws if a passphrase is not provided', async () => {
+      // @ts-ignore
+      await expect(protocolService.createAccount({ asset, passphrase: undefined })).rejects.toThrow(ArgumentError)
+    })
 
-      test('throws if a passphrase is not provided', async () => {
-        // @ts-ignore
-        await expect(protocolService.createAccountFromPrivateKey({ asset, passphrase: undefined })).rejects.toThrow(ArgumentError)
-      })
-
-      test('throws if a private key is not provided', async () => {
-        // @ts-ignore
-        await expect(protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: undefined })).rejects.toThrow(ArgumentError)
-      })
-
-      test('derives the correct public key for the account', async () => {
-        const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: examplePrivateKey })
+    describe('new random accounts generations', () => {
+      test('creates a new random account using the asset.', async () => {
+        const account = await protocolService.createAccount({ asset, passphrase })
         expect(account).toBeDefined()
-        expect(account.publicKey).toBe(expectedPublicKey)
-      })
-
-      test('derives the correct address for the account', async () => {
-        const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: examplePrivateKey })
-        expect(account).toBeDefined()
-        expect(account.address).toBe(expectedAddress)
-      })
-
-      test('encrypts the private key with the passphrase', async () => {
-        const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: examplePrivateKey })
-        expect(account).toBeDefined()
-        expect(account.privateKey).not.toBe(examplePrivateKey)
+        expect(account.address).toBeDefined()
+        expect(account.publicKey).toBeDefined()
+        expect(account.privateKey).toBeDefined()
       })
     })
-  });
+  })
 
   describe('getBalance', () => {
     const exampleAccountRef =

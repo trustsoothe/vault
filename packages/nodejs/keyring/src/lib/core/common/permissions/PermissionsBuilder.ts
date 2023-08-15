@@ -97,7 +97,7 @@ export class PermissionsBuilder {
   private readonly resources: Resource[] = [];
   private readonly resourceConfig: ResourceConfig = {
     account: ['create', 'read', 'update', 'delete'],
-    transaction: ['sign'],
+    transaction: ['send'],
     session: ['list', 'revoke'],
   }
   constructor(permissions?: Permission[]) {

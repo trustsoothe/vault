@@ -9,14 +9,27 @@ import {
   IEncryptionService,
   IStorage,
   IVaultStore,
-  OriginReference, Passphrase,
+  Network,
+  OriginReference,
+  Passphrase,
   Permission,
   PermissionsBuilder,
+  PocketNetworkProtocol,
+  ProtocolMismatchError,
   SerializedSession,
-  Session, SessionIdRequiredError,
+  Session,
+  SessionIdRequiredError,
   SupportedProtocols,
+  SupportedTransferOrigins,
+  SupportedTransferDestinations,
+  UnspecifiedProtocol,
   VaultRestoreError,
   VaultTeller,
+  InvalidPrivateKeyError,
+  PocketNetworkTransferArguments,
+  AccountNotFoundError,
+  ArgumentError,
+  VaultIsLockedError,
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
 import sinon from 'sinon'
@@ -289,7 +302,7 @@ export default <
     })
   })
 
-  describe('lockVault', function () {
+  describe('lockVault', () => {
     test('changes "isUnlocked" to false (the internal in memory vault is de-assigned)', async () => {
       vaultStore = createVaultStore()
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
@@ -538,7 +551,212 @@ export default <
     })
   })
 
-  describe('Account creation', () => {
+  describe('transactions', () => {
+    describe('transferFunds', () => {
+      test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        await vaultTeller.unlockVault('passphrase')
+        // @ts-ignore
+        const transferFundsOperation = vaultTeller.transferFunds(null, null);
+
+        await expect(transferFundsOperation).rejects.toThrow(SessionIdRequiredError)
+      })
+
+      test('throws "ForbiddenSessionError" if the session id is found in the session store but "transaction:send" is not allowed', async () => {
+        vaultStore = createVaultStore()
+        const externalAccessRequestWithoutDefaults = new ExternalAccessRequest(
+          exampleExternalAccessRequest.permissions as Permission[],
+          exampleExternalAccessRequest.maxAge,
+          exampleExternalAccessRequest.origin,
+          exampleExternalAccessRequest.accounts as AccountReference[],
+          false
+        )
+
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        await vaultTeller.unlockVault('passphrase')
+        const session = await vaultTeller.authorizeExternal(externalAccessRequestWithoutDefaults)
+        // @ts-ignore
+        const transferFundsOperation = vaultTeller.transferFunds(session.id, null)
+
+        await expect(transferFundsOperation).rejects.toThrow(ForbiddenSessionError)
+      })
+
+      test('throws "ProtocolMismatchError" if the network protocol does not match the arguments protocol', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        const session = await vaultTeller.unlockVault('passphrase')
+        const transferFundsOperation = vaultTeller.transferFunds(session.id, {
+          from: {
+            type: SupportedTransferOrigins.RawPrivateKey,
+            value: 'some-amazingly-secret-private-key',
+          },
+          to: {
+            type: SupportedTransferDestinations.RawAddress,
+            value: 'some-address',
+          },
+          amount: 200,
+          network: new Network({
+            name: 'Example POKT Testnet Network',
+            protocol: new PocketNetworkProtocol('testnet'),
+            rpcUrl: 'https://example.com',
+          }),
+          transferArguments: {
+            protocol: new UnspecifiedProtocol('unspecified'),
+          }
+        })
+
+        await expect(transferFundsOperation).rejects.toThrow(ProtocolMismatchError)
+      })
+
+      describe(`when the transfer origin is ${SupportedTransferOrigins.RawPrivateKey}`, () => {
+        test('throws "InvalidPrivateKeyError" if the private key is not a valid (Pocket Network)', async () => {
+          vaultStore = createVaultStore()
+          const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+          await vaultTeller.initializeVault('passphrase')
+          const session = await vaultTeller.unlockVault('passphrase')
+          const transferFundsOperation = vaultTeller.transferFunds(session.id, {
+            from: {
+              type: SupportedTransferOrigins.RawPrivateKey,
+              value: 'some-invalid-private-key',
+            },
+            to: {
+              type: SupportedTransferDestinations.RawAddress,
+              value: 'some-address',
+            },
+            amount: 200,
+            network: new Network({
+              name: 'Example POKT Testnet Network',
+              protocol: new PocketNetworkProtocol('testnet'),
+              rpcUrl: 'https://example.com',
+            }),
+            transferArguments: new PocketNetworkTransferArguments('testnet'),
+          })
+
+          await expect(transferFundsOperation).rejects.toThrow(InvalidPrivateKeyError)
+        })
+      })
+
+      describe('when the transfer origin is a vault account', () => {
+        test('throws "ArgumentError" when the transfer origin value is not a valid id', async () => {
+          vaultStore = createVaultStore()
+          const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+          await vaultTeller.initializeVault('passphrase')
+          const session = await vaultTeller.unlockVault('passphrase')
+          const transferFundsOperation = vaultTeller.transferFunds(session.id, {
+            from: {
+              type: SupportedTransferOrigins.VaultAccountId,
+              value: 'invalid-id', // not a uuid
+            },
+            to: {
+              type: SupportedTransferDestinations.RawAddress,
+              value: 'some-address',
+            },
+            amount: 200,
+            network: new Network({
+              name: 'Example POKT Testnet Network',
+              protocol: new PocketNetworkProtocol('testnet'),
+              rpcUrl: 'https://example.com',
+            }),
+            transferArguments: new PocketNetworkTransferArguments('testnet'),
+          })
+
+          await expect(transferFundsOperation).rejects.toThrow(/^.*from\.value.*$/);
+        })
+
+        test('throws "ArgumentError" when the transfer origin passphrase is not valid', async () => {
+          vaultStore = createVaultStore()
+          const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+          await vaultTeller.initializeVault('passphrase')
+          const session = await vaultTeller.unlockVault('passphrase')
+          const transferFundsOperation = vaultTeller.transferFunds(session.id, {
+            from: {
+              type: SupportedTransferOrigins.VaultAccountId,
+              value: 'a0276a66-8456-4ee5-8c08-35f4c4737353', // Not a real account but a valid id
+              // passphrase is required
+            },
+            to: {
+              type: SupportedTransferDestinations.RawAddress,
+              value: 'some-address',
+            },
+            amount: 200,
+            network: new Network({
+              name: 'Example POKT Testnet Network',
+              protocol: new PocketNetworkProtocol('testnet'),
+              rpcUrl: 'https://example.com',
+            }),
+            transferArguments: new PocketNetworkTransferArguments('testnet'),
+          })
+
+          await expect(transferFundsOperation).rejects.toThrow(/^.*from\.passphrase.*$/);
+        })
+
+        test('throws "AccountNotFoundError" if the account is not found in the vault', async () => {
+          vaultStore = createVaultStore()
+          const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+          await vaultTeller.initializeVault('passphrase')
+          const session = await vaultTeller.unlockVault('passphrase')
+          const transferFundsOperation = vaultTeller.transferFunds(session.id, {
+            from: {
+              type: SupportedTransferOrigins.VaultAccountId,
+              value: 'bc43bf52-673d-4cf9-9ae2-1952e8e05a48',
+              passphrase: 'passphrase',
+            },
+            to: {
+              type: SupportedTransferDestinations.RawAddress,
+              value: 'some-address',
+            },
+            amount: 200,
+            network: new Network({
+              name: 'Example POKT Testnet Network',
+              protocol: new PocketNetworkProtocol('testnet'),
+              rpcUrl: 'https://example.com',
+            }),
+            transferArguments: new PocketNetworkTransferArguments('testnet'),
+          })
+
+          await expect(transferFundsOperation).rejects.toThrow(AccountNotFoundError)
+       })
+
+        test('throws "VaultIsLockedError" if the vault is locked', async () => {
+          vaultStore = createVaultStore()
+          const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+          await vaultTeller.initializeVault('passphrase')
+          const session = await vaultTeller.unlockVault('passphrase')
+          const account = await vaultTeller.createAccount(session.id, new Passphrase('passphrase'), {
+            name: 'example-account',
+            asset: pocketAsset,
+            passphrase: new Passphrase('passphrase'),
+          })
+          vaultTeller.lockVault()
+          const transferFundsOperation = vaultTeller.transferFunds(session.id, {
+            from: {
+              type: SupportedTransferOrigins.VaultAccountId,
+              value: account.id,
+            },
+            to: {
+              type: SupportedTransferDestinations.RawAddress,
+              value: 'some-address',
+            },
+            amount: 200,
+            network: new Network({
+              name: 'Example POKT Testnet Network',
+              protocol: new PocketNetworkProtocol('testnet'),
+              rpcUrl: 'https://example.com',
+            }),
+            transferArguments: new PocketNetworkTransferArguments('testnet'),
+          })
+
+          await expect(transferFundsOperation).rejects.toThrow(VaultIsLockedError)
+        })
+      })
+    })
+  })
+
+  describe('Account creation - Pocket Network', () => {
     const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'
     const expectedAddress = '30fd308b3bf2126030aba7f0e342dcb8b4922a8b';
 

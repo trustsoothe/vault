@@ -3,10 +3,11 @@ import {fromUint8Array} from 'hex-lite';
 import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
-  IProtocolService
+  IProtocolService,
+  TransferFundsOptions,
 } from '../IProtocolService';
 import {Account} from "../../../vault";
-import {utils,  getPublicKeyAsync} from '@noble/ed25519';
+import {utils, getPublicKeyAsync, signAsync} from '@noble/ed25519';
 import {Buffer} from "buffer";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
 import { Network } from '../../../network';
@@ -18,10 +19,15 @@ import {
   PocketRpcFeeParamsResponseSchema,
   PocketRpcFeeParamsResponseValue,
 } from "./schemas";
-import {ArgumentError, NetworkRequestError} from "../../../../errors";
+import {ArgumentError, NetworkRequestError, ProtocolTransactionError} from "../../../../errors";
+import {PocketNetworkProtocol} from "./PocketNetworkProtocol";
+import {PocketNetworkTransferFundsResult} from "./PocketNetworkTransferFundsResult";
+import {CoinDenom, MsgProtoSend, TxEncoderFactory, TxSignature} from "./pocket-js";
+import {PocketNetworkTransferArguments} from "./PocketNetworkTransferArguments";
+import {RawTxRequest} from "@pokt-foundation/pocketjs-types";
 
 
-export class PocketNetworkProtocolService implements IProtocolService {
+export class PocketNetworkProtocolService implements IProtocolService<PocketNetworkProtocol> {
   constructor(private IEncryptionService: IEncryptionService) {
   }
 
@@ -200,6 +206,66 @@ export class PocketNetworkProtocolService implements IProtocolService {
     return feeResponse.param_value.fee_multiplier;
   }
 
+  async transferFunds(network: Network, options: TransferFundsOptions<PocketNetworkProtocol>): Promise<PocketNetworkTransferFundsResult> {
+    const txMsg = new MsgProtoSend(options.from, options.to, (options.amount * 1e6).toString());
+
+    const entropy = Number(
+      BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString()
+    ).toString();
+
+    const transferArguments = options.transferArguments as PocketNetworkTransferArguments;
+
+    const fee = (transferArguments.fee || await this.getFee(network)) * 1e6;
+
+    const signer = TxEncoderFactory.createEncoder(
+      entropy,
+      network.protocol.chainID,
+      txMsg,
+      fee.toString(),
+      CoinDenom.Upokt,
+      transferArguments.memo,
+    );
+
+    const bytesToSign = signer.marshalStdSignDoc();
+
+    const txBytes = await signAsync(bytesToSign.toString('hex'), options.privateKey.slice(0, 64));
+
+    const marshalledTx = new TxSignature(
+      Buffer.from(this.getPublicKeyFromPrivateKey(options.privateKey), 'hex'),
+      Buffer.from(txBytes),
+    )
+
+    const rawHexBytes = signer.marshalStdTx(marshalledTx).toString('hex');
+
+    const rawTx = new RawTxRequest(options.from, rawHexBytes);
+
+    const url = urlJoin(network.rpcUrl, 'v1/client/rawtx');
+
+    const response = await globalThis.fetch(url, {
+      method: 'POST',
+      body: JSON.stringify(rawTx.toJSON()),
+    });
+
+    if (!response.ok) {
+      throw new NetworkRequestError('Failed to send transaction');
+    }
+
+    const responseRawBody = await response.json();
+
+    if (responseRawBody.code !== 1) {
+      throw new ProtocolTransactionError(responseRawBody.raw_log)
+    }
+
+    return {
+      protocol: network.protocol,
+      transactionHash: responseRawBody.txhash,
+    } as PocketNetworkTransferFundsResult;
+  }
+
+  isValidPrivateKey(privateKey: string): boolean {
+    return /^[0-9A-Fa-f]{128}$/.test(privateKey);
+  }
+
   private validateNetwork(network: Network) {
     if (!network || !(network instanceof Network)) {
       throw new ArgumentError('network');
@@ -219,7 +285,6 @@ export class PocketNetworkProtocolService implements IProtocolService {
       })
     });
   }
-
 
   private getPublicKeyFromPrivateKey(privateKey: string): string {
     return privateKey.slice(64, privateKey.length)
@@ -248,5 +313,4 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
     throw new Error('Invalid hex string')
   }
-
 }

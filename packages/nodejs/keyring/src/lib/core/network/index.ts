@@ -42,7 +42,7 @@ export class Network implements IEntity {
   private _updatedAt: number
 
   constructor(options: NetworkOptions, id?: string) {
-    if (id && validate(id) === false) {
+    if (id && !validate(id)) {
       throw new Error('Invalid session id: ' + id)
     }
 
