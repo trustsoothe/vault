@@ -28,8 +28,7 @@ import {
   InvalidPrivateKeyError,
   PocketNetworkTransferArguments,
   AccountNotFoundError,
-  ArgumentError,
-  VaultIsLockedError,
+  VaultIsLockedError, PrivateKeyRestoreError,
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
 import sinon from 'sinon'
@@ -760,6 +759,21 @@ export default <
     const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'
     const expectedAddress = '30fd308b3bf2126030aba7f0e342dcb8b4922a8b';
 
+    async function createVaultAndImportAccountFromPK() {
+      vaultStore = createVaultStore()
+      const passphrase = new Passphrase('passphrase');
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault(passphrase.get())
+      const ownerSession = await vaultTeller.unlockVault(passphrase.get())
+      const account = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
+        name: 'example-account',
+        asset: pocketAsset,
+        passphrase,
+        privateKey: examplePrivateKey,
+      })
+      return {passphrase, vaultTeller, ownerSession, account};
+    }
+
     describe('createAccountFromPrivateKey', () => {
       test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
         vaultStore = createVaultStore()
@@ -814,54 +828,22 @@ export default <
       })
 
       test('creates an account from a private key', async () => {
-        vaultStore = createVaultStore()
-        const passphrase = new Passphrase('passphrase');
-        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
-        await vaultTeller.initializeVault(passphrase.get())
-        const session = await vaultTeller.unlockVault(passphrase.get())
-        const account = await vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
-          name: 'example-account',
-          asset: pocketAsset,
-          passphrase,
-          privateKey: examplePrivateKey,
-        })
-
+        const {account} = await createVaultAndImportAccountFromPK();
         expect(account.name).toEqual('example-account')
         expect(account.protocol).toEqual(pocketAsset.protocol)
         expect(account.address).toEqual(expectedAddress)
       })
 
       test('account is persisted in the vault', async () => {
-        vaultStore = createVaultStore()
-        const passphrase = new Passphrase('passphrase');
-        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
-        await vaultTeller.initializeVault(passphrase.get())
-        const session = await vaultTeller.unlockVault(passphrase.get())
-        const account = await vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
-          name: 'example-account',
-          asset: pocketAsset,
-          passphrase,
-          privateKey: examplePrivateKey,
-        })
-
-        const accounts = await vaultTeller.listAccounts(session.id)
+        const { account,  vaultTeller, ownerSession } = await createVaultAndImportAccountFromPK();
+        const accounts = await vaultTeller.listAccounts(ownerSession.id)
         expect(accounts).toEqual([account])
       })
 
       test('throws "AccountExistsError" if the account already exists in the vault', async () => {
-        vaultStore = createVaultStore()
-        const passphrase = new Passphrase('passphrase');
-        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
-        await vaultTeller.initializeVault(passphrase.get())
-        const session = await vaultTeller.unlockVault(passphrase.get())
-        await vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
-          name: 'example-account',
-          asset: pocketAsset,
-          passphrase,
-          privateKey: examplePrivateKey,
-        })
+        const {vaultTeller, ownerSession, passphrase} = await createVaultAndImportAccountFromPK();
 
-        const createAccountOperation = vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
+        const createAccountOperation = vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
           name: 'example-account',
           asset: pocketAsset,
           passphrase,
@@ -872,19 +854,9 @@ export default <
       })
 
       test('replaces the account if it already exists in the vault and "replace" is set to true', async () => {
-        vaultStore = createVaultStore()
-        const passphrase = new Passphrase('passphrase');
-        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
-        await vaultTeller.initializeVault(passphrase.get())
-        const session = await vaultTeller.unlockVault(passphrase.get())
-        const account = await vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
-          name: 'example-account',
-          asset: pocketAsset,
-          passphrase,
-          privateKey: examplePrivateKey,
-        })
+        const { account,  vaultTeller, ownerSession, passphrase } = await createVaultAndImportAccountFromPK();
 
-        const accountWithSameName = await vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
+        const accountWithSameName = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
           name: 'example-account',
           asset: pocketAsset,
           passphrase,
@@ -1003,6 +975,112 @@ export default <
         expect(account.asset.protocol).toEqual(pocketAsset.protocol)
         expect(account.address).toEqual(expectedAddress)
         expect(account.privateKey).toEqual(examplePrivateKey)
+      })
+    })
+
+    describe('getAccountPrivateKey', () => {
+      test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        // @ts-ignore
+        const getAccountPrivateKeyOperation = vaultTeller.getAccountPrivateKey(null, null, { id: 'fake' }, null)
+
+        await expect(getAccountPrivateKeyOperation).rejects.toThrow(SessionIdRequiredError)
+      })
+
+      test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        const passphrase = new Passphrase('passphrase');
+        await vaultTeller.initializeVault(passphrase.get())
+        const session = await vaultTeller.unlockVault(passphrase.get())
+        // @ts-ignore
+        const getAccountPrivateKeyOperation = vaultTeller.getAccountPrivateKey(session.id, null, { id: 'fake' }, passphrase)
+
+        await expect(getAccountPrivateKeyOperation).rejects.toThrow(VaultRestoreError)
+      })
+
+      test('throws "ForbiddenSessionError" if the session id is found in the session store but "account:read" is not allowed', async () => {
+        vaultStore = createVaultStore()
+        const passphrase = new Passphrase('passphrase');
+        /**
+         * This example has permissions for the example account id, but not for the one created during
+         * this test.
+         */
+        const externalAccessRequestWithoutDefaults = new ExternalAccessRequest(
+          exampleExternalAccessRequest.permissions as Permission[],
+          exampleExternalAccessRequest.maxAge,
+          exampleExternalAccessRequest.origin,
+          exampleExternalAccessRequest.accounts as AccountReference[],
+          false
+        )
+
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault(passphrase.get())
+        const ownerSession = await vaultTeller.unlockVault(passphrase.get())
+
+        const newAccountOptions = {
+          name: 'example-account',
+          asset: pocketAsset,
+          passphrase,
+          privateKey: examplePrivateKey,
+        }
+
+        const account = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, newAccountOptions)
+
+        const notAuthorizedSession = await vaultTeller.authorizeExternal(externalAccessRequestWithoutDefaults)
+
+        // @ts-ignore
+        const getAccountPrivateKeyOperation =
+           vaultTeller.getAccountPrivateKey(notAuthorizedSession.id, passphrase, account, passphrase)
+
+        await expect(getAccountPrivateKeyOperation).rejects.toThrow(ForbiddenSessionError)
+      })
+
+      test('throws "AccountNotFoundError" if the account is not found in the vault', async () => {
+        vaultStore = createVaultStore()
+        const passphrase = new Passphrase('passphrase');
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault(passphrase.get())
+        const session = await vaultTeller.unlockVault(passphrase.get())
+        // @ts-ignore
+        const getAccountPrivateKeyOperation = vaultTeller.getAccountPrivateKey(session.id, passphrase, {
+          id: 'bc43bf52-673d-4cf9-9ae2-1952e8e05a48',
+          name: 'example-account',
+        }, passphrase)
+
+        await expect(getAccountPrivateKeyOperation).rejects.toThrow(AccountNotFoundError)
+      })
+
+      test('throws "VaultIsLockedError" if the vault is locked', async () => {
+        const {passphrase, vaultTeller, ownerSession, account} = await createVaultAndImportAccountFromPK();
+
+        vaultTeller.lockVault()
+
+        // @ts-ignore
+        const getAccountPrivateKeyOperation = vaultTeller.getAccountPrivateKey(ownerSession.id, passphrase, account, passphrase)
+
+        await expect(getAccountPrivateKeyOperation).rejects.toThrow(VaultIsLockedError)
+      })
+
+      test('throws "PrivateKeyRestoreError" if account passphrase is not provided or incorrect', async () => {
+        const {passphrase, vaultTeller, ownerSession, account} = await createVaultAndImportAccountFromPK();
+
+        // @ts-ignore
+        const getAccountPrivateKeyOperationWithNoPassphrase = vaultTeller.getAccountPrivateKey(ownerSession.id, passphrase, account, null)
+        const getAccountPrivateKeyOperationWithWrongPassphrase = vaultTeller.getAccountPrivateKey(ownerSession.id, passphrase, account, new Passphrase('wrong-passphrase'))
+
+        await expect(getAccountPrivateKeyOperationWithNoPassphrase).rejects.toThrow(PrivateKeyRestoreError)
+        await expect(getAccountPrivateKeyOperationWithWrongPassphrase).rejects.toThrow(PrivateKeyRestoreError)
+      })
+
+      test('returns the private key of the account', async () => {
+        const {passphrase, vaultTeller, ownerSession, account} =
+          await createVaultAndImportAccountFromPK();
+
+        const privateKey = await vaultTeller.getAccountPrivateKey(ownerSession.id, passphrase, account, passphrase)
+
+        expect(privateKey).toEqual(examplePrivateKey)
       })
     })
   })

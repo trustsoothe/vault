@@ -147,3 +147,12 @@ export class ProtocolTransactionError extends KeyringError {
     });
   }
 }
+
+export class PrivateKeyRestoreError extends KeyringError {
+  constructor(message?: string) {
+    super({
+      name: 'PrivateKeyRestoreError',
+      message: message || 'Invalid Operation: Private Key can not be restored. Make sure the passphrase is correct.',
+    });
+  }
+}

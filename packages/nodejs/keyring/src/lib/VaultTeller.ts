@@ -13,7 +13,7 @@ import IStorage from "./core/common/storage/IStorage";
 import {
   AccountNotFoundError, ArgumentError,
   ForbiddenSessionError, InvalidPrivateKeyError,
-  InvalidSessionError, ProtocolMismatchError,
+  InvalidSessionError, PrivateKeyRestoreError, ProtocolMismatchError,
   SessionIdRequiredError,
   SessionNotFoundError,
   VaultIsLockedError,
@@ -218,6 +218,26 @@ export class VaultTeller {
       ...options,
       skipEncryption: true,
     });
+  }
+
+  async getAccountPrivateKey(sessionId: string, vaultPassphrase: Passphrase, accountReference: AccountReference, accountPassphrase: Passphrase): Promise<string> {
+    await this.validateSessionForPermissions(sessionId, "account", "read", [accountReference.id]);
+
+    if (!this.isUnlocked) {
+      throw new VaultIsLockedError();
+    }
+
+    const account = await this.getVaultAccountById(accountReference.id, vaultPassphrase);
+
+    if (!account) {
+      throw new AccountNotFoundError();
+    }
+
+    try {
+      return await this.encryptionService.decrypt(accountPassphrase, account.privateKey);
+    } catch {
+      throw new PrivateKeyRestoreError()
+    }
   }
 
   async updateAccountName(sessionId: string, vaultPassphrase: Passphrase, options: AccountUpdateOptions): Promise<AccountReference> {
@@ -492,7 +512,7 @@ export class VaultTeller {
     const account = vault.accounts.find((account) => account.id === accountId);
 
     if (!account) {
-      throw new Error(`Account ${accountId} not found`);
+      throw new AccountNotFoundError();
     }
 
     return account
