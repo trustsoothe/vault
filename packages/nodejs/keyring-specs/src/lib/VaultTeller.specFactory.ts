@@ -985,5 +985,25 @@ export default <
         expect(accounts).toEqual([account])
       });
     })
+
+    describe('deriveAccountFromPrivateKey', () => {
+      test('resolves to an account derived from the private key', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        const passphrase = new Passphrase('passphrase');
+        await vaultTeller.initializeVault(passphrase.get())
+        await vaultTeller.unlockVault(passphrase.get())
+        const account = await vaultTeller.deriveAccountFromPrivateKey({
+          name: 'example-account',
+          asset: pocketAsset,
+          privateKey: examplePrivateKey,
+        })
+
+        expect(account.name).toEqual('example-account')
+        expect(account.asset.protocol).toEqual(pocketAsset.protocol)
+        expect(account.address).toEqual(expectedAddress)
+        expect(account.privateKey).toEqual(examplePrivateKey)
+      })
+    })
   })
 }
