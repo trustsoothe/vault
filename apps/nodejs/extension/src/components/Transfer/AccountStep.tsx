@@ -23,6 +23,10 @@ import { getAllBalances } from "../../redux/slices/vault";
 import { useAppDispatch } from "../../hooks/redux";
 import AmountHelperText from "./AmountHelperText";
 import { isAddress } from "../../utils";
+import {
+  getAddressFromPrivateKey,
+  protocolsAreEquals,
+} from "../../utils/networkOperations";
 
 export const isHex = (str: string) => {
   return str.match(/^[0-9a-fA-F]+$/g);
@@ -202,10 +206,8 @@ const NetworkAutocompleteFC: React.FC<NetworkAutocompleteProps> = ({
       return [];
     }
 
-    return networks.filter(
-      (item) =>
-        item.protocol.name === asset.protocol.name &&
-        item.protocol.chainID === asset.protocol.chainID
+    return networks.filter((item) =>
+      protocolsAreEquals(item.protocol, asset.protocol)
     );
   }, [networks, asset]);
 
@@ -308,11 +310,6 @@ const NetworkAutocompleteFC: React.FC<NetworkAutocompleteProps> = ({
               disabled={disabled}
               error={!!error}
               helperText={error?.message}
-              sx={{
-                "& input": {
-                  fontSize: 14,
-                },
-              }}
             />
           )}
         />
@@ -428,11 +425,27 @@ const AccountStep: React.FC<AccountStepProps> = ({
           size={"small"}
           {...register("from", {
             required: "Required",
-            validate: (value, formValues) => {
+            validate: async (value, formValues) => {
               if (formValues.fromType === "private_key") {
                 // todo: when fromAddress presented, the private key should be the private key of fromAddress wallet
                 if (!isPrivateKey(value)) {
                   return "Invalid Private Key";
+                }
+
+                if (fromAddress) {
+                  const addressOfPrivateKey = await getAddressFromPrivateKey(
+                    value,
+                    formValues.asset.protocol
+                  );
+
+                  if (addressOfPrivateKey !== fromAddress) {
+                    return `Should be the PK of ${fromAddress.substring(
+                      0,
+                      10
+                    )}...${fromAddress.substring(
+                      fromAddress.length - 10
+                    )} wallet`;
+                  }
                 }
               }
               return true;
@@ -549,9 +562,11 @@ const AccountStep: React.FC<AccountStepProps> = ({
               }}
               helperText={
                 fromIsAccountSaved ? (
-                  error?.message || fromBalance === 0 ? (
+                  fromBalance === 0 ? (
                     "This account doesn't have balance."
-                  ) : undefined
+                  ) : (
+                    error?.message
+                  )
                 ) : (
                   <AmountHelperText
                     isLoadingBalance={isLoadingBalance}

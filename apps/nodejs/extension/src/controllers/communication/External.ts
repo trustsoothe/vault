@@ -280,7 +280,7 @@ class ExternalCommunicationController {
         await ExtensionVaultInstance.validateSessionForPermissions(
           sessionId,
           "transaction",
-          "sign"
+          "send"
         );
       } catch (error) {
         return returnExtensionErr(error, TRANSFER_RESPONSE);

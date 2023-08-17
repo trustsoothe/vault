@@ -298,3 +298,51 @@ export const getPrivateKeyFromPPK = (
 
   return privateKey;
 };
+
+const SCRYPT_HASH_LENGTH = 32;
+const SCRYPT_OPTIONS = {
+  N: 32768,
+  r: 8,
+  p: 1,
+  maxmem: 4294967290,
+};
+
+export const getPortableWalletContent = async (
+  privateKey: string,
+  password: string
+): Promise<string> => {
+  const secParam = 12;
+  const algorithm = "aes-256-gcm";
+  const salt = crypto.randomBytes(16);
+
+  const scryptHash = scrypt.syncScrypt(
+    Buffer.from(password, "utf8"),
+    salt,
+    SCRYPT_OPTIONS.N,
+    SCRYPT_OPTIONS.r,
+    SCRYPT_OPTIONS.p,
+    SCRYPT_HASH_LENGTH
+  );
+  // Create the nonce from the first 12 bytes of the sha256 Scrypt hash
+  const scryptHashBuffer = Buffer.from(scryptHash);
+  const iv = Buffer.allocUnsafe(secParam);
+  scryptHashBuffer.copy(iv, 0, 0, secParam);
+  // Generate ciphertext by using the privateKey, nonce and sha256 Scrypt hash
+  const cipher = await crypto.createCipheriv(algorithm, scryptHashBuffer, iv);
+  let cipherText = cipher.update(privateKey, "utf8", "hex");
+  cipherText += cipher.final("hex");
+  // Concatenate the ciphertext final + auth tag
+  cipherText = cipherText + cipher.getAuthTag().toString("hex");
+  // Returns the Armored JSON string
+  return JSON.stringify(
+    {
+      kdf: "scrypt",
+      salt: salt.toString("hex"),
+      secparam: secParam.toString(),
+      hint: "pocket wallet",
+      ciphertext: Buffer.from(cipherText, "hex").toString("base64"),
+    },
+    null,
+    2
+  );
+};

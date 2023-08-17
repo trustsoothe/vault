@@ -1,3 +1,4 @@
+import type { PocketNetworkTransferFundsResult } from "@poktscan/keyring/dist/lib/core/common/protocols/PocketNetwork/PocketNetworkTransferFundsResult";
 import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
 import type {
   AccountUpdateOptions,
@@ -14,7 +15,11 @@ import {
   ExternalAccessRequest,
   Network,
   Passphrase,
+  PocketNetworkTransferArguments,
+  PrivateKeyRestoreError,
   SupportedProtocols,
+  SupportedTransferOrigins,
+  TransferOptions,
   VaultRestoreError,
 } from "@poktscan/keyring";
 import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
@@ -33,6 +38,7 @@ import {
   getAccountBalance as getBalance,
   getBalances,
   getFee,
+  protocolsAreEquals,
 } from "../../utils/networkOperations";
 import { DISCONNECT_RESPONSE } from "../../constants/communication";
 
@@ -156,6 +162,54 @@ export const getProtocolFee = createAsyncThunk<
   } = (context.getState() as RootState).vault;
 
   return getFee(protocol, list, errorsPreferredNetwork);
+});
+
+export type SerializedTransferOptions<T extends Protocol> = Omit<
+  TransferOptions<T>,
+  "from" | "network" | "transferArguments"
+> & {
+  from: Omit<TransferOptions<T>["from"], "asset"> & {
+    asset: SerializedAsset;
+  };
+  network: SerializedNetwork;
+  transferArguments: {
+    chainID: ChainID<SupportedProtocols.Pocket>;
+    memo?: string;
+    fee: number;
+  };
+};
+
+export const sendTransfer = createAsyncThunk<
+  string,
+  SerializedTransferOptions<Protocol>
+>("vault/sendTransfer", async (transferOptions, context) => {
+  const state = context.getState() as RootState;
+  const sessionId = state.vault.vaultSession.id;
+
+  const network = Network.deserialize(transferOptions.network);
+  const asset = Asset.deserialize(transferOptions.from.asset);
+
+  const transferArguments = new PocketNetworkTransferArguments(
+    transferOptions.transferArguments.chainID,
+    transferOptions.transferArguments.memo,
+    transferOptions.transferArguments.fee
+  );
+
+  const options: Omit<TransferOptions<Protocol>, "network"> = {
+    ...transferOptions,
+    from: {
+      ...transferOptions.from,
+      asset,
+    },
+    transferArguments,
+  };
+
+  const result = (await ExtensionVaultInstance.transferFunds(sessionId, {
+    ...options,
+    network,
+  })) as PocketNetworkTransferFundsResult;
+
+  return result.transactionHash;
 });
 
 interface GetAccountBalanceParam {
@@ -484,6 +538,29 @@ export const removeAccount = createAsyncThunk(
   }
 );
 
+export interface GetPrivateKeyParam {
+  account: SerializedAccountReference;
+  vaultPassword: string;
+  accountPassword: string;
+}
+
+export const getPrivateKeyOfAccount = createAsyncThunk<
+  string,
+  GetPrivateKeyParam
+>("vault/getPrivateKeyOfAccount", async (arg, context) => {
+  const state = context.getState() as RootState;
+  const sessionId = state.vault.vaultSession.id;
+
+  const accountPassphrase = new Passphrase(arg.accountPassword);
+  const vaultPassphrase = new Passphrase(arg.vaultPassword);
+  return await ExtensionVaultInstance.getAccountPrivateKey(
+    sessionId,
+    vaultPassphrase,
+    AccountReference.deserialize(arg.account),
+    accountPassphrase
+  );
+});
+
 export const initVault = createAsyncThunk<
   void,
   { password: string; remember: boolean }
@@ -624,8 +701,11 @@ const increaseWrongPasswordCounter = (
   state: VaultSlice,
   error: SerializedError
 ) => {
-  if (error.name === VaultRestoreError.name) {
-    const currentCounter = state.wrongPasswordCounter[VAULT_PASSWORD_ID];
+  if (
+    error.name === VaultRestoreError.name ||
+    error.name === PrivateKeyRestoreError.name
+  ) {
+    const currentCounter = state.wrongPasswordCounter[id];
 
     if (currentCounter === MAX_PASSWORDS_TRIES) {
       ExtensionVaultInstance.lockVault();
@@ -638,7 +718,7 @@ const increaseWrongPasswordCounter = (
       return;
     }
 
-    state.wrongPasswordCounter[VAULT_PASSWORD_ID] =
+    state.wrongPasswordCounter[id] =
       typeof currentCounter === "number" ? currentCounter + 1 : 1;
   }
 };
@@ -893,6 +973,13 @@ const vaultSlice = createSlice({
 
       if (!action.meta.arg.replace) {
         state.entities.accounts.list.push(accountReference);
+      } else {
+        state.entities.accounts.list = state.entities.accounts.list.map((a) =>
+          a.address === accountReference.address &&
+          protocolsAreEquals(a.protocol, accountReference.protocol)
+            ? accountReference
+            : a
+        );
       }
 
       resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
@@ -994,6 +1081,41 @@ const vaultSlice = createSlice({
             state.errorsPreferredNetwork[name][chainID][networkId] = 1;
           }
         }
+      }
+    });
+
+    //private key
+    builder.addCase(getPrivateKeyOfAccount.fulfilled, (state, action) => {
+      resetWrongPasswordCounter(action.meta.arg.account.id, state);
+      resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+    });
+    builder.addCase(getPrivateKeyOfAccount.rejected, (state, action) => {
+      increaseWrongPasswordCounter(
+        action.meta.arg.account.id,
+        state,
+        action.error
+      );
+      increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
+    });
+
+    // transfer
+    builder.addCase(sendTransfer.fulfilled, (state, action) => {
+      if (
+        action.meta.arg.from.type === SupportedTransferOrigins.VaultAccountId
+      ) {
+        resetWrongPasswordCounter(action.meta.arg.from.value, state);
+      }
+    });
+
+    builder.addCase(sendTransfer.rejected, (state, action) => {
+      if (
+        action.meta.arg.from.type === SupportedTransferOrigins.VaultAccountId
+      ) {
+        increaseWrongPasswordCounter(
+          action.meta.arg.from.value,
+          state,
+          action.error
+        );
       }
     });
   },

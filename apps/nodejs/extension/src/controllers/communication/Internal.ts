@@ -1,3 +1,4 @@
+import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import type {
   ExternalConnectionRequest,
   ExternalNewAccountRequest,
@@ -13,6 +14,7 @@ import {
   OriginReference,
   PermissionResources,
   PermissionsBuilder,
+  PrivateKeyRestoreError,
   SerializedAccountReference,
   SerializedAsset,
   VaultRestoreError,
@@ -34,6 +36,8 @@ import {
   LOCK_VAULT_REQUEST,
   LOCK_VAULT_RESPONSE,
   NEW_ACCOUNT_RESPONSE,
+  PK_ACCOUNT_REQUEST,
+  PK_ACCOUNT_RESPONSE,
   REMOVE_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_RESPONSE,
   REVOKE_SESSION_REQUEST,
@@ -53,12 +57,15 @@ import {
 import {
   addNewAccount,
   authorizeExternalSession,
+  getPrivateKeyOfAccount,
   importAccount,
   ImportAccountParam,
   initVault,
   lockVault,
   removeAccount,
   revokeSession,
+  sendTransfer,
+  SerializedTransferOptions,
   unlockVault,
   updateAccount,
 } from "../../redux/slices/vault";
@@ -118,18 +125,7 @@ export interface AnswerTransferRequest {
   type: typeof ANSWER_TRANSFER_REQUEST;
   data: {
     rejected?: boolean;
-    vaultPassword?: string;
-    transferData: {
-      from:
-        | string
-        | {
-            address: string;
-            password: string;
-          };
-      asset: SerializedAsset;
-      amount: string;
-      toAddress: string;
-    } | null;
+    transferData: SerializedTransferOptions<Protocol> | null;
     request?: ExternalTransferRequest | null;
   };
 }
@@ -240,6 +236,26 @@ export interface ImportAccountResponse {
   error: UnknownErrorType | null;
 }
 
+export interface PrivateKeyAccountMessage {
+  type: typeof PK_ACCOUNT_REQUEST;
+  data: {
+    account: SerializedAccountReference;
+    vaultPassword: string;
+    accountPassword: string;
+  };
+}
+
+export interface PrivateKeyAccountResponse {
+  type: typeof PK_ACCOUNT_RESPONSE;
+  data: {
+    answered: true;
+    privateKey: string | null;
+    isAccountPasswordWrong?: boolean;
+    isVaultPasswordWrong?: boolean;
+  } | null;
+  error: UnknownErrorType | null;
+}
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
@@ -250,7 +266,8 @@ export type Message =
   | RevokeSessionMessage
   | UpdateAccountMessage
   | RemoveAccountMessage
-  | ImportAccountMessage;
+  | ImportAccountMessage
+  | PrivateKeyAccountMessage;
 
 // Controller to manage the communication between extension views and the background
 class InternalCommunicationController {
@@ -350,6 +367,10 @@ class InternalCommunicationController {
 
     if (message?.type === IMPORT_ACCOUNT_REQUEST) {
       return this._handleImportAccount(message);
+    }
+
+    if (message?.type === PK_ACCOUNT_REQUEST) {
+      return this._getPrivateKeyOfAccount(message);
     }
   }
 
@@ -500,7 +521,7 @@ class InternalCommunicationController {
         if (canSuggestTransfers) {
           permissionBuilder
             .forResource(PermissionResources.transaction)
-            .allow("sign")
+            .allow("send")
             .onAny();
         }
 
@@ -700,8 +721,7 @@ class InternalCommunicationController {
     message: AnswerTransferRequest
   ): Promise<AnswerTransferResponse> {
     try {
-      const { rejected, request, transferData, vaultPassword } =
-        message?.data || {};
+      const { rejected, request, transferData } = message?.data || {};
 
       let hash: string | null = null;
       let response: InternalTransferResponse;
@@ -726,9 +746,7 @@ class InternalCommunicationController {
           ),
         ]);
       } else if (!rejected) {
-        // todo: add send transfer code returning the hash
-        hash =
-          "CC9B7E13113EADE99C40B28B28BD84FE1F5B11BAB4F93E1B485CC1E351EE3543";
+        hash = await store.dispatch(sendTransfer(transferData)).unwrap();
 
         if (request) {
           response = {
@@ -736,7 +754,7 @@ class InternalCommunicationController {
             data: {
               rejected: false,
               hash,
-              protocol: transferData.asset.protocol,
+              protocol: transferData.from.asset.protocol,
             },
             error: null,
           };
@@ -765,7 +783,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === VaultRestoreError.name) {
+      if (error?.name === PrivateKeyRestoreError.name) {
         return {
           type: ANSWER_TRANSFER_RESPONSE,
           data: {
@@ -843,7 +861,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === "VaultRestoreError") {
+      if (error?.name === VaultRestoreError.name) {
         return {
           type: REMOVE_ACCOUNT_RESPONSE,
           data: {
@@ -878,7 +896,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === "VaultRestoreError") {
+      if (error?.name === VaultRestoreError.name) {
         return {
           type: IMPORT_ACCOUNT_RESPONSE,
           data: {
@@ -903,6 +921,54 @@ class InternalCommunicationController {
       }
       return {
         type: IMPORT_ACCOUNT_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _getPrivateKeyOfAccount({
+    data,
+  }: PrivateKeyAccountMessage): Promise<PrivateKeyAccountResponse> {
+    try {
+      const privateKey = await store
+        .dispatch(getPrivateKeyOfAccount(data))
+        .unwrap();
+
+      return {
+        type: PK_ACCOUNT_RESPONSE,
+        data: {
+          privateKey,
+          answered: true,
+        },
+        error: null,
+      };
+    } catch (error) {
+      if (error?.name === VaultRestoreError.name) {
+        return {
+          type: PK_ACCOUNT_RESPONSE,
+          data: {
+            answered: true,
+            isVaultPasswordWrong: true,
+            privateKey: null,
+          },
+          error: null,
+        };
+      }
+
+      if (error?.name === PrivateKeyRestoreError.name) {
+        return {
+          type: PK_ACCOUNT_RESPONSE,
+          data: {
+            answered: true,
+            isAccountPasswordWrong: true,
+            privateKey: null,
+          },
+          error: null,
+        };
+      }
+      return {
+        type: PK_ACCOUNT_RESPONSE,
         data: null,
         error: UnknownError,
       };

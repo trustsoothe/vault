@@ -2,6 +2,7 @@ import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Stack, { type StackProps } from "@mui/material/Stack";
+import { saveAs } from "file-saver";
 import { connect } from "react-redux";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
@@ -10,6 +11,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import CopyIcon from "@mui/icons-material/ContentCopy";
+import { FormProvider, useForm } from "react-hook-form";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -27,6 +29,9 @@ import {
   TRANSFER_PAGE,
   UPDATE_ACCOUNT_PAGE,
 } from "../../constants/routes";
+import Password from "../common/Password";
+import AppToBackground from "../../controllers/communication/AppToBackground";
+import { getPortableWalletContent } from "../../utils/networkOperations";
 
 interface AccountDetailProps {
   accounts: RootState["vault"]["entities"]["accounts"]["list"];
@@ -184,55 +189,91 @@ export const DetailComponent: React.FC<DetailComponentProps> = ({
   );
 };
 
-const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [account, setAccount] = useState<SerializedAccountReference>(null);
+interface AccountPrivateKeyProps {
+  account: SerializedAccountReference;
+}
 
-  useEffect(() => {
-    const id = searchParams.get("id");
-    const accountFromStore = accounts.find((item) => item.id === id);
-    if (accountFromStore && account?.id !== id) {
-      setAccount(accountFromStore);
-      return;
-    }
+interface PrivateKeyFormValues {
+  account_password: string;
+  vault_password: string;
+}
 
-    if (!accountFromStore) {
-      navigate(ACCOUNTS_PAGE);
-    }
-  }, [searchParams, accounts]);
+const AccountPrivateKey: React.FC<AccountPrivateKeyProps> = ({ account }) => {
+  const methods = useForm<PrivateKeyFormValues>({
+    defaultValues: {
+      account_password: "",
+      vault_password: "",
+    },
+  });
+  const { watch, handleSubmit, reset } = methods;
 
   const [showCopyKeyTooltip, setShowCopyKeyTooltip] = useState(false);
-  const [accountPassphrase, setAccountPassphrase] = useState("");
-  const [wrongPassphrase, setWrongPassphrase] = useState(false);
+  const [wrongAccountPassphrase, setWrongAccountPassphrase] = useState(false);
+  const [wrongVaultPassphrase, setWrongVaultPassphrase] = useState(false);
   const [loadingPrivateKey, setLoadingPrivateKey] = useState(false);
   const [privateKey, setPrivateKey] = useState<string>(null);
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [errorPrivateKey, setErrorPrivateKey] = useState(false);
 
-  const onUpdateAccountName = useCallback(() => {
-    navigate(`${UPDATE_ACCOUNT_PAGE}?id=${account.id}`);
-  }, [account]);
+  const [accountPassword, vaultPassword] = watch([
+    "account_password",
+    "vault_password",
+  ]);
 
-  const onClickTransfer = useCallback(() => {
-    if (account?.address) {
-      navigate(
-        `${TRANSFER_PAGE}?fromAddress=${account.address}&protocol=${account.protocol.name}&chainID=${account.protocol.chainID}`
-      );
+  useEffect(() => {
+    if (wrongAccountPassphrase) {
+      setWrongAccountPassphrase(false);
     }
-  }, [navigate, account?.address]);
+  }, [accountPassword]);
 
-  const onClickRemoveAccount = useCallback(() => {
-    if (account?.id) {
-      navigate(`${REMOVE_ACCOUNT_PAGE}?id=${account.id}`);
+  useEffect(() => {
+    if (wrongVaultPassphrase) {
+      setWrongVaultPassphrase(false);
     }
-  }, [navigate, account?.id]);
+  }, [vaultPassword]);
 
-  const onClickReimport = useCallback(() => {
-    if (account?.id) {
-      navigate(`${IMPORT_ACCOUNT_PAGE}?reimport=${account.id}`);
+  const loadPrivateKey = useCallback(
+    (data: PrivateKeyFormValues) => {
+      const { account_password, vault_password } = data;
+      setLoadingPrivateKey(true);
+
+      AppToBackground.getAccountPrivateKey({
+        account,
+        accountPassword: account_password,
+        vaultPassword: vault_password,
+      }).then((response) => {
+        if (response.error) {
+          setErrorPrivateKey(true);
+        } else {
+          const data = response.data;
+          if (data.isAccountPasswordWrong) {
+            setWrongAccountPassphrase(true);
+          } else if (data.isVaultPasswordWrong) {
+            setWrongVaultPassphrase(true);
+          } else if (data.privateKey) {
+            setPrivateKey(data.privateKey);
+          }
+        }
+        setLoadingPrivateKey(false);
+      });
+    },
+    [account]
+  );
+
+  const exportPortableWallet = useCallback(() => {
+    if (privateKey && accountPassword) {
+      getPortableWalletContent(privateKey, accountPassword)
+        .then((json) => {
+          const blob = new Blob([json], {
+            type: "application/json",
+          });
+          saveAs(blob, "workspace.json");
+        })
+        .catch((e) => {
+          console.log(e);
+        });
     }
-  }, [account?.id, navigate]);
+  }, [privateKey, accountPassword]);
 
   const handleCopyPrivateKey = useCallback(() => {
     if (privateKey) {
@@ -243,36 +284,6 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
     }
   }, [privateKey]);
 
-  const handleChangeAccountPassphrase = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setAccountPassphrase(e.target.value);
-      if (wrongPassphrase) {
-        setWrongPassphrase(false);
-      }
-    },
-    [wrongPassphrase]
-  );
-
-  const loadPrivateKey = useCallback(() => {
-    if (accountPassphrase) {
-      setLoadingPrivateKey(true);
-      setTimeout(() => {
-        if (accountPassphrase.length < 3) {
-          setErrorPrivateKey(true);
-        } else if (accountPassphrase.length < 4) {
-          setWrongPassphrase(true);
-        } else {
-          //todo: replace with functionality to get private key
-          setPrivateKey(
-            "41885f998ba8d931817559447e7c20f144890d635f445fe59859395bac8c2d8341885f998ba8d931817559447e7c20f144890d635f445fe59859395b"
-          );
-        }
-
-        setLoadingPrivateKey(false);
-      }, 500);
-    }
-  }, [accountPassphrase]);
-
   const toggleShowPrivateKey = useCallback(() => {
     setShowPrivateKey((prevState) => !prevState);
   }, []);
@@ -282,11 +293,18 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
     setPrivateKey(null);
     setErrorPrivateKey(null);
     setShowPrivateKey(null);
-    setWrongPassphrase(false);
-    setAccountPassphrase("");
-  }, []);
+    setWrongVaultPassphrase(false);
+    setWrongAccountPassphrase(false);
+    reset(
+      {
+        account_password: "",
+        vault_password: "",
+      },
+      { keepErrors: false }
+    );
+  }, [reset]);
 
-  const privateKeyComponent = useMemo(() => {
+  const content = useMemo(() => {
     if (loadingPrivateKey) {
       return (
         <Stack height={110} alignItems={"center"} justifyContent={"center"}>
@@ -305,7 +323,6 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
           }}
           text={"There was an error loading the private key."}
           onCancel={onCancelErrPrivateKey}
-          onRetry={loadPrivateKey}
         />
       );
     }
@@ -321,7 +338,23 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
             paddingRight={"5px"}
             maxHeight={110}
             boxSizing={"border-box"}
+            position={"relative"}
           >
+            <Typography
+              sx={{
+                fontSize: 14,
+                transform: "scale(0.75)",
+                color: "rgba(0, 0, 0, 0.6)",
+                position: "absolute",
+                left: -1,
+                top: -12,
+                zIndex: 2,
+                backgroundColor: "white",
+                paddingX: "7px",
+              }}
+            >
+              Private Key
+            </Typography>
             <Stack direction={"row"} width={1}>
               <Typography
                 fontSize={14}
@@ -356,11 +389,14 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
               </Stack>
             </Stack>
           </Stack>
+
+          <TextField label={"Portable Wallet password"} />
           <Button
-            sx={{ textTransform: "none", fontWeight: 600, mt: "20px" }}
+            sx={{ textTransform: "none", fontWeight: 600 }}
             fullWidth
             variant={"contained"}
             disabled={!privateKey}
+            onClick={exportPortableWallet}
           >
             Export Portable Wallet
           </Button>
@@ -370,22 +406,29 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
 
     return (
       <>
-        <TextField
-          fullWidth
-          size={"small"}
-          type={"password"}
-          error={wrongPassphrase}
-          value={accountPassphrase}
-          label={"Account Passphrase"}
-          onChange={handleChangeAccountPassphrase}
-          helperText={wrongPassphrase ? "Wrong Passphrase" : undefined}
-        />
+        <FormProvider {...methods}>
+          <Password
+            passwordName={"account_password"}
+            confirmPasswordName={"vault_password"}
+            labelPassword={"Account Password"}
+            labelConfirm={"Vault Password"}
+            canGenerateRandom={false}
+            hidePasswordStrong={true}
+            passwordAndConfirmEquals={false}
+            justRequire={true}
+            errorPassword={
+              wrongAccountPassphrase ? "Wrong Password" : undefined
+            }
+            errorConfirm={wrongVaultPassphrase ? "Wrong Password" : undefined}
+            containerProps={{ spacing: 0.5 }}
+            inputsContainerProps={{ spacing: 2 }}
+          />
+        </FormProvider>
         <Button
-          sx={{ textTransform: "none", fontWeight: 600, mt: "20px" }}
+          sx={{ fontWeight: 600, mt: "20px" }}
           fullWidth
           variant={"contained"}
-          onClick={loadPrivateKey}
-          disabled={!accountPassphrase}
+          type={"submit"}
         >
           Load Private Key
         </Button>
@@ -399,12 +442,64 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
     privateKey,
     loadPrivateKey,
     showPrivateKey,
-    wrongPassphrase,
-    accountPassphrase,
-    handleChangeAccountPassphrase,
     handleCopyPrivateKey,
     showCopyKeyTooltip,
   ]);
+
+  return (
+    <Stack
+      onSubmit={handleSubmit(loadPrivateKey)}
+      component={"form"}
+      width={360}
+      spacing={2}
+      mt={"40px!important"}
+    >
+      {content}
+    </Stack>
+  );
+};
+
+const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [account, setAccount] = useState<SerializedAccountReference>(null);
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    const accountFromStore = accounts.find((item) => item.id === id);
+    if (accountFromStore && account?.id !== id) {
+      setAccount(accountFromStore);
+      return;
+    }
+
+    if (!accountFromStore) {
+      navigate(ACCOUNTS_PAGE);
+    }
+  }, [searchParams, accounts]);
+
+  const onUpdateAccountName = useCallback(() => {
+    navigate(`${UPDATE_ACCOUNT_PAGE}?id=${account.id}`);
+  }, [account]);
+
+  const onClickTransfer = useCallback(() => {
+    if (account?.address) {
+      navigate(
+        `${TRANSFER_PAGE}?fromAddress=${account.address}&protocol=${account.protocol.name}&chainID=${account.protocol.chainID}`
+      );
+    }
+  }, [navigate, account?.address]);
+
+  const onClickRemoveAccount = useCallback(() => {
+    if (account?.id) {
+      navigate(`${REMOVE_ACCOUNT_PAGE}?id=${account.id}`);
+    }
+  }, [navigate, account?.id]);
+
+  const onClickReimport = useCallback(() => {
+    if (account?.id) {
+      navigate(`${IMPORT_ACCOUNT_PAGE}?reimport=${account.id}`);
+    }
+  }, [account?.id, navigate]);
 
   const explorerLink = useMemo(() => {
     if (account) {
@@ -423,11 +518,10 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
       <DetailComponent
         account={account}
         onUpdate={onUpdateAccountName}
-        containerProps={{ mt: 5 }}
+        containerProps={{ mt: 3 }}
       />
       <Stack
         mt={"5px"}
-        mb={!explorerLink ? "50px" : 0}
         direction={"row"}
         alignItems={"center"}
         justifyContent={"center"}
@@ -453,7 +547,6 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
           color={"#1976d2"}
           spacing={0.5}
           href={explorerLink}
-          mb={5}
           target={"_blank"}
         >
           <Typography fontSize={12} textAlign={"center"} color={"#1976d2"}>
@@ -463,7 +556,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ accounts }) => {
         </Stack>
       )}
 
-      {privateKeyComponent}
+      {account && <AccountPrivateKey account={account} />}
     </Stack>
   );
 };

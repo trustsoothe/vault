@@ -1,3 +1,4 @@
+import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
 import type {
   SerializedAccountReference,
   SerializedAsset,
@@ -17,14 +18,23 @@ import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import { useForm, FormProvider } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
+import {
+  SupportedProtocols,
+  SupportedTransferDestinations,
+  SupportedTransferOrigins,
+} from "@poktscan/keyring";
 import RequestFrom from "../common/RequestFrom";
 import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import AccountStep from "./AccountStep";
 import OperationFailed from "../common/OperationFailed";
 import { getAssetByProtocol, isAddress, isPrivateKey } from "../../utils";
-import { isTransferHealthyForNetwork } from "../../utils/networkOperations";
+import {
+  getAddressFromPrivateKey,
+  isTransferHealthyForNetwork,
+  protocolsAreEquals,
+} from "../../utils/networkOperations";
 import { useAppDispatch } from "../../hooks/redux";
 import { getAccountBalance, getProtocolFee } from "../../redux/slices/vault";
 import SummaryStep from "./Summary/Step";
@@ -166,15 +176,17 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
 
   useEffect(() => {
     if (asset) {
+      const preferred = networks.find(
+        (item) =>
+          protocolsAreEquals(item.protocol, asset.protocol) && item.isPreferred
+      );
       const networkToSelect = networks.find(
         (item) =>
-          item.protocol.chainID === asset.protocol.chainID &&
-          item.protocol.name === asset.protocol.name &&
-          item.isDefault
+          protocolsAreEquals(item.protocol, asset.protocol) && item.isDefault
       );
 
       if (networkToSelect) {
-        setValue("network", networkToSelect);
+        setValue("network", preferred || networkToSelect);
       }
     }
   }, [asset, networks]);
@@ -183,10 +195,15 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
   const [fromBalance, setFromBalance] = useState<number>(null);
   const [errorBalance, setErrorBalance] = useState(false);
 
-  const getFromBalance = useCallback(() => {
+  const getFromBalance = useCallback(async () => {
     if (from && asset && (isAddress(from) || isPrivateKey(from))) {
       setIsLoadingBalance(true);
-      const address = fromType === "saved_account" ? from : from.slice(0, 40);
+      let address: string;
+      if (isPrivateKey(from)) {
+        address = await getAddressFromPrivateKey(from, asset.protocol);
+      } else {
+        address = from;
+      }
       dispatch(getAccountBalance({ address, protocol: asset.protocol }))
         .unwrap()
         .then((result) => {
@@ -307,19 +324,36 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       // todo: remove when transfer is integrated
       await new Promise((resolve) => setTimeout(resolve, 500));
 
+      const accountId = accounts.find(
+        (item) =>
+          item.address === data.from &&
+          protocolsAreEquals(item.protocol, data.asset.protocol)
+      )?.id;
+
       const response = await AppToBackground.sendRequestToAnswerTransfer({
         rejected: false,
         transferData: {
-          asset: data.asset,
-          amount: data.amount,
-          toAddress: data.toAddress,
-          from:
-            data.fromType === "saved_account"
-              ? {
-                  address: data.from,
-                  password: data.accountPassword,
-                }
-              : data.from,
+          amount: Number(data.amount),
+          from: {
+            type:
+              data.fromType === "private_key"
+                ? SupportedTransferOrigins.RawPrivateKey
+                : SupportedTransferOrigins.VaultAccountId,
+            passphrase: data.accountPassword,
+            asset: data.asset,
+            value: data.fromType === "private_key" ? data.from : accountId,
+          },
+          network: data.network,
+          to: {
+            type: SupportedTransferDestinations.RawAddress,
+            value: data.toAddress,
+          },
+          transferArguments: {
+            chainID: data.asset.protocol
+              .chainID as ChainID<SupportedProtocols.Pocket>,
+            memo: data.memo,
+            fee: Number(data.fee),
+          },
         },
         request: requesterInfo,
       });
@@ -327,10 +361,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       if (response.error) {
         setStatus("error");
       } else {
-        if (
-          response?.data?.isPasswordWrong ||
-          data.accountPassword.length < 4
-        ) {
+        if (response?.data?.isPasswordWrong) {
           setWrongPassword(true);
           setStatus("summary");
         } else {
@@ -351,6 +382,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       errorBalance,
       isLoadingFee,
       isLoadingBalance,
+      accounts,
     ]
   );
 

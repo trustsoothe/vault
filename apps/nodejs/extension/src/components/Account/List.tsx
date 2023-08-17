@@ -123,7 +123,11 @@ const AccountList: React.FC<AccountListProps> = ({
   }, [accounts, balanceByIdMap]);
 
   const searchedAccounts: AccountWithBalance[] = useMemo(() => {
-    return filterAccounts(debouncedSearchText, accountsWithBalance);
+    const filteredAccounts = filterAccounts(
+      debouncedSearchText,
+      accountsWithBalance
+    ) as AccountWithBalance[];
+    return filteredAccounts.sort((a, b) => b.balance - a.balance);
   }, [accountsWithBalance, debouncedSearchText]);
 
   const accountListComponent = useMemo(() => {

@@ -398,17 +398,30 @@ export class VaultTeller {
       throw new AccountNotFoundError();
     }
 
-    const privateKey = await this.encryptionService.decrypt(new Passphrase(options.from.passphrase), account.privateKey);
+    let privateKey: string;
 
-    const protocolService=
-      ProtocolServiceFactory.getProtocolService(options.transferArguments.protocol, this.encryptionService);
+    try {
+      privateKey = await this.encryptionService.decrypt(
+        new Passphrase(options.from.passphrase),
+        account.privateKey
+      );
+    } catch (e) {
+      throw new PrivateKeyRestoreError();
+    }
 
-    const transferResult = await protocolService.transferFunds(options.network, {
-      from: account.address,
-      to: options.to.value,
-      amount: options.amount,
-      privateKey,
-      /*
+    const protocolService = ProtocolServiceFactory.getProtocolService(
+      options.transferArguments.protocol,
+      this.encryptionService
+    );
+
+    const transferResult = await protocolService.transferFunds(
+      options.network,
+      {
+        from: account.address,
+        to: options.to.value,
+        amount: options.amount,
+        privateKey,
+        /*
         TODO: correct the transfer arguments type
        */
       // @ts-ignore

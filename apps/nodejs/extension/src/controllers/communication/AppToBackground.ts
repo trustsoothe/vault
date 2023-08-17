@@ -11,6 +11,8 @@ import type {
   InitializeVaultResponse,
   LockVaultMessage,
   LockVaultResponse,
+  PrivateKeyAccountMessage,
+  PrivateKeyAccountResponse,
   RemoveAccountMessage,
   RemoveAccountResponse,
   RevokeSessionMessage,
@@ -28,6 +30,7 @@ import {
   IMPORT_ACCOUNT_REQUEST,
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
+  PK_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_REQUEST,
   REVOKE_SESSION_REQUEST,
   UNLOCK_VAULT_REQUEST,
@@ -80,6 +83,17 @@ export default class AppToBackground {
       type: REMOVE_ACCOUNT_REQUEST,
       data,
     };
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async getAccountPrivateKey(
+    data: PrivateKeyAccountMessage["data"]
+  ): Promise<PrivateKeyAccountResponse> {
+    const message: PrivateKeyAccountMessage = {
+      type: PK_ACCOUNT_REQUEST,
+      data,
+    };
+
     return browser.runtime.sendMessage(message);
   }
 
