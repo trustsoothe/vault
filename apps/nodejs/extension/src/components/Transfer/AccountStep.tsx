@@ -536,7 +536,7 @@ const AccountStep: React.FC<AccountStepProps> = ({
                 endAdornment: fromIsAccountSaved ? (
                   <Button
                     onClick={onClickAll}
-                    disabled={!!request?.amount}
+                    disabled={!!request?.amount || !fromBalance}
                     sx={{
                       minWidth: 45,
                       height: 30,
@@ -549,7 +549,9 @@ const AccountStep: React.FC<AccountStepProps> = ({
               }}
               helperText={
                 fromIsAccountSaved ? (
-                  error?.message
+                  error?.message || fromBalance === 0 ? (
+                    "This account doesn't have balance."
+                  ) : undefined
                 ) : (
                   <AmountHelperText
                     isLoadingBalance={isLoadingBalance}

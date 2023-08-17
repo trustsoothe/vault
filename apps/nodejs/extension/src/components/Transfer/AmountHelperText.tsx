@@ -34,11 +34,7 @@ const AmountHelperText: React.FC<AmountHelperTextProps> = ({
   hideFee = false,
 }) => {
   const content = useMemo(() => {
-    if (
-      typeof accountBalance === "number" &&
-      accountBalance === 0 &&
-      !errorBalance
-    ) {
+    if (accountBalance === 0 && !errorBalance) {
       return (
         <Typography fontSize={12}>
           This account doesn't have balance.
