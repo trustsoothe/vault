@@ -418,7 +418,7 @@ export class VaultTeller {
     const transferResult = await protocolService.transferFunds(options.network, {
       from: account.address,
       to: options.to.value,
-      amount: options.amount * 1e6,
+      amount: options.amount,
       privateKey: account.privateKey,
       /*
         TODO: correct the transfer arguments type
