@@ -11,8 +11,9 @@ import { SerializedSession, Session, SessionOptions } from "./core/session";
 import {Permission, PermissionsBuilder} from "./core/common/permissions";
 import IStorage from "./core/common/storage/IStorage";
 import {
-  ForbiddenSessionError,
-  InvalidSessionError,
+  AccountNotFoundError, ArgumentError,
+  ForbiddenSessionError, InvalidPrivateKeyError,
+  InvalidSessionError, PrivateKeyRestoreError, ProtocolMismatchError,
   SessionIdRequiredError,
   SessionNotFoundError,
   VaultIsLockedError,
@@ -20,10 +21,33 @@ import {
 } from "./errors";
 import {
   CreateAccountFromPrivateKeyOptions,
-  CreateAccountOptions,
-  ProtocolServiceFactory
+  CreateAccountOptions, ITransferFundsResult,
+  ProtocolServiceFactory,
 } from "./core/common/protocols";
-import {v4} from "uuid";
+import {v4, validate} from "uuid";
+import {SupportedTransferOrigins} from "./core/common/values";
+import {SupportedTransferDestinations} from "./core/common/values";
+import {Network} from "./core/network";
+import {IProtocolTransferArguments} from "./core/common/IProtocolTransferArguments";
+import {Protocol} from "./core/common/Protocol";
+import {Asset} from "./core/asset";
+
+export interface TransferOptions<T extends Protocol> {
+  from: {
+    type: SupportedTransferOrigins;
+    passphrase?: string;
+    asset?: Asset;
+    value: string;
+  },
+  to: {
+    type: SupportedTransferDestinations;
+    value: string;
+  },
+  amount: number;
+  network: Network;
+  transferArguments: IProtocolTransferArguments<T>;
+}
+
 
 export class VaultTeller {
   private _isUnlocked = false;
@@ -32,7 +56,7 @@ export class VaultTeller {
   constructor(
     private readonly vaultStore: IVaultStore,
     private readonly sessionStore: IStorage<SerializedSession>,
-    private readonly encryptionService: IEncryptionService
+    private readonly encryptionService: IEncryptionService,
   ) {}
 
   async unlockVault(passphrase: string): Promise<Session> {
@@ -186,6 +210,36 @@ export class VaultTeller {
     return account.asAccountReference();
   }
 
+  async deriveAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
+    const protocolService=
+      ProtocolServiceFactory.getProtocolService(options.asset.protocol, this.encryptionService);
+
+    return await protocolService.createAccountFromPrivateKey({
+      ...options,
+      skipEncryption: true,
+    });
+  }
+
+  async getAccountPrivateKey(sessionId: string, vaultPassphrase: Passphrase, accountReference: AccountReference, accountPassphrase: Passphrase): Promise<string> {
+    await this.validateSessionForPermissions(sessionId, "account", "read", [accountReference.id]);
+
+    if (!this.isUnlocked) {
+      throw new VaultIsLockedError();
+    }
+
+    const account = await this.getVaultAccountById(accountReference.id, vaultPassphrase);
+
+    if (!account) {
+      throw new AccountNotFoundError();
+    }
+
+    try {
+      return await this.encryptionService.decrypt(accountPassphrase, account.privateKey);
+    } catch {
+      throw new PrivateKeyRestoreError()
+    }
+  }
+
   async updateAccountName(sessionId: string, vaultPassphrase: Passphrase, options: AccountUpdateOptions): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "update");
 
@@ -283,6 +337,100 @@ export class VaultTeller {
     }
   }
 
+  async transferFunds<T extends Protocol>(sessionId: string, options: TransferOptions<T>): Promise<ITransferFundsResult<T>> {
+    await this.validateSessionForPermissions(sessionId, "transaction", "send");
+
+    if (!((options.network.protocol.name === options.transferArguments.protocol.name) && (
+      options.network.protocol.chainID === options.transferArguments.protocol.chainID))) {
+      throw new ProtocolMismatchError('Network protocol does not match transfer protocol');
+    }
+
+    switch (options.from.type) {
+      case SupportedTransferOrigins.RawPrivateKey:
+        return await this.transferWithPrivateKey(options);
+      case SupportedTransferOrigins.VaultAccountId:
+        return await this.transferWithVaultAccount(options);
+      default:
+        throw new Error(`Transfer origin "${options.from.type}" not supported`);
+    }
+  }
+
+  private async transferWithVaultAccount<T extends Protocol>(options: TransferOptions<T>): Promise<ITransferFundsResult<T>> {
+    if (!this.isUnlocked) {
+      throw new VaultIsLockedError();
+    }
+
+    if(!validate(options.from.value)) {
+      throw new ArgumentError('from.value');
+    }
+
+    if (!options.from.passphrase) {
+      throw new ArgumentError('from.passphrase');
+    }
+
+    const account = this._vault?.accounts.find((account) => account.id === options.from.value);
+
+    if (!account) {
+      throw new AccountNotFoundError();
+    }
+
+    const privateKey = await this.encryptionService.decrypt(new Passphrase(options.from.passphrase), account.privateKey);
+
+    const protocolService=
+      ProtocolServiceFactory.getProtocolService(options.transferArguments.protocol, this.encryptionService);
+
+    const transferResult = await protocolService.transferFunds(options.network, {
+      from: account.address,
+      to: options.to.value,
+      amount: options.amount,
+      privateKey,
+      /*
+        TODO: correct the transfer arguments type
+       */
+      // @ts-ignore
+      transferArguments: options.transferArguments,
+    });
+
+    // @ts-ignore
+    return transferResult;
+  }
+
+  private async transferWithPrivateKey<T extends Protocol>(options: TransferOptions<T>): Promise<ITransferFundsResult<T>> {
+    const protocolService=
+      ProtocolServiceFactory.getProtocolService(options.transferArguments.protocol, this.encryptionService);
+
+    const isValidPrivateKey = protocolService.isValidPrivateKey(options.from.value);
+
+    if (!isValidPrivateKey) {
+      throw new InvalidPrivateKeyError();
+    }
+
+    if (!options.from.asset) {
+      throw new ArgumentError('from.asset');
+    }
+
+    const account = await protocolService.createAccountFromPrivateKey({
+      asset: options.from.asset,
+      privateKey: options.from.value,
+      skipEncryption: true,
+    });
+
+    const transferResult = await protocolService.transferFunds(options.network, {
+      from: account.address,
+      to: options.to.value,
+      amount: options.amount * 1e6,
+      privateKey: account.privateKey,
+      /*
+        TODO: correct the transfer arguments type
+       */
+      // @ts-ignore
+      transferArguments: options.transferArguments,
+    });
+
+    // @ts-ignore
+    return transferResult;
+  }
+
   get isUnlocked(): boolean {
     return this._isUnlocked && this._vault !== null;
   }
@@ -364,7 +512,7 @@ export class VaultTeller {
     const account = vault.accounts.find((account) => account.id === accountId);
 
     if (!account) {
-      throw new Error(`Account ${accountId} not found`);
+      throw new AccountNotFoundError();
     }
 
     return account

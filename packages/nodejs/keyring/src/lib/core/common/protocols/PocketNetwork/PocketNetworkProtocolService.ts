@@ -1,29 +1,33 @@
 // @ts-ignore
 import {fromUint8Array} from 'hex-lite';
 import {
-  CreateAccountFromPPKFileOptions,
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
-  IProtocolService
+  IProtocolService,
+  TransferFundsOptions,
 } from '../IProtocolService';
 import {Account} from "../../../vault";
-import {utils,  getPublicKeyAsync} from '@noble/ed25519';
+import {utils, getPublicKeyAsync, signAsync} from '@noble/ed25519';
 import {Buffer} from "buffer";
-import {ScryptParams, IEncryptionService} from "../../encryption/IEncryptionService";
+import {IEncryptionService} from "../../encryption/IEncryptionService";
 import { Network } from '../../../network';
 import {AccountReference} from "../../values";
 import urlJoin from "url-join";
 import {
-  PocketPPKFileSchema,
   PocketRpcBalanceResponseSchema,
   PocketRpcCanSendTransactionResponseSchema,
   PocketRpcFeeParamsResponseSchema,
   PocketRpcFeeParamsResponseValue,
 } from "./schemas";
-import {ArgumentError, InvalidPPKFileError, NetworkRequestError} from "../../../../errors";
+import {ArgumentError, NetworkRequestError, ProtocolTransactionError} from "../../../../errors";
+import {PocketNetworkProtocol} from "./PocketNetworkProtocol";
+import {PocketNetworkTransferFundsResult} from "./PocketNetworkTransferFundsResult";
+import {CoinDenom, MsgProtoSend, TxEncoderFactory, TxSignature} from "./pocket-js";
+import {PocketNetworkTransferArguments} from "./PocketNetworkTransferArguments";
+import {RawTxRequest} from "@pokt-foundation/pocketjs-types";
 
 
-export class PocketNetworkProtocolService implements IProtocolService {
+export class PocketNetworkProtocolService implements IProtocolService<PocketNetworkProtocol> {
   constructor(private IEncryptionService: IEncryptionService) {
   }
 
@@ -32,7 +36,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
       throw new ArgumentError('options.asset');
     }
 
-    if (!options.passphrase) {
+    if (!options.passphrase && !options.skipEncryption) {
       throw new ArgumentError('options.passphrase');
     }
 
@@ -40,14 +44,18 @@ export class PocketNetworkProtocolService implements IProtocolService {
     const publicKey = await getPublicKeyAsync(shortPrivateKey)
     const address = await this.getAddressFromPublicKey(Buffer.from(publicKey).toString('hex'))
     const privateKey = `${Buffer.from(shortPrivateKey).toString('hex')}${Buffer.from(publicKey).toString('hex')}`
-    const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, privateKey)
+    let finalPrivateKey = privateKey
+
+    if (options.passphrase) {
+      finalPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, privateKey)
+    }
 
     return new Account({
       asset: options.asset,
       name: options.name,
       address,
       publicKey: Buffer.from(publicKey).toString('hex'),
-      privateKey: encryptedPrivateKey,
+      privateKey: finalPrivateKey,
     })
   }
 
@@ -56,7 +64,7 @@ export class PocketNetworkProtocolService implements IProtocolService {
       throw new ArgumentError('options.asset');
     }
 
-    if (!options.passphrase) {
+    if (!options.passphrase && !options.skipEncryption) {
       throw new ArgumentError('options.passphrase');
     }
 
@@ -66,58 +74,17 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
     const publicKey = this.getPublicKeyFromPrivateKey(options.privateKey)
     const address = await this.getAddressFromPublicKey(publicKey)
-    const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, options.privateKey)
+    let finalPrivateKey = options.privateKey
+    if (options.passphrase) {
+      finalPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, options.privateKey)
+    }
 
     return new Account({
       name: options.name,
       asset: options.asset,
       address,
       publicKey,
-      privateKey: encryptedPrivateKey,
-    });
-  }
-
-  async createAccountFromPPKFile(options: CreateAccountFromPPKFileOptions): Promise<Account> {
-    if (!options.asset) {
-      throw new ArgumentError('options.asset');
-    }
-
-    if (!options.passphrase) {
-      throw new ArgumentError('options.passphrase');
-    }
-
-    if (!options.ppkFileContent) {
-      throw new ArgumentError('options.ppkFileContent');
-    }
-
-    if (!this.isValidPPKFileStructure(options.ppkFileContent)) {
-      throw new InvalidPPKFileError();
-    }
-
-    const ppkFile = PocketPPKFileSchema.parse(JSON.parse(options.ppkFileContent));
-
-    const params: ScryptParams = {
-      N: 32768,
-      r: 8,
-      p: 1,
-      dkLen: 32,
-      ivLen: ppkFile.secparam,
-      algorithm: 'aes-256-gcm',
-      tagLen: 16,
-    }
-
-    const privateKey = await this.IEncryptionService.decryptScrypt(ppkFile.ciphertext, ppkFile.salt, options.ppkFilePassphrase, params);
-
-    const publicKey = this.getPublicKeyFromPrivateKey(privateKey)
-    const address = await this.getAddressFromPublicKey(publicKey)
-    const encryptedPrivateKey = await this.IEncryptionService.encrypt(options.passphrase, privateKey)
-
-    return new Account({
-      name: options.name,
-      asset: options.asset,
-      address,
-      publicKey,
-      privateKey: encryptedPrivateKey,
+      privateKey: finalPrivateKey,
     });
   }
 
@@ -239,14 +206,64 @@ export class PocketNetworkProtocolService implements IProtocolService {
     return feeResponse.param_value.fee_multiplier;
   }
 
-  isValidPPKFileStructure(fileContent: string): boolean {
-    try {
-      const parsedFileContent = JSON.parse(fileContent);
-      PocketPPKFileSchema.parse(parsedFileContent);
-      return true;
-    } catch {
-      return false;
+  async transferFunds(network: Network, options: TransferFundsOptions<PocketNetworkProtocol>): Promise<PocketNetworkTransferFundsResult> {
+    const txMsg = new MsgProtoSend(options.from, options.to, (options.amount * 1e6).toString());
+
+    const entropy = Number(
+      BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString()
+    ).toString();
+
+    const transferArguments = options.transferArguments as PocketNetworkTransferArguments;
+
+    const fee = (transferArguments.fee || await this.getFee(network)) * 1e6;
+
+    const signer = TxEncoderFactory.createEncoder(
+      entropy,
+      network.protocol.chainID,
+      txMsg,
+      fee.toString(),
+      CoinDenom.Upokt,
+      transferArguments.memo,
+    );
+
+    const bytesToSign = signer.marshalStdSignDoc();
+
+    const txBytes = await signAsync(bytesToSign.toString('hex'), options.privateKey.slice(0, 64));
+
+    const marshalledTx = new TxSignature(
+      Buffer.from(this.getPublicKeyFromPrivateKey(options.privateKey), 'hex'),
+      Buffer.from(txBytes),
+    )
+
+    const rawHexBytes = signer.marshalStdTx(marshalledTx).toString('hex');
+
+    const rawTx = new RawTxRequest(options.from, rawHexBytes);
+
+    const url = urlJoin(network.rpcUrl, 'v1/client/rawtx');
+
+    const response = await globalThis.fetch(url, {
+      method: 'POST',
+      body: JSON.stringify(rawTx.toJSON()),
+    });
+
+    if (!response.ok) {
+      throw new NetworkRequestError('Failed to send transaction');
     }
+
+    const responseRawBody = await response.json();
+
+    if (responseRawBody.code !== 1) {
+      throw new ProtocolTransactionError(responseRawBody.raw_log)
+    }
+
+    return {
+      protocol: network.protocol,
+      transactionHash: responseRawBody.txhash,
+    } as PocketNetworkTransferFundsResult;
+  }
+
+  isValidPrivateKey(privateKey: string): boolean {
+    return /^[0-9A-Fa-f]{128}$/.test(privateKey);
   }
 
   private validateNetwork(network: Network) {
@@ -268,7 +285,6 @@ export class PocketNetworkProtocolService implements IProtocolService {
       })
     });
   }
-
 
   private getPublicKeyFromPrivateKey(privateKey: string): string {
     return privateKey.slice(64, privateKey.length)
@@ -297,5 +313,4 @@ export class PocketNetworkProtocolService implements IProtocolService {
 
     throw new Error('Invalid hex string')
   }
-
 }
