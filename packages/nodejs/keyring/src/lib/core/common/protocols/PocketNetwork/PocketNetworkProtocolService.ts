@@ -252,8 +252,8 @@ export class PocketNetworkProtocolService implements IProtocolService<PocketNetw
 
     const responseRawBody = await response.json();
 
-    if (responseRawBody.code !== 1) {
-      throw new ProtocolTransactionError(responseRawBody.raw_log)
+    if (responseRawBody.code || responseRawBody.raw_log) {
+      throw new ProtocolTransactionError();
     }
 
     return {
