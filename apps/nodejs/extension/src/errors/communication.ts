@@ -1,3 +1,5 @@
+import { MINUTES_ALLOWED_FOR_REQ } from "../constants/communication";
+
 function createError<N extends string, C extends number, M extends string>(
   name: N,
   code: C,
@@ -158,4 +160,16 @@ export const OriginBlocked = createError(
   "ORIGIN_BLOCKED",
   502,
   "This website is blocked."
+);
+
+export const RequestTimeout = createError(
+  "REQUEST_TIMEOUT",
+  503,
+  `The request was not answered between the ${MINUTES_ALLOWED_FOR_REQ} minutes allowed.`
+);
+
+export const OperationRejected = createError(
+  "OPERATION_REJECTED_BY_USER",
+  504,
+  `The operation was rejected by the user.`
 );

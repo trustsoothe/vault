@@ -265,6 +265,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
       spacing={"20px"}
       width={1}
       boxSizing={"border-box"}
+      marginTop={2}
     >
       {content}
     </Stack>

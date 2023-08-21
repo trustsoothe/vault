@@ -6,11 +6,10 @@ const srcDir = path.join(__dirname, "..", "src");
 module.exports = {
   entry: {
     home: path.join(srcDir, "home.tsx"),
-    popup: path.join(srcDir, "popup.tsx"),
-    options: path.join(srcDir, "options.tsx"),
     background: path.join(srcDir, "background.ts"),
     offscreen: path.join(srcDir, "offscreen.ts"),
-    content_script: path.join(srcDir, "content_script.tsx"),
+    proxy: path.join(srcDir, "proxy.ts"),
+    provider: path.join(srcDir, "provider.ts"),
   },
   output: {
     path: path.join(__dirname, "../dist/js"),
@@ -20,7 +19,7 @@ module.exports = {
     splitChunks: {
       name: "vendor",
       chunks(chunk) {
-        return chunk.name !== "background";
+        return chunk.name !== "background" && chunk.name !== "provider";
       },
     },
   },

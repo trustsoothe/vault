@@ -23,9 +23,67 @@ import {
   TRANSFER_PAGE,
 } from "../constants/routes";
 import ToggleBlockSite from "./Session/ToggleBlockSite";
-import { OriginBlocked } from "../errors/communication";
+import { OriginBlocked, RequestTimeout } from "../errors/communication";
 import { useAppDispatch } from "../hooks/redux";
-import { removeExternalRequest } from "../redux/slices/app";
+import { removeExternalRequest, RequestsType } from "../redux/slices/app";
+
+export const closeCurrentWindow = () =>
+  browser.windows
+    .getCurrent()
+    .then((window) => browser.windows.remove(window.id));
+
+export const removeRequestWithRes = async (
+  request: RequestsType,
+  error: typeof OriginBlocked | typeof RequestTimeout,
+  dispatch: ReturnType<typeof useAppDispatch>,
+  requestsLength: number
+) => {
+  let responseType:
+    | typeof TRANSFER_RESPONSE
+    | typeof CONNECTION_RESPONSE_MESSAGE
+    | typeof NEW_ACCOUNT_RESPONSE;
+
+  switch (request.type) {
+    case TRANSFER_REQUEST: {
+      responseType = TRANSFER_RESPONSE;
+      break;
+    }
+    case CONNECTION_REQUEST_MESSAGE: {
+      responseType = CONNECTION_RESPONSE_MESSAGE;
+      break;
+    }
+    case NEW_ACCOUNT_REQUEST: {
+      responseType = NEW_ACCOUNT_RESPONSE;
+      break;
+    }
+  }
+
+  const numberOfRequests = requestsLength - 1;
+
+  const badgeText = numberOfRequests > 0 ? `${numberOfRequests}` : "";
+
+  const res:
+    | ConnectionResponseFromBack
+    | NewAccountResponseFromBack
+    | TransferResponseFromBack = {
+    type: responseType,
+    data: null,
+    error: error,
+  };
+
+  await Promise.all([
+    browser.tabs.sendMessage(request.tabId, res),
+    dispatch(
+      removeExternalRequest({
+        origin: request.origin,
+        type: request.type,
+      })
+    ),
+    browser.action.setBadgeText({
+      text: badgeText,
+    }),
+  ]).catch();
+};
 
 interface RequestHandlerProps {
   externalRequests: RootState["app"]["externalRequests"];
@@ -39,17 +97,11 @@ const RequestHandler: React.FC<RequestHandlerProps> = ({
   const dispatch = useAppDispatch();
   const [blockOriginRequest, setBlockOriginRequest] = useState<boolean>(false);
 
-  const closeCurrentWindow = useCallback(() => {
-    browser.windows
-      .getCurrent()
-      .then((window) => browser.windows.remove(window.id));
-  }, []);
-
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!externalRequests.length) {
-      closeCurrentWindow();
+      closeCurrentWindow().catch();
     } else {
       const currentRequest = externalRequests[0];
 
@@ -87,52 +139,15 @@ const RequestHandler: React.FC<RequestHandlerProps> = ({
   }, []);
 
   const onBlockedSite = useCallback(() => {
-    let responseType:
-      | typeof TRANSFER_RESPONSE
-      | typeof CONNECTION_RESPONSE_MESSAGE
-      | typeof NEW_ACCOUNT_RESPONSE;
-
-    switch (currentRequest.type) {
-      case TRANSFER_REQUEST: {
-        responseType = TRANSFER_RESPONSE;
-        break;
-      }
-      case CONNECTION_REQUEST_MESSAGE: {
-        responseType = CONNECTION_RESPONSE_MESSAGE;
-        break;
-      }
-      case NEW_ACCOUNT_REQUEST: {
-        responseType = NEW_ACCOUNT_RESPONSE;
-        break;
-      }
+    if (currentRequest) {
+      removeRequestWithRes(
+        currentRequest,
+        OriginBlocked,
+        dispatch,
+        externalRequests.length
+      ).catch();
     }
-
-    const numberOfRequests = externalRequests.length - 1;
-
-    const badgeText = numberOfRequests > 0 ? `${numberOfRequests}` : "";
-
-    const res:
-      | ConnectionResponseFromBack
-      | NewAccountResponseFromBack
-      | TransferResponseFromBack = {
-      type: responseType,
-      data: null,
-      error: OriginBlocked,
-    };
-
-    Promise.all([
-      browser.tabs.sendMessage(currentRequest.tabId, res),
-      dispatch(
-        removeExternalRequest({
-          origin: currentRequest.origin,
-          type: currentRequest.type,
-        })
-      ),
-      browser.action.setBadgeText({
-        text: badgeText,
-      }),
-    ]).catch();
-  }, [currentRequest, dispatch, externalRequests]);
+  }, [currentRequest, externalRequests.length, dispatch]);
 
   if (!currentRequest) {
     return null;

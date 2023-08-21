@@ -1,6 +1,7 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
+import browser from "webextension-polyfill";
 import Stack from "@mui/material/Stack";
 import Menu from "@mui/material/Menu";
 import { connect } from "react-redux";
@@ -63,8 +64,13 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isPopup, setIsPopup] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = !!anchorEl;
+
+  useEffect(() => {
+    setIsPopup(window.location.search.includes("popup=true"));
+  }, []);
 
   const openMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -84,6 +90,13 @@ const Header: React.FC<HeaderProps> = ({
     AppToBackground.lockVault();
     closeMenu();
   }, [closeMenu]);
+
+  const onClickExpand = useCallback(() => {
+    browser.tabs.create({
+      active: true,
+      url: `home.html#${location.pathname}${location.search}`,
+    });
+  }, [location]);
 
   const items = useMemo(() => {
     switch (location.pathname) {
@@ -222,16 +235,23 @@ const Header: React.FC<HeaderProps> = ({
           >
             Lock
           </MenuItem>
+          {isPopup && (
+            <MenuItem
+              onClick={onClickExpand}
+              sx={{
+                padding: "6px!important",
+              }}
+            >
+              Expand
+            </MenuItem>
+          )}
           <MenuItem
             onClick={closeMenu}
             sx={{ borderTop: "1px solid lightgray" }}
           >
-            <Link to={ACCOUNTS_PAGE}>Home</Link>
+            <Link to={ACCOUNTS_PAGE}>Accounts</Link>
           </MenuItem>
-          <MenuItem
-            onClick={closeMenu}
-            sx={{ borderTop: "1px solid lightgray" }}
-          >
+          <MenuItem onClick={closeMenu}>
             <Link to={TRANSFER_PAGE}>Transfer</Link>
           </MenuItem>
           <MenuItem onClick={closeMenu}>

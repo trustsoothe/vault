@@ -3,12 +3,13 @@
   "name": "Keyring Extension",
   "description": "Extension to manage your vault of wallets",
   "version": "0.0.1",
-  "options_ui": {
-    "page": "options.html"
-  },
   "action": {
     "default_icon": "icon.png",
     "default_popup": "home.html?popup=true"
+  },
+  "externally_connectable": {
+    "ids": [],
+    "matches": []
   },
   "content_scripts": [
     {
@@ -17,8 +18,20 @@
       ],
       "js": [
         "js/vendor.js",
-        "js/content_script.js"
-      ]
+        "js/proxy.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "js/provider.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "background": {
@@ -27,7 +40,9 @@
   "permissions": [
     "storage",
     "tabs",
-    "offscreen"
+    "offscreen",
+    "scripting",
+    "activeTab"
   ],
   "host_permissions": [
     "<all_urls>"

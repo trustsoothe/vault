@@ -267,7 +267,7 @@ const AccountPrivateKey: React.FC<AccountPrivateKeyProps> = ({ account }) => {
           const blob = new Blob([json], {
             type: "application/json",
           });
-          saveAs(blob, "workspace.json");
+          saveAs(blob, "keyfile.json");
         })
         .catch((e) => {
           console.log(e);

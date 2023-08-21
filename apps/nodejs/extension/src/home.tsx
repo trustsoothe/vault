@@ -40,7 +40,10 @@ import {
 } from "./constants/routes";
 import CreateNewAccount from "./components/Account/CreateNew";
 import ImportAccount from "./components/Account/Import";
-import RequestHandler from "./components/RequestHandler";
+import RequestHandler, {
+  closeCurrentWindow,
+  removeRequestWithRes,
+} from "./components/RequestHandler";
 import Transfer from "./components/Transfer";
 import ThemeProvider from "./theme";
 import AccountDetail from "./components/Account/AccountDetail";
@@ -53,6 +56,9 @@ import SessionDetail from "./components/Session/SessionDetail";
 import BlockedList from "./components/Session/BlockedList";
 import DisconnectSite from "./components/Session/DisconnectSite";
 import ToggleBlockSite from "./components/Session/ToggleBlockSite";
+import { MINUTES_ALLOWED_FOR_REQ } from "./constants/communication";
+import { RequestTimeout } from "./errors/communication";
+import { useAppDispatch } from "./hooks/redux";
 
 const store = new Store();
 const storeWithMiddleware = applyMiddleware(store, thunkMiddleware);
@@ -178,11 +184,9 @@ const Home: React.FC<HomeProps> = ({
   vaultSession,
   externalRequests,
 }) => {
+  const dispatch = useAppDispatch();
   const [view, setView] = useState("loading");
   const [isPopup, setIsPopup] = useState(false);
-  // useEffect(() => {
-  //   browser.storage.local.clear().then(() => console.log("cleared"));
-  // }, []);
 
   useEffect(() => {
     // todo: improve this?
@@ -191,9 +195,38 @@ const Home: React.FC<HomeProps> = ({
     setIsPopup(window.location.search.includes("popup=true"));
   }, []);
 
-  const content = useMemo(() => {
-    // return ;
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const length = externalRequests.length;
+      let requestsRemoved = 0;
 
+      for (const request of externalRequests) {
+        if (
+          request.requestedAt &&
+          request.requestedAt >
+            new Date().getTime() - MINUTES_ALLOWED_FOR_REQ * 60000
+        ) {
+          continue;
+        }
+
+        await removeRequestWithRes(
+          request,
+          RequestTimeout,
+          dispatch,
+          externalRequests.length
+        );
+        requestsRemoved++;
+      }
+
+      if (view === "session-request" && length - requestsRemoved === 0) {
+        await closeCurrentWindow();
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [externalRequests, dispatch, view]);
+
+  const content = useMemo(() => {
     if (initializeStatus === "loading" || view === "loading") {
       return <CircularLoading />;
     }
@@ -218,7 +251,7 @@ const Home: React.FC<HomeProps> = ({
     }
 
     return <UnlockVault />;
-  }, [initializeStatus, vaultSession, view, externalRequests]);
+  }, [initializeStatus, vaultSession, view]);
 
   return (
     <Box

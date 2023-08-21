@@ -1,5 +1,18 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { Storage as OriginalStorage } from "webextension-polyfill/namespaces/storage";
+import type {
+  ProxyCheckConnectionRequest,
+  ProxyConnectionRequest,
+  ProxyConnectionRes,
+  ProxyDisconnectRequest,
+  ProxyDisconnectRes,
+  ProxyListAccountsRequest,
+  ProxyListAccountsRes,
+  ProxyNewAccountRequest,
+  ProxyNewAccountRes,
+  ProxyTransferRequest,
+  ProxyTransferRes,
+} from "./communication";
 
 interface SessionStorage extends OriginalStorage.StorageArea {
   /**
@@ -17,6 +30,38 @@ declare module "webextension-polyfill" {
   }
 }
 
+declare global {
+  interface Window {
+    soothe: {
+      connect: () => Promise<ProxyConnectionRes>;
+      disconnect: () => Promise<ProxyDisconnectRes>;
+      checkConnection: () => Promise<ProxyConnectionRes>;
+      listAccounts: () => Promise<ProxyListAccountsRes>;
+      createAccount: (
+        data: ProxyNewAccountRequest["data"]
+      ) => Promise<ProxyNewAccountRes>;
+      suggestTransfer: (
+        data: ProxyTransferRequest["data"]
+      ) => Promise<ProxyTransferRes>;
+    };
+  }
+}
+
 interface AccountWithBalance extends SerializedAccountReference {
   balance?: number;
 }
+
+export type BrowserRequest =
+  | ProxyConnectionRequest
+  | ProxyCheckConnectionRequest
+  | ProxyNewAccountRequest
+  | ProxyTransferRequest
+  | ProxyDisconnectRequest
+  | ProxyListAccountsRequest;
+
+export type BrowserResponse =
+  | ProxyConnectionRes
+  | ProxyListAccountsRes
+  | ProxyDisconnectRes
+  | ProxyNewAccountRes
+  | ProxyTransferRes;

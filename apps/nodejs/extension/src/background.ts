@@ -28,9 +28,7 @@ browser.runtime.onInstalled.addListener((details) => {
         active: true,
         url: "home.html",
       })
-      .then(() => {
-        console.log("home page opened");
-      });
+      .catch();
   }
 });
 

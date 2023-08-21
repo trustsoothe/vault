@@ -7,10 +7,11 @@ import type { RootState } from "../store";
 import browser from "webextension-polyfill";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
-export type RequestsType =
+export type RequestsType = (
   | ExternalConnectionRequest
   | ExternalNewAccountRequest
-  | ExternalTransferRequest;
+  | ExternalTransferRequest
+) & { requestedAt?: number };
 
 interface GeneralAppSlice {
   requestsWindowId: number | null;
@@ -84,7 +85,10 @@ const generalAppSlice = createSlice({
       state.requestsWindowId = null;
     },
     addExternalRequest: (state, action: PayloadAction<RequestsType>) => {
-      state.externalRequests.push(action.payload);
+      state.externalRequests.push({
+        ...action.payload,
+        requestedAt: new Date().getTime(),
+      });
     },
     addWindow: (state, action: PayloadAction<number>) => {
       state.requestsWindowId = action.payload;

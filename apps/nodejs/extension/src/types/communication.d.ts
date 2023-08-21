@@ -39,11 +39,13 @@ import {
   InvalidSession,
   MemoNotValid,
   NotConnected,
+  OperationRejected,
   OriginBlocked,
   OriginNotPresented,
   ProtocolNotPresented,
   RequestConnectionExists,
   RequestNewAccountExists,
+  RequestTimeout,
   RequestTransferExists,
   SessionIdNotPresented,
   ToAddressNotPresented,
@@ -123,7 +125,10 @@ export type RequestExistsError<T> = T extends typeof TRANSFER_RESPONSE
 
 // Connection
 
-type ConnectionRequestErrors = BaseErrors | typeof RequestConnectionExists;
+type ConnectionRequestErrors =
+  | BaseErrors
+  | typeof RequestConnectionExists
+  | typeof RequestTimeout;
 
 export interface ProxyConnectionRequest extends BaseProxyRequest {
   type: typeof CONNECTION_REQUEST_MESSAGE;
@@ -175,7 +180,8 @@ export interface ProxyValidConnectionRes extends BaseProxyResponse {
 
 export type ProxyConnectionErrors =
   | ConnectionRequestErrors
-  | typeof InvalidPermission;
+  | typeof InvalidPermission
+  | typeof OperationRejected;
 
 export interface ProxyErrConnectionRes extends BaseProxyResponse {
   type: typeof CONNECTION_RESPONSE_MESSAGE;
@@ -209,6 +215,7 @@ interface IsSessionValidResponse {
 
 export interface ProxyCheckConnectionRequest extends BaseProxyRequest {
   type: typeof CHECK_CONNECTION_REQUEST;
+  data?: undefined;
 }
 
 // New Account Request
@@ -216,7 +223,7 @@ export interface ProxyCheckConnectionRequest extends BaseProxyRequest {
 export interface ProxyNewAccountRequest extends BaseProxyRequest {
   type: typeof NEW_ACCOUNT_REQUEST;
   data: {
-    protocol?: TProtocol;
+    protocol: TProtocol;
   };
 }
 
@@ -231,6 +238,7 @@ export interface NewAccountRequestMessage {
 
 type ExternalNewAccountRequestErrors =
   | BaseErrors
+  | typeof RequestTimeout
   | typeof SessionIdNotPresented
   | typeof InvalidSession
   | typeof ForbiddenSession
@@ -273,6 +281,7 @@ export interface ProxyValidNewAccountRes extends BaseProxyResponse {
 export type ProxyNewAccountRequestErrors =
   | ExternalNewAccountRequestErrors
   | typeof InvalidProtocol
+  | typeof OperationRejected
   | typeof NotConnected;
 
 export interface ProxyErrNewAccountRes extends BaseProxyResponse {
@@ -289,6 +298,7 @@ export type ProxyNewAccountRes =
 
 export type ExternalTransferErrors =
   | BaseErrors
+  | typeof RequestTimeout
   | typeof SessionIdNotPresented
   | typeof FeeLowerThanMinFee
   | typeof InvalidSession
@@ -310,6 +320,7 @@ export type ProxyTransferError =
   | typeof MemoNotValid
   | typeof InvalidProtocol
   | typeof ProtocolNotPresented
+  | typeof OperationRejected
   | null;
 
 export interface ProxyTransferRequest extends BaseProxyRequest {
@@ -371,6 +382,7 @@ export type ProxyTransferRes = ProxyValidTransferRes | ProxyErrTransferRes;
 
 export interface ProxyDisconnectRequest extends BaseProxyRequest {
   type: typeof DISCONNECT_REQUEST;
+  data?: undefined;
 }
 
 export type DisconnectRequestMessage = BaseRequestWithSession<
@@ -385,6 +397,7 @@ export type ExternalDisconnectErrors =
 
 export type ProxyDisconnectErrors =
   | ExternalDisconnectErrors
+  | typeof RequestTimeout
   | typeof NotConnected;
 
 export interface DisconnectBackResponse {
@@ -417,6 +430,7 @@ export type ProxyDisconnectRes =
 
 export interface ProxyListAccountsRequest extends BaseProxyRequest {
   type: typeof LIST_ACCOUNTS_REQUEST;
+  data?: undefined;
 }
 
 export type ListAccountsRequestMessage = BaseRequestWithSession<
@@ -436,6 +450,7 @@ export type ExternalListAccountsErrors =
 
 export type ProxyListAccountsErrors =
   | ExternalListAccountsErrors
+  | typeof RequestTimeout
   | typeof NotConnected;
 
 export interface ExternalListAccountsResponse {

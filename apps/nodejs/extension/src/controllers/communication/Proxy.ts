@@ -1,11 +1,8 @@
 import type { Permission } from "@poktscan/keyring";
+import type { BrowserRequest } from "../../types";
 import type {
   ExternalListAccountsResponse,
   InternalTransferResponse,
-  ProxyCheckConnectionRequest,
-  ProxyConnectionRequest,
-  ProxyDisconnectRequest,
-  ProxyListAccountsRequest,
   ProxyNewAccountRequest,
   ProxyTransferRequest,
 } from "../../types/communication";
@@ -65,6 +62,7 @@ import {
   InvalidProtocol,
   MemoNotValid,
   NotConnected,
+  OperationRejected,
   ProtocolNotPresented,
   ToAddressNotPresented,
   ToAddressNotValid,
@@ -103,14 +101,6 @@ export type TPermissionsAllowedToSuggest = z.infer<
 export type TProtocol = z.infer<typeof Protocol>;
 
 export type TTransferRequestBody = z.infer<typeof TransferRequestBody>;
-
-type BrowserRequest =
-  | ProxyConnectionRequest
-  | ProxyCheckConnectionRequest
-  | ProxyNewAccountRequest
-  | ProxyTransferRequest
-  | ProxyDisconnectRequest
-  | ProxyListAccountsRequest;
 
 const protocolsArr = Object.values(SupportedProtocols);
 
@@ -166,7 +156,11 @@ class ProxyCommunicationController {
       async (event: MessageEvent<BrowserRequest>) => {
         const { data, origin } = event;
 
-        if (origin === window.location.origin && data?.to === "VAULT_KEYRING") {
+        if (
+          origin === window.location.origin &&
+          data?.to === "VAULT_KEYRING" &&
+          event.source === window
+        ) {
           if (data?.type === CONNECTION_REQUEST_MESSAGE) {
             await this._sendConnectionRequest(data.data?.suggestedPermissions);
           }
@@ -189,11 +183,6 @@ class ProxyCommunicationController {
 
           if (data?.type === LIST_ACCOUNTS_REQUEST) {
             await this._handleListAccountsRequest();
-          }
-
-          // @ts-ignore
-          if (data?.type === "LOG_SESSION") {
-            console.log(this._session);
           }
         }
       }
@@ -271,8 +260,6 @@ class ProxyCommunicationController {
         await browser.runtime.sendMessage(message);
       requestWasSent = true;
 
-      console.log("RESPONSE:", response);
-
       if (response?.type === CONNECTION_RESPONSE_MESSAGE) {
         await this._handleConnectionResponse(response);
       }
@@ -287,7 +274,6 @@ class ProxyCommunicationController {
     extensionResponse: ConnectionResponseFromBack
   ) {
     try {
-      console.log(extensionResponse);
       const { error, data } = extensionResponse;
 
       if (data) {
@@ -302,7 +288,7 @@ class ProxyCommunicationController {
 
           this._sendConnectionResponse(true);
         } else {
-          this._sendConnectionResponse(false);
+          this._sendConnectionResponse(false, OperationRejected);
         }
       } else {
         this._sendConnectionResponse(false, error);
@@ -343,14 +329,17 @@ class ProxyCommunicationController {
         };
       }
 
-      window.postMessage(response);
+      window.postMessage(response, window.location.origin);
     } catch (e) {
-      window.postMessage({
-        type: CONNECTION_RESPONSE_MESSAGE,
-        from: "VAULT_KEYRING",
-        data: null,
-        error: UnknownError,
-      } as ProxyConnectionRes);
+      window.postMessage(
+        {
+          type: CONNECTION_RESPONSE_MESSAGE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error: UnknownError,
+        } as ProxyConnectionRes,
+        window.location.origin
+      );
     }
   }
 
@@ -432,7 +421,7 @@ class ProxyCommunicationController {
         const permissions: TPermissionsAllowedToSuggest = [];
 
         for (const { resource, action } of this._session.permissions) {
-          if (resource === "transaction" && action === "sign") {
+          if (resource === "transaction" && action === "send") {
             permissions.push("suggest_transfer");
             continue;
           }
@@ -481,7 +470,6 @@ class ProxyCommunicationController {
           await browser.runtime.sendMessage(message);
 
         requestWasSent = true;
-        console.log("RESPONSE:", response);
 
         if (response?.type === NEW_ACCOUNT_RESPONSE) {
           await this._handleNewAccountResponse(response);
@@ -490,7 +478,6 @@ class ProxyCommunicationController {
         return this._sendNewAccountResponse(null, NotConnected);
       }
     } catch (e) {
-      console.log(e);
       if (!requestWasSent) {
         this._sendNewAccountResponse(null, UnknownError);
       }
@@ -501,11 +488,14 @@ class ProxyCommunicationController {
     response: NewAccountResponseFromBack
   ) {
     try {
-      console.log(response);
       const { error, data } = response;
 
       if (data) {
-        this._sendNewAccountResponse(data);
+        if (data.rejected) {
+          this._sendNewAccountResponse(null, OperationRejected);
+        } else {
+          this._sendNewAccountResponse(data);
+        }
       } else {
         this._sendNewAccountResponse(null, error);
 
@@ -545,14 +535,17 @@ class ProxyCommunicationController {
         };
       }
 
-      window.postMessage(response);
+      window.postMessage(response, window.location.origin);
     } catch (e) {
-      window.postMessage({
-        from: "VAULT_KEYRING",
-        type: NEW_ACCOUNT_RESPONSE,
-        data: null,
-        error: UnknownError,
-      } as ProxyNewAccountRes);
+      window.postMessage(
+        {
+          from: "VAULT_KEYRING",
+          type: NEW_ACCOUNT_RESPONSE,
+          data: null,
+          error: UnknownError,
+        } as ProxyNewAccountRes,
+        window.location.origin
+      );
     }
   }
 
@@ -624,7 +617,6 @@ class ProxyCommunicationController {
           await browser.runtime.sendMessage(message);
 
         requestWasSent = true;
-        console.log("RESPONSE:", response);
 
         if (response?.type === TRANSFER_RESPONSE) {
           await this._handleTransferResponse(response);
@@ -641,11 +633,14 @@ class ProxyCommunicationController {
 
   private async _handleTransferResponse(response: TransferResponseFromBack) {
     try {
-      console.log(response);
       const { error, data } = response;
 
       if (data) {
-        this._sendTransferResponse(data);
+        if (data.rejected) {
+          this._sendTransferResponse(null, OperationRejected);
+        } else {
+          this._sendTransferResponse(data);
+        }
       } else {
         this._sendTransferResponse(null, error);
 
@@ -685,14 +680,17 @@ class ProxyCommunicationController {
         };
       }
 
-      window.postMessage(response);
+      window.postMessage(response, window.location.origin);
     } catch (e) {
-      window.postMessage({
-        from: "VAULT_KEYRING",
-        type: "TRANSFER_RESPONSE",
-        data: null,
-        error,
-      } as ProxyTransferRes);
+      window.postMessage(
+        {
+          from: "VAULT_KEYRING",
+          type: "TRANSFER_RESPONSE",
+          data: null,
+          error: UnknownError,
+        } as ProxyTransferRes,
+        window.location.origin
+      );
     }
   }
 
@@ -708,8 +706,6 @@ class ProxyCommunicationController {
         };
         const response: DisconnectBackResponse =
           await browser.runtime.sendMessage(message);
-
-        console.log("RESPONSE:", response);
 
         const disconnected =
           response?.data?.disconnected ||
@@ -756,14 +752,17 @@ class ProxyCommunicationController {
         };
       }
 
-      window.postMessage(response);
+      window.postMessage(response, window.location.origin);
     } catch (e) {
-      window.postMessage({
-        from: "VAULT_KEYRING",
-        type: DISCONNECT_RESPONSE,
-        data: null,
-        error,
-      } as ProxyDisconnectRes);
+      window.postMessage(
+        {
+          from: "VAULT_KEYRING",
+          type: DISCONNECT_RESPONSE,
+          data: null,
+          error: UnknownError,
+        } as ProxyDisconnectRes,
+        window.location.origin
+      );
     }
   }
 
@@ -806,18 +805,21 @@ class ProxyCommunicationController {
           data: null,
         };
       }
-      window.postMessage(proxyResponse);
+      window.postMessage(proxyResponse, window.location.origin);
 
       if (proxyResponse?.error?.name === "INVALID_SESSION") {
         this._sendDisconnectResponse(true);
       }
     } catch (e) {
-      window.postMessage({
-        from: "VAULT_KEYRING",
-        type: LIST_ACCOUNTS_RESPONSE,
-        error: UnknownError,
-        data: null,
-      } as ProxyListAccountsRes);
+      window.postMessage(
+        {
+          from: "VAULT_KEYRING",
+          type: LIST_ACCOUNTS_RESPONSE,
+          error: UnknownError,
+          data: null,
+        } as ProxyListAccountsRes,
+        window.location.origin
+      );
     }
   }
 }

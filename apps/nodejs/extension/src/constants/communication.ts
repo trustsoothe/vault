@@ -55,3 +55,5 @@ export const PK_ACCOUNT_RESPONSE = "PK_ACCOUNT_RESPONSE";
 
 // background
 export const REQUEST_BEING_HANDLED = "REQUEST_BEING_HANDLED";
+
+export const MINUTES_ALLOWED_FOR_REQ = 5;
