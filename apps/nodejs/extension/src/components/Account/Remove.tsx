@@ -147,7 +147,8 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
             justRequire={true}
             hidePasswordStrong={true}
             containerProps={{
-              marginTop: "5px!important",
+              marginTop: "10px!important",
+              spacing: 0.5,
             }}
             errorPassword={wrongPassword ? "Wrong password" : undefined}
           />

@@ -716,7 +716,6 @@ class InternalCommunicationController {
     }
   }
 
-  //todo: improve this and the before method
   private async _answerTransferAccount(
     message: AnswerTransferRequest
   ): Promise<AnswerTransferResponse> {

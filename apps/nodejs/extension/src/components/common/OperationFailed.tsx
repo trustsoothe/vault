@@ -6,6 +6,7 @@ import Button, { type ButtonProps } from "@mui/material/Button";
 interface OperationFailedProps {
   text: string;
   retryBtnText?: string;
+  cancelBtnText?: string;
   textProps?: TypographyProps;
   onCancel?: () => void;
   onRetry?: () => void;
@@ -22,6 +23,7 @@ const OperationFailed: React.FC<OperationFailedProps> = ({
   containerProps,
   buttonsContainerProps,
   retryBtnText = "Retry",
+  cancelBtnText = "Cancel",
   retryBtnProps,
   cancelBtnProps,
   onRetry,
@@ -56,7 +58,7 @@ const OperationFailed: React.FC<OperationFailedProps> = ({
               ...cancelBtnProps?.sx,
             }}
           >
-            Cancel
+            {cancelBtnText}
           </Button>
         )}
         <Button

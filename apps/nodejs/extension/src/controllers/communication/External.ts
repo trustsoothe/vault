@@ -394,13 +394,11 @@ class ExternalCommunicationController {
       if (pendingRequestWindow) {
         return {
           type: responseMessage,
-          error:
-            //todo: replace for map and add default request exists error
-            (responseMessage === CONNECTION_RESPONSE_MESSAGE
-              ? RequestConnectionExists
-              : responseMessage === NEW_ACCOUNT_RESPONSE
-              ? RequestNewAccountExists
-              : RequestTransferExists) as RequestExistsError<T>,
+          error: (responseMessage === CONNECTION_RESPONSE_MESSAGE
+            ? RequestConnectionExists
+            : responseMessage === NEW_ACCOUNT_RESPONSE
+            ? RequestNewAccountExists
+            : RequestTransferExists) as RequestExistsError<T>,
           data: null,
         };
       } else {
@@ -523,7 +521,8 @@ class ExternalCommunicationController {
       }
 
       const accounts = await ExtensionVaultInstance.listAccounts(sessionId);
-      const balanceByIdMap = await store.dispatch(getAllBalances()).unwrap();
+      const response = await store.dispatch(getAllBalances()).unwrap();
+      const balanceByIdMap = response.newBalanceMap;
 
       return {
         type: LIST_ACCOUNTS_RESPONSE,

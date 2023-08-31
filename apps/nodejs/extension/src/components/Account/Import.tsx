@@ -20,7 +20,7 @@ import OperationFailed from "../common/OperationFailed";
 import { nameRules } from "./CreateNew";
 import Password from "../common/Password";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { ACCOUNTS_DETAIL_PAGE } from "../../constants/routes";
+import { ACCOUNTS_DETAIL_PAGE, ACCOUNTS_PAGE } from "../../constants/routes";
 import { DetailComponent } from "./AccountDetail";
 import {
   getAddressFromPrivateKey,
@@ -28,15 +28,7 @@ import {
   isValidPPK,
   protocolsAreEquals,
 } from "../../utils/networkOperations";
-
-export const isHex = (str: string) => {
-  return str.match(/^[0-9a-fA-F]+$/g);
-};
-
-export const byteLength = (str: string) => new Blob([str]).size;
-
-//todo: validate private key?
-const isPrivateKey = (str: string) => isHex(str) && byteLength(str) === 128;
+import { isPrivateKey } from "../../utils";
 
 interface FormValues {
   import_type: "private_key" | "json_file";
@@ -49,6 +41,20 @@ interface FormValues {
   vault_password: string;
   asset?: SerializedAsset;
 }
+
+const getPrivateKey = async (data: FormValues) => {
+  let privateKey: string;
+
+  if (data.json_file) {
+    const contentFile = await data.json_file.text();
+
+    privateKey = getPrivateKeyFromPPK(contentFile, data.file_password);
+  } else {
+    privateKey = data.private_key;
+  }
+
+  return privateKey;
+};
 
 type FormStatus = "normal" | "loading" | "error" | "account_exists";
 
@@ -158,26 +164,17 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     async (data: FormValues) => {
       setStatus("loading");
 
-      let privateKey;
-
-      if (data.json_file) {
-        const contentFile = await data.json_file.text();
-
-        try {
-          privateKey = getPrivateKeyFromPPK(contentFile, data.file_password);
-        } catch (e) {
-          if (
-            e?.message === "Unsupported state or unable to authenticate data"
-          ) {
-            setWrongFilePassword(true);
-          } else {
-            setErrorPpk(true);
-          }
-          setStatus("normal");
-          return;
+      let privateKey: string;
+      try {
+        privateKey = await getPrivateKey(data);
+      } catch (e) {
+        if (e?.message === "Unsupported state or unable to authenticate data") {
+          setWrongFilePassword(true);
+        } else {
+          setErrorPpk(true);
         }
-      } else {
-        privateKey = data.private_key;
+        setStatus("normal");
+        return;
       }
 
       AppToBackground.importAccount({
@@ -189,7 +186,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
         },
         replace: !!accountToReimport,
         vaultPassword: passwordRemembered ? undefined : data.vault_password,
-      }).then((response) => {
+      }).then(async (response) => {
         if (response.error) {
           setStatus("error");
         } else {
@@ -197,8 +194,18 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
             setWrongPassword(true);
             setStatus("normal");
           } else if (response.data.accountAlreadyExists) {
+            const address = await getAddressFromPrivateKey(
+              privateKey,
+              data.asset.protocol
+            );
+
+            const account = accounts.find(
+              (item) =>
+                item.address === address &&
+                protocolsAreEquals(item.protocol, data.asset.protocol)
+            );
+            setAccountToReImport(account);
             setStatus("account_exists");
-            //todo: with function to generate address from private key, get the address
           } else {
             enqueueSnackbar({
               style: { width: 200, minWidth: "200px!important" },
@@ -215,6 +222,30 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     },
     [navigate, accountToReimport]
   );
+
+  const onClickAccountExists = useCallback(async () => {
+    let route: string;
+
+    try {
+      if (status === "account_exists") {
+        if (accountToReimport) {
+          route = `${ACCOUNTS_DETAIL_PAGE}?id=${accountToReimport.id}`;
+        } else {
+          route = ACCOUNTS_PAGE;
+        }
+      } else {
+        route = ACCOUNTS_PAGE;
+      }
+    } catch (e) {
+      route = ACCOUNTS_PAGE;
+    }
+
+    navigate(route);
+  }, [status, accounts, getValues, navigate, accountToReimport]);
+
+  const onClickReimport = useCallback(() => {
+    handleSubmit(onClickCreate)();
+  }, [handleSubmit, onClickCreate]);
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -234,14 +265,24 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
       return (
         <OperationFailed
           text={"This account already exists."}
-          cancelBtnProps={{
-            sx: { display: "none" },
-          }}
           retryBtnProps={{
             type: "button",
+            sx: {
+              width: 130,
+            },
           }}
-          retryBtnText={"Go to Account"}
-          onRetry={() => navigate("/")}
+          cancelBtnProps={{
+            sx: {
+              width: 130,
+            },
+          }}
+          onCancel={onClickAccountExists}
+          cancelBtnText={"Go To Account"}
+          retryBtnText={"Reimport"}
+          onRetry={onClickReimport}
+          buttonsContainerProps={{
+            width: 275,
+          }}
         />
       );
     }
@@ -318,6 +359,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
               <TextField
                 fullWidth
                 label={"Account Name"}
+                autoComplete={"off"}
                 size={"small"}
                 {...register("account_name", nameRules)}
                 error={!!formState?.errors?.account_name}
@@ -380,6 +422,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
               label={"Private Key"}
               size={"small"}
               fullWidth
+              autoComplete={"off"}
               disabled={!asset}
               {...register("private_key", {
                 validate: async (value, formValues) => {
@@ -485,36 +528,40 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
               passwordName={"password"}
               labelPassword={"Account Password"}
               confirmPasswordName={"confirm_password"}
-              hidePasswordStrong={true}
               containerProps={{
                 width: 1,
                 marginTop: "5px!important",
-                spacing: "18px",
+                spacing: 0.5,
               }}
               inputsContainerProps={{
                 spacing: "18px",
               }}
               randomKey={"import-acc"}
             />
-            <Divider
-              sx={{
-                width: "calc(100% + 5px)",
-                marginBottom: "5px!important",
-              }}
-              orientation={"horizontal"}
-            />
-            <Password
-              passwordName={"vault_password"}
-              canGenerateRandom={false}
-              justRequire={true}
-              canShowPassword={true}
-              labelPassword={"Vault Password"}
-              hidePasswordStrong={true}
-              errorPassword={wrongPassword ? "Wrong password" : undefined}
-              containerProps={{
-                marginTop: "10px!important",
-              }}
-            />
+            {!passwordRemembered && (
+              <>
+                <Divider
+                  sx={{
+                    width: "calc(100% + 5px)",
+                    marginBottom: "5px!important",
+                  }}
+                  orientation={"horizontal"}
+                />
+                <Password
+                  passwordName={"vault_password"}
+                  canGenerateRandom={false}
+                  justRequire={true}
+                  canShowPassword={true}
+                  labelPassword={"Vault Password"}
+                  hidePasswordStrong={true}
+                  errorPassword={wrongPassword ? "Wrong password" : undefined}
+                  containerProps={{
+                    marginTop: "10px!important",
+                    spacing: 0.5,
+                  }}
+                />
+              </>
+            )}
           </FormProvider>
         </Stack>
         <Stack
@@ -566,6 +613,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     passwordRemembered,
     navigate,
     isValidating,
+    onClickAccountExists,
   ]);
 
   return (

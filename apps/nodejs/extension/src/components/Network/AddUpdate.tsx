@@ -22,6 +22,7 @@ import CircularLoading from "../common/CircularLoading";
 import { saveNetwork } from "../../redux/slices/vault";
 import {
   chainIDsByProtocol,
+  labelByChainID,
   labelByProtocolMap,
 } from "../../constants/protocols";
 import OperationFailed from "../common/OperationFailed";
@@ -264,7 +265,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
               >
                 {chainIDs.map((chainID) => (
                   <MenuItem key={chainID} value={chainID}>
-                    {chainID}
+                    {labelByChainID[chainID] || chainID}
                   </MenuItem>
                 ))}
               </TextField>

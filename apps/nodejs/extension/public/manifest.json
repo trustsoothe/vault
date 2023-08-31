@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Keyring Extension",
+  "name": "Soothe Vault",
   "description": "Extension to manage your vault of wallets",
   "version": "0.0.1",
   "action": {
@@ -39,10 +39,9 @@
   },
   "permissions": [
     "storage",
+    "unlimitedStorage",
     "tabs",
-    "offscreen",
-    "scripting",
-    "activeTab"
+    "offscreen"
   ],
   "host_permissions": [
     "<all_urls>"

@@ -10,6 +10,7 @@ import type { FormValues, FromAddressStatus } from "./index";
 import { connect } from "react-redux";
 import React, { useCallback, useEffect, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
+import orderBy from "lodash/orderBy";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
@@ -22,7 +23,7 @@ import AutocompleteAsset from "../Account/AutocompleteAsset";
 import { getAllBalances } from "../../redux/slices/vault";
 import { useAppDispatch } from "../../hooks/redux";
 import AmountHelperText from "./AmountHelperText";
-import { isAddress } from "../../utils";
+import { isAddress, isPrivateKey } from "../../utils";
 import {
   getAddressFromPrivateKey,
   protocolsAreEquals,
@@ -33,9 +34,6 @@ export const isHex = (str: string) => {
 };
 
 export const byteLength = (str: string) => new Blob([str]).size;
-
-//todo: validate private key?
-const isPrivateKey = (str: string) => isHex(str) && byteLength(str) === 128;
 
 interface AccountsAutocompleteProps {
   accounts: RootState["vault"]["entities"]["accounts"]["list"];
@@ -206,8 +204,15 @@ const NetworkAutocompleteFC: React.FC<NetworkAutocompleteProps> = ({
       return [];
     }
 
-    return networks.filter((item) =>
-      protocolsAreEquals(item.protocol, asset.protocol)
+    return orderBy(
+      networks
+        .filter((item) => protocolsAreEquals(item.protocol, asset.protocol))
+        .map((item) => ({
+          ...item,
+          rank: item.isPreferred ? 1 : item.isDefault ? 2 : 3,
+        })),
+      ["rank"],
+      ["asc"]
     );
   }, [networks, asset]);
 
@@ -251,7 +256,13 @@ const NetworkAutocompleteFC: React.FC<NetworkAutocompleteProps> = ({
           spacing={"5px"}
         >
           <Typography fontWeight={600}>{option.rpcUrl}</Typography>
-          <Typography>({option.isDefault ? "Default" : "Custom"})</Typography>
+          <Typography>
+            {option.isDefault
+              ? "(Default)"
+              : option.isPreferred
+              ? "(Preferred)"
+              : ""}
+          </Typography>
         </Stack>
       );
     },
@@ -376,6 +387,9 @@ const AccountStep: React.FC<AccountStepProps> = ({
   }, [fromBalance, setValue, clearErrors, feeFromForm]);
 
   const fromIsAccountSaved = fromAddressStatus === "is_account_saved";
+  const hideBalanceDueWrongPk = formState.errors.from?.message?.includes(
+    "Should be the PK of"
+  );
 
   return (
     <Stack width={1} spacing={"23px"}>
@@ -422,12 +436,12 @@ const AccountStep: React.FC<AccountStepProps> = ({
           label={"Private Key"}
           fullWidth
           autoFocus
+          autoComplete={"off"}
           size={"small"}
           {...register("from", {
             required: "Required",
             validate: async (value, formValues) => {
               if (formValues.fromType === "private_key") {
-                // todo: when fromAddress presented, the private key should be the private key of fromAddress wallet
                 if (!isPrivateKey(value)) {
                   return "Invalid Private Key";
                 }
@@ -575,7 +589,7 @@ const AccountStep: React.FC<AccountStepProps> = ({
                     getBalance={getBalance}
                     disableAll={!!request?.amount}
                     onClickAll={onClickAll}
-                    hideBalance={!asset || !from}
+                    hideBalance={!asset || !from || hideBalanceDueWrongPk}
                     hideFee={true}
                   />
                 )

@@ -172,7 +172,7 @@ const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
                   width={"100%"}
                   itemCount={customNetworks.length}
                   itemSize={75}
-                  height={260}
+                  height={225}
                   itemData={customNetworks}
                 >
                   {({ index, style, data }) => {

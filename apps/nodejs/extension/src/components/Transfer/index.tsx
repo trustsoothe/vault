@@ -321,9 +321,6 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       }
       setSendingStatus("sending");
 
-      // todo: remove when transfer is integrated
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
       const accountId = accounts.find(
         (item) =>
           item.address === data.from &&
@@ -578,19 +575,17 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
           marginTop={"20px!important"}
           width={1}
         >
-          {!(requesterInfo && fromAddressStatus === "is_account_saved") && (
-            <Button
-              fullWidth
-              variant={"outlined"}
-              sx={{
-                height: 30,
-                fontWeight: 600,
-              }}
-              onClick={onClickCancel}
-            >
-              {secondaryBtnText}
-            </Button>
-          )}
+          <Button
+            fullWidth
+            variant={"outlined"}
+            sx={{
+              height: 30,
+              fontWeight: 600,
+            }}
+            onClick={onClickCancel}
+          >
+            {secondaryBtnText}
+          </Button>
           <Button
             fullWidth
             variant={"contained"}

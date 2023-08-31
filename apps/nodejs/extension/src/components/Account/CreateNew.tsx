@@ -169,6 +169,9 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
         {currentRequest && (
           <RequestFrom
             title={"New Account Request from:"}
+            containerProps={{
+              marginTop: "-10px!important",
+            }}
             {...currentRequest}
           />
         )}
@@ -191,23 +194,29 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
             confirmPasswordName={"confirm_password"}
             containerProps={{
               width: 1,
-              marginTop: "5px!important",
-              spacing: "18px",
+              marginTop: "10px!important",
+              spacing: 0.5,
             }}
             inputsContainerProps={{
               spacing: "18px",
             }}
             randomKey={"new-acc"}
           />
-          <Password
-            passwordName={"vault_password"}
-            canGenerateRandom={false}
-            justRequire={true}
-            canShowPassword={true}
-            labelPassword={"Vault Password"}
-            hidePasswordStrong={true}
-            errorPassword={wrongPassword ? "Wrong password" : undefined}
-          />
+          {!passwordRemembered && (
+            <Password
+              passwordName={"vault_password"}
+              canGenerateRandom={false}
+              justRequire={true}
+              canShowPassword={true}
+              labelPassword={"Vault Password"}
+              hidePasswordStrong={true}
+              errorPassword={wrongPassword ? "Wrong password" : undefined}
+              containerProps={{
+                marginTop: "10px!important",
+                spacing: 0.5,
+              }}
+            />
+          )}
         </FormProvider>
         <Stack
           direction={"row"}

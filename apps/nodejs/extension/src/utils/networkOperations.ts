@@ -30,7 +30,11 @@ export const getFee = async (
         errorsPreferredNetwork?.[item.protocol.name]?.[item.protocol.chainID]?.[
           item.id
         ] || 0;
-      return item.isPreferred && errors <= 5;
+      return (
+        item.isPreferred &&
+        protocolsAreEquals(item.protocol, protocol) &&
+        errors <= 5
+      );
     });
 
     if (preferredNetworks.length) {
@@ -85,7 +89,11 @@ export const getAccountBalance = async (
         errorsPreferredNetwork?.[item.protocol.name]?.[item.protocol.chainID]?.[
           item.id
         ] || 0;
-      return item.isPreferred && errors <= 5;
+      return (
+        item.isPreferred &&
+        protocolsAreEquals(item.protocol, protocol) &&
+        errors <= 5
+      );
     });
 
     if (preferredNetworks.length) {
@@ -95,7 +103,6 @@ export const getAccountBalance = async (
 
           const balance = await ProtocolService.getBalance(network, acc);
 
-          //todo: remove / 1e6 later
           return { balance: balance ? balance / 1e6 : 0, networksWithErrors };
         } catch (e) {
           networksWithErrors.push(preferredNetwork.id);
@@ -119,7 +126,6 @@ export const getAccountBalance = async (
 
   const balance = await ProtocolService.getBalance(network, acc);
 
-  //todo: remove / 1e6 later
   return { balance: balance ? balance / 1e6 : 0, networksWithErrors };
 };
 
