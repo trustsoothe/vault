@@ -5,6 +5,6 @@
     "lib": ["es2021", "dom"],
     "outDir": "dist",
     "noEmit": false,
-    "emitDeclarationOnly": true
+    "emitDeclarationOnly": true,
   }
 }
