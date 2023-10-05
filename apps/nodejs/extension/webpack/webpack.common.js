@@ -39,6 +39,16 @@ module.exports = {
       crypto: require.resolve("crypto-browserify"),
       stream: require.resolve("stream-browserify"),
       path: require.resolve("path-browserify"),
+      os: require.resolve("os-browserify/browser"),
+      https: require.resolve("https-browserify"),
+      http: require.resolve("stream-http"),
+      zlib: require.resolve("browserify-zlib"),
+      url: require.resolve("url/"),
+      assert: require.resolve("assert/"),
+      tls: require.resolve("tls-browserify"),
+      querystring: require.resolve("querystring-es3/"),
+      fs: false,
+      net: false,
     },
   },
   plugins: [
@@ -48,6 +58,13 @@ module.exports = {
     }),
     new webpack.ProvidePlugin({
       Buffer: ["buffer", "Buffer"],
+      process: 'process/browser',
     }),
+    new webpack.NormalModuleReplacementPlugin(
+        /^node:/,
+        (resource) => {
+          resource.request = resource.request.replace(/^node:/, '');
+        },
+    ),
   ],
 };

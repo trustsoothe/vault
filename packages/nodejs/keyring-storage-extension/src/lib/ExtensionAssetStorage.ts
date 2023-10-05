@@ -1,4 +1,5 @@
-import {AssetStorage, IStorage, SerializedAsset} from '@poktscan/keyring'
+import {AssetStorage} from '@poktscan/keyring'
+import type {IStorage, SerializedAsset} from '@poktscan/keyring'
 import {GenericExtensionStorage} from './GenericExtensionStorage'
 
 export class ExtensionAssetStorage extends AssetStorage {

@@ -33,12 +33,13 @@ const baseConfig = {
 module.exports = {
   config: baseConfig,
   run: function (options) {
-    if (options === undefined) {
-      options = baseConfig
+    const buildOptions = {
+      ...baseConfig,
+      ...(options || {}),
     }
 
     if (watch === '--watch') {
-      esbuild.context(options).then(function (ctx) {
+      esbuild.context(buildOptions).then(function (ctx) {
         process.on('SIGINT', () => {
           console.log('Build watcher canceled')
           ctx.dispose().then(function () {
@@ -57,7 +58,7 @@ module.exports = {
       })
     } else {
       esbuild
-        .build(options)
+        .build(buildOptions)
         .then(() => {
           console.log('Build Finished')
           process.exit(0)
