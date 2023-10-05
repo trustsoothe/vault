@@ -8,6 +8,9 @@
     "tsconfig.node16.json",
     "esbuild.base.js"
   ],
+  "scripts": {
+    "clean": "rm -rf node_modules"
+  },
   "devDependencies": {
     "eslint": "8.1.0",
     "esbuild": "0.17.8",

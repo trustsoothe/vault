@@ -26,11 +26,8 @@ import {CoinDenom, MsgProtoSend, TxEncoderFactory, TxSignature} from "./pocket-j
 import {PocketNetworkTransferArguments} from "./PocketNetworkTransferArguments";
 import {RawTxRequest} from "@pokt-foundation/pocketjs-types";
 
-
 export class PocketNetworkProtocolService implements IProtocolService<PocketNetworkProtocol> {
-  constructor(private IEncryptionService: IEncryptionService) {
-  }
-
+  constructor(private IEncryptionService: IEncryptionService) {}
   async createAccount(options: CreateAccountOptions): Promise<Account> {
     if (!options.asset) {
       throw new ArgumentError('options.asset');
@@ -54,7 +51,7 @@ export class PocketNetworkProtocolService implements IProtocolService<PocketNetw
       asset: options.asset,
       name: options.name,
       address,
-      publicKey: Buffer.from(publicKey).toString('hex'),
+      publicKey: Buffer.from(publicKey).toString("hex"),
       privateKey: finalPrivateKey,
     })
   }
@@ -286,22 +283,26 @@ export class PocketNetworkProtocolService implements IProtocolService<PocketNetw
     });
   }
 
-  private getPublicKeyFromPrivateKey(privateKey: string): string {
-    return privateKey.slice(64, privateKey.length)
+  public async getAddressFromPrivateKey(privateKey: string): Promise<string> {
+    const publicKey = this.getPublicKeyFromPrivateKey(privateKey);
+
+    return this.getAddressFromPublicKey(publicKey);
   }
 
-  private async getAddressFromPublicKey(
-    publicKey: string
-  ): Promise<string> {
+  private getPublicKeyFromPrivateKey(privateKey: string): string {
+    return privateKey.slice(64, privateKey.length);
+  }
+
+  private async getAddressFromPublicKey(publicKey: string): Promise<string> {
     // @ts-ignore
     const hash = await globalThis.crypto.subtle.digest(
       {
-        name: 'SHA-256',
+        name: "SHA-256",
       },
       this.hexStringToByteArray(publicKey)
-    )
+    );
 
-    return fromUint8Array(new Uint8Array(hash)).slice(0, 40)
+    return fromUint8Array(new Uint8Array(hash)).slice(0, 40);
   }
 
   private  hexStringToByteArray(str: string): Uint8Array {

@@ -21,8 +21,6 @@ export type {
   IVaultStore,
   IStorage,
   IEntity,
-}
+};
 
-export {
-  EncryptionServiceSpecFactory
-}
+export { EncryptionServiceSpecFactory };

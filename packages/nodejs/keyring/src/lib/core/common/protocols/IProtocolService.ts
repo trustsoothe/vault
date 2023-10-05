@@ -1,7 +1,7 @@
-import {Account} from "../../vault";
-import {AccountReference, Passphrase} from "../values";
-import {Asset} from "../../asset";
-import {Network} from "../../network";
+import { Account } from "../../vault";
+import { AccountReference, Passphrase } from "../values";
+import { Asset } from "../../asset";
+import { Network } from "../../network";
 import {Protocol} from "../Protocol";
 import {IProtocolTransferArguments} from "../IProtocolTransferArguments";
 
@@ -39,4 +39,5 @@ export interface IProtocolService<T extends Protocol> {
   updateNetworkStatus(network: Network): Promise<Network>
   getFee(network: Network): Promise<number>
   getBalance(network: Network, account: AccountReference): Promise<number>
+  getAddressFromPrivateKey(privateKey: string): Promise<string>
 }

@@ -1,0 +1,665 @@
+import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
+import type {
+  SerializedAccountReference,
+  SerializedAsset,
+  SerializedNetwork,
+} from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
+import type { ExternalTransferRequest } from "../../types/communication";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { connect } from "react-redux";
+import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+import { FormProvider, useForm } from "react-hook-form";
+import {
+  SupportedProtocols,
+  SupportedTransferDestinations,
+  SupportedTransferOrigins,
+} from "@poktscan/keyring";
+import RequestFrom from "../common/RequestFrom";
+import CircularLoading from "../common/CircularLoading";
+import AppToBackground from "../../controllers/communication/AppToBackground";
+import AccountStep from "./AccountStep";
+import OperationFailed from "../common/OperationFailed";
+import { getAssetByProtocol, isAddress, isPrivateKey } from "../../utils";
+import {
+  getAddressFromPrivateKey,
+  isTransferHealthyForNetwork,
+  protocolsAreEquals,
+} from "../../utils/networkOperations";
+import { useAppDispatch } from "../../hooks/redux";
+import { getAccountBalance, getProtocolFee } from "../../redux/slices/vault";
+import SummaryStep from "./Summary/Step";
+import TransferSubmittedStep from "./TransferSubmitted";
+import { DetailComponent } from "../Account/AccountDetail";
+
+export interface FormValues {
+  fromType: "saved_account" | "private_key";
+  from: string;
+  toAddress: string;
+  amount: string;
+  memo?: string;
+  asset: SerializedAsset | null;
+  network: SerializedNetwork | null;
+  accountPassword: string;
+  fee: string;
+}
+
+interface TransferProps {
+  accounts: SerializedAccountReference[];
+  assets: SerializedAsset[];
+  networks: SerializedNetwork[];
+}
+
+type Status =
+  | "loading"
+  | "error"
+  | "setData"
+  | "summary"
+  | "submitted"
+  | "invalid_network";
+
+export type FromAddressStatus = "is_account_saved" | "private_key_required";
+
+const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const requesterInfo: ExternalTransferRequest = location.state;
+  const [searchParams] = useSearchParams();
+  const previousAsset = useRef<string>(null);
+
+  const [status, setStatus] = useState<Status>("loading");
+  const [transferHash, setTransferHash] = useState<string>(null);
+  const [sendingStatus, setSendingStatus] = useState<
+    "check_network" | "sending"
+  >(null);
+  const methods = useForm<FormValues>({
+    mode: "onChange",
+    defaultValues: {
+      fromType: "saved_account",
+      asset: null,
+      network: null,
+      memo: "",
+      from: "",
+      toAddress: "",
+      amount: "",
+      fee: "",
+      accountPassword: "",
+    },
+  });
+  const {
+    control,
+    watch,
+    register,
+    setValue,
+    clearErrors,
+    handleSubmit,
+    formState,
+    setFocus,
+  } = methods;
+
+  const [fromAddressStatus, setFromAddressStatus] =
+    useState<FromAddressStatus>(null);
+  const [accountFromAddress, setAccountFromAddress] =
+    useState<SerializedAccountReference>(null);
+  const [fromType, from, asset, accountPassword] = watch([
+    "fromType",
+    "from",
+    "asset",
+    "accountPassword",
+  ]);
+  const [wrongPassword, setWrongPassword] = useState(false);
+
+  useEffect(() => {
+    if (wrongPassword) {
+      setWrongPassword(false);
+    }
+  }, [accountPassword]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const statusToSet =
+        requesterInfo && fromAddressStatus === "is_account_saved"
+          ? "summary"
+          : "setData";
+      setStatus(statusToSet);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [fromAddressStatus, requesterInfo]);
+
+  useEffect(() => {
+    setValue("from", "");
+    setValue("amount", "");
+    setValue("fee", "");
+    setValue("accountPassword", "");
+    setValue("network", null);
+    clearErrors("from");
+    clearErrors("amount");
+    clearErrors("fee");
+    clearErrors("accountPassword");
+    clearErrors("network");
+
+    if (fromType === "private_key" && requesterInfo?.protocol) {
+      const asset = getAssetByProtocol(assets, requesterInfo.protocol);
+
+      if (asset) {
+        setValue("asset", asset);
+      }
+    } else {
+      setValue("asset", null);
+    }
+
+    clearErrors("asset");
+  }, [fromType]);
+
+  useEffect(() => {
+    if (from && isAddress(from) && fromType === "saved_account") {
+      const account = accounts.find((value) => value.address === from);
+
+      if (account) {
+        const asset = getAssetByProtocol(assets, account.protocol);
+
+        setValue("asset", asset || null);
+      }
+    }
+  }, [from]);
+
+  useEffect(() => {
+    if (asset) {
+      const preferred = networks.find(
+        (item) =>
+          protocolsAreEquals(item.protocol, asset.protocol) && item.isPreferred
+      );
+      const networkToSelect = networks.find(
+        (item) =>
+          protocolsAreEquals(item.protocol, asset.protocol) && item.isDefault
+      );
+
+      if (networkToSelect) {
+        setValue("network", preferred || networkToSelect);
+      }
+    }
+  }, [asset, networks]);
+
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [fromBalance, setFromBalance] = useState<number>(null);
+  const [errorBalance, setErrorBalance] = useState(false);
+
+  const getFromBalance = useCallback(async () => {
+    if (from && asset && (isAddress(from) || isPrivateKey(from))) {
+      setIsLoadingBalance(true);
+      let address: string;
+      if (isPrivateKey(from)) {
+        address = await getAddressFromPrivateKey(from, asset.protocol);
+      } else {
+        address = from;
+      }
+      dispatch(getAccountBalance({ address, protocol: asset.protocol }))
+        .unwrap()
+        .then((result) => {
+          if (result) {
+            setFromBalance(result.amount);
+            setErrorBalance(false);
+          }
+        })
+        .catch(() => setErrorBalance(true))
+        .finally(() => setIsLoadingBalance(false));
+    } else {
+      setFromBalance(null);
+    }
+  }, [from, dispatch, fromType, asset]);
+
+  useEffect(() => {
+    getFromBalance();
+  }, [getFromBalance]);
+
+  const [isLoadingFee, setIsLoadingFee] = useState<boolean>(false);
+  const [assetFee, setAssetFee] = useState<number>(null);
+  const [errorFee, setErrorFee] = useState(false);
+
+  const getAssetFee = useCallback(() => {
+    if (asset?.id && asset.id !== previousAsset.current) {
+      previousAsset.current = asset.id;
+      setIsLoadingFee(true);
+      dispatch(getProtocolFee(asset.protocol))
+        .unwrap()
+        .then((result) => {
+          setAssetFee(result.fee);
+          setValue("fee", result.fee.toString());
+          setErrorFee(false);
+        })
+        .catch(() => setErrorFee(true))
+        .finally(() => setIsLoadingFee(false));
+    } else if (!asset) {
+      setAssetFee(null);
+    }
+  }, [asset, networks, dispatch]);
+
+  useEffect(() => {
+    getAssetFee();
+  }, [getAssetFee]);
+
+  const fromInfo = useMemo(() => {
+    return {
+      fromAddress:
+        searchParams?.get("fromAddress") || requesterInfo?.fromAddress,
+      protocol: searchParams?.get("protocol") || requesterInfo?.protocol?.name,
+      chainID: searchParams?.get("chainID") || requesterInfo?.protocol?.chainID,
+    };
+  }, [searchParams, requesterInfo]);
+
+  useEffect(() => {
+    const { fromAddress: address, protocol, chainID } = fromInfo;
+
+    if (address) {
+      const account = accounts.find(
+        (account) =>
+          account.address === address &&
+          account.protocol.name === protocol &&
+          account.protocol.chainID === chainID
+      );
+      if (account) {
+        setValue("from", address);
+        setFromAddressStatus("is_account_saved");
+        setAccountFromAddress(account);
+      } else {
+        setValue("fromType", "private_key");
+        setFromAddressStatus("private_key_required");
+      }
+    } else {
+      setFromAddressStatus(null);
+    }
+  }, [accounts, fromInfo]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (requesterInfo) {
+        setValue("amount", requesterInfo.amount.toString());
+        setValue("toAddress", requesterInfo.toAddress);
+        if (requesterInfo.memo) {
+          setValue("memo", requesterInfo.memo);
+        }
+
+        if (requesterInfo.fee) {
+          setValue("fee", requesterInfo.fee.toString());
+        }
+
+        if (fromAddressStatus === "is_account_saved") {
+          setStatus("summary");
+        }
+      }
+    }, 100);
+  }, [requesterInfo]);
+
+  const onSubmit = useCallback(
+    async (data: FormValues) => {
+      if (isLoadingFee || isLoadingBalance || errorFee || errorBalance) return;
+
+      if (status === "setData") {
+        setStatus("summary");
+        return;
+      }
+
+      setStatus("loading");
+      setSendingStatus("check_network");
+      const isHealthy = await isTransferHealthyForNetwork(data.network);
+
+      if (!isHealthy) {
+        setStatus("invalid_network");
+        setSendingStatus(null);
+        return;
+      }
+      setSendingStatus("sending");
+
+      const accountId = accounts.find(
+        (item) =>
+          item.address === data.from &&
+          protocolsAreEquals(item.protocol, data.asset.protocol)
+      )?.id;
+
+      const response = await AppToBackground.sendRequestToAnswerTransfer({
+        rejected: false,
+        transferData: {
+          amount: Number(data.amount),
+          from: {
+            type:
+              data.fromType === "private_key"
+                ? SupportedTransferOrigins.RawPrivateKey
+                : SupportedTransferOrigins.VaultAccountId,
+            passphrase: data.accountPassword,
+            asset: data.asset,
+            value: data.fromType === "private_key" ? data.from : accountId,
+          },
+          network: data.network,
+          to: {
+            type: SupportedTransferDestinations.RawAddress,
+            value: data.toAddress,
+          },
+          transferArguments: {
+            chainID: data.asset.protocol
+              .chainID as ChainID<SupportedProtocols.Pocket>,
+            memo: data.memo,
+            fee: Number(data.fee),
+          },
+        },
+        request: requesterInfo,
+      });
+
+      if (response.error) {
+        setStatus("error");
+      } else {
+        if (response?.data?.isPasswordWrong) {
+          setWrongPassword(true);
+          setStatus("summary");
+        } else {
+          if (response.data && response.data.hash) {
+            setTransferHash(response.data.hash);
+            setStatus("submitted");
+          } else {
+            setStatus("setData");
+          }
+        }
+      }
+      setSendingStatus(null);
+    },
+    [
+      requesterInfo,
+      status,
+      errorFee,
+      errorBalance,
+      isLoadingFee,
+      isLoadingBalance,
+      accounts,
+    ]
+  );
+
+  const onClickOk = useCallback(() => {
+    setStatus("setData");
+    setValue("network", null);
+    setTimeout(() => setFocus("network"), 25);
+  }, [setFocus, setValue]);
+
+  const onClickCancel = useCallback(async () => {
+    if (status === "summary") {
+      setStatus("setData");
+      return;
+    }
+
+    if (requesterInfo) {
+      await AppToBackground.sendRequestToAnswerTransfer({
+        rejected: true,
+        transferData: null,
+        request: requesterInfo,
+      });
+    } else {
+      if (location.key !== "default") {
+        navigate(-1);
+      } else {
+        navigate("/");
+      }
+    }
+  }, [requesterInfo, status, navigate]);
+
+  const content = useMemo(() => {
+    if (status === "loading") {
+      let text: string;
+      if (sendingStatus === "check_network") {
+        text = "Checking RPC...";
+      } else if (sendingStatus === "sending") {
+        text = "Packing and sending...";
+      }
+      return <CircularLoading text={text} />;
+    }
+
+    if (status === "error") {
+      return (
+        <OperationFailed
+          text={"There was an error sending the transaction."}
+          onCancel={onClickCancel}
+        />
+      );
+    }
+
+    if (status === "invalid_network") {
+      return (
+        <OperationFailed
+          text={
+            "The provided network is unhealthy at the moment. Please select another one."
+          }
+          onCancel={onClickCancel}
+          retryBtnText={"Ok"}
+          retryBtnProps={{
+            type: "button",
+          }}
+          onRetry={onClickOk}
+        />
+      );
+    }
+
+    if (status === "submitted") {
+      return (
+        <>
+          <TransferSubmittedStep
+            fromBalance={fromBalance}
+            hash={transferHash}
+          />
+          <Button
+            fullWidth
+            variant={"contained"}
+            sx={{
+              height: 30,
+              width: 120,
+              marginTop: 0.5,
+              backgroundColor: "rgb(29, 138, 237)",
+              fontWeight: 600,
+            }}
+            onClick={() => navigate("/")}
+          >
+            Accept
+          </Button>
+        </>
+      );
+    }
+
+    const settingAccount = status === "setData";
+
+    const component = settingAccount ? (
+      <AccountStep
+        fromAddressStatus={fromAddressStatus}
+        fromAddress={fromInfo.fromAddress}
+        fee={assetFee}
+        isLoadingFee={isLoadingFee}
+        fromBalance={fromBalance}
+        isLoadingBalance={isLoadingBalance}
+        request={requesterInfo}
+        errorBalance={errorBalance}
+        errorFee={errorFee}
+        getBalance={getFromBalance}
+        getFee={getAssetFee}
+      />
+    ) : (
+      <SummaryStep fromBalance={fromBalance} wrongPassword={wrongPassword} />
+    );
+
+    const secondaryBtnText = settingAccount ? "Cancel" : "Back";
+    const primaryBtnText = settingAccount ? "Continue" : "Send";
+
+    return (
+      <>
+        {requesterInfo && (
+          <RequestFrom
+            title={"Transfer Request from:"}
+            origin={requesterInfo.origin}
+            faviconUrl={requesterInfo.faviconUrl}
+            containerProps={{
+              spacing: 0,
+              mt: 0.5,
+            }}
+          />
+        )}
+        <Stack
+          flexGrow={1}
+          sx={{
+            overflowY:
+              requesterInfo && fromAddressStatus === "is_account_saved"
+                ? undefined
+                : "auto",
+            marginRight: -1,
+            paddingRight: 1,
+            position: "relative",
+
+            boxSizing: "border-box",
+          }}
+          width={"calc(100% + 10px)"}
+        >
+          {fromAddressStatus === "is_account_saved" &&
+            accountFromAddress?.address === from &&
+            status === "setData" && (
+              <>
+                <Typography
+                  sx={{
+                    fontSize: 14,
+                    transform: "scale(0.75)",
+                    color: "rgba(0, 0, 0, 0.6)",
+                    position: "absolute",
+                    left: 5,
+                    top: -1,
+                    zIndex: 2,
+                    backgroundColor: "white",
+                    paddingX: "7px",
+                  }}
+                >
+                  From
+                </Typography>
+                <Stack
+                  sx={{
+                    border: "1px solid lightgray",
+                    padding: 0.5,
+                    boxSizing: "border-box",
+                    borderRadius: "6px",
+                    width: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                  marginTop={1}
+                >
+                  <DetailComponent
+                    account={accountFromAddress}
+                    hideCopy={true}
+                    containerProps={{
+                      my: "0px!important",
+                      sx: {
+                        transform: "scale(0.9)",
+                        width: 1,
+                      },
+                    }}
+                  />
+                </Stack>
+              </>
+            )}
+          {component}
+        </Stack>
+        <Stack
+          direction={"row"}
+          spacing={"15px"}
+          marginTop={"20px!important"}
+          width={1}
+        >
+          <Button
+            fullWidth
+            variant={"outlined"}
+            sx={{
+              height: 30,
+              fontWeight: 600,
+            }}
+            onClick={onClickCancel}
+          >
+            {secondaryBtnText}
+          </Button>
+          <Button
+            fullWidth
+            variant={"contained"}
+            sx={{
+              height: 30,
+              backgroundColor: "rgb(29, 138, 237)",
+              fontWeight: 600,
+            }}
+            disabled={errorFee || errorBalance}
+            type={"submit"}
+          >
+            {primaryBtnText}
+          </Button>
+        </Stack>
+      </>
+    );
+  }, [
+    accountFromAddress,
+    wrongPassword,
+    onClickOk,
+    status,
+    register,
+    control,
+    onClickCancel,
+    formState,
+    requesterInfo,
+    isLoadingBalance,
+    fromBalance,
+    isLoadingFee,
+    assetFee,
+    fromAddressStatus,
+    fromInfo,
+    fromType,
+    accounts,
+    navigate,
+    errorBalance,
+    errorFee,
+    getFromBalance,
+    getAssetFee,
+    transferHash,
+    sendingStatus,
+  ]);
+
+  return (
+    <FormProvider {...methods}>
+      <Stack
+        width={1}
+        height={1}
+        maxWidth={1}
+        boxSizing={"border-box"}
+        component={"form"}
+        onSubmit={handleSubmit(onSubmit)}
+        justifyContent={
+          ["setData", "summary", "submitted"].includes(status)
+            ? "flex-start"
+            : "center"
+        }
+        alignItems={"center"}
+        marginTop={
+          ["setData", "summary", "submitted"].includes(status)
+            ? "10px"
+            : undefined
+        }
+      >
+        {content}
+      </Stack>
+    </FormProvider>
+  );
+};
+
+const mapStateToProps = (state: RootState) => ({
+  accounts: state.vault.entities.accounts.list,
+  assets: state.vault.entities.assets.list,
+  networks: state.vault.entities.networks.list,
+});
+
+export default connect(mapStateToProps)(Transfer);

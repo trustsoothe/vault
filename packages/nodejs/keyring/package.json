@@ -1,12 +1,16 @@
 {
   "name": "@poktscan/keyring",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Universal Crypto Wallet Manager",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "repository": "git@github.com/pokt-scan/keyring.git",
   "author": "Julio Henriquez <julio@poktscan.com>",
+  "types": "dist/index.d.ts",
+  "main": "dist/index.js",
   "license": "UNLICENSED",
+  "browser": {
+    "types": "dist/index.d.ts",
+    "default": "dist/index.js"
+  },
   "private": true,
   "scripts": {
     "test": "vitest",
@@ -22,6 +26,10 @@
     "@types/node": "20.4.5",
     "@types/uuid": "9.0.1",
     "@types/varint": "6.0.1",
+    "bufferutil": "4.0.7",
+    "process": "0.11.10",
+    "utf-8-validate": "6.0.3",
+    "web3-eth": "4.2.1-dev.80986bb.0",
     "vitest": "0.32.0"
   },
   "dependencies": {
@@ -30,10 +38,10 @@
     "hex-lite": "1.5.0",
     "lodash": "4.17.21",
     "protobufjs": "7.2.4",
-    "url-join": "^5.0.0",
+    "url-join": "5.0.0",
     "uuid": "9.0.0",
     "varint": "6.0.0",
-    "zod": "^3.21.4"
+    "zod": "3.21.4"
   },
   "peerDependencies": {
     "vitest": "0.32.0"
