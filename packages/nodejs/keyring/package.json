@@ -16,7 +16,7 @@
     "test": "vitest",
     "ci:test": "vitest run",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
-    "typecheck": "tsc src/index.ts --noEmit --moduleResolution node --target ES6 --allowSyntheticDefaultImports",
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit --moduleResolution node --target ES6 --allowSyntheticDefaultImports",
     "lint": "eslint .",
     "lint:fix": "yarn lint --fix",
     "build": "node esbuild.js && tsc -p tsconfig.json"
