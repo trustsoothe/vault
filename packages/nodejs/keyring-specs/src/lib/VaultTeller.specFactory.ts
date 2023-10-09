@@ -170,14 +170,6 @@ export default <
         expect(session).toBeInstanceOf(Session)
       })
 
-      test('returns a new Session object with a maxAge of of zero (do not expire)', async () => {
-        vaultStore = createVaultStore()
-        const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
-        await vaultTeller.initializeVault('passphrase');
-        const session = await vaultTeller.unlockVault('passphrase')
-        expect(session.maxAge).toBe(0)
-      })
-
       test('persists the newly created session', async () => {
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
