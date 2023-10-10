@@ -3,7 +3,7 @@ import ProtocolServiceSpecFactory from '../IProtocolService.specFactory';
 import {
   Asset,
   PocketNetworkProtocolService,
-  IEncryptionService, PocketNetworkProtocol, ArgumentError, Passphrase
+  IEncryptionService, PocketNetworkProtocol, ArgumentError, Passphrase, Network, AccountReference
 } from "@poktscan/keyring";
 
 // @ts-ignore
@@ -16,11 +16,28 @@ describe('PocketNetworkProtocolService', () => {
     symbol: 'POKT'
   })
 
+  const network = new Network({
+    name: 'test',
+    rpcUrl: 'http://localhost:8080',
+    protocol: asset.protocol,
+  })
+
+  const account =
+    new AccountReference(
+      'account-id',
+      'test-account',
+      'test-address',
+      asset.protocol,
+    );
+
   const encryptionService: IEncryptionService = new WebEncryptionService();
   const protocolService = new PocketNetworkProtocolService(encryptionService);
   const passphrase = new Passphrase('passphrase')
 
-  ProtocolServiceSpecFactory<PocketNetworkProtocolService>(() => protocolService, asset)
+  ProtocolServiceSpecFactory<PocketNetworkProtocolService>(
+    () => protocolService,
+    { asset, network, account }
+  )
 
   describe('Account Creation and Import - Pocket Network', () => {
     const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'

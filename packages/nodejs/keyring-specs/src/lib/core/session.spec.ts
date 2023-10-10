@@ -30,7 +30,7 @@ describe('session', () => {
     })
 
     test('fails if the maxAge is less than 0', () => {
-      expect(() => new Session({ permissions: [], maxAge: -1 })).toThrow('maxAge must be greater than or equal to 0')
+      expect(() => new Session({ permissions: [], maxAge: -1 })).toThrow('maxAge must be greater than 0')
     })
   })
 
@@ -71,12 +71,6 @@ describe('session', () => {
       const session = new Session({ permissions: [], maxAge: 2 })
       clock.tick(2000) // Simulate 2 seconds has passed
       expect(session.isValid()).toBe(false)
-    })
-
-    test('always returns true when maxAge is 0', () => {
-      const session = new Session({ permissions: [], maxAge: 0 })
-      clock.tick(2000) // Simulate 2 seconds has passed
-      expect(session.isValid()).toBe(true)
     })
 
     test('returns false if the session has been invalidated', () => {

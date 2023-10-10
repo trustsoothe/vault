@@ -4,14 +4,13 @@ import {
   Passphrase,
   IProtocolService,
   Network,
-  PocketNetworkProtocol,
   AccountReference,
   ArgumentError,
   NetworkRequestError,
+  Protocol,
 } from "@poktscan/keyring";
 import { webcrypto } from 'node:crypto';
 import {MockServerFactory} from "../../../../mocks/mock-server-factory";
-import {Protocol} from "@poktscan/keyring/dist/lib/core/common/Protocol";
 
 /**
  * This workaround is required by the '@noble/ed25519' library. See: https://github.com/paulmillr/noble-ed25519#usage
@@ -23,14 +22,16 @@ if (!globalThis.crypto) {
   globalThis.crypto = webcrypto;
 }
 
-export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: () => T, asset: Asset) => {
+export interface IProtocolServiceSpecFactoryOptions {
+  asset: Asset
+  network: Network
+  account: AccountReference
+}
+
+export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: () => T, options: IProtocolServiceSpecFactoryOptions) => {
+  const {asset, network: exampleNetwork} = options
   let protocolService: T
   const passphrase = new Passphrase('passphrase')
-  const pocketTestnet: Network = new Network({
-    name: 'test',
-    rpcUrl: 'http://localhost:8080',
-    protocol: new PocketNetworkProtocol('testnet'),
-  })
 
   beforeEach(() => {
     protocolService = TProtocolServiceCreator()
@@ -59,13 +60,7 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
   })
 
   describe('getBalance', () => {
-    const exampleAccountRef =
-      new AccountReference(
-        'account-id',
-        'test-account',
-        'test-address',
-        new PocketNetworkProtocol('testnet')
-      );
+    const {account: exampleAccountRef} = options
 
     describe('validations', () => {
       test('throws if undefined is provided as the network', () => {
@@ -85,7 +80,7 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
     })
 
     describe('Successful requests', () => {
-      const server = MockServerFactory.getSuccessMockServer(pocketTestnet)
+      const server = MockServerFactory.getSuccessMockServer(exampleNetwork)
 
       beforeAll(() => server.listen());
 
@@ -94,13 +89,13 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
       afterAll(() => server.close());
 
       test('returns the balance of the account', async () => {
-        const balance = await protocolService.getBalance(pocketTestnet, exampleAccountRef)
+        const balance = await protocolService.getBalance(exampleNetwork, exampleAccountRef)
         expect(balance).toBe(200)
       })
     })
 
     describe('Unsuccessful requests', () => {
-      const server = MockServerFactory.getFailureMockServer(pocketTestnet)
+      const server = MockServerFactory.getFailureMockServer(exampleNetwork)
 
       beforeAll(() => server.listen());
 
@@ -109,7 +104,7 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
       afterAll(() => server.close());
 
       test('throws a request error if request fails', () => {
-        return expect(protocolService.getBalance(pocketTestnet, exampleAccountRef)).rejects.toThrow(NetworkRequestError)
+        return expect(protocolService.getBalance(exampleNetwork, exampleAccountRef)).rejects.toThrow(NetworkRequestError)
       })
     })
   })
@@ -133,7 +128,7 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
       })
 
       describe('Successful requests', () => {
-        const server = MockServerFactory.getSuccessMockServer(pocketTestnet)
+        const server = MockServerFactory.getSuccessMockServer(exampleNetwork)
 
         beforeAll(() => server.listen());
 
@@ -142,13 +137,13 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
         afterAll(() => server.close());
 
         test('returns the fee of the network', async () => {
-          const fee = await protocolService.getFee(pocketTestnet)
+          const fee = await protocolService.getFee(exampleNetwork)
           expect(fee).toBe(0.01)
         })
       })
 
       describe('Unsuccessful requests', () => {
-        const server = MockServerFactory.getFailureMockServer(pocketTestnet)
+        const server = MockServerFactory.getFailureMockServer(exampleNetwork)
 
         beforeAll(() => server.listen());
 
@@ -157,7 +152,7 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
         afterAll(() => server.close());
 
         test('throws a request error if request fails', () => {
-          return expect(protocolService.getFee(pocketTestnet)).rejects.toThrow(NetworkRequestError)
+          return expect(protocolService.getFee(exampleNetwork)).rejects.toThrow(NetworkRequestError)
         })
       })
   })
@@ -180,7 +175,7 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
     })
 
     describe('Successful requests', () => {
-      const server = MockServerFactory.getSuccessMockServer(pocketTestnet)
+      const server = MockServerFactory.getSuccessMockServer(exampleNetwork)
 
       beforeAll(() => server.listen());
 
@@ -189,21 +184,21 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
       afterAll(() => server.close());
 
       test('updates the fee status', async () => {
-        const network = await protocolService.updateNetworkStatus(pocketTestnet)
+        const network = await protocolService.updateNetworkStatus(exampleNetwork)
         expect(network.status.canProvideFee).toBe(true)
         expect(network.status.feeStatusLastUpdated).toBeDefined()
         expect(network.status.feeStatusLastUpdated).closeTo(Date.now(), 1000)
       })
 
       test('updates the balance status', async () => {
-        const network = await protocolService.updateNetworkStatus(pocketTestnet)
+        const network = await protocolService.updateNetworkStatus(exampleNetwork)
         expect(network.status.canProvideBalance).toBe(true)
         expect(network.status.balanceStatusLastUpdated).toBeDefined()
         expect(network.status.balanceStatusLastUpdated).closeTo(Date.now(), 1000)
       })
 
       test('updates the send transaction status', async () => {
-        const network = await protocolService.updateNetworkStatus(pocketTestnet)
+        const network = await protocolService.updateNetworkStatus(exampleNetwork)
         expect(network.status.canSendTransaction).toBe(true)
         expect(network.status.sendTransactionStatusLastUpdated).toBeDefined()
         expect(network.status.sendTransactionStatusLastUpdated).closeTo(Date.now(), 1000)
