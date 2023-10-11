@@ -26,6 +26,11 @@ export interface IProtocolServiceSpecFactoryOptions {
   asset: Asset
   network: Network
   account: AccountReference
+  accountImport: {
+    privateKey: string
+    publicKey: string
+    address: string
+  }
 }
 
 export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: () => T, options: IProtocolServiceSpecFactoryOptions) => {
@@ -203,6 +208,42 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
         expect(network.status.sendTransactionStatusLastUpdated).toBeDefined()
         expect(network.status.sendTransactionStatusLastUpdated).closeTo(Date.now(), 1000)
       })
+    })
+  })
+
+  describe('createAccountFromPrivateKey', () => {
+    const {accountImport} = options
+    test('throws if an asset instance is not provided', async () => {
+      // @ts-ignore
+      await expect(protocolService.createAccountFromPrivateKey({ asset: undefined, passphrase })).rejects.toThrow(ArgumentError)
+    })
+
+    test('throws if a passphrase is not provided', async () => {
+      // @ts-ignore
+      await expect(protocolService.createAccountFromPrivateKey({ asset, passphrase: undefined })).rejects.toThrow(ArgumentError)
+    })
+
+    test('throws if a private key is not provided', async () => {
+      // @ts-ignore
+      await expect(protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: undefined })).rejects.toThrow(ArgumentError)
+    })
+
+    test('derives the correct public key for the account', async () => {
+      const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: accountImport.privateKey })
+      expect(account).toBeDefined()
+      expect(account.publicKey).toBe(accountImport.publicKey)
+    })
+
+    test('derives the correct address for the account', async () => {
+      const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: accountImport.privateKey })
+      expect(account).toBeDefined()
+      expect(account.address).toBe(accountImport.address)
+    })
+
+    test('encrypts the private key with the passphrase', async () => {
+      const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: accountImport.privateKey })
+      expect(account).toBeDefined()
+      expect(account.privateKey).not.toBe(accountImport.privateKey)
     })
   })
 }

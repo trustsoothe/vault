@@ -38,7 +38,7 @@ import { RawTxRequest } from "@pokt-foundation/pocketjs-types";
 export class PocketNetworkProtocolService
   implements IProtocolService<PocketNetworkProtocol>
 {
-  constructor(private IEncryptionService: IEncryptionService) {}
+  constructor(private encryptionService: IEncryptionService) {}
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
     if (!options.asset) {
@@ -60,7 +60,7 @@ export class PocketNetworkProtocolService
     let finalPrivateKey = privateKey;
 
     if (options.passphrase) {
-      finalPrivateKey = await this.IEncryptionService.encrypt(
+      finalPrivateKey = await this.encryptionService.encrypt(
         options.passphrase,
         privateKey
       );
@@ -94,7 +94,7 @@ export class PocketNetworkProtocolService
     const address = await this.getAddressFromPublicKey(publicKey);
     let finalPrivateKey = options.privateKey;
     if (options.passphrase) {
-      finalPrivateKey = await this.IEncryptionService.encrypt(
+      finalPrivateKey = await this.encryptionService.encrypt(
         options.passphrase,
         options.privateKey
       );
@@ -198,10 +198,10 @@ export class PocketNetworkProtocolService
   ): Promise<number> {
     this.validateNetwork(network);
 
-    const url = urlJoin(network.rpcUrl, "v1/query/balance");
+    const url = urlJoin(network.rpcUrl, 'v1/query/balance')
 
     const response = await globalThis.fetch(url, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({
         address: account.address,
       }),
@@ -278,7 +278,6 @@ export class PocketNetworkProtocolService
 
     const url = urlJoin(network.rpcUrl, "v1/client/rawtx");
 
-    debugger;
     const response = await globalThis.fetch(url, {
       method: "POST",
       body: JSON.stringify(rawTx.toJSON()),

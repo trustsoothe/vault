@@ -1,28 +1,88 @@
 import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
-  IProtocolService, ITransferFundsResult,
-  TransferFundsOptions
+  IProtocolService,
+  ITransferFundsResult,
+  TransferFundsOptions,
 } from "../IProtocolService";
 import {EthereumNetworkProtocol} from "./EthereumNetworkProtocol";
 import {Account} from "../../../vault";
 import {AccountReference} from "../../values";
 import {Network} from "../../../network";
 import Eth from 'web3-eth'
+import {
+  create,
+  privateKeyToPublicKey,
+  privateKeyToAccount,
+  privateKeyToAddress,
+  parseAndValidatePrivateKey
+} from 'web3-eth-accounts';
 import {ArgumentError, NetworkRequestError} from "../../../../errors";
+import {IEncryptionService} from "../../encryption/IEncryptionService";
 
 export class EthereumNetworkProtocolService implements IProtocolService<EthereumNetworkProtocol> {
+  constructor(private encryptionService: IEncryptionService) {}
 
-  createAccount(options: CreateAccountOptions): Promise<Account> {
-    throw new Error('Not Implemented')
+  async createAccount(options: CreateAccountOptions): Promise<Account> {
+    if (!options.asset) {
+      throw new ArgumentError('options.asset')
+    }
+
+    if (!options.passphrase && !options.skipEncryption) {
+      throw new ArgumentError('options.passphrase')
+    }
+
+    const account = create()
+
+    let privateKey = account.privateKey
+
+    if (options.passphrase) {
+      privateKey = await this.encryptionService.encrypt(options.passphrase, privateKey)
+    }
+
+    return new Account({
+      asset: options.asset,
+      name: options.name || '',
+      address: account.address,
+      publicKey: privateKeyToPublicKey(account.privateKey, false),
+      privateKey,
+    })
   }
 
-  createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
-    throw new Error('Not Implemented')
+  async createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
+    if (!options.asset) {
+      throw new ArgumentError('options.asset');
+    }
+
+    if (!options.passphrase && !options.skipEncryption) {
+      throw new ArgumentError('options.passphrase');
+    }
+
+    if (!options.privateKey) {
+      throw new ArgumentError('options.privateKey');
+    }
+
+    const rawPrivateKey = this.parsePrivateKey(options.privateKey)
+
+    const account = privateKeyToAccount(rawPrivateKey)
+
+    let privateKey = rawPrivateKey
+
+    if (options.passphrase) {
+      privateKey = await this.encryptionService.encrypt(options.passphrase, privateKey)
+    }
+
+    return new Account({
+      asset: options.asset,
+      name: options.name || '',
+      address: account.address,
+      publicKey: privateKeyToPublicKey(account.privateKey, false),
+      privateKey,
+    })
   }
 
-  getAddressFromPrivateKey(privateKey: string): Promise<string> {
-    return Promise.resolve("");
+  async getAddressFromPrivateKey(privateKey: string): Promise<string> {
+    return privateKeyToAddress(this.parsePrivateKey(privateKey))
   }
 
   async getBalance(network: Network, account: AccountReference): Promise<number> {
@@ -38,31 +98,36 @@ export class EthereumNetworkProtocolService implements IProtocolService<Ethereum
     }
   }
 
-  getFee(network: Network): Promise<number> {
+  async getFee(network: Network): Promise<number> {
     return Promise.resolve(0);
   }
 
   isValidPrivateKey(privateKey: string): boolean {
-    return false;
+    try {
+      this.parsePrivateKey(privateKey)
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
-  transferFunds(network: Network, transferOptions: TransferFundsOptions<EthereumNetworkProtocol>): Promise<ITransferFundsResult<EthereumNetworkProtocol>> {
+  async transferFunds(network: Network, transferOptions: TransferFundsOptions<EthereumNetworkProtocol>): Promise<ITransferFundsResult<EthereumNetworkProtocol>> {
     throw new Error('Not Implemented')
   }
 
-  updateBalanceStatus(network: Network): Promise<Network> {
+  async updateBalanceStatus(network: Network): Promise<Network> {
     throw new Error('Not Implemented')
   }
 
-  updateFeeStatus(network: Network): Promise<Network> {
+  async updateFeeStatus(network: Network): Promise<Network> {
     throw new Error('Not Implemented')
   }
 
-  updateNetworkStatus(network: Network): Promise<Network> {
+  async updateNetworkStatus(network: Network): Promise<Network> {
     throw new Error('Not Implemented')
   }
 
-  updateSendTransactionStatus(network: Network): Promise<Network> {
+  async updateSendTransactionStatus(network: Network): Promise<Network> {
     throw new Error('Not Implemented')
   }
 
@@ -74,5 +139,13 @@ export class EthereumNetworkProtocolService implements IProtocolService<Ethereum
     if (!network || !(network instanceof Network)) {
       throw new ArgumentError('network');
     }
+  }
+
+  private parsePrivateKey(privateKey: string) {
+    const rawPrivateKey = privateKey.startsWith('0x')
+      ? privateKey
+      : `0x${privateKey}`;
+
+    return `0x${Buffer.from(parseAndValidatePrivateKey(rawPrivateKey)).toString('hex')}`;
   }
 }

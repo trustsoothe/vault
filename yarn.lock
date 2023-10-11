@@ -13186,6 +13186,13 @@ web3-errors@1.1.3-dev.80986bb.0+80986bb:
   dependencies:
     web3-types "1.2.1-dev.80986bb.0+80986bb"
 
+web3-errors@1.1.3-dev.9a5fd87.0+9a5fd87:
+  version "1.1.3-dev.9a5fd87.0"
+  resolved "https://registry.yarnpkg.com/web3-errors/-/web3-errors-1.1.3-dev.9a5fd87.0.tgz#31873a393a07b9445c6833feb841fd47299957e2"
+  integrity sha512-4FTpeyDCOf1wL11NEWe0FoaB+w1QXdwQi7i+bPoj6e+94V2IydhMq5rDQYSa88V472ce9VrdHxWE1HV2eto1tg==
+  dependencies:
+    web3-types "1.2.1-dev.9a5fd87.0+9a5fd87"
+
 web3-eth-abi@4.1.3-dev.80986bb.0+80986bb:
   version "4.1.3-dev.80986bb.0"
   resolved "https://registry.yarnpkg.com/web3-eth-abi/-/web3-eth-abi-4.1.3-dev.80986bb.0.tgz#38e47d04f4c07655a304539a6a2e7dd6c452b067"
@@ -13209,6 +13216,19 @@ web3-eth-accounts@4.0.7-dev.80986bb.0+80986bb:
     web3-types "1.2.1-dev.80986bb.0+80986bb"
     web3-utils "4.0.7-dev.80986bb.0+80986bb"
     web3-validator "2.0.3-dev.80986bb.0+80986bb"
+
+web3-eth-accounts@4.0.7-dev.9a5fd87.0:
+  version "4.0.7-dev.9a5fd87.0"
+  resolved "https://registry.yarnpkg.com/web3-eth-accounts/-/web3-eth-accounts-4.0.7-dev.9a5fd87.0.tgz#6a67f7be2851cadae4d320d702525514cb46fc92"
+  integrity sha512-KcYo75P8VCTDw3LXrt3p43fTtIledg49QB8K6mVy5eax4YYGLQPuL8JSfwDPORPeR12fzbDwXBjzJOKSOCnraA==
+  dependencies:
+    "@ethereumjs/rlp" "^4.0.1"
+    crc-32 "^1.2.2"
+    ethereum-cryptography "^2.0.0"
+    web3-errors "1.1.3-dev.9a5fd87.0+9a5fd87"
+    web3-types "1.2.1-dev.9a5fd87.0+9a5fd87"
+    web3-utils "4.0.7-dev.9a5fd87.0+9a5fd87"
+    web3-validator "2.0.3-dev.9a5fd87.0+9a5fd87"
 
 web3-eth-iban@4.0.7-dev.80986bb.0+80986bb:
   version "4.0.7-dev.80986bb.0"
@@ -13292,6 +13312,11 @@ web3-types@1.2.1-dev.80986bb.0+80986bb:
   resolved "https://registry.yarnpkg.com/web3-types/-/web3-types-1.2.1-dev.80986bb.0.tgz#0a07b114abf206e06d2454cc1d3b78eb976b1f7c"
   integrity sha512-RuZflYDSGpg3CGHr+OEzIwD7RFdVCfQzhWVRCBKChYD6kZv9UjmOtW4bj/XeCdFfS403ti/mnvqczZsqPoMObQ==
 
+web3-types@1.2.1-dev.9a5fd87.0+9a5fd87:
+  version "1.2.1-dev.9a5fd87.0"
+  resolved "https://registry.yarnpkg.com/web3-types/-/web3-types-1.2.1-dev.9a5fd87.0.tgz#61e1abbcc6fcb2006b84ec5a5d5933f04cd25a88"
+  integrity sha512-X0dIAfiVcF+NQE0F370KXOoBpwxNUygs90eYNwDfap8XTs+C1O/vd/y8fQaKOtGw/xnJJzDm8D5RyXDl/ngnWw==
+
 web3-utils@4.0.7-dev.80986bb.0+80986bb:
   version "4.0.7-dev.80986bb.0"
   resolved "https://registry.yarnpkg.com/web3-utils/-/web3-utils-4.0.7-dev.80986bb.0.tgz#d9164865647249e2dfbf41ae24bfe26fa1c6da5e"
@@ -13302,6 +13327,16 @@ web3-utils@4.0.7-dev.80986bb.0+80986bb:
     web3-types "1.2.1-dev.80986bb.0+80986bb"
     web3-validator "2.0.3-dev.80986bb.0+80986bb"
 
+web3-utils@4.0.7-dev.9a5fd87.0+9a5fd87:
+  version "4.0.7-dev.9a5fd87.0"
+  resolved "https://registry.yarnpkg.com/web3-utils/-/web3-utils-4.0.7-dev.9a5fd87.0.tgz#10d5d25ede5b041353c19528a1ff19eaaf1c86ff"
+  integrity sha512-HpNtVw+XcinSYIg0sDtERHcBWtnX5sQUhqsJWXXMKashZPClmr9YkKumJTn7HkVRuPbUZIZKj/L7JAQSh3Z5ww==
+  dependencies:
+    ethereum-cryptography "^2.0.0"
+    web3-errors "1.1.3-dev.9a5fd87.0+9a5fd87"
+    web3-types "1.2.1-dev.9a5fd87.0+9a5fd87"
+    web3-validator "2.0.3-dev.9a5fd87.0+9a5fd87"
+
 web3-validator@2.0.3-dev.80986bb.0+80986bb:
   version "2.0.3-dev.80986bb.0"
   resolved "https://registry.yarnpkg.com/web3-validator/-/web3-validator-2.0.3-dev.80986bb.0.tgz#9d6ee678d59b5575e0f1aae0e4c288632afb1f28"
@@ -13311,6 +13346,17 @@ web3-validator@2.0.3-dev.80986bb.0+80986bb:
     util "^0.12.5"
     web3-errors "1.1.3-dev.80986bb.0+80986bb"
     web3-types "1.2.1-dev.80986bb.0+80986bb"
+    zod "^3.21.4"
+
+web3-validator@2.0.3-dev.9a5fd87.0+9a5fd87:
+  version "2.0.3-dev.9a5fd87.0"
+  resolved "https://registry.yarnpkg.com/web3-validator/-/web3-validator-2.0.3-dev.9a5fd87.0.tgz#78b2ca4b069581009fe401aa279a1bff04d4d4de"
+  integrity sha512-AwiOBAGkrAxjfM+xp7yiKQy4HIHsqgM1vA7fZHo6AEqdCqjiuQsbSYSiAZokkR5zhEC/hxa4JxuX1iED1SJyZg==
+  dependencies:
+    ethereum-cryptography "^2.0.0"
+    util "^0.12.5"
+    web3-errors "1.1.3-dev.9a5fd87.0+9a5fd87"
+    web3-types "1.2.1-dev.9a5fd87.0+9a5fd87"
     zod "^3.21.4"
 
 webcrypto-core@^1.7.7:
