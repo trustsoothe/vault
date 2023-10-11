@@ -7,6 +7,7 @@ import {
   IEncryptionService,
   Network,
   SupportedProtocols,
+  IEncryptionService,
 } from "@poktscan/keyring";
 import {WebEncryptionService} from "@poktscan/keyring-encryption-web";
 
