@@ -32,7 +32,7 @@ import type {
   TransferResponseFromBack,
 } from "../../types/communication";
 import { PartialSession } from "../../types/communication";
-import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
+import type { ChainID } from "packages/nodejs/keyring/src/lib/core/common/protocols/IProtocol";
 import browser from "webextension-polyfill";
 import { z, ZodError } from "zod";
 import {

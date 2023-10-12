@@ -1,4 +1,4 @@
-import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
+import type { ChainID } from "packages/nodejs/keyring/src/lib/core/common/protocols/IProtocol";
 import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import type {
   SerializedAccountReference,
