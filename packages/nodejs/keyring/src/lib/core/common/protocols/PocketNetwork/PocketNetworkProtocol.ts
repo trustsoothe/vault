@@ -1,4 +1,4 @@
-import {ChainID, IProtocol} from "../../IProtocol";
+import {ChainID, IProtocol} from "../IProtocol";
 import {SupportedProtocols} from "../../values";
 
 export class PocketNetworkProtocol implements IProtocol<SupportedProtocols.Pocket> {

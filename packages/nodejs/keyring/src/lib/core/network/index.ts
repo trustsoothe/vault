@@ -1,6 +1,6 @@
 import {v4, validate} from "uuid";
 import IEntity from "../common/IEntity";
-import {Protocol} from "../common/Protocol";
+import {Protocol} from "../common/protocols/Protocol";
 import {Status} from "./values/Status";
 
 export interface SerializedNetwork extends IEntity {

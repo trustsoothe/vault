@@ -2,8 +2,8 @@ import { Account } from "../../vault";
 import { AccountReference, Passphrase } from "../values";
 import { Asset } from "../../asset";
 import { Network } from "../../network";
-import {Protocol} from "../Protocol";
-import {IProtocolTransferArguments} from "../IProtocolTransferArguments";
+import {Protocol} from "./Protocol";
+import {IProtocolTransferArguments} from "./IProtocolTransferArguments";
 
 export interface CreateAccountOptions {
   name?: string

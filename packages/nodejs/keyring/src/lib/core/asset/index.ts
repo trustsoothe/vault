@@ -1,7 +1,7 @@
 import {v4, validate} from "uuid";
 import IEntity from "../common/IEntity";
 import {PocketNetworkProtocol} from "../common/protocols/PocketNetwork/PocketNetworkProtocol";
-import {Protocol} from "../common/Protocol";
+import {Protocol} from "../common/protocols/Protocol";
 
 export interface AssetOptions {
   name: string
@@ -30,7 +30,7 @@ export class Asset implements IEntity {
   private _isDefault: boolean
 
   constructor(options: AssetOptions, id?: string) {
-    if (id && validate(id) === false) {
+    if (id && !validate(id)) {
       throw new Error('Invalid session id: ' + id)
     }
 

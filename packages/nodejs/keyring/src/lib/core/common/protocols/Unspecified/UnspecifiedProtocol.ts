@@ -1,5 +1,5 @@
 import {ChainID, IProtocol} from "../IProtocol";
-import {SupportedProtocols} from "../values";
+import {SupportedProtocols} from "../../values";
 
 export class UnspecifiedProtocol implements IProtocol<SupportedProtocols.Unspecified> {
   public readonly name = SupportedProtocols.Unspecified

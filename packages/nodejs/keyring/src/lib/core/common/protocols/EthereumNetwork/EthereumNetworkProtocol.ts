@@ -1,4 +1,4 @@
-import {ChainID, IProtocol} from "../../IProtocol";
+import {ChainID, IProtocol} from "../IProtocol";
 import {SupportedProtocols} from "../../values";
 
 export class EthereumNetworkProtocol implements IProtocol<SupportedProtocols.Ethereum> {

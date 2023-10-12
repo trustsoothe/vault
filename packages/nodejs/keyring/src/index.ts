@@ -15,7 +15,7 @@ import type {IEncryptionService} from './lib/core/common/encryption/IEncryptionS
 import type IVaultStore from './lib/core/common/storage/IVaultStorage'
 import type IStorage from './lib/core/common/storage/IStorage'
 import type IEntity from './lib/core/common/IEntity'
-import type {Protocol} from './lib/core/common/Protocol'
+import type {Protocol} from './lib/core/common/protocols/Protocol'
 
 export type {
   IEncryptionService,

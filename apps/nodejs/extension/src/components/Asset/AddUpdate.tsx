@@ -1,4 +1,4 @@
-import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
+import type { ChainID } from "packages/nodejs/keyring/src/lib/core/common/protocols/IProtocol";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import Stack from "@mui/material/Stack";

@@ -1,5 +1,5 @@
 import type { PocketNetworkTransferFundsResult } from "@poktscan/keyring/dist/lib/core/common/protocols/PocketNetwork/PocketNetworkTransferFundsResult";
-import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
+import type { ChainID } from "packages/nodejs/keyring/src/lib/core/common/protocols/IProtocol";
 import type {
   AccountUpdateOptions,
   AssetOptions,
@@ -23,7 +23,7 @@ import {
   TransferOptions,
   VaultRestoreError,
 } from "@poktscan/keyring";
-import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
+import type { Protocol } from "packages/nodejs/keyring/src/lib/core/common/protocols/Protocol";
 import type { RootState } from "../store";
 import type { DisconnectBackResponse } from "../../types/communication";
 import { v4 } from "uuid";

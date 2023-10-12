@@ -1,4 +1,4 @@
-import {Protocol} from "../Protocol";
+import {Protocol} from "../protocols/Protocol";
 
 export interface SerializedAccountReference {
   id: string

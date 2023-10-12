@@ -28,8 +28,8 @@ import { v4 , validate} from "uuid";
 import {SupportedTransferOrigins} from "./core/common/values";
 import {SupportedTransferDestinations} from "./core/common/values";
 import {Network} from "./core/network";
-import {IProtocolTransferArguments} from "./core/common/IProtocolTransferArguments";
-import {Protocol} from "./core/common/Protocol";
+import {IProtocolTransferArguments} from "./core/common/protocols/IProtocolTransferArguments";
+import {Protocol} from "./core/common/protocols/Protocol";
 import {Asset} from "./core/asset";
 
 export interface TransferOptions<T extends Protocol> {
