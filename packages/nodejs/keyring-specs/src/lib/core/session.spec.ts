@@ -1,12 +1,15 @@
 import sinon from 'sinon'
-import {describe, test, expect, beforeEach, afterEach} from 'vitest'
+import {afterEach, beforeEach, describe, expect, test} from 'vitest'
 import {
-  InvalidSessionError,
-  PocketNetworkProtocol,
-  Session,
   AccountReference,
-  ForbiddenSessionError, PermissionsBuilder
+  Asset,
+  ForbiddenSessionError,
+  InvalidSessionError,
+  PermissionsBuilder,
+  Session,
+  SupportedProtocols
 } from "@poktscan/keyring";
+
 describe('session', () => {
   let  clock: sinon.SinonFakeTimers
 
@@ -106,8 +109,15 @@ describe('session', () => {
   })
 
   describe('addAccount', () => {
+    const asset: Asset = new Asset({
+      name: 'Test Asset',
+      symbol: 'TST',
+      isNative: true,
+      protocol: SupportedProtocols.Unspecified
+    });
+
     const exampleAccountReference: AccountReference
-      = new AccountReference('123', 'Testnet Account','0x32344', new PocketNetworkProtocol('testnet'))
+      = new AccountReference('123', 'Testnet Account','0x32344', asset)
 
     const permissions =
       new PermissionsBuilder()

@@ -6,8 +6,7 @@ import {
   Network,
   AccountReference,
   ArgumentError,
-  NetworkRequestError,
-  Protocol,
+  NetworkRequestError, SupportedProtocols,
 } from "@poktscan/keyring";
 import { webcrypto } from 'node:crypto';
 import {MockServerFactory} from "../../../../mocks/mock-server-factory";
@@ -22,9 +21,9 @@ if (!globalThis.crypto) {
   globalThis.crypto = webcrypto;
 }
 
-export interface IProtocolServiceSpecFactoryOptions {
+export interface IProtocolServiceSpecFactoryOptions<T extends SupportedProtocols> {
   asset: Asset
-  network: Network
+  network: Network<T>
   account: AccountReference
   accountImport: {
     privateKey: string
@@ -33,9 +32,9 @@ export interface IProtocolServiceSpecFactoryOptions {
   }
 }
 
-export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: () => T, options: IProtocolServiceSpecFactoryOptions) => {
+export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IProtocolService<T>, options: IProtocolServiceSpecFactoryOptions<T>) => {
   const {asset, network: exampleNetwork} = options
-  let protocolService: T
+  let protocolService: IProtocolService<T>
   const passphrase = new Passphrase('passphrase')
 
   beforeEach(() => {
@@ -114,54 +113,6 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
     })
   })
 
-  describe('getFee', () => {
-      describe('validations', () => {
-        test('throws if undefined is provided as the network', () => {
-          // @ts-ignore
-          return expect(protocolService.getFee(undefined)).rejects.toThrow(ArgumentError);
-        })
-
-        test('throws if null is provided as the network', () => {
-          // @ts-ignore
-          return expect(protocolService.getFee(null)).rejects.toThrow(ArgumentError);
-        })
-
-        test('throws if non Network object is provided as the network', () => {
-          // @ts-ignore
-          return expect(protocolService.getFee({})).rejects.toThrow(ArgumentError);
-        })
-      })
-
-      describe('Successful requests', () => {
-        const server = MockServerFactory.getSuccessMockServer(exampleNetwork)
-
-        beforeAll(() => server.listen());
-
-        afterEach(() => server.resetHandlers());
-
-        afterAll(() => server.close());
-
-        test('returns the fee of the network', async () => {
-          const fee = await protocolService.getFee(exampleNetwork)
-          expect(fee).toBe(0.01)
-        })
-      })
-
-      describe('Unsuccessful requests', () => {
-        const server = MockServerFactory.getFailureMockServer(exampleNetwork)
-
-        beforeAll(() => server.listen());
-
-        afterEach(() => server.resetHandlers());
-
-        afterAll(() => server.close());
-
-        test('throws a request error if request fails', () => {
-          return expect(protocolService.getFee(exampleNetwork)).rejects.toThrow(NetworkRequestError)
-        })
-      })
-  })
-
   describe('updateNetworkStatus', () => {
     describe('validations', () => {
       test('throws if undefined is provided', () => {
@@ -175,7 +126,7 @@ export default <T extends IProtocolService<Protocol>>(TProtocolServiceCreator: (
       })
 
       test('throws if an invalid network is provided', () => {
-        return expect(protocolService.updateNetworkStatus({} as Network)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.updateNetworkStatus({} as Network<T>)).rejects.toThrow(ArgumentError);
       })
     })
 

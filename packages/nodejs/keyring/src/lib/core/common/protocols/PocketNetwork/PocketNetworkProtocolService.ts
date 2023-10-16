@@ -10,8 +10,8 @@ import { Account } from "../../../vault";
 import { utils, getPublicKeyAsync, signAsync } from "@noble/ed25519";
 import { Buffer } from "buffer";
 import { IEncryptionService } from "../../encryption/IEncryptionService";
-import { Network } from "../../../network";
-import { AccountReference } from "../../values";
+import { Network as NetworkObject} from "../../../network";
+import { AccountReference, SupportedProtocols } from "../../values";
 import urlJoin from "url-join";
 import {
   PocketRpcBalanceResponseSchema,
@@ -24,19 +24,20 @@ import {
   NetworkRequestError,
   ProtocolTransactionError,
 } from "../../../../errors";
-import { PocketNetworkProtocol } from "./PocketNetworkProtocol";
-import { PocketNetworkTransferFundsResult } from "./PocketNetworkTransferFundsResult";
 import {
   CoinDenom,
   MsgProtoSend,
   TxEncoderFactory,
   TxSignature,
 } from "./pocket-js";
-import { PocketNetworkTransferArguments } from "./PocketNetworkTransferArguments";
 import { RawTxRequest } from "@pokt-foundation/pocketjs-types";
+import {ProtocolFee} from "../ProtocolFee";
+import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
+
+type Network = NetworkObject<SupportedProtocols.Pocket>;
 
 export class PocketNetworkProtocolService
-  implements IProtocolService<PocketNetworkProtocol>
+  implements IProtocolService<SupportedProtocols.Pocket>
 {
   constructor(private encryptionService: IEncryptionService) {}
 
@@ -217,7 +218,7 @@ export class PocketNetworkProtocolService
     return balanceResponse.balance;
   }
 
-  async getFee(network: Network): Promise<number> {
+  async getFee(network: Network): Promise<ProtocolFee<SupportedProtocols.Pocket>> {
     this.validateNetwork(network);
     const response = await this.requestFee(network);
 
@@ -229,13 +230,16 @@ export class PocketNetworkProtocolService
 
     const feeResponse = PocketRpcFeeParamsResponseValue.parse(responseRawBody);
 
-    return feeResponse.param_value.fee_multiplier;
+    return {
+      protocol: SupportedProtocols.Pocket,
+      value: feeResponse.param_value.fee_multiplier,
+    };
   }
 
   async transferFunds(
     network: Network,
-    options: TransferFundsOptions<PocketNetworkProtocol>
-  ): Promise<PocketNetworkTransferFundsResult> {
+    options: TransferFundsOptions<SupportedProtocols.Pocket>
+  ): Promise<IAbstractTransferFundsResult<SupportedProtocols.Pocket>> {
     const txMsg = new MsgProtoSend(
       options.from,
       options.to,
@@ -246,18 +250,22 @@ export class PocketNetworkProtocolService
       BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString()
     ).toString();
 
-    const transferArguments =
-      options.transferArguments as PocketNetworkTransferArguments;
+    const transferArguments = options.transferArguments;
 
-    const fee = (transferArguments.fee || (await this.getFee(network))) * 1e6;
+    let fee = transferArguments.fee;
+
+    if (!fee) {
+      const feeResponse = await this.getFee(network);
+      fee = feeResponse.value;
+    }
 
     const signer = TxEncoderFactory.createEncoder(
       entropy,
-      network.protocol.chainID,
+      network.chainID,
       txMsg,
       fee.toString(),
       CoinDenom.Upokt,
-      transferArguments.memo
+      transferArguments.memo || '',
     );
 
     const bytesToSign = signer.marshalStdSignDoc();
@@ -294,9 +302,9 @@ export class PocketNetworkProtocolService
     }
 
     return {
-      protocol: network.protocol,
+      protocol: SupportedProtocols.Pocket,
       transactionHash: responseRawBody.txhash,
-    } as PocketNetworkTransferFundsResult;
+    };
   }
 
   isValidPrivateKey(privateKey: string): boolean {
@@ -304,7 +312,7 @@ export class PocketNetworkProtocolService
   }
 
   private validateNetwork(network: Network) {
-    if (!network || !(network instanceof Network)) {
+    if (!network || !(network instanceof NetworkObject<SupportedProtocols.Pocket>)) {
       throw new ArgumentError("network");
     }
   }

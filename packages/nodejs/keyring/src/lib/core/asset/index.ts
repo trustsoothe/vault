@@ -1,21 +1,22 @@
 import {v4, validate} from "uuid";
 import IEntity from "../common/IEntity";
-import {PocketNetworkProtocol} from "../common/protocols/PocketNetwork/PocketNetworkProtocol";
-import {Protocol} from "../common/protocols/Protocol";
+import {SupportedProtocols} from "../common/values";
 
 export interface AssetOptions {
   name: string
-  protocol: Protocol
+  protocol: SupportedProtocols
   symbol: string
   isDefault?: boolean
+  isNative?: boolean
 }
 
 export interface SerializedAsset extends IEntity {
   id: string
   name: string
   symbol: string
-  protocol: Protocol,
+  protocol: SupportedProtocols
   isDefault: boolean
+  isNative: boolean
   createdAt: number
   updatedAt: number
 }
@@ -26,8 +27,9 @@ export class Asset implements IEntity {
   private _symbol: string
   private _createdAt: number
   private _updatedAt: number
-  private _protocol: Protocol
+  private _protocol: SupportedProtocols
   private _isDefault: boolean
+  private _isNative: boolean
 
   constructor(options: AssetOptions, id?: string) {
     if (id && !validate(id)) {
@@ -41,6 +43,7 @@ export class Asset implements IEntity {
     this._createdAt = Date.now()
     this._updatedAt = this._createdAt
     this._isDefault = options.isDefault || false
+    this._isNative = options.isNative || true
   }
 
   get id(): string {
@@ -59,7 +62,7 @@ export class Asset implements IEntity {
     return this._createdAt
   }
 
-  get protocol(): Protocol {
+  get protocol(): SupportedProtocols {
     return this._protocol
   }
 
@@ -71,6 +74,10 @@ export class Asset implements IEntity {
     return this._isDefault
   }
 
+  get isNative(): boolean {
+    return this._isNative
+  }
+
   serialize(): SerializedAsset {
     return {
       id: this._id,
@@ -78,6 +85,7 @@ export class Asset implements IEntity {
       symbol: this._symbol,
       protocol: this._protocol,
       isDefault: this._isDefault,
+      isNative: this._isNative,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt
     }
@@ -88,6 +96,7 @@ export class Asset implements IEntity {
       name: serializedAsset.name,
       protocol: serializedAsset.protocol,
       isDefault: serializedAsset.isDefault,
+      isNative: serializedAsset.isNative,
       symbol: serializedAsset.symbol
     }
 

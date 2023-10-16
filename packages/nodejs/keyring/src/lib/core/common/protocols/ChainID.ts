@@ -9,11 +9,4 @@ export type ChainID<T extends SupportedProtocols> =
       ? PocketNetworkChainIDList
       : T extends SupportedProtocols.Ethereum
         ? EthereumChainIDList
-        : T extends SupportedProtocols.Unspecified
-          ? UnspecifiedChainIDList
-          : never;
-
-export interface IProtocol<T extends SupportedProtocols> {
-  name: T
-  chainID: ChainID<T>
-}
+        : UnspecifiedChainIDList;

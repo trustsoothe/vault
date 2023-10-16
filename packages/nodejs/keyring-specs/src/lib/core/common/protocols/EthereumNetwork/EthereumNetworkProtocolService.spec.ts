@@ -1,26 +1,27 @@
 import {describe} from "vitest";
 import ProtocolServiceSpecFactory from '../IProtocolService.specFactory';
 import {
+  AccountReference,
   Asset,
   EthereumNetworkProtocolService,
-  EthereumNetworkProtocol,
-  Network,
-  AccountReference,
   IEncryptionService,
+  Network,
+  SupportedProtocols,
 } from "@poktscan/keyring";
 import {WebEncryptionService} from "@poktscan/keyring-encryption-web";
 
 describe('EthereumNetworkProtocolService', () => {
   const asset: Asset = new Asset({
     name: 'Ethereum Sepolia',
-    protocol: new EthereumNetworkProtocol('11155111'),
+    protocol: SupportedProtocols.Ethereum,
     symbol: 'ETH'
   })
 
-  const network: Network = new Network({
+  const network = new Network<SupportedProtocols.Ethereum>({
     name: 'test',
     rpcUrl: 'http://localhost:8080',
     protocol: asset.protocol,
+    chainID: '11155111',
   })
 
   const account =
@@ -28,7 +29,7 @@ describe('EthereumNetworkProtocolService', () => {
       'account-id',
       'test-account',
       '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
-      asset.protocol,
+      asset,
     );
 
   const accountImport = {
@@ -40,7 +41,7 @@ describe('EthereumNetworkProtocolService', () => {
   const encryptionService: IEncryptionService = new WebEncryptionService();
   const protocolService = new EthereumNetworkProtocolService(encryptionService);
 
-  ProtocolServiceSpecFactory<EthereumNetworkProtocolService>(
+  ProtocolServiceSpecFactory<SupportedProtocols.Ethereum>(
     () => protocolService,
     { asset, network, account, accountImport }
   )

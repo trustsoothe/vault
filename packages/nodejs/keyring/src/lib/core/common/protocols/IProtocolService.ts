@@ -1,9 +1,10 @@
 import { Account } from "../../vault";
-import { AccountReference, Passphrase } from "../values";
+import {AccountReference, Passphrase, SupportedProtocols} from "../values";
 import { Asset } from "../../asset";
 import { Network } from "../../network";
-import {Protocol} from "./Protocol";
-import {IProtocolTransferArguments} from "./IProtocolTransferArguments";
+import {ProtocolTransferFundsArguments} from "./ProtocolTransferFundsArguments";
+import {ProtocolFee} from "./ProtocolFee";
+import {IAbstractTransferFundsResult} from "./ProtocolTransferFundsResult";
 
 export interface CreateAccountOptions {
   name?: string
@@ -16,28 +17,24 @@ export interface CreateAccountFromPrivateKeyOptions extends CreateAccountOptions
   privateKey: string
 }
 
-export interface TransferFundsOptions<T extends Protocol> {
+export interface TransferFundsOptions<T extends SupportedProtocols> {
   from: string;
   to: string;
   amount: number;
   privateKey: string;
-  transferArguments: IProtocolTransferArguments<T>;
+  transferArguments: ProtocolTransferFundsArguments<T>;
 }
 
-export interface ITransferFundsResult<T extends Protocol> {
-  protocol: T;
-}
-
-export interface IProtocolService<T extends Protocol> {
+export interface IProtocolService<T extends SupportedProtocols> {
   createAccount(options: CreateAccountOptions): Promise<Account>
   createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account>
-  transferFunds(network: Network,  transferOptions: TransferFundsOptions<T>): Promise<ITransferFundsResult<T>>
+  transferFunds(network: Network<T>,  transferOptions: TransferFundsOptions<T>): Promise<IAbstractTransferFundsResult<T>>
   isValidPrivateKey(privateKey: string): boolean
-  updateFeeStatus(network: Network): Promise<Network>
-  updateBalanceStatus(network: Network): Promise<Network>
-  updateSendTransactionStatus(network: Network): Promise<Network>
-  updateNetworkStatus(network: Network): Promise<Network>
-  getFee(network: Network): Promise<number>
-  getBalance(network: Network, account: AccountReference): Promise<number>
+  updateFeeStatus(network: Network<T>): Promise<Network<T>>
+  updateBalanceStatus(network: Network<T>): Promise<Network<T>>
+  updateSendTransactionStatus(network: Network<T>): Promise<Network<T>>
+  updateNetworkStatus(network: Network<T>): Promise<Network<T>>
+  getFee(network: Network<T>): Promise<ProtocolFee<T>>
+  getBalance(network: Network<T>, account: AccountReference): Promise<number>
   getAddressFromPrivateKey(privateKey: string): Promise<string>
 }

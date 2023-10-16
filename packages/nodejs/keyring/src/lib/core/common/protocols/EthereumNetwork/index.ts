@@ -1,2 +1,3 @@
 export * from './EthereumNetworkProtocolService'
-export * from './EthereumNetworkProtocol'
+export * from './EthereumNetworkTransferFundsArguments'
+export * from './EthereumNetworkFee'

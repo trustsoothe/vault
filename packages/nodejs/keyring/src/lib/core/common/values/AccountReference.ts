@@ -1,23 +1,23 @@
-import {Protocol} from "../protocols/Protocol";
+import {Asset} from "../../asset";
 
 export interface SerializedAccountReference {
   id: string
   name: string
   address: string
-  protocol: Protocol
+  asset: Asset
 }
 
 export class AccountReference {
   private readonly _id: string = ''
   private readonly _name: string = ''
   private readonly _address: string = ''
-  private readonly _protocol: Protocol
+  private readonly _asset: Asset
 
-  constructor(id: string, name: string, address: string, protocol: Protocol) {
+  constructor(id: string, name: string, address: string, asset: Asset) {
     this._id = id
     this._name = name
     this._address = address
-    this._protocol = protocol
+    this._asset = asset
   }
 
   get id(): string {
@@ -32,8 +32,8 @@ export class AccountReference {
     return this._address
   }
 
-  get protocol(): Protocol {
-    return this._protocol
+  get asset(): Asset {
+    return this._asset
   }
 
   serialize(): SerializedAccountReference {
@@ -41,11 +41,11 @@ export class AccountReference {
       id: this._id,
       name: this._name,
       address: this._address,
-      protocol: this._protocol
+      asset: this._asset
     }
   }
 
   static deserialize(data: SerializedAccountReference): AccountReference {
-    return new AccountReference(data.id, data.name, data.address, data.protocol)
+    return new AccountReference(data.id, data.name, data.address, data.asset)
   }
 }

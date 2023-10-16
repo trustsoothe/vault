@@ -2,7 +2,7 @@ import {
   Passphrase,
   EncryptedVault,
   ExternalAccessRequest,
-  AccountReference,
+  AccountReference, SupportedProtocols,
 } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
 import { IEncryptionService } from "./core/common/encryption/IEncryptionService";
@@ -13,26 +13,30 @@ import IStorage from "./core/common/storage/IStorage";
 import {
   AccountNotFoundError, ArgumentError,
   ForbiddenSessionError, InvalidPrivateKeyError,
-  InvalidSessionError, PrivateKeyRestoreError, ProtocolMismatchError,
+  InvalidSessionError, PrivateKeyRestoreError,
   SessionIdRequiredError,
   SessionNotFoundError,
   VaultIsLockedError,
   VaultRestoreError,
 } from "./errors";
 import {
-  CreateAccountFromPrivateKeyOptions,CreateAccountOptions,
- ITransferFundsResult,
+  CreateAccountFromPrivateKeyOptions,
+  CreateAccountOptions,
   ProtocolServiceFactory,
 } from "./core/common/protocols";
 import { v4 , validate} from "uuid";
 import {SupportedTransferOrigins} from "./core/common/values";
 import {SupportedTransferDestinations} from "./core/common/values";
 import {Network} from "./core/network";
-import {IProtocolTransferArguments} from "./core/common/protocols/IProtocolTransferArguments";
-import {Protocol} from "./core/common/protocols/Protocol";
+import {ProtocolTransferFundsArguments} from "./core/common/protocols/ProtocolTransferFundsArguments";
 import {Asset} from "./core/asset";
+import {
+  IAbstractTransferFundsResult,
+} from "./core/common/protocols/ProtocolTransferFundsResult";
 
-export interface TransferOptions<T extends Protocol> {
+export type AllowedProtocols = SupportedProtocols.Pocket | SupportedProtocols.Ethereum | SupportedProtocols.Unspecified;
+
+export interface TransferOptions<T extends SupportedProtocols> {
   from: {
     type: SupportedTransferOrigins;
     passphrase?: string;
@@ -44,8 +48,8 @@ export interface TransferOptions<T extends Protocol> {
     value: string;
   },
   amount: number;
-  network: Network;
-  transferArguments: IProtocolTransferArguments<T>;
+  network: Network<T>;
+  transferArguments: ProtocolTransferFundsArguments<T>;
 }
 
 export class VaultTeller {
@@ -361,13 +365,8 @@ export class VaultTeller {
     }
   }
 
-  async transferFunds<T extends Protocol>(sessionId: string, options: TransferOptions<T>): Promise<ITransferFundsResult<T>> {
+  async transferFunds<T extends SupportedProtocols>(sessionId: string, options: TransferOptions<T>): Promise<IAbstractTransferFundsResult<AllowedProtocols>> {
     await this.validateSessionForPermissions(sessionId, "transaction", "send");
-
-    if (!((options.network.protocol.name === options.transferArguments.protocol.name) && (
-      options.network.protocol.chainID === options.transferArguments.protocol.chainID))) {
-      throw new ProtocolMismatchError('Network protocol does not match transfer protocol');
-    }
 
     switch (options.from.type) {
       case SupportedTransferOrigins.RawPrivateKey:
@@ -379,7 +378,7 @@ export class VaultTeller {
     }
   }
 
-  private async transferWithVaultAccount<T extends Protocol>(options: TransferOptions<T>): Promise<ITransferFundsResult<T>> {
+  private async transferWithVaultAccount<T extends SupportedProtocols>(options: TransferOptions<T>): Promise<IAbstractTransferFundsResult<AllowedProtocols>> {
     if (!this.isUnlocked) {
       throw new VaultIsLockedError();
     }
@@ -410,31 +409,29 @@ export class VaultTeller {
     }
 
     const protocolService = ProtocolServiceFactory.getProtocolService(
-      options.transferArguments.protocol,
+      options.network.protocol,
       this.encryptionService
     );
 
-    const transferResult = await protocolService.transferFunds(
+    const transferArguments: ProtocolTransferFundsArguments<T> = {
+      ...options.transferArguments,
+    };
+
+    return await protocolService.transferFunds(
       options.network,
       {
         from: account.address,
         to: options.to.value,
         amount: options.amount,
         privateKey,
-        /*
-        TODO: correct the transfer arguments type
-       */
-      // @ts-ignore
-      transferArguments: options.transferArguments,
-    });
-
-    // @ts-ignore
-    return transferResult;
+        transferArguments,
+      },
+    );
   }
 
-  private async transferWithPrivateKey<T extends Protocol>(options: TransferOptions<T>): Promise<ITransferFundsResult<T>> {
+  private async transferWithPrivateKey<T extends SupportedProtocols>(options: TransferOptions<T>): Promise<IAbstractTransferFundsResult<AllowedProtocols>> {
     const protocolService=
-      ProtocolServiceFactory.getProtocolService(options.transferArguments.protocol, this.encryptionService);
+      ProtocolServiceFactory.getProtocolService(options.network.protocol, this.encryptionService);
 
     const isValidPrivateKey = protocolService.isValidPrivateKey(options.from.value);
 
@@ -452,20 +449,16 @@ export class VaultTeller {
       skipEncryption: true,
     });
 
-    const transferResult = await protocolService.transferFunds(options.network, {
-      from: account.address,
-      to: options.to.value,
-      amount: options.amount,
-      privateKey: account.privateKey,
-      /*
-        TODO: correct the transfer arguments type
-       */
-      // @ts-ignore
-      transferArguments: options.transferArguments,
-    });
-
-    // @ts-ignore
-    return transferResult;
+    return await protocolService.transferFunds(
+       options.network,
+      {
+        from: account.address,
+        to: options.to.value,
+        amount: options.amount,
+        privateKey: account.privateKey,
+        transferArguments: options.transferArguments,
+      }
+    );
   }
 
   get isUnlocked(): boolean {
@@ -575,8 +568,7 @@ export class VaultTeller {
     return vault.accounts.find((a) => {
       return (
         a.address === accountReference.address &&
-        a.asset.protocol.chainID === accountReference.protocol.chainID &&
-        a.asset.protocol.name === accountReference.protocol.name
+        a.asset.protocol === accountReference.asset.protocol
       );
     });
   }

@@ -1,3 +1,3 @@
 export * from './PocketNetworkProtocolService'
-export * from './PocketNetworkProtocol'
-export * from './PocketNetworkTransferArguments'
+export * from './PocketNetworkTransferFundsArguments'
+export * from './PocketNetworkFee'

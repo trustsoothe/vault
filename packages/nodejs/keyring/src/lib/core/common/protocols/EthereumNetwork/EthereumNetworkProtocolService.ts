@@ -2,25 +2,27 @@ import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
   IProtocolService,
-  ITransferFundsResult,
   TransferFundsOptions,
 } from "../IProtocolService";
-import {EthereumNetworkProtocol} from "./EthereumNetworkProtocol";
 import {Account} from "../../../vault";
-import {AccountReference} from "../../values";
-import {Network} from "../../../network";
+import {AccountReference, SupportedProtocols} from "../../values";
+import {Network as NetworkObject} from "../../../network";
 import Eth from 'web3-eth'
 import {
   create,
   privateKeyToPublicKey,
   privateKeyToAccount,
   privateKeyToAddress,
-  parseAndValidatePrivateKey
+  parseAndValidatePrivateKey,
 } from 'web3-eth-accounts';
 import {ArgumentError, NetworkRequestError} from "../../../../errors";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
+import {ProtocolFee} from "../ProtocolFee";
+import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
 
-export class EthereumNetworkProtocolService implements IProtocolService<EthereumNetworkProtocol> {
+type Network = NetworkObject<SupportedProtocols.Ethereum>;
+
+export class EthereumNetworkProtocolService implements IProtocolService<SupportedProtocols.Ethereum> {
   constructor(private encryptionService: IEncryptionService) {}
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
@@ -88,18 +90,26 @@ export class EthereumNetworkProtocolService implements IProtocolService<Ethereum
   async getBalance(network: Network, account: AccountReference): Promise<number> {
     this.validateNetwork(network)
 
-    const ethClient = this.getEthClient(network)
-
-    try {
-      const balanceAsBigInt = await ethClient.getBalance(account.address)
-      return Number(balanceAsBigInt.toString())
-    } catch (e) {
-      throw new NetworkRequestError('Failed to fetch balance');
+    if (!account || !(account instanceof AccountReference)) {
+      throw new ArgumentError('account');
     }
+
+    if (account.asset.isNative) {
+      return await this.getNativeTokenBalance(network, account);
+    }
+
+    return 0;
   }
 
-  async getFee(network: Network): Promise<number> {
-    return Promise.resolve(0);
+  async getFee(network: Network): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
+    return {
+      protocol: SupportedProtocols.Ethereum,
+      gasLimit: BigInt(21000),
+      gasPrice: BigInt(1),
+      suggestedLow: BigInt(1),
+      suggestedMedium: BigInt(1),
+      suggestedHigh: BigInt(1),
+    }
   }
 
   isValidPrivateKey(privateKey: string): boolean {
@@ -111,7 +121,7 @@ export class EthereumNetworkProtocolService implements IProtocolService<Ethereum
     }
   }
 
-  async transferFunds(network: Network, transferOptions: TransferFundsOptions<EthereumNetworkProtocol>): Promise<ITransferFundsResult<EthereumNetworkProtocol>> {
+  async transferFunds(network: Network, transferOptions: TransferFundsOptions<SupportedProtocols.Ethereum>): Promise<IAbstractTransferFundsResult<SupportedProtocols.Ethereum>> {
     throw new Error('Not Implemented')
   }
 
@@ -136,7 +146,7 @@ export class EthereumNetworkProtocolService implements IProtocolService<Ethereum
   }
 
   private validateNetwork(network: Network) {
-    if (!network || !(network instanceof Network)) {
+    if (!network || !(network instanceof NetworkObject<SupportedProtocols.Ethereum>)) {
       throw new ArgumentError('network');
     }
   }
@@ -147,5 +157,16 @@ export class EthereumNetworkProtocolService implements IProtocolService<Ethereum
       : `0x${privateKey}`;
 
     return `0x${Buffer.from(parseAndValidatePrivateKey(rawPrivateKey)).toString('hex')}`;
+  }
+
+  private async getNativeTokenBalance(network: Network, account: AccountReference) {
+    const ethClient = this.getEthClient(network)
+
+    try {
+      const balanceAsBigInt = await ethClient.getBalance(account.address)
+      return Number(balanceAsBigInt.toString())
+    } catch (e) {
+      throw new NetworkRequestError('Failed to fetch balance');
+    }
   }
 }

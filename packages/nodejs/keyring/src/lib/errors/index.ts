@@ -5,7 +5,6 @@ interface IKeyringError {
   message: string;
   innerError?: Error;
 }
-
 export class KeyringError extends Error {
   readonly keyringError: true = true;
   readonly name: string;
@@ -107,7 +106,7 @@ export class AccountExistError extends KeyringError {
   constructor(account: Account) {
     super({
       name: 'AccountExistError',
-      message: `An account with address: ${account.address} and protocol: "${account.asset.protocol.name} | ${account.asset.protocol.chainID}" already exists within the vault.`,
+      message: `An account with address: ${account.address} and protocol: "${account.asset.protocol}" already exists within the vault.`,
     });
   }
 }
