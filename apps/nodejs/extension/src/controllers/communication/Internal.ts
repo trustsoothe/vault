@@ -21,6 +21,8 @@ import {
 } from "@poktscan/keyring";
 import store from "../../redux/store";
 import {
+  ACCOUNT_BALANCE_REQUEST,
+  ACCOUNT_BALANCE_RESPONSE,
   ANSWER_CONNECTION_REQUEST,
   ANSWER_CONNECTION_RESPONSE,
   ANSWER_NEW_ACCOUNT_REQUEST,
@@ -40,6 +42,8 @@ import {
   PK_ACCOUNT_RESPONSE,
   REMOVE_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_RESPONSE,
+  REVOKE_EXTERNAL_SESSIONS_REQUEST,
+  REVOKE_EXTERNAL_SESSIONS_RESPONSE,
   REVOKE_SESSION_REQUEST,
   REVOKE_SESSION_RESPONSE,
   TRANSFER_REQUEST,
@@ -57,12 +61,14 @@ import {
 import {
   addNewAccount,
   authorizeExternalSession,
+  getAccountBalance,
   getPrivateKeyOfAccount,
   importAccount,
   ImportAccountParam,
   initVault,
   lockVault,
   removeAccount,
+  revokeAllExternalSessions,
   revokeSession,
   sendTransfer,
   SerializedTransferOptions,
@@ -86,9 +92,7 @@ export interface AnswerConnectionRequest {
   data: {
     accepted: boolean;
     request: ExternalConnectionRequest;
-    canListAccounts: boolean;
-    canCreateAccounts: boolean;
-    canSuggestTransfers: boolean;
+    selectedAccounts: string[];
   } | null;
 }
 
@@ -181,8 +185,16 @@ export interface RevokeSessionMessage {
   };
 }
 
+export interface RevokeExternalSessionsMessage {
+  type: typeof REVOKE_EXTERNAL_SESSIONS_REQUEST;
+}
+
 export type RevokeSessionResponse = BaseResponse<
   typeof REVOKE_SESSION_RESPONSE
+>;
+
+export type RevokeExternalSessionsResponse = BaseResponse<
+  typeof REVOKE_EXTERNAL_SESSIONS_RESPONSE
 >;
 
 export interface UpdateAccountMessage {
@@ -256,6 +268,23 @@ export interface PrivateKeyAccountResponse {
   error: UnknownErrorType | null;
 }
 
+export interface AccountBalanceMessage {
+  type: typeof ACCOUNT_BALANCE_REQUEST;
+  data: {
+    address: string;
+    protocol: Protocol;
+  };
+}
+
+export interface AccountBalanceResponse {
+  type: typeof ACCOUNT_BALANCE_RESPONSE;
+  data: {
+    answered: true;
+    balance: number;
+  } | null;
+  error: UnknownErrorType | null;
+}
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
@@ -267,7 +296,9 @@ export type Message =
   | UpdateAccountMessage
   | RemoveAccountMessage
   | ImportAccountMessage
-  | PrivateKeyAccountMessage;
+  | PrivateKeyAccountMessage
+  | RevokeExternalSessionsMessage
+  | AccountBalanceMessage;
 
 // Controller to manage the communication between extension views and the background
 class InternalCommunicationController {
@@ -353,6 +384,10 @@ class InternalCommunicationController {
       return this._handleLockVault();
     }
 
+    if (message?.type === REVOKE_EXTERNAL_SESSIONS_REQUEST) {
+      return this._handleRevokeExternalSessions();
+    }
+
     if (message?.type === REVOKE_SESSION_REQUEST) {
       return this._handleRevokeSession(message.data.sessionId);
     }
@@ -371,6 +406,10 @@ class InternalCommunicationController {
 
     if (message?.type === PK_ACCOUNT_REQUEST) {
       return this._getPrivateKeyOfAccount(message);
+    }
+
+    if (message?.type === ACCOUNT_BALANCE_REQUEST) {
+      return this._getAccountBalance(message);
     }
   }
 
@@ -474,17 +513,31 @@ class InternalCommunicationController {
     }
   }
 
+  private async _handleRevokeExternalSessions(): Promise<RevokeExternalSessionsResponse> {
+    try {
+      await store.dispatch(revokeAllExternalSessions()).unwrap();
+
+      return {
+        type: REVOKE_EXTERNAL_SESSIONS_RESPONSE,
+        data: {
+          answered: true,
+        },
+        error: null,
+      };
+    } catch (e) {
+      return {
+        type: REVOKE_EXTERNAL_SESSIONS_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
   private async _answerConnectionRequest(
     message: AnswerConnectionRequest
   ): Promise<AnswerConnectionResponse> {
     try {
-      const {
-        accepted,
-        canCreateAccounts,
-        canSuggestTransfers,
-        canListAccounts,
-        request,
-      } = message?.data || {};
+      const { accepted, selectedAccounts, request } = message?.data || {};
       const { origin, tabId, type } = request;
 
       const promises: Promise<unknown>[] = [];
@@ -495,6 +548,7 @@ class InternalCommunicationController {
           type: CONNECTION_RESPONSE_MESSAGE,
           data: {
             accepted: false,
+            address: null,
             session: null,
           },
           error: null,
@@ -504,26 +558,13 @@ class InternalCommunicationController {
       } else {
         const permissionBuilder = new PermissionsBuilder();
 
-        if (canCreateAccounts) {
-          permissionBuilder
-            .forResource(PermissionResources.account)
-            .allow("create")
-            .onAny();
-        }
-
-        if (canListAccounts) {
-          permissionBuilder
-            .forResource(PermissionResources.account)
-            .allow("read")
-            .onAny();
-        }
-
-        if (canSuggestTransfers) {
-          permissionBuilder
-            .forResource(PermissionResources.transaction)
-            .allow("send")
-            .onAny();
-        }
+        permissionBuilder
+          .forResource(PermissionResources.account)
+          .allow("read")
+          .on(...selectedAccounts)
+          .forResource(PermissionResources.transaction)
+          .allow("send")
+          .on(...selectedAccounts);
 
         const permissions = permissionBuilder.build();
         const maxAge = 3600;
@@ -540,13 +581,17 @@ class InternalCommunicationController {
         ]);
 
         if (session) {
+          const accounts = store.getState().vault.entities.accounts.list;
+          const addresses = accounts
+            .filter((account) => selectedAccounts.includes(account.id))
+            .map((account) => account.address);
           responseToProxy = {
             type: CONNECTION_RESPONSE_MESSAGE,
             data: {
               accepted: true,
+              address: addresses[0],
               session: {
                 id: session.id,
-                permissions,
                 maxAge,
                 createdAt: session.createdAt,
               },
@@ -968,6 +1013,29 @@ class InternalCommunicationController {
       }
       return {
         type: PK_ACCOUNT_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _getAccountBalance({
+    data,
+  }: AccountBalanceMessage): Promise<AccountBalanceResponse> {
+    try {
+      const result = await store.dispatch(getAccountBalance(data)).unwrap();
+
+      return {
+        type: ACCOUNT_BALANCE_RESPONSE,
+        data: {
+          answered: true,
+          balance: result.amount,
+        },
+        error: null,
+      };
+    } catch (e) {
+      return {
+        type: ACCOUNT_BALANCE_RESPONSE,
         data: null,
         error: UnknownError,
       };

@@ -1,10 +1,12 @@
 import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
+import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import type {
   SerializedAccountReference,
   SerializedAsset,
   SerializedNetwork,
 } from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
+import type { AmountStatus } from "./Form/AmountFeeInputs";
 import type { ExternalTransferRequest } from "../../types/communication";
 import React, {
   useCallback,
@@ -13,33 +15,34 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { FormProvider, useForm } from "react-hook-form";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   SupportedProtocols,
   SupportedTransferDestinations,
   SupportedTransferOrigins,
 } from "@poktscan/keyring";
-import RequestFrom from "../common/RequestFrom";
 import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import AccountStep from "./AccountStep";
-import OperationFailed from "../common/OperationFailed";
+import { getAccountBalance, getProtocolFee } from "../../redux/slices/vault";
 import { getAssetByProtocol, isAddress, isPrivateKey } from "../../utils";
+import TransferSubmittedStep from "./TransferSubmitted";
+import OperationFailed from "../common/OperationFailed";
+import AccountFromRequest from "./AccountFromRequest";
+import { useAppDispatch } from "../../hooks/redux";
+import SummaryStep from "./Summary/Step";
+import TransferForm from "./Form/index";
 import {
   getAddressFromPrivateKey,
   isTransferHealthyForNetwork,
   protocolsAreEquals,
 } from "../../utils/networkOperations";
-import { useAppDispatch } from "../../hooks/redux";
-import { getAccountBalance, getProtocolFee } from "../../redux/slices/vault";
-import SummaryStep from "./Summary/Step";
-import TransferSubmittedStep from "./TransferSubmitted";
-import { DetailComponent } from "../Account/AccountDetail";
+import Requester from "../common/Requester";
 
 export interface FormValues {
   fromType: "saved_account" | "private_key";
@@ -70,6 +73,7 @@ type Status =
 export type FromAddressStatus = "is_account_saved" | "private_key_required";
 
 const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,6 +82,9 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
   const previousAsset = useRef<string>(null);
 
   const [status, setStatus] = useState<Status>("loading");
+  const [balanceStatus, setBalanceStatus] =
+    useState<AmountStatus>("not-fetched");
+  const [feeStatus, setFeeStatus] = useState<AmountStatus>("not-fetched");
   const [transferHash, setTransferHash] = useState<string>(null);
   const [sendingStatus, setSendingStatus] = useState<
     "check_network" | "sending"
@@ -127,40 +134,11 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      const statusToSet =
-        requesterInfo && fromAddressStatus === "is_account_saved"
-          ? "summary"
-          : "setData";
-      setStatus(statusToSet);
+      setStatus("setData");
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [fromAddressStatus, requesterInfo]);
-
-  useEffect(() => {
-    setValue("from", "");
-    setValue("amount", "");
-    setValue("fee", "");
-    setValue("accountPassword", "");
-    setValue("network", null);
-    clearErrors("from");
-    clearErrors("amount");
-    clearErrors("fee");
-    clearErrors("accountPassword");
-    clearErrors("network");
-
-    if (fromType === "private_key" && requesterInfo?.protocol) {
-      const asset = getAssetByProtocol(assets, requesterInfo.protocol);
-
-      if (asset) {
-        setValue("asset", asset);
-      }
-    } else {
-      setValue("asset", null);
-    }
-
-    clearErrors("asset");
-  }, [fromType]);
+  }, []);
 
   useEffect(() => {
     if (from && isAddress(from) && fromType === "saved_account") {
@@ -187,17 +165,16 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
 
       if (networkToSelect) {
         setValue("network", preferred || networkToSelect);
+        clearErrors("network");
       }
     }
   }, [asset, networks]);
 
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [fromBalance, setFromBalance] = useState<number>(null);
-  const [errorBalance, setErrorBalance] = useState(false);
 
   const getFromBalance = useCallback(async () => {
     if (from && asset && (isAddress(from) || isPrivateKey(from))) {
-      setIsLoadingBalance(true);
+      setBalanceStatus("loading");
       let address: string;
       if (isPrivateKey(from)) {
         address = await getAddressFromPrivateKey(from, asset.protocol);
@@ -209,13 +186,13 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
         .then((result) => {
           if (result) {
             setFromBalance(result.amount);
-            setErrorBalance(false);
+            setBalanceStatus("fetched");
           }
         })
-        .catch(() => setErrorBalance(true))
-        .finally(() => setIsLoadingBalance(false));
+        .catch(() => setBalanceStatus("error"));
     } else {
       setFromBalance(null);
+      setBalanceStatus("not-fetched");
     }
   }, [from, dispatch, fromType, asset]);
 
@@ -223,25 +200,24 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
     getFromBalance();
   }, [getFromBalance]);
 
-  const [isLoadingFee, setIsLoadingFee] = useState<boolean>(false);
   const [assetFee, setAssetFee] = useState<number>(null);
-  const [errorFee, setErrorFee] = useState(false);
 
   const getAssetFee = useCallback(() => {
     if (asset?.id && asset.id !== previousAsset.current) {
       previousAsset.current = asset.id;
-      setIsLoadingFee(true);
+      setFeeStatus("loading");
       dispatch(getProtocolFee(asset.protocol))
         .unwrap()
         .then((result) => {
           setAssetFee(result.fee);
           setValue("fee", result.fee.toString());
-          setErrorFee(false);
+          setFeeStatus("fetched");
         })
-        .catch(() => setErrorFee(true))
-        .finally(() => setIsLoadingFee(false));
+        .catch(() => setFeeStatus("error"));
     } else if (!asset) {
       setAssetFee(null);
+      setFeeStatus("not-fetched");
+      previousAsset.current = null;
     }
   }, [asset, networks, dispatch]);
 
@@ -253,28 +229,42 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
     return {
       fromAddress:
         searchParams?.get("fromAddress") || requesterInfo?.fromAddress,
-      protocol: searchParams?.get("protocol") || requesterInfo?.protocol?.name,
-      chainID: searchParams?.get("chainID") || requesterInfo?.protocol?.chainID,
+      protocol: (searchParams?.get("protocol") ||
+        requesterInfo?.protocol?.name) as Protocol["name"],
+      chainID: (searchParams?.get("chainID") ||
+        requesterInfo?.protocol?.chainID) as ChainID<SupportedProtocols>,
     };
   }, [searchParams, requesterInfo]);
 
   useEffect(() => {
     const { fromAddress: address, protocol, chainID } = fromInfo;
 
+    const protocolObj = {
+      name: protocol,
+      chainID,
+    } as Protocol;
+
     if (address) {
       const account = accounts.find(
         (account) =>
           account.address === address &&
-          account.protocol.name === protocol &&
-          account.protocol.chainID === chainID
+          protocolsAreEquals(protocolObj, account.protocol)
       );
       if (account) {
         setValue("from", address);
-        setFromAddressStatus("is_account_saved");
-        setAccountFromAddress(account);
+        if (requesterInfo) {
+          setFromAddressStatus("is_account_saved");
+          setAccountFromAddress(account);
+        }
       } else {
         setValue("fromType", "private_key");
         setFromAddressStatus("private_key_required");
+
+        const asset = getAssetByProtocol(assets, protocolObj);
+
+        if (asset) {
+          setValue("asset", asset);
+        }
       }
     } else {
       setFromAddressStatus(null);
@@ -303,7 +293,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
 
   const onSubmit = useCallback(
     async (data: FormValues) => {
-      if (isLoadingFee || isLoadingBalance || errorFee || errorBalance) return;
+      if (balanceStatus !== "fetched" || feeStatus !== "fetched") return;
 
       if (status === "setData") {
         setStatus("summary");
@@ -372,15 +362,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       }
       setSendingStatus(null);
     },
-    [
-      requesterInfo,
-      status,
-      errorFee,
-      errorBalance,
-      isLoadingFee,
-      isLoadingBalance,
-      accounts,
-    ]
+    [requesterInfo, status, balanceStatus, feeStatus, accounts]
   );
 
   const onClickOk = useCallback(() => {
@@ -448,47 +430,34 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
 
     if (status === "submitted") {
       return (
-        <>
-          <TransferSubmittedStep
-            fromBalance={fromBalance}
-            hash={transferHash}
-          />
-          <Button
-            fullWidth
-            variant={"contained"}
-            sx={{
-              height: 30,
-              width: 120,
-              marginTop: 0.5,
-              backgroundColor: "rgb(29, 138, 237)",
-              fontWeight: 600,
-            }}
-            onClick={() => navigate("/")}
-          >
-            Accept
-          </Button>
-        </>
+        <TransferSubmittedStep
+          fromBalance={fromBalance}
+          hash={transferHash}
+          protocol={asset.protocol}
+        />
       );
     }
 
     const settingAccount = status === "setData";
 
     const component = settingAccount ? (
-      <AccountStep
+      <TransferForm
         fromAddressStatus={fromAddressStatus}
         fromAddress={fromInfo.fromAddress}
         fee={assetFee}
-        isLoadingFee={isLoadingFee}
         fromBalance={fromBalance}
-        isLoadingBalance={isLoadingBalance}
         request={requesterInfo}
-        errorBalance={errorBalance}
-        errorFee={errorFee}
         getBalance={getFromBalance}
         getFee={getAssetFee}
+        feeStatus={feeStatus}
+        balanceStatus={balanceStatus}
       />
     ) : (
-      <SummaryStep fromBalance={fromBalance} wrongPassword={wrongPassword} />
+      <SummaryStep
+        fromBalance={fromBalance}
+        wrongPassword={wrongPassword}
+        compact={!!requesterInfo}
+      />
     );
 
     const secondaryBtnText = settingAccount ? "Cancel" : "Back";
@@ -497,15 +466,34 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
     return (
       <>
         {requesterInfo && (
-          <RequestFrom
-            title={"Transfer Request from:"}
-            origin={requesterInfo.origin}
-            faviconUrl={requesterInfo.faviconUrl}
-            containerProps={{
-              spacing: 0,
-              mt: 0.5,
-            }}
-          />
+          <>
+            <Typography
+              color={theme.customColors.primary999}
+              fontWeight={700}
+              lineHeight={"30px"}
+              textAlign={"center"}
+              sx={{ userSelect: "none" }}
+            >
+              Transfer Request from:
+            </Typography>
+            <Requester
+              request={requesterInfo}
+              hideBlock={true}
+              containerProps={{
+                marginTop: "5px!important",
+                marginBottom:
+                  status === "setData"
+                    ? fromType === "private_key"
+                      ? 1.5
+                      : 2
+                    : 1,
+                paddingX: 1.5,
+                paddingY: 0.5,
+                height: 40,
+                boxSizing: "border-box",
+              }}
+            />
+          </>
         )}
         <Stack
           flexGrow={1}
@@ -525,76 +513,40 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
           {fromAddressStatus === "is_account_saved" &&
             accountFromAddress?.address === from &&
             status === "setData" && (
-              <>
-                <Typography
-                  sx={{
-                    fontSize: 14,
-                    transform: "scale(0.75)",
-                    color: "rgba(0, 0, 0, 0.6)",
-                    position: "absolute",
-                    left: 5,
-                    top: -1,
-                    zIndex: 2,
-                    backgroundColor: "white",
-                    paddingX: "7px",
-                  }}
-                >
-                  From
-                </Typography>
-                <Stack
-                  sx={{
-                    border: "1px solid lightgray",
-                    padding: 0.5,
-                    boxSizing: "border-box",
-                    borderRadius: "6px",
-                    width: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                  marginTop={1}
-                >
-                  <DetailComponent
-                    account={accountFromAddress}
-                    hideCopy={true}
-                    containerProps={{
-                      my: "0px!important",
-                      sx: {
-                        transform: "scale(0.9)",
-                        width: 1,
-                      },
-                    }}
-                  />
-                </Stack>
-              </>
+              <AccountFromRequest account={accountFromAddress} />
             )}
           {component}
         </Stack>
         <Stack
           direction={"row"}
-          spacing={"15px"}
+          spacing={2}
           marginTop={"20px!important"}
           width={1}
         >
           <Button
-            fullWidth
-            variant={"outlined"}
-            sx={{
-              height: 30,
-              fontWeight: 600,
-            }}
             onClick={onClickCancel}
+            sx={{
+              fontWeight: 700,
+              color: theme.customColors.dark50,
+              borderColor: theme.customColors.dark50,
+              height: 36,
+              borderWidth: 1.5,
+              fontSize: 16,
+            }}
+            variant={"outlined"}
+            fullWidth
           >
             {secondaryBtnText}
           </Button>
           <Button
-            fullWidth
-            variant={"contained"}
             sx={{
-              height: 30,
-              backgroundColor: "rgb(29, 138, 237)",
-              fontWeight: 600,
+              fontWeight: 700,
+              height: 36,
+              fontSize: 16,
             }}
-            disabled={errorFee || errorBalance}
+            variant={"contained"}
+            fullWidth
+            disabled={[balanceStatus, feeStatus].includes("error")}
             type={"submit"}
           >
             {primaryBtnText}
@@ -603,6 +555,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       </>
     );
   }, [
+    theme,
     accountFromAddress,
     wrongPassword,
     onClickOk,
@@ -612,17 +565,15 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
     onClickCancel,
     formState,
     requesterInfo,
-    isLoadingBalance,
     fromBalance,
-    isLoadingFee,
     assetFee,
     fromAddressStatus,
     fromInfo,
     fromType,
     accounts,
     navigate,
-    errorBalance,
-    errorFee,
+    balanceStatus,
+    feeStatus,
     getFromBalance,
     getAssetFee,
     transferHash,
@@ -635,6 +586,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
         width={1}
         height={1}
         maxWidth={1}
+        paddingX={requesterInfo ? 2 : 0}
         boxSizing={"border-box"}
         component={"form"}
         onSubmit={handleSubmit(onSubmit)}
@@ -646,7 +598,9 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
         alignItems={"center"}
         marginTop={
           ["setData", "summary", "submitted"].includes(status)
-            ? "10px"
+            ? requesterInfo
+              ? 1
+              : 1.5
             : undefined
         }
       >

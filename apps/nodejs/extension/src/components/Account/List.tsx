@@ -10,23 +10,24 @@ import React, {
 } from "react";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import { FixedSizeList } from "react-window";
 import { useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import {
-  ACCOUNTS_DETAIL_PAGE,
-  CREATE_ACCOUNT_PAGE,
-  IMPORT_ACCOUNT_PAGE,
-} from "../../constants/routes";
 import ListAccountItem from "./ListItem";
 import useDebounce from "../../hooks/useDebounce";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
-import { useAppDispatch } from "../../hooks/redux";
 import { getAllBalances } from "../../redux/slices/vault";
+import AddIcon from "../../assets/img/add_icon.svg";
+import { useAppDispatch } from "../../hooks/redux";
+import RenameModal from "./RenameModal";
+import {
+  CREATE_ACCOUNT_PAGE,
+  IMPORT_ACCOUNT_PAGE,
+} from "../../constants/routes";
 
 interface AccountListProps {
   accounts: SerializedAccountReference[];
@@ -72,11 +73,14 @@ const AccountList: React.FC<AccountListProps> = ({
   balanceByIdMap,
   isLoadingTokens,
 }) => {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
   const isLoading = useRef(false);
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
   const debouncedSearchText = useDebounce(searchText);
+  const [accountToRename, setAccountToRename] =
+    useState<SerializedAccountReference>(null);
 
   useEffect(() => {
     if (!isLoading.current) {
@@ -93,6 +97,10 @@ const AccountList: React.FC<AccountListProps> = ({
     return () => clearInterval(interval);
   }, [dispatch]);
 
+  const onCloseRenameModal = useCallback(() => {
+    setAccountToRename(null);
+  }, []);
+
   const onChangeSearchText = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setSearchText(event.target.value);
@@ -107,13 +115,6 @@ const AccountList: React.FC<AccountListProps> = ({
   const onClickNew = useCallback(() => {
     navigate(CREATE_ACCOUNT_PAGE);
   }, [navigate]);
-
-  const onClickViewAccount = useCallback(
-    (account: SerializedAccountReference) => {
-      navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${account.id}`);
-    },
-    [navigate]
-  );
 
   const accountsWithBalance: AccountWithBalance[] = useMemo(() => {
     return accounts.map((item) => ({
@@ -131,10 +132,7 @@ const AccountList: React.FC<AccountListProps> = ({
   }, [accountsWithBalance, debouncedSearchText]);
 
   const accountListComponent = useMemo(() => {
-    if (!accountsWithBalance.length || !searchedAccounts.length) {
-      const text = !accountsWithBalance.length
-        ? "You do not have any account yet."
-        : "No Results.";
+    if (!searchedAccounts.length) {
       return (
         <Stack
           flexGrow={1}
@@ -147,7 +145,7 @@ const AccountList: React.FC<AccountListProps> = ({
           }}
         >
           <Typography mt={"-50px"} fontWeight={500}>
-            {text}
+            No Results.
           </Typography>
         </Stack>
       );
@@ -157,41 +155,20 @@ const AccountList: React.FC<AccountListProps> = ({
       <FixedSizeList
         width={"100%"}
         itemCount={searchedAccounts.length}
-        itemSize={100}
-        height={400}
+        itemSize={230}
+        height={485}
         itemData={searchedAccounts}
       >
         {({ style, data, index }) => {
           const account = data[index];
 
           return (
-            <Stack
-              paddingY={"10px"}
-              paddingX={"5px"}
-              spacing={"5px"}
-              key={account.id}
-              borderTop={index === 0 ? undefined : "1px solid lightgray"}
-              width={1}
-              boxSizing={"border-box"}
-              direction={"row"}
-              style={style}
-            >
+            <Stack style={style}>
               <ListAccountItem
                 account={account}
                 isLoadingTokens={isLoadingTokens}
+                onClickRename={(account) => setAccountToRename(account)}
               />
-              <Stack
-                spacing={"5px"}
-                marginTop={"-5px!important"}
-                width={"min-content"}
-              >
-                <IconButton
-                  sx={{ padding: 0 }}
-                  onClick={() => onClickViewAccount(account)}
-                >
-                  <VisibilityIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Stack>
             </Stack>
           );
         }}
@@ -200,13 +177,66 @@ const AccountList: React.FC<AccountListProps> = ({
   }, [accountsWithBalance, isLoadingTokens, searchedAccounts]);
 
   const content = useMemo(() => {
+    if (!accounts.length) {
+      return (
+        <Stack flexGrow={1}>
+          <Stack flexGrow={1} alignItems={"center"} justifyContent={"center"}>
+            <Typography
+              lineHeight={"40px"}
+              color={theme.customColors.primary999}
+              fontWeight={700}
+              fontSize={18}
+            >
+              Welcome to the Soothe's Vault!
+            </Typography>
+            <Typography
+              color={theme.customColors.dark100}
+              fontSize={14}
+              lineHeight={"20px"}
+              textAlign={"center"}
+            >
+              You do not have any account yet.
+              <br />
+              Please create new or import an account.
+            </Typography>
+          </Stack>
+          <Stack direction={"row"} height={36} spacing={2}>
+            {[
+              {
+                label: "Import",
+                onClick: onClickImport,
+              },
+              {
+                label: "New",
+                onClick: onClickNew,
+              },
+            ].map(({ label, onClick }, index) => (
+              <Button
+                key={index}
+                variant={"contained"}
+                fullWidth
+                sx={{
+                  backgroundColor: theme.customColors.primary500,
+                  fontSize: 16,
+                  fontWeight: 700,
+                }}
+                onClick={onClick}
+              >
+                {label}
+              </Button>
+            ))}
+          </Stack>
+        </Stack>
+      );
+    }
+
     return (
       <>
         <Stack
           direction={"row"}
           justifyContent={"space-between"}
           alignItems={"center"}
-          spacing={0.5}
+          spacing={1.2}
           mt={1.5}
         >
           <TextField
@@ -215,38 +245,26 @@ const AccountList: React.FC<AccountListProps> = ({
             value={searchText}
             onChange={onChangeSearchText}
             disabled={!accounts.length}
-            placeholder={"Search by name / address"}
+            placeholder={"Search by Name / Address"}
           />
-          <Stack
-            direction={"row"}
-            sx={{ "& button": { textTransform: "none" } }}
-            mr={"-5px!important"}
-          >
-            <Button onClick={onClickImport}>Import</Button>
-            <Button onClick={onClickNew} sx={{ width: 50, minWidth: 50 }}>
-              New
-            </Button>
-          </Stack>
+          <IconButton onClick={onClickNew}>
+            <AddIcon />
+          </IconButton>
         </Stack>
         <Stack
           flexGrow={1}
           overflow={"auto"}
-          paddingX={"5px"}
-          marginTop={"10px"}
+          marginTop={1.5}
           boxSizing={"border-box"}
-          sx={{
-            "& p": {
-              fontSize: "12px!important",
-            },
-          }}
         >
           {accountListComponent}
         </Stack>
       </>
     );
   }, [
-    onClickImport,
+    theme,
     onClickNew,
+    onClickImport,
     accountListComponent,
     navigate,
     isLoadingTokens,
@@ -255,7 +273,12 @@ const AccountList: React.FC<AccountListProps> = ({
     accounts.length,
   ]);
 
-  return <Stack height={1}>{content}</Stack>;
+  return (
+    <>
+      <Stack height={1}>{content}</Stack>
+      <RenameModal account={accountToRename} onClose={onCloseRenameModal} />
+    </>
+  );
 };
 
 const mapStateToProps = (state: RootState) => {

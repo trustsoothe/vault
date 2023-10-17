@@ -62,31 +62,31 @@ export default class Provider {
 async function _baseRequest(
   type: ProxyConnectionRequest["type"],
   data: undefined
-): Promise<ProxyConnectionRes>;
+): Promise<ProxyConnectionRes["data"]>;
 async function _baseRequest(
   type: ProxyCheckConnectionRequest["type"],
   data: undefined
-): Promise<ProxyConnectionRes>;
+): Promise<ProxyConnectionRes["data"]>;
 async function _baseRequest(
   type: ProxyNewAccountRequest["type"],
   data: ProxyNewAccountRequest["data"]
-): Promise<ProxyNewAccountRes>;
+): Promise<ProxyNewAccountRes["data"]>;
 async function _baseRequest(
   type: ProxyTransferRequest["type"],
   data: ProxyTransferRequest["data"]
-): Promise<ProxyTransferRes>;
+): Promise<ProxyTransferRes["data"]>;
 async function _baseRequest(
   type: ProxyDisconnectRequest["type"],
   data: undefined
-): Promise<ProxyDisconnectRes>;
+): Promise<ProxyDisconnectRes["data"]>;
 async function _baseRequest(
   type: ProxyListAccountsRequest["type"],
   data: undefined
-): Promise<ProxyListAccountsRes>;
+): Promise<ProxyListAccountsRes["data"]>;
 async function _baseRequest<T extends BrowserRequest["type"]>(
   type: T,
   data: BrowserRequest["data"] | ProxyTransferRequest["data"]
-): Promise<ExtensionResponse> {
+): Promise<ExtensionResponse["data"]> {
   let responseType: BrowserResponse["type"];
 
   switch (type) {
@@ -119,7 +119,7 @@ async function _baseRequest<T extends BrowserRequest["type"]>(
     window.location.origin
   );
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const listener = (event: MessageEvent<BrowserResponse>) => {
       if (
         responseType === event.data.type &&
@@ -128,10 +128,18 @@ async function _baseRequest<T extends BrowserRequest["type"]>(
         event.data?.from === "VAULT_KEYRING"
       ) {
         window.removeEventListener("message", listener);
-        resolve({
-          data: event.data.data,
-          error: event.data.error,
-        });
+
+        const { data, error } = event.data;
+
+        if (data) {
+          if ("rejected" in data) {
+            delete data.rejected;
+          }
+
+          resolve(data);
+        } else {
+          reject(error);
+        }
       }
     };
 
@@ -139,10 +147,7 @@ async function _baseRequest<T extends BrowserRequest["type"]>(
 
     setTimeout(() => {
       window.removeEventListener("message", listener);
-      resolve({
-        data: null,
-        error: RequestTimeout,
-      });
+      reject(RequestTimeout);
     }, (MINUTES_ALLOWED_FOR_REQ + 1) * 60000);
   });
 }

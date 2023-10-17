@@ -1,133 +1,62 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { SerializedAsset } from "@poktscan/keyring";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import { Divider, IconButton } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import Box from "@mui/material/Box";
-import AddUpdateAsset from "./AddUpdate";
-import RemoveAsset from "./Remove";
-import { RootState } from "../../redux/store";
+import type { SerializedAsset } from "@poktscan/keyring";
 import { connect } from "react-redux";
+import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material";
+import React, { useMemo } from "react";
+import Typography from "@mui/material/Typography";
+import { RootState } from "../../redux/store";
+import RowSpaceBetween from "../common/RowSpaceBetween";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 
 interface AssetItemProps {
   asset: SerializedAsset;
-  onClickUpdate?: (asset: SerializedAsset) => void;
-  onClickRemove?: (asset: SerializedAsset) => void;
 }
 
-const AssetItem: React.FC<AssetItemProps> = ({
-  asset,
-  onClickUpdate,
-  onClickRemove,
-}) => {
+const AssetItem: React.FC<AssetItemProps> = ({ asset }) => {
+  const theme = useTheme();
   return (
-    <Stack direction={"row"}>
-      <Stack paddingX={"5px"} flexGrow={1} spacing={"3px"}>
-        <Stack direction={"row"} alignItems={"center"} spacing={"7px"}>
-          <Typography fontSize={12} fontWeight={600}>
-            {asset.name} ({asset.symbol})
-          </Typography>
-        </Stack>
-        <Stack direction={"row"} alignItems={"center"} spacing={"10px"}>
-          <Typography fontSize={12}>
-            Protocol: {labelByProtocolMap[asset.protocol.name]}
-          </Typography>
-          <Typography fontSize={12}>
-            ChainID: {labelByChainID[asset.protocol.chainID]}
-          </Typography>
-        </Stack>
-      </Stack>
-      <Stack spacing={"10px"} width={"min-content"}>
-        {onClickUpdate && (
-          <IconButton sx={{ padding: 0 }} onClick={() => onClickUpdate(asset)}>
-            <EditIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        )}
-        {onClickRemove && (
-          <IconButton sx={{ padding: 0 }} onClick={() => onClickRemove(asset)}>
-            <DeleteIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        )}
-      </Stack>
+    <Stack
+      height={90}
+      paddingX={1}
+      paddingTop={0.5}
+      paddingBottom={1}
+      borderRadius={"4px"}
+      boxSizing={"border-box"}
+      bgcolor={theme.customColors.dark2}
+      border={`1px solid ${theme.customColors.dark15}`}
+    >
+      <Typography
+        fontSize={14}
+        letterSpacing={"0.5px"}
+        fontWeight={500}
+        lineHeight={"30px"}
+      >
+        {asset.name} ({asset.symbol})
+      </Typography>
+      <RowSpaceBetween
+        label={"Protocol"}
+        value={labelByProtocolMap[asset.protocol.name] || asset.protocol.name}
+      />
+      <RowSpaceBetween
+        label={"Protocol"}
+        value={labelByChainID[asset.protocol.chainID] || asset.protocol.chainID}
+      />
     </Stack>
   );
 };
 
 interface AssetListProps {
   assets: SerializedAsset[];
-  isLoading: boolean;
 }
 
-const AssetList: React.FC<AssetListProps> = ({ assets, isLoading }) => {
-  const [selectedAsset, setSelectedAsset] = useState<SerializedAsset>(null);
-  const [view, setView] = useState<"list" | "addUpdate" | "remove">("list");
-
-  const onClickAdd = useCallback(() => {
-    setView("addUpdate");
-  }, []);
-
-  const onClickUpdate = useCallback((asset: SerializedAsset) => {
-    setSelectedAsset(asset);
-    setView("addUpdate");
-  }, []);
-
-  const onClickRemove = useCallback((asset: SerializedAsset) => {
-    setSelectedAsset(asset);
-    setView("remove");
-  }, []);
-
-  const onClose = useCallback(() => {
-    setSelectedAsset(null);
-    setView("list");
-  }, []);
-
-  const content = useMemo(() => {
-    if (view === "addUpdate") {
-      return <AddUpdateAsset onClose={onClose} assetToUpdate={selectedAsset} />;
-    }
-
-    if (selectedAsset && view === "remove") {
-      return <RemoveAsset asset={selectedAsset} onClose={onClose} />;
-    }
-
-    return (
-      <Stack
-        height={1}
-        boxSizing={"border-box"}
-        paddingBottom={"20px"}
-        marginTop={1}
-      >
-        <Box
-          overflow={"auto"}
-          marginRight={"-10px"}
-          paddingRight={"10px"}
-          marginTop={"10px"}
-        >
-          <Stack divider={<Divider sx={{ marginY: "10px" }} />}>
-            {assets.map((asset) => (
-              <AssetItem asset={asset} key={asset.id} />
-            ))}
-          </Stack>
-        </Box>
-      </Stack>
-    );
-  }, [
-    selectedAsset,
-    onClose,
-    assets,
-    isLoading,
-    onClickRemove,
-    onClickUpdate,
-    onClickAdd,
-    view,
-  ]);
+const AssetList: React.FC<AssetListProps> = ({ assets }) => {
+  const list = useMemo(() => {
+    return assets.map((asset) => <AssetItem asset={asset} key={asset.id} />);
+  }, [assets]);
 
   return (
-    <Stack flexGrow={1} height={1}>
-      {content}
+    <Stack flexGrow={1} height={1} marginTop={2} spacing={1.5}>
+      {list}
     </Stack>
   );
 };
@@ -135,7 +64,6 @@ const AssetList: React.FC<AssetListProps> = ({ assets, isLoading }) => {
 const mapStateToProps = (state: RootState) => {
   return {
     assets: state.vault.entities.assets.list,
-    isLoading: state.vault.entities.assets.loading,
   };
 };
 

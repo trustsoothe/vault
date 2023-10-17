@@ -1,91 +1,103 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { FormValues } from "../index";
 import type { RootState } from "../../../redux/store";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import { useFormContext } from "react-hook-form";
-import Divider from "@mui/material/Divider";
+import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { connect } from "react-redux";
 import {
   labelByChainID,
   labelByProtocolMap,
 } from "../../../constants/protocols";
-
-interface RowProps {
-  row: { label: string; value?: string };
-}
-
-const Row = ({ row: { label, value } }: RowProps) => {
-  return (
-    <Stack direction={"row"} spacing={1.5}>
-      <Typography
-        width={80}
-        textAlign={"right"}
-        fontWeight={600}
-        letterSpacing={"0.5px"}
-        fontSize={12}
-      >
-        {label}:
-      </Typography>
-      <Typography
-        width={"100%"}
-        letterSpacing={"0.5px"}
-        sx={{ wordBreak: "break-all" }}
-        fontSize={12}
-      >
-        {value}
-      </Typography>
-    </Stack>
-  );
-};
+import RowSpaceBetween from "../../common/RowSpaceBetween";
+import { roundAndSeparate } from "../../../utils/ui";
+import { isPrivateKey } from "../../../utils";
+import {
+  getAddressFromPrivateKey,
+  protocolsAreEquals,
+} from "../../../utils/networkOperations";
 
 interface SummaryProps {
   fromBalance: number;
   accounts: RootState["vault"]["entities"]["accounts"]["list"];
+  compact?: boolean;
 }
 
-const Summary: React.FC<SummaryProps> = ({ fromBalance, accounts }) => {
+const Summary: React.FC<SummaryProps> = ({
+  fromBalance,
+  accounts,
+  compact = false,
+}) => {
+  const theme = useTheme();
   const { watch } = useFormContext<FormValues>();
   const values = watch();
+  const [fromLabel, setFromLabel] = useState("");
 
-  const rows = useMemo(() => {
-    const total = Number(values.fee) + Number(values.amount);
-    const res = fromBalance - total;
-    let account: SerializedAccountReference, from: string;
-
+  useEffect(() => {
+    let account: SerializedAccountReference;
     if (values.fromType === "saved_account") {
       account = accounts.find(
         (item) =>
           item.address === values.from &&
-          item.protocol.name === values.asset.protocol.name &&
-          item.protocol.chainID === values.asset.protocol.chainID
+          protocolsAreEquals(item.protocol, values.asset.protocol)
       );
 
       if (account) {
         const { name, address } = account;
-        from = `${name} (${address.substring(0, 4)}...${address.substring(
-          address.length - 4
-        )})`;
+        setFromLabel(
+          `${name} (${address.substring(0, 4)}...${address.substring(
+            address.length - 4
+          )})`
+        );
       } else {
-        from = values.from.substring(0, 40);
+        setFromLabel(values.from);
       }
     } else {
-      from = values.from.substring(0, 40);
+      if (isPrivateKey(values.from)) {
+        getAddressFromPrivateKey(values.from, values.asset.protocol).then(
+          (address) => setFromLabel(address)
+        );
+      }
+    }
+  }, []);
+
+  const rows = useMemo(() => {
+    const total = Number(values.fee) + Number(values.amount);
+    const res = fromBalance - total;
+
+    const toAccount = accounts.find(
+      (item) =>
+        item.address === values.toAddress &&
+        protocolsAreEquals(item.protocol, values.asset.protocol)
+    );
+
+    let toAddress = values.toAddress;
+
+    if (toAccount) {
+      const { name, address } = toAccount;
+      toAddress = `${name} (${address.substring(0, 4)}...${address.substring(
+        address.length - 4
+      )})`;
     }
 
     return [
       {
         label: "From",
-        value: from,
+        value: fromLabel,
       },
       {
         label: "Protocol",
-        value: labelByProtocolMap[values.asset.protocol.name],
+        value:
+          labelByProtocolMap[values.asset.protocol.name] ||
+          values.asset.protocol.name,
       },
       {
         label: "Chain ID",
-        value: labelByChainID[values.asset.protocol.chainID],
+        value:
+          labelByChainID[values.asset.protocol.chainID] ||
+          values.asset.protocol.chainID,
       },
       {
         label: "RPC",
@@ -93,45 +105,69 @@ const Summary: React.FC<SummaryProps> = ({ fromBalance, accounts }) => {
       },
       {
         label: "Amount",
-        value: `${values.amount} ${values.asset.symbol}`,
+        value: `${roundAndSeparate(Number(values.amount), 2, "0")} ${
+          values.asset.symbol
+        }`,
       },
       {
         label: "Fee",
-        value: `${values.fee} ${values.asset.symbol}`,
+        value: `${roundAndSeparate(Number(values.fee), 2, "0")} ${
+          values.asset.symbol
+        }`,
       },
       {
         label: "Total",
-        value: `${total} ${values.asset.symbol}`,
+        value: `${roundAndSeparate(total, 2, "0")} ${values.asset.symbol}`,
       },
       {
-        label: "Remain",
-        value: `${res} ${values.asset.symbol}`,
+        label: "Remaining",
+        value: `${roundAndSeparate(res, 2, "0")} ${values.asset.symbol}`,
       },
       {
         label: "To",
-        value: values.toAddress,
+        value: toAddress,
       },
       {
         label: "Memo",
         value: values.memo,
       },
     ];
-  }, [values, accounts]);
+  }, [values, accounts, fromLabel]);
 
   return (
-    <Stack
-      borderBottom={`1px solid lightgray`}
-      maxWidth={"100%"}
-      paddingBottom={1}
-      marginTop={0.5}
-    >
-      <Typography textAlign={"center"} letterSpacing={"0.5px"} fontSize={14}>
+    <Stack maxWidth={"100%"} width={1}>
+      <Typography
+        letterSpacing={"0.5px"}
+        fontSize={14}
+        fontWeight={500}
+        color={theme.customColors.dark100}
+      >
         Summary
       </Typography>
-      <Divider sx={{ marginTop: 0.5, marginBottom: 1 }} />
-      <Stack flexGrow={1} spacing={0.5}>
-        {rows.map((row, i) => (
-          <Row key={i} row={row} />
+      <Stack
+        width={360}
+        paddingX={1}
+        spacing={compact ? 0.4 : 0.5}
+        paddingY={compact ? 0.5 : 1.2}
+        marginTop={0.8}
+        borderRadius={"4px"}
+        boxSizing={"border-box"}
+        border={`1px solid ${theme.customColors.dark15}`}
+        sx={{
+          "& p": {
+            fontSize: "11px!important",
+            lineHeight: "20px!important",
+          },
+        }}
+      >
+        {rows.map(({ label, value }, i) => (
+          <RowSpaceBetween
+            key={i}
+            label={`${label}:`}
+            value={value}
+            labelProps={{ color: theme.customColors.dark75 }}
+            containerProps={{ alignItems: "baseline", spacing: 0.5 }}
+          />
         ))}
       </Stack>
     </Stack>

@@ -2,22 +2,25 @@ import type { SerializedNetwork } from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useTheme } from "@mui/material";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
-import { enqueueSnackbar } from "notistack";
 import Typography from "@mui/material/Typography";
 import CircularLoading from "../common/CircularLoading";
 import { useAppDispatch } from "../../hooks/redux";
 import { removeNetwork as removeNetworkThunk } from "../../redux/slices/vault";
 import OperationFailed from "../common/OperationFailed";
 import { NETWORKS_PAGE } from "../../constants/routes";
+import { enqueueSnackbar } from "../../utils/ui";
+import { NetworkItem } from "./List";
 
 interface RemoveNetworkProps {
   networks: SerializedNetwork[];
 }
 
 const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
+  const theme = useTheme();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -28,11 +31,7 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
   );
 
   const onCancel = useCallback(() => {
-    if (location.key !== "default") {
-      navigate(-1);
-    } else {
-      navigate(NETWORKS_PAGE);
-    }
+    navigate(`${NETWORKS_PAGE}?tab=customs`);
   }, [navigate, location]);
 
   useEffect(() => {
@@ -55,12 +54,10 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
         .unwrap()
         .then(() => {
           enqueueSnackbar({
-            style: { width: 225, minWidth: "225px!important" },
             message: `Network removed successfully.`,
             variant: "success",
-            autoHideDuration: 3000,
           });
-          navigate(NETWORKS_PAGE);
+          navigate(`${NETWORKS_PAGE}?tab=customs`);
         })
         .catch(() => {
           setStatus("error");
@@ -84,20 +81,32 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
     }
 
     return (
-      <Stack
-        flexGrow={1}
-        alignItems={"center"}
-        justifyContent={"center"}
-        spacing={"15px"}
-      >
-        <Typography fontSize={16} textAlign={"center"}>
-          Are you sure you want to remove the{" "}
-          <span style={{ fontWeight: 600 }}>"{network?.name}"</span> network?
-        </Typography>
-        <Stack direction={"row"} width={250} spacing={"15px"}>
+      <Stack flexGrow={1} marginTop={3.5} justifyContent={"space-between"}>
+        <Stack flexGrow={1}>
+          <Typography
+            fontSize={18}
+            width={1}
+            marginBottom={"30px!important"}
+            textAlign={"center"}
+            fontWeight={700}
+            lineHeight={"28px"}
+            color={theme.customColors.primary999}
+          >
+            Are you sure you want to remove the following network?
+          </Typography>
+          {network && <NetworkItem network={network} />}
+        </Stack>
+        <Stack direction={"row"} width={1} spacing={2}>
           <Button
             variant={"outlined"}
-            sx={{ textTransform: "none", height: 30, fontWeight: 500 }}
+            sx={{
+              fontWeight: 700,
+              color: theme.customColors.dark50,
+              borderColor: theme.customColors.dark50,
+              height: 36,
+              borderWidth: 1.5,
+              fontSize: 16,
+            }}
             fullWidth
             onClick={onCancel}
           >
@@ -105,7 +114,11 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
           </Button>
           <Button
             variant={"contained"}
-            sx={{ textTransform: "none", height: 30, fontWeight: 600 }}
+            sx={{
+              fontWeight: 700,
+              height: 36,
+              fontSize: 16,
+            }}
             onClick={removeNetwork}
             fullWidth
           >

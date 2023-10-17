@@ -1,4 +1,6 @@
 import type {
+  AccountBalanceMessage,
+  AccountBalanceResponse,
   AnswerConnectionRequest,
   AnswerConnectionResponse,
   AnswerNewAccountRequest,
@@ -15,15 +17,18 @@ import type {
   PrivateKeyAccountResponse,
   RemoveAccountMessage,
   RemoveAccountResponse,
+  RevokeExternalSessionsResponse,
   RevokeSessionMessage,
   RevokeSessionResponse,
   UnlockVaultRequest,
   UnlockVaultResponse,
   UpdateAccountMessage,
   UpdateAccountResponse,
+  RevokeExternalSessionsMessage,
 } from "./Internal";
 import browser from "webextension-polyfill";
 import {
+  ACCOUNT_BALANCE_REQUEST,
   ANSWER_CONNECTION_REQUEST,
   ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_TRANSFER_REQUEST,
@@ -32,6 +37,7 @@ import {
   LOCK_VAULT_REQUEST,
   PK_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_REQUEST,
+  REVOKE_EXTERNAL_SESSIONS_REQUEST,
   REVOKE_SESSION_REQUEST,
   UNLOCK_VAULT_REQUEST,
   UPDATE_ACCOUNT_REQUEST,
@@ -147,5 +153,21 @@ export default class AppToBackground {
         sessionId,
       },
     } as RevokeSessionMessage);
+  }
+
+  static async revokeAllExternalSessions(): Promise<RevokeExternalSessionsResponse> {
+    return browser.runtime.sendMessage({
+      type: REVOKE_EXTERNAL_SESSIONS_REQUEST,
+    } as RevokeExternalSessionsMessage);
+  }
+
+  static async getAccountBalance(
+    data: AccountBalanceMessage["data"]
+  ): Promise<AccountBalanceResponse> {
+    const message: AccountBalanceMessage = {
+      type: ACCOUNT_BALANCE_REQUEST,
+      data,
+    };
+    return browser.runtime.sendMessage(message);
   }
 }

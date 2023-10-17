@@ -1,14 +1,14 @@
 import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
 import type { RootState } from "../../redux/store";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import { useForm, Controller } from "react-hook-form";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Checkbox from "@mui/material/Checkbox";
-import { enqueueSnackbar } from "notistack";
 import Button from "@mui/material/Button";
+import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { connect } from "react-redux";
 import {
@@ -25,6 +25,7 @@ import {
   labelByChainID,
   labelByProtocolMap,
 } from "../../constants/protocols";
+import { enqueueSnackbar } from "../../utils/ui";
 import OperationFailed from "../common/OperationFailed";
 import { isNetworkUrlHealthy } from "../../utils/networkOperations";
 
@@ -59,10 +60,10 @@ interface AddUpdateNetworkProps {
 }
 
 const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const [networkToUpdate, setNetworkToUpdate] =
     useState<SerializedNetwork>(null);
   const [status, setStatus] = useState<
@@ -88,12 +89,8 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
   }, [selectedProtocol]);
 
   const onCancel = useCallback(() => {
-    if (location.key !== "default") {
-      navigate(-1);
-    } else {
-      navigate(NETWORKS_PAGE);
-    }
-  }, [navigate, location]);
+    navigate(`${NETWORKS_PAGE}?tab=customs`);
+  }, [navigate]);
 
   useEffect(() => {
     const id = searchParams.get("id");
@@ -152,14 +149,13 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
         .unwrap()
         .then(() => {
           enqueueSnackbar({
-            style: { width: 250, minWidth: "250px!important" },
             message: `Network ${
               networkToUpdate ? "updated" : "added"
             } successfully.`,
             variant: "success",
-            autoHideDuration: 2500,
           });
-          navigate(NETWORKS_PAGE);
+
+          navigate(`${NETWORKS_PAGE}?tab=customs`);
         })
         .catch(() => setStatus("error"));
     },
@@ -216,7 +212,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
         justifyContent={"space-between"}
         paddingTop={2}
       >
-        <Stack spacing={"20px"}>
+        <Stack spacing={1.5}>
           <TextField
             autoFocus
             size={"small"}
@@ -239,6 +235,11 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
                 {...field}
                 error={!!error}
                 helperText={error?.message}
+                sx={{
+                  "& .MuiSelect-icon": {
+                    top: 5,
+                  },
+                }}
               >
                 {protocols.map(({ protocol, label }) => (
                   <MenuItem key={protocol} value={protocol}>
@@ -262,6 +263,11 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
                 {...field}
                 error={!!error}
                 helperText={error?.message}
+                sx={{
+                  "& .MuiSelect-icon": {
+                    top: 5,
+                  },
+                }}
               >
                 {chainIDs.map((chainID) => (
                   <MenuItem key={chainID} value={chainID}>
@@ -295,6 +301,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
                   marginTop: "15px!important",
                   "& .MuiButtonBase-root": {
                     padding: 0,
+                    transform: "scale(0.85)",
                   },
                   "& svg": {
                     fontSize: 20,
@@ -302,7 +309,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
                   "& .MuiTypography-root": {
                     userSelect: "none",
                     marginLeft: 0.7,
-                    fontSize: 14,
+                    fontSize: 12,
                     lineHeight: "20px",
                   },
                 }}
@@ -310,19 +317,29 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
             )}
           />
         </Stack>
-
-        <Stack direction={"row"} spacing={"20px"}>
+        <Stack direction={"row"} spacing={2} width={1}>
           <Button
-            variant={"outlined"}
-            sx={{ height: 30 }}
-            fullWidth
             onClick={onCancel}
+            sx={{
+              fontWeight: 700,
+              color: theme.customColors.dark50,
+              borderColor: theme.customColors.dark50,
+              height: 36,
+              borderWidth: 1.5,
+              fontSize: 16,
+            }}
+            variant={"outlined"}
+            fullWidth
           >
             Cancel
           </Button>
           <Button
+            sx={{
+              fontWeight: 700,
+              height: 36,
+              fontSize: 16,
+            }}
             variant={"contained"}
-            sx={{ height: 30, fontWeight: 600 }}
             fullWidth
             type={"submit"}
           >

@@ -1,20 +1,25 @@
 {
   "compilerOptions": {
     "strict": false,
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "es6",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "moduleResolution": "node",
-    "module": "esnext",
+    "module": "es6",
     "esModuleInterop": true,
     "sourceMap": false,
     "rootDir": "src",
     "outDir": "dist/js",
-    "noEmitOnError": true,
     "jsx": "react",
     "skipLibCheck": true,
     "typeRoots": [
       "node_modules/@types"
-    ]
+    ],
+    "allowJs": true,
+    "checkJs": false
   },
   "exclude": [
     "node_modules"

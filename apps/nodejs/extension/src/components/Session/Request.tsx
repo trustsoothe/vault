@@ -1,5 +1,4 @@
 import type { ExternalConnectionRequest } from "../../types/communication";
-import type { RootState } from "../../redux/store";
 import React, {
   useCallback,
   useEffect,
@@ -11,18 +10,21 @@ import Typography from "@mui/material/Typography";
 import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import { connect } from "react-redux";
+import { useTheme } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import Requester from "../common/Requester";
+import CheckIcon from "../../assets/img/check_icon.svg";
+import CheckedIcon from "../../assets/img/checked_icon.svg";
 
 interface PermissionItemProps {
   checked: boolean;
   toggleValue: () => void;
   title: string;
   description: string;
-  showBorderTop?: boolean;
+  showBorderBottom?: boolean;
 }
 
 const PermissionItem: React.FC<PermissionItemProps> = ({
@@ -30,31 +32,51 @@ const PermissionItem: React.FC<PermissionItemProps> = ({
   toggleValue,
   title,
   description,
-  showBorderTop,
+  showBorderBottom,
 }) => {
+  const theme = useTheme();
   return (
     <Stack
-      padding={"5px"}
-      spacing={"10px"}
+      spacing={1.4}
+      paddingX={0.5}
       direction={"row"}
-      alignItems={"center"}
-      height={50}
+      height={55}
       width={1}
       boxSizing={"border-box"}
-      borderTop={showBorderTop ? "1px solid lightgray" : undefined}
+      borderBottom={
+        showBorderBottom ? `1px solid ${theme.customColors.dark15}` : undefined
+      }
     >
       <Checkbox
         size={"small"}
-        sx={{ paddingX: 0 }}
         checked={checked}
         onClick={toggleValue}
+        checkedIcon={<CheckedIcon />}
+        icon={<CheckIcon />}
+        component={"div"}
+        sx={{
+          minWidth: 19,
+          width: 19,
+          height: 19,
+          padding: 0,
+          marginTop: "5px!important",
+        }}
       />
+
       <Stack width={1}>
-        <Typography fontWeight={600}>{title}</Typography>
         <Typography
-          sx={{ fontSize: "10px!important" }}
+          fontWeight={500}
+          fontSize={14}
+          letterSpacing={"0.5px"}
+          lineHeight={"24px"}
+        >
+          {title}
+        </Typography>
+        <Typography
+          sx={{ fontSize: "12px!important" }}
+          lineHeight={"16px"}
           component={"span"}
-          color={"dimgrey"}
+          color={theme.customColors.dark75}
         >
           {description}
         </Typography>
@@ -64,6 +86,7 @@ const PermissionItem: React.FC<PermissionItemProps> = ({
 };
 
 const Request: React.FC = () => {
+  const theme = useTheme();
   const currentRequest: ExternalConnectionRequest = useLocation()?.state;
   const [allowCreateAccounts, setAllowCreateAccounts] = useState(false);
   const [allowListAccounts, setAllowListAccounts] = useState(false);
@@ -104,9 +127,10 @@ const Request: React.FC = () => {
         const result = await AppToBackground.answerConnection({
           accepted,
           request: currentRequest,
-          canListAccounts: allowListAccounts && accepted,
-          canCreateAccounts: allowCreateAccounts && accepted,
-          canSuggestTransfers: allowSuggestTransfers && accepted,
+          selectedAccounts: [],
+          // canListAccounts: allowListAccounts && accepted,
+          // canCreateAccounts: allowCreateAccounts && accepted,
+          // canSuggestTransfers: allowSuggestTransfers && accepted,
         });
         const isError = !!result.error;
         setStatus(isError ? "error" : "normal");
@@ -171,110 +195,113 @@ const Request: React.FC = () => {
   }
 
   return (
-    <Stack spacing={"10px"} height={1} flexGrow={1} justifyContent={"center"}>
-      <Typography fontSize={20} textAlign={"center"}>
-        Connection Request from:
-      </Typography>
+    <Stack alignItems={"center"} justifyContent={"space-between"} height={1}>
+      <Stack width={1}>
+        <Stack paddingX={2} width={1} boxSizing={"border-box"}>
+          <Typography
+            width={340}
+            height={60}
+            fontSize={18}
+            marginTop={2.5}
+            fontWeight={700}
+            marginBottom={1.5}
+            lineHeight={"28px"}
+            textAlign={"center"}
+            sx={{ userSelect: "none" }}
+            color={theme.customColors.primary999}
+          >
+            Select the permissions you want to grant this site.
+          </Typography>
+          <Requester request={currentRequest} />
+          <Stack
+            direction={"row"}
+            alignItems={"center"}
+            height={24}
+            mt={1.5}
+            width={"auto"}
+            spacing={1.3}
+          >
+            <Checkbox
+              size={"small"}
+              checked={isAllSelected}
+              onClick={toggleSelectAll}
+              checkedIcon={<CheckedIcon />}
+              icon={<CheckIcon />}
+              sx={{
+                width: 19,
+                height: 19,
+                padding: 0,
+                marginLeft: "5px!important",
+              }}
+            />
+            <Typography fontSize={14} fontWeight={500} letterSpacing={"0.5px"}>
+              Select All
+            </Typography>
+          </Stack>
+          <Stack
+            width={1}
+            padding={1}
+            height={200}
+            marginTop={1}
+            spacing={0.5}
+            borderRadius={"4px"}
+            boxSizing={"border-box"}
+            border={`1px solid ${theme.customColors.primary250}`}
+          >
+            {permissionItems.map((props, index) => (
+              <PermissionItem
+                key={index}
+                showBorderBottom={index !== permissionItems.length - 1}
+                {...props}
+              />
+            ))}
+          </Stack>
+        </Stack>
+      </Stack>
       <Stack
+        width={1}
+        spacing={2}
+        paddingX={2}
         direction={"row"}
         alignItems={"center"}
-        justifyContent={"center"}
-        spacing={"10px"}
-        width={1}
-      >
-        <img
-          width={24}
-          height={24}
-          alt={"favicon-ico"}
-          src={currentRequest.faviconUrl}
-        />
-        <Typography
-          fontSize={16}
-          fontWeight={500}
-          textOverflow={"ellipsis"}
-          whiteSpace={"nowrap"}
-          overflow={"hidden"}
-          maxWidth={300}
-          sx={{ textDecoration: "underline" }}
-        >
-          {currentRequest.origin}
-        </Typography>
-      </Stack>
-      <Typography
-        fontSize={14}
-        marginTop={"15px!important"}
-        textAlign={"center"}
-      >
-        Select the permissions you want to grant this site with.
-      </Typography>
-      <Stack direction={"row"} alignItems={"center"} height={18} mt={"10px"}>
-        <Checkbox
-          size={"small"}
-          checked={isAllSelected}
-          onClick={toggleSelectAll}
-        />
-        <Typography fontSize={12} fontWeight={600}>
-          Select All
-        </Typography>
-      </Stack>
-      <Stack
-        border={"1px solid lightgray"}
-        overflow={"auto"}
-        padding={"5px"}
-        mb={"10px"}
-        mt={"5px"}
-        borderRadius={"6px"}
         boxSizing={"border-box"}
-        sx={{
-          "& p": {
-            fontSize: "12px!important",
-          },
-        }}
       >
-        {permissionItems.map((props, index) => (
-          <PermissionItem key={index} showBorderTop={index !== 0} {...props} />
-        ))}
-      </Stack>
-      <Typography fontSize={10}>
-        This site will be grant with the permissions you select. Before doing
-        any operation, you will need to confirm it.
-      </Typography>
-      <Stack direction={"row"} spacing={"15px"} marginTop={"20px!important"}>
         <Button
-          fullWidth
-          variant={"outlined"}
-          sx={{
-            textTransform: "none",
-            fontWeight: 600,
+          onClick={() => {
+            sendResponse(false);
           }}
-          onClick={() => sendResponse(false)}
+          sx={{
+            fontWeight: 700,
+            color: theme.customColors.dark50,
+            borderColor: theme.customColors.dark50,
+            height: 36,
+            borderWidth: 1.5,
+            fontSize: 16,
+          }}
+          variant={"outlined"}
+          fullWidth
         >
-          Cancel
+          Reject
         </Button>
         <Button
-          fullWidth
-          disabled={!isSomethingSelected}
-          variant={"contained"}
           sx={{
-            textTransform: "none",
-            backgroundColor: "rgb(29, 138, 237)",
-            fontWeight: 600,
+            fontWeight: 700,
+            height: 36,
+            fontSize: 16,
           }}
+          variant={"contained"}
+          fullWidth
+          type={"submit"}
+          disabled={!isSomethingSelected}
           onClick={() => {
             sendResponse(true);
           }}
         >
-          Accept
+          Connect
         </Button>
       </Stack>
     </Stack>
   );
 };
 
-const mapStateToProps = (state: RootState) => {
-  return {
-    accounts: state.vault.entities.accounts.list,
-  };
-};
-
-export default connect(mapStateToProps)(Request);
+export default Request;

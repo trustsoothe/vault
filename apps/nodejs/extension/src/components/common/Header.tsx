@@ -1,50 +1,50 @@
-import React, { useCallback, useEffect, useMemo } from "react";
+import type { RootState } from "../../redux/store";
+import React, { useCallback, useMemo } from "react";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import browser from "webextension-polyfill";
 import Stack from "@mui/material/Stack";
 import Menu from "@mui/material/Menu";
 import { connect } from "react-redux";
-import Button from "@mui/material/Button";
+import { useTheme } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import ReplyIcon from "@mui/icons-material/Reply";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 import {
-  ACCOUNTS_DETAIL_PAGE,
+  ACCOUNT_PK_PAGE,
   ACCOUNTS_PAGE,
   ADD_NETWORK_PAGE,
   ASSETS_PAGE,
   BLOCK_SITE_PAGE,
   BLOCKED_SITES_PAGE,
-  CONNECTED_SITE_DETAIL_PAGE,
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
   REMOVE_ACCOUNT_PAGE,
-  SESSIONS_PAGE,
+  SITES_PAGE,
   TRANSFER_PAGE,
   UNBLOCK_SITE_PAGE,
-  UPDATE_ACCOUNT_PAGE,
   UPDATE_NETWORK_PAGE,
 } from "../../constants/routes";
-import AppToBackground from "../../controllers/communication/AppToBackground";
-import { RootState } from "../../redux/store";
+import LogoIcon from "../../assets/img/logo.svg";
+import useIsPopup from "../../hooks/useIsPopup";
+import { HEIGHT } from "../../constants/ui";
+import NetworkSelect from "./NetworkSelect";
 
 const titleMap = {
   [ACCOUNTS_PAGE]: "Accounts",
-  [ACCOUNTS_DETAIL_PAGE]: "Account Detail",
-  [UPDATE_ACCOUNT_PAGE]: "Update Account Name",
+  [ACCOUNT_PK_PAGE]: "View Private Key",
   [REMOVE_ACCOUNT_PAGE]: "Remove Account",
   [ASSETS_PAGE]: "Assets",
   [CREATE_ACCOUNT_PAGE]: "Create Account",
   [IMPORT_ACCOUNT_PAGE]: "Import Account",
   [NETWORKS_PAGE]: "Networks",
-  [ADD_NETWORK_PAGE]: "Add Network",
-  [UPDATE_NETWORK_PAGE]: "Update Network",
+  [ADD_NETWORK_PAGE]: "New Network",
+  [UPDATE_NETWORK_PAGE]: "Edit Network",
   [REMOVE_ACCOUNT_PAGE]: "Remove Network",
-  [SESSIONS_PAGE]: "Connected Sites",
-  [CONNECTED_SITE_DETAIL_PAGE]: "Connection Detail",
+  [SITES_PAGE]: "Sites",
   [BLOCKED_SITES_PAGE]: "Blocked Sites",
   [UNBLOCK_SITE_PAGE]: "Unblock Site",
   [BLOCK_SITE_PAGE]: "Block Site",
@@ -62,15 +62,12 @@ const Header: React.FC<HeaderProps> = ({
   networksLength,
   assetsLength,
 }) => {
+  const theme = useTheme();
+  const isPopup = useIsPopup();
   const location = useLocation();
   const navigate = useNavigate();
-  const [isPopup, setIsPopup] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = !!anchorEl;
-
-  useEffect(() => {
-    setIsPopup(window.location.search.includes("popup=true"));
-  }, []);
 
   const openMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -98,47 +95,39 @@ const Header: React.FC<HeaderProps> = ({
     });
   }, [location]);
 
-  const items = useMemo(() => {
+  const complementaryComponent = useMemo(() => {
+    let items = 0;
     switch (location.pathname) {
       case ACCOUNTS_PAGE: {
-        return accountsLength;
+        items = accountsLength;
+        break;
       }
       case NETWORKS_PAGE: {
-        return networksLength;
+        items = networksLength;
+        break;
       }
       case ASSETS_PAGE: {
-        return assetsLength;
+        items = assetsLength;
+        break;
       }
     }
 
-    return 0;
-  }, [accountsLength, networksLength, assetsLength, location]);
-
-  const complementaryComponent = useMemo(() => {
-    if (location.pathname === NETWORKS_PAGE) {
-      return (
-        <Button
-          sx={{ textTransform: "none", height: 30, minWidth: 40, width: 40 }}
-          onClick={() => navigate(ADD_NETWORK_PAGE)}
-        >
-          Add
-        </Button>
-      );
-    }
     if (items) {
       return (
         <Stack
           justifyContent={"center"}
           alignItems={"center"}
           height={20}
-          paddingX={"5px"}
-          bgcolor={"#d3d3d3"}
-          borderRadius={"4px"}
+          width={20}
+          paddingX={0.3}
+          borderRadius={"50%"}
+          border={`1px solid ${theme.customColors.dark50}`}
+          boxSizing={"border-box"}
         >
           <Typography
             fontSize={10}
-            fontWeight={600}
-            color={"#454545"}
+            fontWeight={700}
+            color={theme.customColors.white}
             letterSpacing={"0.5px"}
           >
             {items}
@@ -146,53 +135,81 @@ const Header: React.FC<HeaderProps> = ({
         </Stack>
       );
     }
-
-    if (location.pathname === SESSIONS_PAGE) {
-      return (
-        <Button
-          sx={{ color: "red", fontWeight: 600 }}
-          onClick={() => navigate(BLOCKED_SITES_PAGE)}
-        >
-          Blocks
-        </Button>
-      );
-    }
-  }, [items, navigate, location.pathname]);
+  }, [
+    navigate,
+    location.pathname,
+    accountsLength,
+    networksLength,
+    assetsLength,
+    theme,
+  ]);
 
   const canGoBack = location.key !== "default";
+  const headerHeight = 60;
 
   return (
-    <Stack flexGrow={1} height={510 - 15 - 20}>
+    <Stack flexGrow={1} height={HEIGHT - headerHeight}>
       <Stack
         direction={"row"}
         alignItems={"center"}
-        justifyContent={"space-between"}
-        height={35}
+        height={headerHeight}
+        width={1}
+        bgcolor={theme.customColors.primary999}
+        paddingLeft={0.5}
+        boxSizing={"border-box"}
+        sx={
+          isPopup
+            ? undefined
+            : {
+                borderTopLeftRadius: "6px",
+                borderTopRightRadius: "6px",
+              }
+        }
       >
-        <Stack direction={"row"} alignItems={"center"} spacing={"10px"}>
-          <Typography variant={"h6"}>
-            {titleMap[location.pathname] || "Keyring Vault"}
-          </Typography>
-          {complementaryComponent}
+        <LogoIcon />
+        <Stack
+          direction={"row"}
+          alignItems={"center"}
+          justifyContent={"space-between"}
+          marginLeft={4.5}
+          flexGrow={1}
+          height={34}
+        >
+          <NetworkSelect />
+          {/*<Stack direction={"row"} alignItems={"center"}>*/}
+          {/*  <Typography*/}
+          {/*    variant={"h6"}*/}
+          {/*    fontSize={16}*/}
+          {/*    fontWeight={700}*/}
+          {/*    color={"white"}*/}
+          {/*    marginRight={1}*/}
+          {/*  >*/}
+          {/*    {titleMap[location.pathname] || "Keyring Vault"}*/}
+          {/*  </Typography>*/}
+          {/*  {complementaryComponent}*/}
+          {/*</Stack>*/}
+          {/*<IconButton*/}
+          {/*  sx={{*/}
+          {/*    padding: 0,*/}
+          {/*    display: canGoBack ? "block" : "none",*/}
+          {/*  }}*/}
+          {/*  onClick={goBack}*/}
+          {/*>*/}
+          {/*  <ReplyIcon*/}
+          {/*    sx={{ fontSize: 25, color: theme.customColors.primary250 }}*/}
+          {/*  />*/}
+          {/*</IconButton>*/}
         </Stack>
         <Stack
           direction={"row"}
           alignItems={"center"}
-          spacing={"5px"}
-          marginRight={"-12px"}
+          marginLeft={4.5}
+          width={35}
         >
-          <IconButton
-            sx={{
-              padding: 0,
-              marginRight: "-5px",
-              display: canGoBack ? "block" : "none",
-            }}
-            onClick={goBack}
-          >
-            <ReplyIcon />
-          </IconButton>
           <IconButton sx={{ padding: 0 }} onClick={openMenu}>
-            <MoreVertRoundedIcon />
+            <MoreVertRoundedIcon
+              sx={{ color: theme.customColors.white, fontSize: 30 }}
+            />
           </IconButton>
         </Stack>
 
@@ -264,7 +281,7 @@ const Header: React.FC<HeaderProps> = ({
             onClick={closeMenu}
             sx={{ borderTop: "1px solid lightgray" }}
           >
-            <Link to={SESSIONS_PAGE}>Connected Sites</Link>
+            <Link to={SITES_PAGE}>Sites</Link>
           </MenuItem>
           <MenuItem onClick={closeMenu}>
             <Link to={NETWORKS_PAGE}>Networks</Link>
@@ -274,7 +291,24 @@ const Header: React.FC<HeaderProps> = ({
           </MenuItem>
         </Menu>
       </Stack>
-      <Stack flexGrow={1} height={"calc(100% - 35px)"}>
+      <Stack
+        flexGrow={1}
+        height={`calc(100% - ${headerHeight}px)`}
+        paddingX={2}
+        position={"relative"}
+      >
+        <Stack
+          height={open ? "calc(100% + 20px)" : 0}
+          width={1}
+          flexGrow={1}
+          position={"absolute"}
+          zIndex={10}
+          bgcolor={"rgba(255,255,255,0.5)"}
+          sx={{
+            transition: "height 0.1s",
+            transitionTimingFunction: "ease-in",
+          }}
+        />
         <Outlet />
       </Stack>
     </Stack>

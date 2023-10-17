@@ -1,20 +1,28 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
-import { enqueueSnackbar } from "notistack";
+import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import { ACCOUNTS_DETAIL_PAGE, ACCOUNTS_PAGE } from "../../constants/routes";
-import { DetailComponent } from "./AccountDetail";
+import { ACCOUNTS_PAGE } from "../../constants/routes";
 import Password from "../common/Password";
 import { useAppDispatch } from "../../hooks/redux";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import { enqueueSnackbar } from "../../utils/ui";
+import AccountsAutocomplete from "./Autocomplete";
 
 interface FormValues {
   vault_password: string;
@@ -25,8 +33,12 @@ interface RemoveAccountProps {
 }
 
 const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [status, setStatus] = useState<"normal" | "loading" | "error">(
+    "normal"
+  );
   const [account, setAccount] = useState<SerializedAccountReference>(null);
   const [wrongPassword, setWrongPassword] = useState(false);
   const navigate = useNavigate();
@@ -36,7 +48,7 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
       vault_password: "",
     },
   });
-  const { handleSubmit, watch } = methods;
+  const { handleSubmit, watch, reset } = methods;
   const pass = watch("vault_password");
 
   useEffect(() => {
@@ -45,11 +57,27 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
     }
   }, [pass]);
 
+  const onChangeAccount = useCallback(
+    (newAccount: SerializedAccountReference) => {
+      setAccount(newAccount);
+      setStatus("normal");
+      setWrongPassword(false);
+      reset({
+        vault_password: "",
+      });
+      setSearchParams((prev) => {
+        prev.set("id", newAccount.id);
+        return prev;
+      });
+    },
+    [reset]
+  );
+
   const onCancel = useCallback(() => {
     if (location.key !== "default") {
       navigate(-1);
     } else {
-      navigate(`${ACCOUNTS_DETAIL_PAGE}?id=${account?.id}`);
+      navigate(ACCOUNTS_PAGE);
     }
   }, [navigate, location, account]);
 
@@ -62,13 +90,9 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
     }
 
     if (!accountFromStore) {
-      onCancel();
+      navigate(ACCOUNTS_PAGE);
     }
   }, [searchParams, accounts]);
-
-  const [status, setStatus] = useState<"normal" | "loading" | "error">(
-    "normal"
-  );
 
   const removeAccount = useCallback(
     (data: FormValues) => {
@@ -84,13 +108,11 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
             setStatus("normal");
             setWrongPassword(true);
           } else {
+            navigate(ACCOUNTS_PAGE);
             enqueueSnackbar({
-              style: { width: 225, minWidth: "225px!important" },
               message: `Account removed successfully.`,
               variant: "success",
-              autoHideDuration: 3000,
             });
-            navigate(ACCOUNTS_PAGE);
           }
         }
       });
@@ -115,67 +137,81 @@ const RemoveAccount: React.FC<RemoveAccountProps> = ({ accounts }) => {
     return (
       <Stack
         flexGrow={1}
-        spacing={"23px"}
-        marginTop={2}
+        marginTop={3.5}
         component={"form"}
         onSubmit={handleSubmit(removeAccount)}
+        justifyContent={"space-between"}
       >
-        <Typography fontSize={14} width={1}>
-          Are you sure you want to remove the following account?
-        </Typography>
-        <DetailComponent
-          account={account}
-          containerProps={{
-            my: "10px!important",
-            sx: {
-              transform: "scale(0.9)",
-              border: "1px solid lightgray",
-              padding: 1,
-              boxSizing: "border-box",
-              borderRadius: "6px",
-            },
-          }}
-        />
-        <Typography fontSize={14} width={1} marginTop={"0!important"}>
-          To continue, introduce the vault's password:
-        </Typography>
-        <FormProvider {...methods}>
-          <Password
-            passwordName={"vault_password"}
-            labelPassword={"Vault Password"}
-            canGenerateRandom={false}
-            justRequire={true}
-            hidePasswordStrong={true}
-            containerProps={{
-              marginTop: "10px!important",
-              spacing: 0.5,
-            }}
-            errorPassword={wrongPassword ? "Wrong password" : undefined}
+        <Stack flexGrow={1}>
+          <Typography
+            fontSize={18}
+            width={1}
+            marginBottom={"30px!important"}
+            textAlign={"center"}
+            fontWeight={700}
+            lineHeight={"28px"}
+            color={theme.customColors.primary999}
+          >
+            Are you sure you want to remove the following account?
+          </Typography>
+          <AccountsAutocomplete
+            selectedAccount={account}
+            onChangeSelectedAccount={onChangeAccount}
           />
-        </FormProvider>
+          <Divider
+            sx={{ borderColor: theme.customColors.dark25, marginY: 3 }}
+          />
+          <Typography
+            fontSize={14}
+            width={1}
+            fontWeight={500}
+            lineHeight={"30px"}
+            marginTop={"0!important"}
+            sx={{ userSelect: "none" }}
+          >
+            To continue, introduce the vault's password:
+          </Typography>
+          <FormProvider {...methods}>
+            <Password
+              passwordName={"vault_password"}
+              labelPassword={"Vault Password"}
+              canGenerateRandom={false}
+              justRequire={true}
+              hidePasswordStrong={true}
+              containerProps={{
+                marginTop: "15px!important",
+                spacing: 0.5,
+              }}
+              errorPassword={wrongPassword ? "Wrong password" : undefined}
+            />
+          </FormProvider>
+        </Stack>
 
-        <Stack
-          direction={"row"}
-          width={1}
-          paddingX={5}
-          spacing={"15px"}
-          alignItems={"center"}
-          justifyContent={"center"}
-          boxSizing={"border-box"}
-        >
+        <Stack direction={"row"} spacing={2} width={1} marginTop={2.5}>
           <Button
-            variant={"outlined"}
-            sx={{ height: 30, fontWeight: 500 }}
-            fullWidth
             onClick={onCancel}
+            sx={{
+              fontWeight: 700,
+              color: theme.customColors.dark50,
+              borderColor: theme.customColors.dark50,
+              height: 36,
+              borderWidth: 1.5,
+              fontSize: 16,
+            }}
+            variant={"outlined"}
+            fullWidth
           >
             Cancel
           </Button>
           <Button
+            sx={{
+              fontWeight: 700,
+              height: 36,
+              fontSize: 16,
+            }}
             variant={"contained"}
-            sx={{ height: 30, fontWeight: 600 }}
-            type={"submit"}
             fullWidth
+            type={"submit"}
           >
             Remove
           </Button>

@@ -1,5 +1,9 @@
+import { createHashRouter, RouterProvider } from "react-router-dom";
 import React, { useEffect, useMemo, useState } from "react";
+import GlobalStyles from "@mui/material/GlobalStyles";
 import { createRoot } from "react-dom/client";
+import browser from "webextension-polyfill";
+import { useTheme } from "@mui/material";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -10,21 +14,16 @@ import { Provider, connect } from "react-redux";
 import { RootState } from "./redux/store";
 import Header from "./components/common/Header";
 import thunkMiddleware from "redux-thunk";
-import ListSessions from "./components/Session/List";
 import AccountList from "./components/Account/List";
-import Request from "./components/Session/Request";
 import CircularLoading from "./components/common/CircularLoading";
 import NetworkList from "./components/Network/List";
 import AssetList from "./components/Asset/List";
-import { createHashRouter, RouterProvider } from "react-router-dom";
 import {
-  ACCOUNTS_DETAIL_PAGE,
+  ACCOUNT_PK_PAGE,
   ACCOUNTS_PAGE,
   ADD_NETWORK_PAGE,
   ASSETS_PAGE,
   BLOCK_SITE_PAGE,
-  BLOCKED_SITES_PAGE,
-  CONNECTED_SITE_DETAIL_PAGE,
   CREATE_ACCOUNT_PAGE,
   DISCONNECT_SITE_PAGE,
   IMPORT_ACCOUNT_PAGE,
@@ -32,33 +31,32 @@ import {
   REMOVE_ACCOUNT_PAGE,
   REMOVE_NETWORK_PAGE,
   REQUEST_CONNECTION_PAGE,
-  SESSIONS_PAGE,
+  SITES_PAGE,
   TRANSFER_PAGE,
   UNBLOCK_SITE_PAGE,
-  UPDATE_ACCOUNT_PAGE,
   UPDATE_NETWORK_PAGE,
 } from "./constants/routes";
 import CreateNewAccount from "./components/Account/CreateNew";
 import ImportAccount from "./components/Account/Import";
-import RequestHandler, {
-  closeCurrentWindow,
-  removeRequestWithRes,
-} from "./components/RequestHandler";
+import RequestHandler from "./components/RequestHandler";
 import Transfer from "./components/Transfer";
 import ThemeProvider from "./theme";
-import AccountDetail from "./components/Account/AccountDetail";
 import RemoveAccount from "./components/Account/Remove";
-import UpdateAccount from "./components/Account/Update";
 import { SnackbarProvider } from "notistack";
 import AddUpdateNetwork from "./components/Network/AddUpdate";
 import RemoveNetwork from "./components/Network/Remove";
-import SessionDetail from "./components/Session/SessionDetail";
-import BlockedList from "./components/Session/BlockedList";
 import DisconnectSite from "./components/Session/DisconnectSite";
-import ToggleBlockSite from "./components/Session/ToggleBlockSite";
+import ViewPrivateKey from "./components/Account/ViewPrivateKey";
+import { closeCurrentWindow, removeRequestWithRes } from "./utils/ui";
+import { ToggleBlockSiteFromRouter } from "./components/Session/ToggleBlockSite";
 import { MINUTES_ALLOWED_FOR_REQ } from "./constants/communication";
 import { RequestTimeout } from "./errors/communication";
 import { useAppDispatch } from "./hooks/redux";
+import useIsPopup from "./hooks/useIsPopup";
+import Sites from "./components/Session";
+import { HEIGHT, WIDTH } from "./constants/ui";
+import SuccessIcon from "./assets/img/success_icon.svg";
+import NewConnect from "./components/Session/NewConnect";
 
 const store = new Store();
 const storeWithMiddleware = applyMiddleware(store, thunkMiddleware);
@@ -73,40 +71,28 @@ const router = createHashRouter([
         element: <AccountList />,
       },
       {
-        path: ACCOUNTS_DETAIL_PAGE,
-        element: <AccountDetail />,
+        path: ACCOUNT_PK_PAGE,
+        element: <ViewPrivateKey />,
       },
       {
         path: REMOVE_ACCOUNT_PAGE,
         element: <RemoveAccount />,
       },
       {
-        path: UPDATE_ACCOUNT_PAGE,
-        element: <UpdateAccount />,
-      },
-      {
-        path: SESSIONS_PAGE,
-        element: <ListSessions />,
-      },
-      {
-        path: CONNECTED_SITE_DETAIL_PAGE,
-        element: <SessionDetail />,
+        path: SITES_PAGE,
+        element: <Sites />,
       },
       {
         path: DISCONNECT_SITE_PAGE,
         element: <DisconnectSite />,
       },
       {
-        path: BLOCKED_SITES_PAGE,
-        element: <BlockedList />,
-      },
-      {
         path: BLOCK_SITE_PAGE,
-        element: <ToggleBlockSite />,
+        element: <ToggleBlockSiteFromRouter />,
       },
       {
         path: UNBLOCK_SITE_PAGE,
-        element: <ToggleBlockSite />,
+        element: <ToggleBlockSiteFromRouter />,
       },
       {
         path: NETWORKS_PAGE,
@@ -155,7 +141,7 @@ const requestRouter = createHashRouter([
       },
       {
         path: REQUEST_CONNECTION_PAGE,
-        element: <Request />,
+        element: <NewConnect />,
       },
       {
         path: CREATE_ACCOUNT_PAGE,
@@ -185,14 +171,14 @@ const Home: React.FC<HomeProps> = ({
   externalRequests,
 }) => {
   const dispatch = useAppDispatch();
+  const theme = useTheme();
   const [view, setView] = useState("loading");
-  const [isPopup, setIsPopup] = useState(false);
+  const isPopup = useIsPopup();
 
   useEffect(() => {
     // todo: improve this?
     const isSessionRequest = window.location.search.includes("view=request");
     setView(isSessionRequest ? "session-request" : "normal");
-    setIsPopup(window.location.search.includes("popup=true"));
   }, []);
 
   useEffect(() => {
@@ -254,59 +240,103 @@ const Home: React.FC<HomeProps> = ({
   }, [initializeStatus, vaultSession, view]);
 
   return (
-    <Box
-      sx={{
-        width: "calc(100% + 16px)",
-        marginY: "-8px",
-        height: "calc(100vh)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        marginLeft: "-8px",
-        maxHeight: isPopup ? 510 : undefined,
-      }}
-    >
-      <Paper
-        sx={{
-          height: 510,
-          width: 400,
-          paddingX: "20px",
-          paddingTop: "15px",
-          paddingBottom: "20px",
-          boxSizing: "border-box",
-          position: "relative",
-          display: "flex",
-          "& .notistack-SnackbarContainer": {
-            position: "absolute",
-            height: 30,
-          },
-          "& .notistack-CollapseWrapper": {
-            padding: 0,
-          },
-          "& .notistack-Snackbar": {
-            minWidth: "0!important",
-          },
-          "& #notistack-snackbar": {
-            padding: 0,
-            marginLeft: 1,
+    <>
+      <GlobalStyles
+        styles={{
+          body: {
+            marginLeft: isPopup ? 0 : undefined,
+            marginRight: isPopup ? 0 : undefined,
+            scrollbarColor: `${theme.customColors.dark25} ${theme.customColors.dark5}`,
+            "&::-webkit-scrollbar, & *::-webkit-scrollbar": {
+              width: "8px",
+              height: "8px",
+            },
+            "&::-webkit-scrollbar-thumb, & *::-webkit-scrollbar-thumb": {
+              border: `2px solid transparent`,
+              backgroundColor: theme.customColors.dark25,
+              backgroundClip: "content-box",
+              borderRadius: "12px",
+            },
+            "&::-webkit-scrollbar-track, & *::-webkit-scrollbar-track": {
+              backgroundColor: theme.customColors.dark5,
+              borderRadius: "50px",
+            },
           },
         }}
-        elevation={2}
+      />
+      <Box
+        sx={{
+          width: isPopup ? "calc(100% + 31px)" : "calc(100% + 16px)",
+          maxWidth: isPopup ? WIDTH : undefined,
+          marginY: "-8px",
+          height: "calc(100vh)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          marginLeft: isPopup ? 0 : "-8px",
+          maxHeight: isPopup ? HEIGHT : undefined,
+        }}
       >
-        <SnackbarProvider
-          style={{
-            height: 30,
-            fontSize: 12,
+        <Paper
+          sx={{
+            height: HEIGHT,
+            width: WIDTH,
+            paddingBottom: "20px",
+            boxSizing: "border-box",
+            position: "relative",
             display: "flex",
-            alignItems: "center",
-            padding: 0,
+            "& .notistack-SnackbarContainer": {
+              top: 70,
+              left: 10,
+              position: "absolute",
+              height: 55,
+              width: "380px!important",
+              minWidth: "380px!important",
+              maxWidth: "380px!important",
+            },
+            "& .notistack-CollapseWrapper": {
+              padding: 0,
+              width: "380px!important",
+              minWidth: "380px!important",
+              maxWidth: "380px!important",
+            },
+            "& .notistack-Snackbar": {
+              minWidth: "0!important",
+            },
+            "& #notistack-snackbar": {
+              padding: 0,
+              marginLeft: 1,
+            },
+            "& .notistack-MuiContent-success": {
+              backgroundColor: theme.customColors.green5,
+              border: `1px solid ${theme.customColors.dark_green}`,
+              boxShadow: "none",
+            },
           }}
-          maxSnack={1}
-          preventDuplicate={true}
-        />
-        {content}
-      </Paper>
-    </Box>
+          elevation={2}
+        >
+          <SnackbarProvider
+            style={{
+              height: 55,
+              fontSize: 12,
+              display: "flex",
+              alignItems: "center",
+              padding: 0,
+              width: "380px!important",
+              minWidth: "380px!important",
+              maxWidth: "380px!important",
+            }}
+            maxSnack={1}
+            autoHideDuration={4000}
+            preventDuplicate={true}
+            iconVariant={{
+              success: <SuccessIcon />,
+            }}
+          />
+          {content}
+        </Paper>
+      </Box>
+    </>
   );
 };
 
@@ -317,16 +347,19 @@ const mapStateToProps = (state: RootState) => ({
 
 const ConnectedHome = connect(mapStateToProps)(Home);
 
-storeWithMiddleware.ready().then(() => {
-  const root = createRoot(document.getElementById("root")!);
+// to only display the UI when the servicer worker is activated and avoid blank UI
+browser.runtime.sendMessage({ type: "WAIT_BACKGROUND" }).then(() => {
+  storeWithMiddleware.ready().then(() => {
+    const root = createRoot(document.getElementById("root")!);
 
-  root.render(
-    <React.StrictMode>
-      <Provider store={storeWithMiddleware}>
-        <ThemeProvider>
-          <ConnectedHome />
-        </ThemeProvider>
-      </Provider>
-    </React.StrictMode>
-  );
+    root.render(
+      <React.StrictMode>
+        <Provider store={storeWithMiddleware}>
+          <ThemeProvider>
+            <ConnectedHome />
+          </ThemeProvider>
+        </Provider>
+      </React.StrictMode>
+    );
+  });
 });
