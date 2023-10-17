@@ -1,3 +1,4 @@
+import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import type {
   BaseErrors,
   ConnectionRequestMessage,
@@ -58,7 +59,7 @@ import {
   getProtocolFee,
   revokeSession,
 } from "../../redux/slices/vault";
-import { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
+import { HEIGHT, WIDTH } from "../../constants/ui";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -408,8 +409,8 @@ class ExternalCommunicationController {
           const windowCreated = await browser.windows.create({
             url: "home.html?view=request",
             type: "popup",
-            height: 510,
-            width: 400,
+            height: HEIGHT,
+            width: WIDTH,
           });
 
           await store.dispatch(addWindow(windowCreated.id));

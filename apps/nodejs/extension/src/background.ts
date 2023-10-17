@@ -18,7 +18,7 @@ async function createOffscreen() {
 }
 
 browser.runtime.onStartup.addListener(createOffscreen);
-self.onmessage = (e) => {}; // keepAlive
+self.onmessage = () => {}; // keepAlive
 createOffscreen().catch();
 
 browser.runtime.onInstalled.addListener((details) => {
@@ -36,6 +36,10 @@ const internal = new InternalCommunicationController();
 const external = new ExternalCommunicationController();
 
 browser.runtime.onMessage.addListener(async (message, sender) => {
+  if (message?.type === "WAIT_BACKGROUND") {
+    return "INIT";
+  }
+
   const responses = await Promise.all([
     internal.onMessageHandler(message, sender),
     external.onMessageHandler(message, sender),

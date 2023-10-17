@@ -1,3 +1,4 @@
+import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import React, { useCallback, useState } from "react";
 import Summary from "./Summary/Component";
 import Stack from "@mui/material/Stack";
@@ -6,16 +7,35 @@ import Typography from "@mui/material/Typography";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import { useTheme } from "@mui/material";
+import Button from "@mui/material/Button";
+import { useNavigate } from "react-router-dom";
+import { SupportedProtocols } from "@poktscan/keyring";
+import { ACCOUNTS_PAGE } from "../../constants/routes";
 
 interface SummaryStepProps {
   fromBalance: number;
   hash: string;
+  protocol: Protocol;
 }
+
+const getTransactionLink = (protocol: Protocol, hash: string) => {
+  if (protocol.name === SupportedProtocols.Pocket) {
+    return `https://poktscan.com/${
+      protocol.chainID === "testnet" ? "testnet/" : ""
+    }tx/${hash}`;
+  }
+
+  return "";
+};
 
 const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
   fromBalance,
   hash,
+  protocol,
 }) => {
+  const theme = useTheme();
+  const navigate = useNavigate();
   const [showCopyHashTooltip, setShowCopyHashTooltip] = useState(false);
   const handleCopyHash = useCallback(() => {
     if (hash) {
@@ -26,30 +46,32 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
     }
   }, [hash]);
 
+  const link = getTransactionLink(protocol, hash);
+
   return (
-    <Stack>
-      <Summary fromBalance={fromBalance} />
-      <Stack
-        direction={"row"}
-        alignItems={"center"}
-        justifyContent={"center"}
-        mt={1.5}
-        mb={1}
-        spacing={0.5}
-      >
-        <TaskAltIcon sx={{ fontSize: 20 }} color={"success"} />
-        <Typography fontSize={14} fontWeight={600}>
-          Transfer submitted successfully!
-        </Typography>
-      </Stack>
-      <Stack direction={"row"} mb={1} spacing={0.7}>
-        <Typography fontSize={12} fontWeight={600}>
+    <Stack flexGrow={1} justifyContent={"space-between"}>
+      <Stack>
+        <Summary fromBalance={fromBalance} />
+        <Stack
+          direction={"row"}
+          alignItems={"center"}
+          justifyContent={"center"}
+          mt={2.5}
+          mb={2}
+          spacing={0.5}
+        >
+          <TaskAltIcon sx={{ fontSize: 20 }} color={"success"} />
+          <Typography fontSize={14} fontWeight={600}>
+            Transfer submitted successfully!
+          </Typography>
+        </Stack>
+        <Typography fontSize={13} fontWeight={600}>
           Hash:
         </Typography>
         <Typography fontSize={12} sx={{ wordBreak: "break-all" }}>
           <a
-            href={`https://poktscan.com/tx/${hash}`}
-            style={{ color: "#2073c5", fontWeight: 600 }}
+            href={link}
+            style={{ color: theme.customColors.primary500, fontWeight: 600 }}
             target={"_blank"}
           >
             {hash}
@@ -64,6 +86,18 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
           </Tooltip>
         </Typography>
       </Stack>
+      <Button
+        sx={{
+          fontWeight: 700,
+          height: 36,
+          fontSize: 16,
+        }}
+        onClick={() => navigate(ACCOUNTS_PAGE)}
+        variant={"contained"}
+        fullWidth
+      >
+        Done
+      </Button>
     </Stack>
   );
 };

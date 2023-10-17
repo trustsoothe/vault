@@ -17,7 +17,6 @@
         "<all_urls>"
       ],
       "js": [
-        "js/vendor.js",
         "js/proxy.js"
       ],
       "run_at": "document_start"

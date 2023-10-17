@@ -1,0 +1,299 @@
+import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { RootState } from "../../redux/store";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import { useTheme } from "@mui/material";
+import Stack from "@mui/material/Stack";
+import Fade from "@mui/material/Fade";
+import { connect } from "react-redux";
+import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import { ClickAwayListener } from "@mui/base/ClickAwayListener";
+import { Controller, FormProvider, useForm } from "react-hook-form";
+import AppToBackground from "../../controllers/communication/AppToBackground";
+import CircularLoading from "../common/CircularLoading";
+import OperationFailed from "../common/OperationFailed";
+import { enqueueSnackbar } from "../../utils/ui";
+import Password from "../common/Password";
+import { nameRules } from "./CreateNew";
+
+interface RenameModalProps {
+  passwordRemembered: boolean;
+  account?: SerializedAccountReference;
+  onClose: () => void;
+}
+
+interface FormValues {
+  account_name: string;
+  vault_password?: string;
+}
+
+const RenameModal: React.FC<RenameModalProps> = ({
+  passwordRemembered,
+  account,
+  onClose,
+}) => {
+  const theme = useTheme();
+  const [wrongPassword, setWrongPassword] = useState(false);
+  const [status, setStatus] = useState<"normal" | "loading" | "error">(
+    "normal"
+  );
+  const [stillShowModal, setStillShowModal] = useState(false);
+
+  const methods = useForm<FormValues>({
+    defaultValues: {
+      account_name: "",
+      vault_password: "",
+    },
+  });
+
+  const { handleSubmit, control, watch, reset } = methods;
+  const pass = watch("vault_password");
+
+  useEffect(() => {
+    if (wrongPassword) {
+      setWrongPassword(false);
+    }
+  }, [pass]);
+
+  useEffect(() => {
+    if (account) {
+      setTimeout(() => setStillShowModal(true), 100);
+
+      reset({
+        account_name: account?.name || "",
+        vault_password: "",
+      });
+    } else {
+      setTimeout(() => {
+        reset({
+          account_name: account?.name || "",
+          vault_password: "",
+        });
+        setStillShowModal(false);
+      }, 225);
+    }
+  }, [account]);
+
+  const onSubmit = useCallback(
+    (data: FormValues) => {
+      if (!account) return;
+
+      setStatus("loading");
+      AppToBackground.updateAccount({
+        id: account.id,
+        name: data.account_name,
+        vaultPassword: !passwordRemembered ? data?.vault_password : undefined,
+      }).then((result) => {
+        if (result.error) {
+          setStatus("error");
+          return;
+        }
+
+        if (result.data?.isPasswordWrong) {
+          setWrongPassword(true);
+          setStatus("normal");
+        } else {
+          enqueueSnackbar({
+            message: `Account name updated successfully.`,
+            variant: "success",
+          });
+          onClose();
+        }
+      });
+    },
+    [account, passwordRemembered, onClose]
+  );
+
+  const onClickAway = useCallback(() => {
+    if (account && stillShowModal) {
+      if (status === "loading") return;
+
+      onClose();
+    }
+  }, [status, onClose, account, stillShowModal]);
+
+  const content = useMemo(() => {
+    const title = (
+      <Typography
+        fontSize={16}
+        fontWeight={700}
+        lineHeight={"30px"}
+        textAlign={"center"}
+        color={theme.customColors.primary999}
+      >
+        Rename Account
+      </Typography>
+    );
+
+    let component;
+
+    if (status === "loading") {
+      component = (
+        <Stack flexGrow={1}>
+          {title}
+          <CircularLoading containerProps={{ marginTop: -1 }} />
+        </Stack>
+      );
+    } else if (status === "error") {
+      component = (
+        <Stack flexGrow={1}>
+          {title}
+          <OperationFailed
+            text={"There was an error renaming the account."}
+            onCancel={onClose}
+            retryBtnProps={{ sx: { height: 30, fontSize: 14 } }}
+            cancelBtnProps={{ sx: { height: 30, fontSize: 14 } }}
+          />
+        </Stack>
+      );
+    } else if (account || stillShowModal) {
+      component = (
+        <>
+          <Stack spacing={1.5}>
+            {title}
+            <Controller
+              name={"account_name"}
+              control={control}
+              rules={nameRules}
+              render={({ field, fieldState: { error } }) => (
+                <TextField
+                  label={"Rename"}
+                  autoFocus
+                  size={"small"}
+                  fullWidth
+                  {...field}
+                  InputLabelProps={{
+                    shrink: !!field.value,
+                  }}
+                  error={!!error}
+                  helperText={error?.message}
+                />
+              )}
+            />
+            {!passwordRemembered && (
+              <>
+                <Divider
+                  sx={{
+                    borderColor: theme.customColors.dark15,
+                    marginTop: "25px!important",
+                  }}
+                />
+                <Typography
+                  fontSize={14}
+                  width={1}
+                  fontWeight={500}
+                  lineHeight={"30px"}
+                  sx={{ userSelect: "none" }}
+                >
+                  To continue, introduce the vault's password:
+                </Typography>
+                <FormProvider {...methods}>
+                  <Password
+                    passwordName={"vault_password"}
+                    labelPassword={"Vault Password"}
+                    canGenerateRandom={false}
+                    justRequire={true}
+                    hidePasswordStrong={true}
+                    containerProps={{
+                      marginTop: "15px!important",
+                      spacing: 0.5,
+                    }}
+                    errorPassword={wrongPassword ? "Wrong password" : undefined}
+                  />
+                </FormProvider>
+              </>
+            )}
+          </Stack>
+          <Stack direction={"row"} spacing={2} width={1}>
+            <Button
+              onClick={onClose}
+              sx={{
+                fontWeight: 700,
+                color: theme.customColors.dark50,
+                borderColor: theme.customColors.dark50,
+                height: 30,
+                borderWidth: 1.5,
+                fontSize: 14,
+              }}
+              variant={"outlined"}
+              fullWidth
+            >
+              Cancel
+            </Button>
+            <Button
+              sx={{
+                fontWeight: 700,
+                height: 30,
+                fontSize: 14,
+              }}
+              variant={"contained"}
+              fullWidth
+              type={"submit"}
+            >
+              Save
+            </Button>
+          </Stack>
+        </>
+      );
+    }
+
+    return (
+      <ClickAwayListener onClickAway={onClickAway}>
+        <Stack
+          width={1}
+          paddingX={2.5}
+          paddingTop={1.5}
+          paddingBottom={2}
+          component={"form"}
+          borderRadius={"8px"}
+          boxSizing={"border-box"}
+          justifyContent={"space-between"}
+          bgcolor={theme.customColors.white}
+          height={passwordRemembered ? 190 : 310}
+          boxShadow={"2px 2px 14px 0px #1C2D4A33"}
+          border={`1px solid ${theme.customColors.dark25}`}
+          onSubmit={status === "loading" ? undefined : handleSubmit(onSubmit)}
+        >
+          {component}
+        </Stack>
+      </ClickAwayListener>
+    );
+  }, [
+    status,
+    account,
+    handleSubmit,
+    onSubmit,
+    theme,
+    wrongPassword,
+    passwordRemembered,
+    methods,
+    control,
+    stillShowModal,
+    onClickAway,
+  ]);
+
+  return (
+    <Fade in={!!account}>
+      <Stack
+        width={1}
+        height={540}
+        padding={1.5}
+        position={"absolute"}
+        boxSizing={"border-box"}
+        zIndex={9}
+        left={0}
+        bgcolor={"rgba(255,255,255,0.5)"}
+      >
+        {content}
+      </Stack>
+    </Fade>
+  );
+};
+
+const mapStateToProps = (state: RootState) => ({
+  passwordRemembered: state.vault.passwordRemembered,
+});
+
+export default connect(mapStateToProps)(RenameModal);

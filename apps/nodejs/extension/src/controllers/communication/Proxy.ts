@@ -1,19 +1,16 @@
 import type { Permission } from "@poktscan/keyring";
+import { SupportedProtocols } from "@poktscan/keyring";
 import type { BrowserRequest } from "../../types";
-import type {
-  ExternalListAccountsResponse,
-  InternalTransferResponse,
-  ProxyNewAccountRequest,
-  ProxyTransferRequest,
-} from "../../types/communication";
 import type {
   ConnectionRequestMessage,
   ConnectionResponseFromBack,
   DisconnectBackResponse,
   DisconnectRequestMessage,
   ExternalConnectionResOnProxy,
+  ExternalListAccountsResponse,
   ExternalNewAccountResOnProxy,
   ExternalTransferResOnProxy,
+  InternalTransferResponse,
   IsSessionValidRequestErrors,
   IsSessionValidResponse,
   ListAccountsRequestMessage,
@@ -24,18 +21,20 @@ import type {
   ProxyDisconnectErrors,
   ProxyDisconnectRes,
   ProxyListAccountsRes,
+  ProxyNewAccountRequest,
   ProxyNewAccountRequestErrors,
   ProxyNewAccountRes,
   ProxyTransferError,
+  ProxyTransferRequest,
   ProxyTransferRes,
   SessionValidRequestMessage,
   TransferRequestMessage,
   TransferResponseFromBack,
 } from "../../types/communication";
+import { PartialSession } from "../../types/communication";
 import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
 import browser from "webextension-polyfill";
 import { z, ZodError } from "zod";
-import { SupportedProtocols } from "@poktscan/keyring";
 import {
   CHECK_CONNECTION_REQUEST,
   CONNECTION_REQUEST_MESSAGE,
@@ -48,6 +47,7 @@ import {
   LIST_ACCOUNTS_RESPONSE,
   NEW_ACCOUNT_REQUEST,
   NEW_ACCOUNT_RESPONSE,
+  SELECTED_CHAIN_CHANGED,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
@@ -71,8 +71,6 @@ import {
 import { isHex } from "../../utils";
 import { chainIDsByProtocol } from "../../constants/protocols";
 
-const id = "ihemdpidnelcmpnndlfkhkebmbgjnehb";
-
 interface Session {
   id: string;
   permissions: Permission[];
@@ -88,11 +86,20 @@ interface DisconnectResponse {
   error: null;
 }
 
+interface ChainChangedMessage {
+  type: typeof SELECTED_CHAIN_CHANGED;
+  network: SupportedProtocols;
+  data: {
+    chainId: string;
+  };
+}
+
 type ExtensionResponses =
   | ConnectionResponseFromBack
   | NewAccountResponseFromBack
   | TransferResponseFromBack
-  | DisconnectResponse;
+  | DisconnectResponse
+  | ChainChangedMessage;
 
 export type TPermissionsAllowedToSuggest = z.infer<
   typeof PermissionsAllowedToSuggest
@@ -146,7 +153,7 @@ const PermissionsAllowedToSuggest = z.array(
 
 // Controller to manage the communication between the webpages and the content script
 class ProxyCommunicationController {
-  private _session: Session | null = null;
+  private _session: PartialSession | null = null;
 
   constructor() {
     this._checkLastSession();
@@ -156,11 +163,7 @@ class ProxyCommunicationController {
       async (event: MessageEvent<BrowserRequest>) => {
         const { data, origin } = event;
 
-        if (
-          origin === window.location.origin &&
-          data?.to === "VAULT_KEYRING" &&
-          event.source === window
-        ) {
+        if (origin === window.location.origin && data?.to === "VAULT_KEYRING") {
           if (data?.type === CONNECTION_REQUEST_MESSAGE) {
             await this._sendConnectionRequest(data.data?.suggestedPermissions);
           }
@@ -189,33 +192,32 @@ class ProxyCommunicationController {
     );
 
     browser.runtime.onMessage.addListener(
-      async (message: ExtensionResponses, sender) => {
-        if (sender.id === id) {
-          if (message?.type === CONNECTION_RESPONSE_MESSAGE) {
-            await this._handleConnectionResponse(message);
-          }
-
-          if (message?.type === NEW_ACCOUNT_RESPONSE) {
-            await this._handleNewAccountResponse(message);
-          }
-
-          if (message?.type === TRANSFER_RESPONSE) {
-            await this._handleTransferResponse(message);
-          }
-
-          if (message?.type === DISCONNECT_RESPONSE) {
-            if (message.data.disconnected) {
-              this._sendDisconnectResponse(
-                message.data.disconnected,
-                message.error
-              );
-            }
-          }
-
-          return "RECEIVED";
-        } else {
-          return "NOT_FOR_ME";
+      async (message: ExtensionResponses) => {
+        if (message?.type === CONNECTION_RESPONSE_MESSAGE) {
+          await this._handleConnectionResponse(message);
         }
+
+        if (message?.type === NEW_ACCOUNT_RESPONSE) {
+          await this._handleNewAccountResponse(message);
+        }
+
+        if (message?.type === TRANSFER_RESPONSE) {
+          await this._handleTransferResponse(message);
+        }
+
+        if (message?.type === DISCONNECT_RESPONSE) {
+          this._sendDisconnectResponse(
+            message.data.disconnected,
+            message.error
+          );
+        }
+
+        // if (message?.type === 'SELECTED_ACCOUNT_CHANGED') {}
+        if (message?.type === SELECTED_CHAIN_CHANGED) {
+          this._sendMessageChainChanged(message);
+        }
+
+        return "RECEIVED";
       }
     );
   }
@@ -232,6 +234,18 @@ class ProxyCommunicationController {
     return faviconUrl || "";
   }
 
+  private _sendMessageChainChanged(message: ChainChangedMessage) {
+    window.postMessage(
+      {
+        to: "VAULT_KEYRING",
+        type: SELECTED_CHAIN_CHANGED,
+        network: message.network,
+        data: message.data,
+      },
+      window.location.origin
+    );
+  }
+
   private async _sendConnectionRequest(
     suggestedPermissions?: TPermissionsAllowedToSuggest
   ) {
@@ -243,7 +257,7 @@ class ProxyCommunicationController {
           permissionsToSuggest =
             PermissionsAllowedToSuggest.parse(suggestedPermissions);
         } catch (e) {
-          return this._sendConnectionResponse(false, InvalidPermission);
+          return this._sendConnectionResponse(null, InvalidPermission);
         }
       }
 
@@ -265,7 +279,7 @@ class ProxyCommunicationController {
       }
     } catch (e) {
       if (!requestWasSent) {
-        this._sendConnectionResponse(false, UnknownError);
+        this._sendConnectionResponse(null, UnknownError);
       }
     }
   }
@@ -286,20 +300,20 @@ class ProxyCommunicationController {
             [`${window.location.origin}-session`]: session,
           });
 
-          this._sendConnectionResponse(true);
+          this._sendConnectionResponse(data.address);
         } else {
-          this._sendConnectionResponse(false, OperationRejected);
+          this._sendConnectionResponse(null, OperationRejected);
         }
       } else {
-        this._sendConnectionResponse(false, error);
+        this._sendConnectionResponse(null, error);
       }
     } catch (e) {
-      this._sendConnectionResponse(false, UnknownError);
+      this._sendConnectionResponse(null, UnknownError);
     }
   }
 
   private _sendConnectionResponse(
-    connectionEstablished: boolean,
+    address: string | null,
     error: ProxyConnectionErrors = null
   ) {
     try {
@@ -313,19 +327,11 @@ class ProxyCommunicationController {
           error,
         };
       } else {
-        let permissions: TPermissionsAllowedToSuggest;
-        if (connectionEstablished) {
-          permissions = this._returnPermissions();
-        }
-
         response = {
           type: CONNECTION_RESPONSE_MESSAGE,
           from: "VAULT_KEYRING",
           error: null,
-          data: {
-            connectionEstablished,
-            permissions,
-          },
+          data: [address],
         };
       }
 
@@ -370,7 +376,8 @@ class ProxyCommunicationController {
 
               if (isValid) {
                 this._session = session;
-                this._sendConnectionResponse(true);
+                // todo: fix
+                this._sendConnectionResponse(null);
               } else {
                 if (typeof isValid === "boolean") {
                   await browser.storage.local.remove(
@@ -409,39 +416,40 @@ class ProxyCommunicationController {
         }
       }
 
-      this._sendConnectionResponse(error ? false : connected);
+      // todo: fix
+      this._sendConnectionResponse(null);
     } catch (e) {
-      this._sendConnectionResponse(false, UnknownError);
+      this._sendConnectionResponse(null, UnknownError);
     }
   }
 
-  private _returnPermissions(): TPermissionsAllowedToSuggest | null {
-    try {
-      if (this._session) {
-        const permissions: TPermissionsAllowedToSuggest = [];
-
-        for (const { resource, action } of this._session.permissions) {
-          if (resource === "transaction" && action === "send") {
-            permissions.push("suggest_transfer");
-            continue;
-          }
-
-          if (resource === "account" && action === "create") {
-            permissions.push("create_accounts");
-            continue;
-          }
-
-          if (resource === "account" && action === "read") {
-            permissions.push("list_accounts");
-          }
-        }
-
-        return permissions;
-      }
-    } catch (e) {}
-
-    return null;
-  }
+  // private _returnPermissions(): TPermissionsAllowedToSuggest | null {
+  //   try {
+  //     if (this._session) {
+  //       const permissions: TPermissionsAllowedToSuggest = [];
+  //
+  //       for (const { resource, action } of this._session.permissions) {
+  //         if (resource === "transaction" && action === "send") {
+  //           permissions.push("suggest_transfer");
+  //           continue;
+  //         }
+  //
+  //         if (resource === "account" && action === "create") {
+  //           permissions.push("create_accounts");
+  //           continue;
+  //         }
+  //
+  //         if (resource === "account" && action === "read") {
+  //           permissions.push("list_accounts");
+  //         }
+  //       }
+  //
+  //       return permissions;
+  //     }
+  //   } catch (e) {}
+  //
+  //   return null;
+  // }
 
   private async _sendNewAccountRequest(data: ProxyNewAccountRequest["data"]) {
     let requestWasSent = false;

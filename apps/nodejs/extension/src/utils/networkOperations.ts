@@ -1,7 +1,7 @@
 import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import type { ErrorsPreferredNetwork } from "../redux/slices/vault";
 import { Buffer } from "buffer";
-import crypto from "isomorphic-crypto";
+import crypto from "crypto-browserify";
 import scrypt from "scrypt-js";
 import {
   AccountReference,
@@ -141,6 +141,7 @@ export const getBalances = (
     accounts.map(({ address, protocol }) => {
       return new Promise(async (resolve) => {
         let balance: number,
+          error = false,
           networksWithErrors: string[] = [];
         try {
           const result = await getAccountBalance(
@@ -153,9 +154,16 @@ export const getBalances = (
           networksWithErrors = result.networksWithErrors;
         } catch (e) {
           balance = 0;
+          error = true;
         }
 
-        resolve({ address, balance: balance, protocol, networksWithErrors });
+        resolve({
+          address,
+          error,
+          balance: balance,
+          protocol,
+          networksWithErrors,
+        });
       });
     })
   ) as Promise<
@@ -164,6 +172,7 @@ export const getBalances = (
       balance: number;
       protocol: Protocol;
       networksWithErrors: string[];
+      error: boolean;
     }[]
   >;
 };
@@ -250,7 +259,7 @@ export const isValidPPK = (ppkContent: string) => {
   }
 };
 
-export const getPrivateKeyFromPPK = (
+export const getPrivateKeyFromPPK = async (
   ppkContent: string,
   filePassword: string
 ) => {
@@ -274,7 +283,7 @@ export const getPrivateKeyFromPPK = (
   // Retrieve the salt
   const decryptSalt = Buffer.from(jsonObject.salt, "hex");
   // Scrypt hash
-  const scryptHash = scrypt.syncScrypt(
+  const scryptHash = await scrypt.scrypt(
     Buffer.from(filePassword, "utf8"),
     decryptSalt,
     scryptOptions.N,
@@ -321,7 +330,7 @@ export const getPortableWalletContent = async (
   const algorithm = "aes-256-gcm";
   const salt = crypto.randomBytes(16);
 
-  const scryptHash = scrypt.syncScrypt(
+  const scryptHash = await scrypt.scrypt(
     Buffer.from(password, "utf8"),
     salt,
     SCRYPT_OPTIONS.N,

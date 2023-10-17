@@ -13,6 +13,7 @@ import type {
   ProxyTransferRequest,
   ProxyTransferRes,
 } from "./communication";
+import { ArgsOrCallback, Method, MethodOrPayload } from "./provider";
 
 interface SessionStorage extends OriginalStorage.StorageArea {
   /**
@@ -32,17 +33,25 @@ declare module "webextension-polyfill" {
 
 declare global {
   interface Window {
+    pocketNetwork: {
+      send: (
+        methodOrPayload: MethodOrPayload,
+        argsOrCallback?: ArgsOrCallback
+      ) => unknown;
+      request: (args: Method) => unknown;
+      isSoothe: true;
+    };
     soothe: {
-      connect: () => Promise<ProxyConnectionRes>;
-      disconnect: () => Promise<ProxyDisconnectRes>;
-      checkConnection: () => Promise<ProxyConnectionRes>;
-      listAccounts: () => Promise<ProxyListAccountsRes>;
+      connect: () => Promise<ProxyConnectionRes["data"]>;
+      disconnect: () => Promise<ProxyDisconnectRes["data"]>;
+      checkConnection: () => Promise<ProxyConnectionRes["data"]>;
+      listAccounts: () => Promise<ProxyListAccountsRes["data"]>;
       createAccount: (
         data: ProxyNewAccountRequest["data"]
-      ) => Promise<ProxyNewAccountRes>;
+      ) => Promise<ProxyNewAccountRes["data"]>;
       suggestTransfer: (
         data: ProxyTransferRequest["data"]
-      ) => Promise<ProxyTransferRes>;
+      ) => Promise<ProxyTransferRes["data"]>;
     };
   }
 }

@@ -152,12 +152,12 @@ export type ExternalConnectionResponse = {
 
 export type PartialSession = Pick<
   SerializedSession,
-  "id" | "permissions" | "createdAt" | "maxAge"
+  "id" | "createdAt" | "maxAge"
 >;
 
 export interface InternalConnectionResponse {
   type: typeof CONNECTION_RESPONSE_MESSAGE;
-  data: { accepted: boolean; session: PartialSession } | null;
+  data: { accepted: boolean; address: string; session: PartialSession } | null;
   error: null;
 }
 
@@ -171,10 +171,7 @@ export type ConnectionResponseFromBack =
 
 export interface ProxyValidConnectionRes extends BaseProxyResponse {
   type: typeof CONNECTION_RESPONSE_MESSAGE;
-  data: {
-    connectionEstablished: boolean;
-    permissions?: TPermissionsAllowedToSuggest;
-  };
+  data: string[];
   error: null;
 }
 

@@ -30,6 +30,10 @@ module.exports = {
         use: "ts-loader",
         exclude: /node_modules/,
       },
+      {
+        test: /\.svg$/,
+        use: ["@svgr/webpack"],
+      },
     ],
   },
   resolve: {
@@ -53,7 +57,21 @@ module.exports = {
   },
   plugins: [
     new CopyPlugin({
-      patterns: [{ from: ".", to: "../", context: "public" }],
+      patterns: [
+        {
+          from: ".",
+          to: "../",
+          context: "public",
+          priority: 0,
+          filter: (resourcePath) => !resourcePath.includes("vendor"),
+        },
+        {
+          from: "public/manifest-w.json",
+          to: "../manifest.json",
+          force: true,
+          priority: 1,
+        },
+      ],
       options: {},
     }),
     new webpack.ProvidePlugin({

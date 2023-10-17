@@ -4,13 +4,13 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
-import { enqueueSnackbar } from "notistack";
 import Typography from "@mui/material/Typography";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import { SESSIONS_PAGE } from "../../constants/routes";
+import { SITES_PAGE } from "../../constants/routes";
+import { enqueueSnackbar } from "../../utils/ui";
 
 interface DisconnectSiteProps {
   sessions: SerializedSession[];
@@ -26,7 +26,7 @@ const DisconnectSite: React.FC<DisconnectSiteProps> = ({ sessions }) => {
     if (location.key !== "default") {
       navigate(-1);
     } else {
-      navigate(SESSIONS_PAGE);
+      navigate(SITES_PAGE);
     }
   }, [navigate, location]);
 
@@ -54,12 +54,10 @@ const DisconnectSite: React.FC<DisconnectSiteProps> = ({ sessions }) => {
         setStatus("error");
       } else {
         enqueueSnackbar({
-          style: { width: 250, minWidth: "250px!important" },
           message: `Site disconnected successfully.`,
           variant: "success",
-          autoHideDuration: 2500,
         });
-        navigate(SESSIONS_PAGE);
+        navigate(SITES_PAGE);
       }
     });
   }, [session]);

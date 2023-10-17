@@ -3,77 +3,100 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
-import { enqueueSnackbar } from "notistack";
+import { enqueueSnackbar } from "../../utils/ui";
 import { useAppDispatch } from "../../hooks/redux";
 import CircularLoading from "../common/CircularLoading";
 import { toggleBlockWebsite } from "../../redux/slices/app";
 import { revokeSession } from "../../redux/slices/vault";
 import OperationFailed from "../common/OperationFailed";
-import { BLOCKED_SITES_PAGE, SESSIONS_PAGE } from "../../constants/routes";
+import { SITES_PAGE } from "../../constants/routes";
 
 interface ToggleBlockSiteProps {
-  site?: string;
+  site: string;
   sessionId?: string;
-  onClose?: () => void;
+  onClose: () => void;
   onBlocked?: () => void;
   blockedList: RootState["app"]["blockedSites"]["list"];
+  onSuccessfulToggle?: () => void;
+}
+
+interface ToggleBlockSiteFromRouterProps {
   sessionList: RootState["vault"]["entities"]["sessions"]["list"];
 }
 
-const ToggleBlockSite: React.FC<ToggleBlockSiteProps> = ({
-  site: siteFromProps,
-  onClose,
-  blockedList,
-  sessionId: sessionFromProps,
+const ToggleBlockSiteFromRouterFC: React.FC<ToggleBlockSiteFromRouterProps> = ({
   sessionList,
-  onBlocked,
 }) => {
-  const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   const [site, setSite] = useState<string>(null);
   const [sessionId, setSessionId] = useState<string>(null);
-  const [status, setStatus] = useState<
-    "loading" | "block" | "unblock" | "error"
-  >("loading");
-  const onCancel = useCallback(() => {
-    if (onClose) {
-      return onClose();
-    }
 
+  const onCancel = useCallback(() => {
     if (location.key !== "default") {
       navigate(-1);
     } else {
-      navigate(BLOCKED_SITES_PAGE);
+      navigate(`${SITES_PAGE}?tab=blocked`);
     }
-  }, [navigate, location, onClose]);
+  }, [navigate, location]);
 
   useEffect(() => {
-    if (siteFromProps) {
-      setSite(siteFromProps);
-    } else {
-      const website = searchParams.get("site");
+    const website = searchParams.get("site");
 
-      if (website) {
-        setSite(website);
-      } else {
-        onCancel();
-      }
+    if (website) {
+      setSite(website);
+    } else {
+      onCancel();
     }
 
-    if (sessionFromProps) {
-      setSessionId(sessionFromProps);
-    } else {
-      const session = searchParams.get("sessionId");
+    const session = searchParams.get("sessionId");
 
-      const includes = sessionList.some((item) => item.id === session);
+    const includes = sessionList.some((item) => item.id === session);
 
-      if (includes) {
-        setSessionId(session);
-      }
+    if (includes) {
+      setSessionId(session);
     }
-  }, [searchParams, blockedList, sessionList]);
+  }, []);
+
+  const onSuccessfulToggle = useCallback(() => {
+    navigate(`${SITES_PAGE}?tab=blocked`);
+  }, []);
+
+  if (site) {
+    return (
+      <ToggleBlockSite
+        site={site}
+        onSuccessfulToggle={onSuccessfulToggle}
+        sessionId={sessionId}
+        onClose={onCancel}
+      />
+    );
+  } else {
+    return null;
+  }
+};
+
+const mapStateToPropsRouter = (state: RootState) => ({
+  sessionList: state.vault.entities.sessions.list,
+});
+
+export const ToggleBlockSiteFromRouter = connect(mapStateToPropsRouter)(
+  ToggleBlockSiteFromRouterFC
+);
+
+const ToggleBlockSiteComponent: React.FC<ToggleBlockSiteProps> = ({
+  site,
+  onClose,
+  blockedList,
+  sessionId,
+  onBlocked,
+  onSuccessfulToggle,
+}) => {
+  const dispatch = useAppDispatch();
+  const [status, setStatus] = useState<
+    "loading" | "block" | "unblock" | "error"
+  >("loading");
 
   useEffect(() => {
     if (site) {
@@ -103,18 +126,18 @@ const ToggleBlockSite: React.FC<ToggleBlockSiteProps> = ({
           onBlocked();
         } else {
           enqueueSnackbar({
-            style: { width: 250, minWidth: "250px!important" },
             message: `Site ${
               isBlocking ? "blocked" : "unblocked"
             } successfully.`,
             variant: "success",
-            autoHideDuration: 3000,
           });
-          navigate(isBlocking ? BLOCKED_SITES_PAGE : SESSIONS_PAGE);
+          if (onSuccessfulToggle) {
+            onSuccessfulToggle();
+          }
         }
       })
       .catch(() => setStatus("error"));
-  }, [dispatch, site, status, sessionId, onBlocked, navigate]);
+  }, [dispatch, site, status, sessionId, onBlocked, onSuccessfulToggle]);
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -135,12 +158,15 @@ const ToggleBlockSite: React.FC<ToggleBlockSiteProps> = ({
     return (
       <OperationFailed
         text={text}
-        onCancel={onCancel}
+        onCancel={onClose}
         onRetry={onClickYes}
         retryBtnText={btnText}
+        containerProps={{
+          marginTop: -3,
+        }}
       />
     );
-  }, [status, site, onCancel, onClickYes]);
+  }, [status, site, onClose, onClickYes]);
 
   return (
     <Stack flexGrow={1} justifyContent={"center"} alignItems={"center"}>
@@ -152,8 +178,9 @@ const ToggleBlockSite: React.FC<ToggleBlockSiteProps> = ({
 const mapStateToProps = (state: RootState) => {
   return {
     blockedList: state.app.blockedSites.list,
-    sessionList: state.vault.entities.sessions.list,
   };
 };
 
-export default connect(mapStateToProps)(ToggleBlockSite);
+const ToggleBlockSite = connect(mapStateToProps)(ToggleBlockSiteComponent);
+
+export default ToggleBlockSite;

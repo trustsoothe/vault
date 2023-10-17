@@ -1,4 +1,5 @@
 import React from "react";
+import { useTheme } from "@mui/material";
 import Stack, { type StackProps } from "@mui/material/Stack";
 import Typography, { type TypographyProps } from "@mui/material/Typography";
 import Button, { type ButtonProps } from "@mui/material/Button";
@@ -28,6 +29,7 @@ const OperationFailed: React.FC<OperationFailedProps> = ({
   cancelBtnProps,
   onRetry,
 }) => {
+  const theme = useTheme();
   return (
     <Stack
       flexGrow={1}
@@ -52,9 +54,12 @@ const OperationFailed: React.FC<OperationFailedProps> = ({
             onClick={onCancel}
             {...cancelBtnProps}
             sx={{
-              textTransform: "none",
-              height: 30,
-              fontWeight: 500,
+              fontWeight: 700,
+              color: theme.customColors.dark50,
+              borderColor: theme.customColors.dark50,
+              height: 36,
+              borderWidth: 1.5,
+              fontSize: 16,
               ...cancelBtnProps?.sx,
             }}
           >
@@ -67,9 +72,9 @@ const OperationFailed: React.FC<OperationFailedProps> = ({
           type={"submit"}
           {...retryBtnProps}
           sx={{
-            textTransform: "none",
-            height: 30,
-            fontWeight: 600,
+            fontWeight: 700,
+            height: 36,
+            fontSize: 16,
             ...retryBtnProps?.sx,
           }}
           onClick={onRetry || retryBtnProps?.onClick}

@@ -2,12 +2,15 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, type PathValue, useFormContext } from "react-hook-form";
 import PasswordStrengthBar from "react-password-strength-bar";
 import Stack, { type StackProps } from "@mui/material/Stack";
-import ContentCopy from "@mui/icons-material/ContentCopy";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Button from "@mui/material/Button";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import { type TextFieldProps, useTheme } from "@mui/material";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { generateRandomPassword, verifyPassword } from "../../utils";
+import CopyIcon from "../../assets/img/gray_copy_icon.svg";
 
 interface PasswordProps {
   passwordName: string;
@@ -29,6 +32,70 @@ interface PasswordProps {
   autofocusPassword?: boolean;
   randomKey?: string;
 }
+
+interface TextFieldWithShowPasswordProps
+  extends Omit<TextFieldProps<"outlined">, "variant"> {
+  canShowPassword?: boolean;
+  overrideType?: boolean;
+  endAdornments?: React.ReactNode[];
+}
+
+const TextFieldWithShowPassword: React.FC<TextFieldWithShowPasswordProps> = ({
+  canShowPassword = true,
+  overrideType = false,
+  endAdornments,
+  ...others
+}) => {
+  const [showPassword, setShowPassword] = useState(false);
+
+  const toggleShowPassword = useCallback(() => {
+    setShowPassword((prevState) => !prevState);
+  }, []);
+
+  const endAdornment = useMemo(() => {
+    if (!canShowPassword && !endAdornments?.length) {
+      return null;
+    }
+
+    const adornments: React.ReactNode[] = endAdornments?.length
+      ? [...endAdornments]
+      : [];
+
+    if (canShowPassword) {
+      adornments.push(
+        <IconButton
+          onClick={toggleShowPassword}
+          sx={{ padding: 0, width: 40, height: 40 }}
+          key={"show-password-toggle"}
+        >
+          {showPassword ? (
+            <VisibilityOffIcon sx={{ fontSize: 18 }} />
+          ) : (
+            <VisibilityIcon sx={{ fontSize: 18 }} />
+          )}
+        </IconButton>
+      );
+    }
+
+    return <Stack direction={"row"}>{adornments.map((item) => item)}</Stack>;
+  }, [endAdornments, showPassword, canShowPassword, toggleShowPassword]);
+
+  return (
+    <TextField
+      size={"small"}
+      variant={"outlined"}
+      {...others}
+      type={showPassword && canShowPassword ? "text" : "password"}
+      InputProps={{
+        endAdornment: endAdornment,
+        ...others?.InputProps,
+      }}
+      {...(overrideType && {
+        type: others.type,
+      })}
+    />
+  );
+};
 
 const Password: React.FC<PasswordProps> = function <T extends {}>({
   passwordName,
@@ -59,7 +126,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
     setFocus,
     getValues,
   } = useFormContext<T>();
-  const [showPassword, setShowPassword] = useState(false);
+  const theme = useTheme();
   const [random, setRandom] = useState(false);
   const [showCopyPassTooltip, setShowCopyPassTooltip] = useState(false);
   const [showCopyConfirmTooltip, setShowCopyConfirmTooltip] = useState(false);
@@ -80,8 +147,6 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
           try {
             const pass = getValues(passwordName);
             const confirm = getValues(confirmPasswordName);
-            console.log(pass);
-            console.log(confirm);
             verifyPassword(pass as unknown as string);
             verifyPassword(confirm as unknown as string);
 
@@ -92,7 +157,6 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
           if (canGenerateRandomFirst) {
             try {
               const pass = getValues(passwordName);
-              console.log(pass);
               verifyPassword(pass as unknown as string);
 
               setRandom(true);
@@ -124,10 +188,6 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
     }
   }, [confirm]);
 
-  const toggleShowPassword = useCallback(() => {
-    setShowPassword((prevState) => !prevState);
-  }, []);
-
   const toggleRandomPassword = useCallback(() => {
     const newRandom = !random;
     if (canGenerateRandomFirst || canGenerateRandomSecond) {
@@ -138,9 +198,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
           setFocus(passwordName);
         }
         if (confirmPasswordName && canGenerateRandomSecond) {
-          if (passwordAndConfirmEquals) {
-            setValue(confirmPasswordName, pass);
-          } else {
+          if (!passwordAndConfirmEquals) {
             setValue(
               confirmPasswordName,
               generateRandomPassword() as PathValue<any, any>
@@ -150,8 +208,13 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
       } else {
         if (canGenerateRandomFirst) {
           setValue(passwordName, "" as PathValue<any, any>);
+          setFocus(passwordName);
         }
-        if (confirmPasswordName && canGenerateRandomSecond) {
+        if (
+          confirmPasswordName &&
+          canGenerateRandomSecond &&
+          !passwordAndConfirmEquals
+        ) {
           setValue(confirmPasswordName, "" as PathValue<any, any>);
           if (!canGenerateRandomFirst) {
             setFocus(confirmPasswordName);
@@ -182,8 +245,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
   ]);
 
   const actions = useMemo(() => {
-    if (!canGenerateRandomSecond && !canGenerateRandomFirst && !canShowPassword)
-      return null;
+    if (!canGenerateRandomSecond && !canGenerateRandomFirst) return null;
 
     return (
       <Stack
@@ -194,46 +256,36 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
         {(canGenerateRandomSecond || canGenerateRandomFirst) && (
           <Button
             sx={{
-              fontSize: "12px",
+              fontSize: "13px",
+              fontWeight: 500,
               textTransform: "none",
               height: 25,
               paddingBottom: "3px",
+              textDecoration: "underline",
+              cursor: theme.customColors.primary500,
+              "&:hover": {
+                textDecoration: "underline",
+              },
             }}
             onClick={toggleRandomPassword}
           >
             {random ? "Introduce Password" : "Generate Random"}
           </Button>
         )}
-        {canShowPassword &&
-          !(random && !canGenerateRandomSecond && !confirmPasswordName) &&
-          !(random && canGenerateRandom) && (
-            <Button
-              sx={{
-                fontSize: "12px",
-                textTransform: "none",
-                width: 106,
-                height: 25,
-                paddingBottom: "3px",
-              }}
-              onClick={toggleShowPassword}
-            >
-              {showPassword ? "Hide" : "Show"} password
-            </Button>
-          )}
       </Stack>
     );
   }, [
-    canShowPassword,
-    showPassword,
     toggleRandomPassword,
     canGenerateRandomSecond,
-    confirmPasswordName,
-    canGenerateRandom,
     canGenerateRandomFirst,
     random,
+    theme,
   ]);
 
   const content = useMemo(() => {
+    const isRandomFirstPassword = canGenerateRandomFirst && random;
+    const isRandomSecondPassword =
+      canGenerateRandomSecond && !passwordAndConfirmEquals && random;
     return (
       <Stack
         direction={horizontal ? "row" : "column"}
@@ -262,50 +314,64 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
           }}
           render={({ field: { ref, ...field }, fieldState: { error } }) => (
             <>
-              <TextField
+              <TextFieldWithShowPassword
                 autoFocus={autofocusPassword}
                 label={labelPassword}
                 size={"small"}
-                type={
-                  showPassword || (canGenerateRandomFirst && random)
-                    ? "text"
-                    : "password"
+                canShowPassword={
+                  isRandomFirstPassword ? false : canShowPassword
                 }
+                type={isRandomFirstPassword ? "text" : "password"}
+                overrideType={isRandomFirstPassword}
                 {...field}
                 error={!!error || !!errorPassword}
                 helperText={error?.message || errorPassword}
                 inputRef={ref}
+                endAdornments={
+                  isRandomFirstPassword
+                    ? [
+                        <React.Fragment key={"copy-password-button"}>
+                          <Tooltip
+                            title={"Copied"}
+                            open={showCopyPassTooltip}
+                            arrow
+                          >
+                            <IconButton
+                              onClick={onClickCopyPass}
+                              sx={{ padding: 0, width: 40, height: 40 }}
+                            >
+                              <CopyIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </React.Fragment>,
+                      ]
+                    : null
+                }
                 InputProps={{
-                  readOnly: random && canGenerateRandomFirst,
-                  endAdornment:
-                    random && canGenerateRandomFirst ? (
-                      <Tooltip
-                        title={"Copied"}
-                        open={showCopyPassTooltip}
-                        arrow
-                      >
-                        <IconButton
-                          onClick={onClickCopyPass}
-                          sx={{ padding: 0, width: 30 }}
-                        >
-                          <ContentCopy sx={{ fontSize: 18 }} />
-                        </IconButton>
-                      </Tooltip>
-                    ) : undefined,
+                  readOnly: isRandomFirstPassword,
                 }}
               />
               {!error?.message && !hidePasswordStrong && (
-                <PasswordStrengthBar
-                  password={field.value as string}
-                  shortScoreWord={"too weak"}
-                  scoreWordStyle={{ fontSize: 12 }}
-                />
+                <Stack
+                  marginTop={"5px!important"}
+                  marginBottom={"-5px!important"}
+                  id={"password-strength-bar-container"}
+                >
+                  <PasswordStrengthBar
+                    password={field.value as string}
+                    shortScoreWord={"too weak"}
+                    scoreWordStyle={{
+                      fontSize: 14,
+                      fontFamily: `DM Sans, "san serif"`,
+                    }}
+                  />
+                </Stack>
               )}
             </>
           )}
         />
 
-        {confirmPasswordName && !(random && passwordAndConfirmEquals) && (
+        {confirmPasswordName && (
           <Controller
             name={confirmPasswordName}
             rules={{
@@ -333,34 +399,39 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
             }}
             control={control}
             render={({ field, fieldState: { error } }) => (
-              <TextField
+              <TextFieldWithShowPassword
+                canShowPassword={
+                  isRandomSecondPassword ? false : canShowPassword
+                }
                 label={labelConfirm}
                 size={"small"}
-                type={
-                  showPassword || (canGenerateRandomSecond && random)
-                    ? "text"
-                    : "password"
-                }
+                type={isRandomSecondPassword ? "text" : "password"}
+                overrideType={isRandomSecondPassword}
                 error={!!error || !!errorConfirm}
                 helperText={error?.message || errorConfirm}
                 {...field}
+                endAdornments={
+                  isRandomSecondPassword
+                    ? [
+                        <React.Fragment key={"second-password-copy-button"}>
+                          <Tooltip
+                            title={"Copied"}
+                            open={showCopyConfirmTooltip}
+                            arrow
+                          >
+                            <IconButton
+                              onClick={onClickCopyConfirm}
+                              sx={{ padding: 0, width: 40, height: 40 }}
+                            >
+                              <CopyIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </React.Fragment>,
+                      ]
+                    : null
+                }
                 InputProps={{
-                  readOnly: random && canGenerateRandomSecond,
-                  endAdornment:
-                    random && canGenerateRandomSecond ? (
-                      <Tooltip
-                        title={"Copied"}
-                        open={showCopyConfirmTooltip}
-                        arrow
-                      >
-                        <IconButton
-                          onClick={onClickCopyConfirm}
-                          sx={{ padding: 0, width: 30 }}
-                        >
-                          <ContentCopy sx={{ fontSize: 18 }} />
-                        </IconButton>
-                      </Tooltip>
-                    ) : undefined,
+                  readOnly: isRandomSecondPassword,
                 }}
               />
             )}
@@ -371,6 +442,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
   }, [
     autofocusPassword,
     horizontal,
+    canShowPassword,
     inputsContainerProps,
     errorPassword,
     errorConfirm,
@@ -379,7 +451,6 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
     passwordAndConfirmEquals,
     labelPassword,
     labelConfirm,
-    showPassword,
     register,
     hidePasswordStrong,
     justRequire,

@@ -17,6 +17,7 @@ import {
   Passphrase,
   PocketNetworkTransferArguments,
   PrivateKeyRestoreError,
+  Session,
   SupportedProtocols,
   SupportedTransferOrigins,
   TransferOptions,
@@ -41,6 +42,7 @@ import {
   protocolsAreEquals,
 } from "../../utils/networkOperations";
 import { DISCONNECT_RESPONSE } from "../../constants/communication";
+import { getSelectedNetworkAndAccount } from "./app";
 
 const MAX_PASSWORDS_TRIES = 4;
 const VAULT_PASSWORD_ID = "vault";
@@ -93,6 +95,8 @@ export interface VaultSlice {
           {
             amount: number;
             lastUpdatedAt: number;
+            error?: boolean;
+            loading?: boolean;
           }
         >;
       };
@@ -105,7 +109,10 @@ export const PASSPHRASE = v4();
 
 export const unlockVault = createAsyncThunk(
   "vault/unlockVault",
-  async ({ password, remember }: { password: string; remember: boolean }) => {
+  async (
+    { password, remember }: { password: string; remember: boolean },
+    { dispatch }
+  ) => {
     const session = await ExtensionVaultInstance.unlockVault(password);
 
     let passwordEncrypted: string;
@@ -132,6 +139,10 @@ export const unlockVault = createAsyncThunk(
         : []),
     ]);
 
+    const accountsSerialized = accounts.map((item) => item.serialize());
+
+    await dispatch(getSelectedNetworkAndAccount(accountsSerialized));
+
     return {
       passwordRemembered: remember,
       session: session.serialize(),
@@ -141,7 +152,7 @@ export const unlockVault = createAsyncThunk(
           .map((item) => item.serialize()),
         networks: networks.concat(),
         assets: assets.concat(),
-        accounts: accounts.map((item) => item.serialize()),
+        accounts: accountsSerialized,
       },
     };
   }
@@ -219,6 +230,7 @@ interface GetAccountBalanceParam {
 
 interface GetAccountBalanceResult {
   address: string;
+  id?: string;
   amount: number;
   update: boolean;
   networksWithErrors: string[];
@@ -248,17 +260,19 @@ export const getAccountBalance = createAsyncThunk<
   const errorsPreferredNetwork = state.vault.errorsPreferredNetwork;
 
   const accountFromSaved = state.vault.entities.accounts.list.find(
-    (item) => item.address === address
+    (item) =>
+      item.address === address && protocolsAreEquals(item.protocol, protocol)
   );
 
   if (accountFromSaved && map[accountFromSaved.id]) {
     const value = map[accountFromSaved.id];
 
-    if (value.lastUpdatedAt > new Date().getTime() - 60000) {
+    if (!value.error && value.lastUpdatedAt > new Date().getTime() - 60000) {
       return {
         address,
+        id: accountFromSaved.id,
         amount: value.amount,
-        update: false,
+        update: true,
         networksWithErrors: [],
       };
     }
@@ -273,6 +287,7 @@ export const getAccountBalance = createAsyncThunk<
 
   return {
     address,
+    id: accountFromSaved?.id,
     amount: result.balance,
     update: !!accountFromSaved,
     networksWithErrors: result.networksWithErrors,
@@ -302,7 +317,7 @@ export const getAllBalances = createAsyncThunk<{
     if (map[id]) {
       const value = map[id];
 
-      if (value.lastUpdatedAt > new Date().getTime() - 60000) {
+      if (!value.error && value.lastUpdatedAt > new Date().getTime() - 60000) {
         continue;
       }
     }
@@ -319,11 +334,13 @@ export const getAllBalances = createAsyncThunk<{
   const lastUpdatedAt = new Date().getTime();
 
   const resultConvertedToMap = response.reduce(
-    (acc, { address, balance, protocol: { chainID, name } }) => ({
+    (acc, { address, balance, error, protocol: { chainID, name } }) => ({
       ...acc,
       [idByAccount[`${address}_${name}_${chainID}`]]: {
         amount: balance,
         lastUpdatedAt,
+        error,
+        loading: false,
       },
     }),
     {}
@@ -607,6 +624,52 @@ export const authorizeExternalSession = createAsyncThunk<
   return session.serialize();
 });
 
+export const revokeAllExternalSessions = createAsyncThunk(
+  "vault/revokeAllExternalSessions",
+  async (_, context) => {
+    const {
+      vault: { vaultSession, entities },
+    } = context.getState() as RootState;
+
+    const activeSessions = entities.sessions.list
+      .map((session) => Session.deserialize(session))
+      .filter((session) => session.isValid() && !!session.origin?.value);
+
+    for (const session of activeSessions) {
+      const [tabsWithOrigin] = await Promise.all([
+        browser.tabs.query({
+          url: `${session.origin.value}/*`,
+        }),
+        ExtensionVaultInstance.revokeSession(vaultSession.id, session.id),
+      ]);
+
+      if (tabsWithOrigin.length) {
+        const response: DisconnectBackResponse = {
+          type: DISCONNECT_RESPONSE,
+          data: {
+            disconnected: true,
+          },
+          error: null,
+        };
+
+        await Promise.allSettled(
+          tabsWithOrigin.map((tab) =>
+            browser.tabs.sendMessage(tab.id, response)
+          )
+        );
+      }
+    }
+
+    const allSessions = await ExtensionVaultInstance.listSessions(
+      vaultSession.id
+    );
+
+    return allSessions
+      .filter((item) => item.isValid())
+      .map((item) => item.serialize());
+  }
+);
+
 export const revokeSession = createAsyncThunk<
   SerializedSession[],
   { sessionId: string; external: boolean }
@@ -807,6 +870,19 @@ const vaultSlice = createSlice({
 
     builder.addCase(loadSessions.pending, (state) => {
       state.entities.sessions.loading = true;
+    });
+
+    builder.addCase(revokeAllExternalSessions.pending, (state) => {
+      state.entities.sessions.loading = true;
+    });
+
+    builder.addCase(revokeAllExternalSessions.rejected, (state) => {
+      state.entities.sessions.loading = false;
+    });
+
+    builder.addCase(revokeAllExternalSessions.fulfilled, (state, action) => {
+      state.entities.sessions.loading = false;
+      state.entities.sessions.list = action.payload;
     });
 
     builder.addCase(revokeSession.pending, (state) => {
@@ -1028,15 +1104,46 @@ const vaultSlice = createSlice({
     });
 
     //balances
+    builder.addCase(getAccountBalance.pending, (state, action) => {
+      const { address, protocol } = action.meta.arg;
+
+      const accountFromSaved = state.entities.accounts.list.find(
+        (account) =>
+          account.address === address &&
+          protocolsAreEquals(account.protocol, protocol)
+      );
+
+      if (accountFromSaved) {
+        const balanceMapById = state.entities.accounts.balances.byId;
+
+        if (balanceMapById[accountFromSaved.id]) {
+          state.entities.accounts.balances.byId[accountFromSaved.id] = {
+            ...state.entities.accounts.balances.byId[accountFromSaved.id],
+            error: false,
+            loading: true,
+          };
+        } else {
+          state.entities.accounts.balances.byId[accountFromSaved.id] = {
+            error: false,
+            amount: 0,
+            lastUpdatedAt: Date.UTC(1970, 0, 1),
+            loading: true,
+          };
+        }
+      }
+    });
+
     builder.addCase(getAccountBalance.fulfilled, (state, action) => {
       const result = action.payload;
 
       if (result) {
-        const { address, amount, update, networksWithErrors } = result;
-        if (update) {
-          state.entities.accounts.balances.byId[address] = {
+        const { id, amount, update, networksWithErrors } = result;
+        if (update && id) {
+          state.entities.accounts.balances.byId[id] = {
             lastUpdatedAt: new Date().getTime(),
             amount,
+            error: false,
+            loading: false,
           };
         }
 
@@ -1050,6 +1157,36 @@ const vaultSlice = createSlice({
               state.errorsPreferredNetwork[name][chainID][networkId] = 1;
             }
           }
+        }
+      }
+    });
+
+    builder.addCase(getAccountBalance.rejected, (state, action) => {
+      const { address, protocol } = action.meta.arg;
+
+      const accountFromSaved = state.entities.accounts.list.find(
+        (account) =>
+          account.address === address &&
+          protocolsAreEquals(account.protocol, protocol)
+      );
+
+      if (accountFromSaved) {
+        const balanceMapById =
+          state.entities.accounts.balances.byId[accountFromSaved.id];
+
+        if (balanceMapById[accountFromSaved.id]) {
+          state.entities.accounts.balances.byId[accountFromSaved.id] = {
+            ...state.entities.accounts.balances.byId[accountFromSaved.id],
+            error: true,
+            loading: false,
+          };
+        } else {
+          state.entities.accounts.balances.byId[accountFromSaved.id] = {
+            error: false,
+            amount: 0,
+            lastUpdatedAt: Date.UTC(1970, 0, 1),
+            loading: false,
+          };
         }
       }
     });

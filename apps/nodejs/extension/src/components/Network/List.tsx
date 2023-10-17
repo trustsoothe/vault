@@ -1,96 +1,123 @@
 import type { SerializedNetwork } from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
-import React, { CSSProperties, useCallback, useMemo } from "react";
-import Box from "@mui/material/Box";
-import groupBy from "lodash/groupBy";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Tab from "@mui/material/Tab";
 import { connect } from "react-redux";
+import TabList from "@mui/lab/TabList";
 import Stack from "@mui/material/Stack";
-import Divider from "@mui/material/Divider";
-import { useNavigate } from "react-router-dom";
-import { FixedSizeList } from "react-window";
-import EditIcon from "@mui/icons-material/Edit";
+import { useTheme } from "@mui/material";
+import Button from "@mui/material/Button";
+import TabContext from "@mui/lab/TabContext";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { labelByProtocolMap, labelByChainID } from "../../constants/protocols";
 import {
   ADD_NETWORK_PAGE,
   REMOVE_NETWORK_PAGE,
   UPDATE_NETWORK_PAGE,
 } from "../../constants/routes";
+import EditIcon from "../../assets/img/edit_outlined_icon.svg";
+import RemoveIcon from "../../assets/img/trash_icon.svg";
+
+enum NetworkTabs {
+  defaults = "defaults",
+  customs = "customs",
+}
 
 interface NetworkItemProps {
   network: SerializedNetwork;
-  style?: CSSProperties;
-  showBorderTop?: boolean;
   onClickUpdate?: (network: SerializedNetwork) => void;
   onClickRemove?: (network: SerializedNetwork) => void;
 }
 
-const NetworkItem: React.FC<NetworkItemProps> = ({
+export const NetworkItem: React.FC<NetworkItemProps> = ({
   network,
   onClickUpdate,
   onClickRemove,
-  style,
-  showBorderTop,
 }) => {
+  const theme = useTheme();
   return (
     <Stack
-      direction={"row"}
-      style={style}
-      paddingY={"8px"}
+      height={85}
+      paddingX={1}
+      paddingTop={0.5}
+      paddingBottom={1}
+      borderRadius={"4px"}
       boxSizing={"border-box"}
-      borderTop={showBorderTop ? "1px solid lightgray" : undefined}
+      bgcolor={theme.customColors.dark2}
+      border={`1px solid ${theme.customColors.dark15}`}
     >
-      <Stack paddingX={"5px"} spacing={"3px"} flexGrow={1}>
-        <Typography fontSize={12} fontWeight={600}>
+      <Stack
+        direction={"row"}
+        alignItems={"center"}
+        justifyContent={"space-between"}
+        height={30}
+      >
+        <Typography
+          fontSize={14}
+          fontWeight={500}
+          letterSpacing={"0.5px"}
+          lineHeight={"30px"}
+        >
           {network.name}
         </Typography>
-        <Stack direction={"row"} alignItems={"center"} spacing={"7px"}>
-          <Typography fontSize={12}>
-            {labelByProtocolMap[network.protocol.name]}
-          </Typography>
-          <Typography fontSize={12}>-</Typography>
-          <Typography fontSize={12}>
-            {labelByChainID[network.protocol.chainID]}
-          </Typography>
+        <Stack direction={"row"} alignItems={"center"} marginRight={-0.4}>
+          {onClickUpdate && (
+            <IconButton onClick={() => onClickUpdate(network)}>
+              <EditIcon />
+            </IconButton>
+          )}
+          {onClickRemove && (
+            <IconButton onClick={() => onClickRemove(network)}>
+              <RemoveIcon />
+            </IconButton>
+          )}
         </Stack>
-        <Typography
-          fontSize={10}
-          color={"dimgrey"}
-          sx={{ textDecoration: "underline" }}
-        >
-          {network.rpcUrl}
-        </Typography>
       </Stack>
-      <Stack spacing={"10px"} width={"min-content"}>
-        {onClickUpdate && (
-          <IconButton
-            sx={{ padding: 0 }}
-            onClick={() => onClickUpdate(network)}
-          >
-            <EditIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        )}
-        {onClickRemove && (
-          <IconButton
-            sx={{ padding: 0 }}
-            onClick={() => onClickRemove(network)}
-          >
-            <DeleteIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        )}
-      </Stack>
+      <Typography fontSize={12} lineHeight={"20px"} letterSpacing={"0.5px"}>
+        {labelByProtocolMap[network.protocol.name] || network.protocol.name} -{" "}
+        {labelByChainID[network.protocol.chainID] || network.protocol.chainID}
+      </Typography>
+      <Typography
+        fontSize={12}
+        component={"a"}
+        target={"_blank"}
+        lineHeight={"20px"}
+        href={network.rpcUrl}
+        letterSpacing={"0.5px"}
+        color={theme.customColors.primary500}
+      >
+        {network.rpcUrl}
+      </Typography>
     </Stack>
   );
 };
 
 interface NetworkListProps {
   networks: SerializedNetwork[];
-  isLoading: boolean;
 }
 
-const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
+const NetworkList: React.FC<NetworkListProps> = ({ networks }) => {
+  const theme = useTheme();
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(NetworkTabs.defaults);
+
+  useEffect(() => {
+    const tabOnQuery = searchParams.get("tab");
+
+    if (tabOnQuery && tabOnQuery in NetworkTabs) {
+      setTab(tabOnQuery as NetworkTabs);
+    }
+  }, []);
+
+  const onChangeTab = useCallback(
+    (_: React.SyntheticEvent, newTab: NetworkTabs) => {
+      setTab(newTab);
+    },
+    []
+  );
+
   const navigate = useNavigate();
 
   const onClickAdd = useCallback(() => {
@@ -111,96 +138,101 @@ const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
     [navigate]
   );
 
-  const [defaultNetworks, customNetworks] = useMemo(() => {
-    const groupedNetworks = groupBy(networks, "isDefault");
-    return [groupedNetworks["true"], groupedNetworks["false"] || []];
-  }, [networks]);
+  const networksList = useMemo(() => {
+    const list = networks.filter((network) =>
+      tab === NetworkTabs.defaults ? network.isDefault : !network.isDefault
+    );
 
-  const content = useMemo(() => {
     return (
       <Stack
         height={1}
-        boxSizing={"border-box"}
-        paddingBottom={"20px"}
-        marginTop={1}
+        width={1}
+        marginTop={1.5}
+        justifyContent={"space-between"}
       >
-        <Box marginRight={"-10px"} paddingRight={"10px"}>
-          <Divider
-            textAlign={"left"}
-            sx={{
-              marginTop: "5px",
-              "&::before": {
-                width: "4%",
-              },
-              "& .MuiDivider-wrapper": {
-                paddingX: "7px",
-              },
-            }}
-          >
-            <Typography fontSize={14}>Defaults</Typography>
-          </Divider>
-          <Stack>
-            {defaultNetworks.map((network, index) => (
+        <Stack
+          spacing={1.5}
+          overflow={"auto"}
+          maxHeight={tab === NetworkTabs.customs ? 400 : 450}
+        >
+          {list.length ? (
+            list.map((network) => (
               <NetworkItem
                 network={network}
                 key={network.id}
-                showBorderTop={index !== 0}
+                onClickUpdate={!network.isDefault ? onClickUpdate : undefined}
+                onClickRemove={!network.isDefault ? onClickRemove : undefined}
               />
-            ))}
-          </Stack>
-          {customNetworks.length ? (
-            <>
-              <Divider
-                textAlign={"left"}
-                sx={{
-                  marginY: "5px",
-                  "&::before": {
-                    width: "4%",
-                  },
-                  "& .MuiDivider-wrapper": {
-                    paddingX: "7px",
-                  },
-                }}
-              >
-                <Typography fontSize={14}>Customs</Typography>
-              </Divider>
-              <Stack
-                divider={<Divider sx={{ marginY: "5px" }} />}
-                overflow={"auto"}
-              >
-                <FixedSizeList
-                  width={"100%"}
-                  itemCount={customNetworks.length}
-                  itemSize={75}
-                  height={225}
-                  itemData={customNetworks}
-                >
-                  {({ index, style, data }) => {
-                    const network = data[index];
-
-                    return (
-                      <NetworkItem
-                        network={network}
-                        key={network.id}
-                        style={style}
-                        onClickUpdate={onClickUpdate}
-                        onClickRemove={onClickRemove}
-                        showBorderTop={index !== 0}
-                      />
-                    );
-                  }}
-                </FixedSizeList>
-              </Stack>
-            </>
-          ) : null}
-        </Box>
+            ))
+          ) : (
+            <Stack justifyContent={"center"} alignItems={"center"} flexGrow={1}>
+              <Typography mt={"-50px"}>
+                You don't have any custom network yet.
+              </Typography>
+            </Stack>
+          )}
+        </Stack>
+        {tab === NetworkTabs.customs && (
+          <Button
+            variant={"contained"}
+            fullWidth
+            sx={{
+              backgroundColor: theme.customColors.primary500,
+              height: 35,
+              fontWeight: 700,
+              fontSize: 16,
+            }}
+            onClick={onClickAdd}
+          >
+            Add Custom Network
+          </Button>
+        )}
       </Stack>
     );
-  }, [networks, isLoading, onClickRemove, onClickUpdate, onClickAdd]);
+  }, [networks, tab, onClickRemove, onClickUpdate, onClickAdd]);
 
   return (
-    <Stack flexGrow={1} height={1}>
-      {content}
+    <Stack
+      flexGrow={1}
+      height={1}
+      marginTop={1.5}
+      sx={{
+        "& .MuiTabPanel-root": {
+          padding: 0,
+          display: "flex",
+        },
+      }}
+    >
+      <TabContext value={tab}>
+        <TabList
+          variant={"fullWidth"}
+          onChange={onChangeTab}
+          sx={{
+            height: 40,
+            minHeight: 40,
+            borderBottom: `1px solid ${theme.customColors.dark15}`,
+            "& .MuiTabs-flexContainer": {
+              paddingX: 2,
+            },
+            "& .MuiTabs-flexContainer, button": {
+              height: 40,
+              minHeight: 40,
+            },
+            "& button": {
+              fontWeight: 700,
+              fontSize: 12,
+              color: theme.customColors.dark50,
+            },
+            "& button.Mui-selected": {
+              color: theme.customColors.primary500,
+            },
+          }}
+        >
+          <Tab label={"DEFAULTS"} value={NetworkTabs.defaults} />
+          <Tab label={"CUSTOMS"} value={NetworkTabs.customs} />
+        </TabList>
+      </TabContext>
+      {networksList}
     </Stack>
   );
 };
@@ -208,7 +240,6 @@ const NetworkList: React.FC<NetworkListProps> = ({ networks, isLoading }) => {
 const mapStateToProps = (state: RootState) => {
   return {
     networks: state.vault.entities.networks.list,
-    isLoading: state.vault.entities.networks.loading,
   };
 };
 
