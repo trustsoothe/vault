@@ -7,13 +7,12 @@ import { useTheme } from "@mui/material";
 import Skeleton from "@mui/material/Skeleton";
 import { roundAndSeparate } from "../../utils/ui";
 import RowSpaceBetween from "../common/RowSpaceBetween";
-import { protocolsAreEquals } from "../../utils/networkOperations";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 
 interface AccountFromRequestProps {
   account: SerializedAccountReference;
-  assets: RootState["vault"]["entities"]["assets"]["list"];
   balancesMapById: RootState["vault"]["entities"]["accounts"]["balances"]["byId"];
+  selectedChainByNetwork: RootState["app"]["selectedChainByNetwork"];
   balancesAreLoading: boolean;
 }
 
@@ -21,16 +20,13 @@ const AccountFromRequest: React.FC<AccountFromRequestProps> = ({
   balancesMapById,
   account,
   balancesAreLoading,
-  assets,
+  selectedChainByNetwork,
 }) => {
   const theme = useTheme();
-  const symbol = account
-    ? assets.find((asset) =>
-        protocolsAreEquals(asset.protocol, account.protocol)
-      )?.symbol || ""
-    : "";
+  const symbol = account.asset.symbol;
 
   const accountBalance = balancesMapById[account?.id]?.amount || 0;
+  const protocol = account?.asset?.protocol;
 
   return (
     <Stack
@@ -59,15 +55,13 @@ const AccountFromRequest: React.FC<AccountFromRequestProps> = ({
       />
       <RowSpaceBetween
         label={"Protocol"}
-        value={
-          labelByProtocolMap[account?.protocol?.name] || account?.protocol?.name
-        }
+        value={labelByProtocolMap[protocol] || protocol}
       />
       <RowSpaceBetween
         label={"Chain ID"}
         value={
-          labelByChainID[account?.protocol?.chainID] ||
-          account?.protocol?.chainID
+          labelByChainID[selectedChainByNetwork[protocol]] ||
+          selectedChainByNetwork[protocol]
         }
       />
     </Stack>
@@ -75,8 +69,9 @@ const AccountFromRequest: React.FC<AccountFromRequestProps> = ({
 };
 
 const mapStateToProps = (state: RootState) => ({
-  assets: state.vault.entities.assets.list,
   balancesMapById: state.vault.entities.accounts.balances.byId,
   balancesAreLoading: state.vault.entities.accounts.balances.loading,
+  selectedChainByNetwork: state.app.selectedChainByNetwork,
 });
+
 export default connect(mapStateToProps)(AccountFromRequest);

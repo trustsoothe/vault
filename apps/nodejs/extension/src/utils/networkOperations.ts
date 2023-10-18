@@ -1,4 +1,3 @@
-import type { Protocol } from "packages/nodejs/keyring/src/lib/core/common/protocols/Protocol";
 import type { ErrorsPreferredNetwork } from "../redux/slices/vault";
 import { Buffer } from "buffer";
 import crypto from "crypto-browserify";
@@ -6,17 +5,29 @@ import scrypt from "scrypt-js";
 import {
   AccountReference,
   Network,
-  NetworkOptions,
+  INetworkOptions,
   ProtocolServiceFactory,
   SerializedNetwork,
+  SupportedProtocols,
+  SerializedAsset,
+  Asset,
 } from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
+import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 
-export const getFee = async (
-  protocol: Protocol,
-  networks: SerializedNetwork[],
-  errorsPreferredNetwork?: ErrorsPreferredNetwork
-) => {
+interface GetFeeParam {
+  protocol: SupportedProtocols;
+  chainId: ChainID<SupportedProtocols>;
+  networks: SerializedNetwork[];
+  errorsPreferredNetwork?: ErrorsPreferredNetwork;
+}
+
+export const getFee = async ({
+  protocol,
+  chainId,
+  networks,
+  errorsPreferredNetwork,
+}: GetFeeParam) => {
   const ProtocolService = ProtocolServiceFactory.getProtocolService(
     protocol,
     new WebEncryptionService()
@@ -27,12 +38,11 @@ export const getFee = async (
   if (errorsPreferredNetwork) {
     const preferredNetworks = networks.filter((item) => {
       const errors =
-        errorsPreferredNetwork?.[item.protocol.name]?.[item.protocol.chainID]?.[
-          item.id
-        ] || 0;
+        errorsPreferredNetwork?.[item.protocol]?.[item.chainID]?.[item.id] || 0;
       return (
         item.isPreferred &&
-        protocolsAreEquals(item.protocol, protocol) &&
+        item.protocol === protocol &&
+        item.chainID === chainId &&
         errors <= 5
       );
     });
@@ -53,9 +63,7 @@ export const getFee = async (
 
   const networkSerialized = networks.find(
     (item) =>
-      item.protocol.chainID === protocol.chainID &&
-      item.protocol.name === protocol.name &&
-      item.isDefault
+      item.chainID === chainId && item.protocol === protocol && item.isDefault
   );
 
   if (!networkSerialized) {
@@ -68,13 +76,25 @@ export const getFee = async (
   return { fee, networksWithErrors };
 };
 
-export const getAccountBalance = async (
-  address: string,
-  protocol: Protocol,
-  networks: SerializedNetwork[],
-  errorsPreferredNetwork?: ErrorsPreferredNetwork
-) => {
-  const acc = new AccountReference("", "", address, protocol);
+interface GetAccountBalanceParam {
+  address: string;
+  protocol: SupportedProtocols;
+  chainId: ChainID<SupportedProtocols>;
+  networks: SerializedNetwork[];
+  assets: SerializedAsset[];
+  errorsPreferredNetwork?: ErrorsPreferredNetwork;
+}
+
+export const getAccountBalance = async ({
+  address,
+  protocol,
+  chainId,
+  networks,
+  assets,
+  errorsPreferredNetwork,
+}: GetAccountBalanceParam) => {
+  const asset = assets.find((item) => item.protocol === protocol);
+  const acc = new AccountReference("", "", address, Asset.deserialize(asset));
 
   const ProtocolService = ProtocolServiceFactory.getProtocolService(
     protocol,
@@ -86,12 +106,11 @@ export const getAccountBalance = async (
   if (errorsPreferredNetwork) {
     const preferredNetworks = networks.filter((item) => {
       const errors =
-        errorsPreferredNetwork?.[item.protocol.name]?.[item.protocol.chainID]?.[
-          item.id
-        ] || 0;
+        errorsPreferredNetwork?.[item.protocol]?.[item.chainID]?.[item.id] || 0;
       return (
         item.isPreferred &&
-        protocolsAreEquals(item.protocol, protocol) &&
+        item.protocol === protocol &&
+        item.chainID === chainId &&
         errors <= 5
       );
     });
@@ -113,9 +132,7 @@ export const getAccountBalance = async (
 
   const networkSerialized = networks.find(
     (item) =>
-      item.protocol.chainID === protocol.chainID &&
-      item.protocol.name === protocol.name &&
-      item.isDefault
+      item.chainID === chainId && item.protocol === protocol && item.isDefault
   );
 
   if (!networkSerialized) {
@@ -129,27 +146,38 @@ export const getAccountBalance = async (
   return { balance: balance ? balance / 1e6 : 0, networksWithErrors };
 };
 
-export const getBalances = (
+interface GetBalancesParam {
   accounts: {
     address: string;
-    protocol: Protocol;
-  }[],
-  networks: SerializedNetwork[],
-  errorsPreferredNetwork: ErrorsPreferredNetwork
-) => {
+    protocol: SupportedProtocols;
+    chainId: ChainID<SupportedProtocols>;
+  }[];
+  networks: SerializedNetwork[];
+  assets: SerializedAsset[];
+  errorsPreferredNetwork: ErrorsPreferredNetwork;
+}
+
+export const getBalances = ({
+  accounts,
+  networks,
+  assets,
+  errorsPreferredNetwork,
+}: GetBalancesParam) => {
   return Promise.all(
-    accounts.map(({ address, protocol }) => {
+    accounts.map(({ address, protocol, chainId }) => {
       return new Promise(async (resolve) => {
         let balance: number,
           error = false,
           networksWithErrors: string[] = [];
         try {
-          const result = await getAccountBalance(
+          const result = await getAccountBalance({
             address,
             protocol,
+            chainId,
             networks,
-            errorsPreferredNetwork
-          );
+            assets,
+            errorsPreferredNetwork,
+          });
           balance = result.balance;
           networksWithErrors = result.networksWithErrors;
         } catch (e) {
@@ -170,14 +198,17 @@ export const getBalances = (
     {
       address: string;
       balance: number;
-      protocol: Protocol;
+      protocol: SupportedProtocols;
+      chainId: ChainID<SupportedProtocols>;
       networksWithErrors: string[];
       error: boolean;
     }[]
   >;
 };
 
-export const isNetworkUrlHealthy = async (networkOpts: NetworkOptions) => {
+export const isNetworkUrlHealthy = async (
+  networkOpts: INetworkOptions<SupportedProtocols>
+) => {
   try {
     const network = new Network(networkOpts);
 
@@ -217,12 +248,12 @@ export const isTransferHealthyForNetwork = async (
   }
 };
 
-export const protocolsAreEquals = (p1: Protocol, p2: Protocol) =>
-  p1.name === p2.name && p1.chainID === p2.chainID;
+// export const protocolsAreEquals = (p1: Protocol, p2: Protocol) =>
+//   p1.name === p2.name && p1.chainID === p2.chainID;
 
 export const getAddressFromPrivateKey = async (
   privateKey: string,
-  protocol: Protocol
+  protocol: SupportedProtocols
 ) => {
   const ProtocolService = ProtocolServiceFactory.getProtocolService(
     protocol,

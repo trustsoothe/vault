@@ -6,7 +6,7 @@ import React, { useMemo } from "react";
 import Typography from "@mui/material/Typography";
 import { RootState } from "../../redux/store";
 import RowSpaceBetween from "../common/RowSpaceBetween";
-import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
+import { labelByProtocolMap } from "../../constants/protocols";
 
 interface AssetItemProps {
   asset: SerializedAsset;
@@ -31,15 +31,11 @@ const AssetItem: React.FC<AssetItemProps> = ({ asset }) => {
         fontWeight={500}
         lineHeight={"30px"}
       >
-        {asset.name} ({asset.symbol})
+        {asset.symbol}
       </Typography>
       <RowSpaceBetween
         label={"Protocol"}
-        value={labelByProtocolMap[asset.protocol.name] || asset.protocol.name}
-      />
-      <RowSpaceBetween
-        label={"Protocol"}
-        value={labelByChainID[asset.protocol.chainID] || asset.protocol.chainID}
+        value={labelByProtocolMap[asset.protocol] || asset.protocol}
       />
     </Stack>
   );

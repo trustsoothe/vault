@@ -14,14 +14,12 @@ import {
 import RowSpaceBetween from "../../common/RowSpaceBetween";
 import { roundAndSeparate } from "../../../utils/ui";
 import { isPrivateKey } from "../../../utils";
-import {
-  getAddressFromPrivateKey,
-  protocolsAreEquals,
-} from "../../../utils/networkOperations";
+import { getAddressFromPrivateKey } from "../../../utils/networkOperations";
 
 interface SummaryProps {
   fromBalance: number;
   accounts: RootState["vault"]["entities"]["accounts"]["list"];
+  selectedChain: string;
   compact?: boolean;
 }
 
@@ -29,6 +27,7 @@ const Summary: React.FC<SummaryProps> = ({
   fromBalance,
   accounts,
   compact = false,
+  selectedChain,
 }) => {
   const theme = useTheme();
   const { watch } = useFormContext<FormValues>();
@@ -41,7 +40,7 @@ const Summary: React.FC<SummaryProps> = ({
       account = accounts.find(
         (item) =>
           item.address === values.from &&
-          protocolsAreEquals(item.protocol, values.asset.protocol)
+          item.asset.protocol === values.asset.protocol
       );
 
       if (account) {
@@ -68,9 +67,8 @@ const Summary: React.FC<SummaryProps> = ({
     const res = fromBalance - total;
 
     const toAccount = accounts.find(
-      (item) =>
-        item.address === values.toAddress &&
-        protocolsAreEquals(item.protocol, values.asset.protocol)
+      (item) => item.address === values.toAddress && item.asset.protocol,
+      values.asset.protocol
     );
 
     let toAddress = values.toAddress;
@@ -90,14 +88,11 @@ const Summary: React.FC<SummaryProps> = ({
       {
         label: "Protocol",
         value:
-          labelByProtocolMap[values.asset.protocol.name] ||
-          values.asset.protocol.name,
+          labelByProtocolMap[values.asset.protocol] || values.asset.protocol,
       },
       {
         label: "Chain ID",
-        value:
-          labelByChainID[values.asset.protocol.chainID] ||
-          values.asset.protocol.chainID,
+        value: labelByChainID[selectedChain] || selectedChain,
       },
       {
         label: "RPC",
@@ -132,7 +127,7 @@ const Summary: React.FC<SummaryProps> = ({
         value: values.memo,
       },
     ];
-  }, [values, accounts, fromLabel]);
+  }, [values, accounts, fromLabel, selectedChain]);
 
   return (
     <Stack maxWidth={"100%"} width={1}>
@@ -176,6 +171,7 @@ const Summary: React.FC<SummaryProps> = ({
 
 const mapStateToProps = (state: RootState) => ({
   accounts: state.vault.entities.accounts.list,
+  selectedChain: state.app.selectedChainByNetwork[state.app.selectedNetwork],
 });
 
 export default connect(mapStateToProps)(Summary);

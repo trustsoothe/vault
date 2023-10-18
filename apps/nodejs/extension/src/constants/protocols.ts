@@ -1,5 +1,5 @@
-import type { ChainID } from "packages/nodejs/keyring/src/lib/core/common/protocols/IProtocol";
 import { SupportedProtocols } from "@poktscan/keyring";
+import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 
 export const labelByProtocolMap: Record<SupportedProtocols, string> = {
   [SupportedProtocols.Pocket]: "Pocket Network",

@@ -76,8 +76,8 @@ export const NetworkItem: React.FC<NetworkItemProps> = ({
         </Stack>
       </Stack>
       <Typography fontSize={12} lineHeight={"20px"} letterSpacing={"0.5px"}>
-        {labelByProtocolMap[network.protocol.name] || network.protocol.name} -{" "}
-        {labelByChainID[network.protocol.chainID] || network.protocol.chainID}
+        {labelByProtocolMap[network.protocol] || network.protocol} -{" "}
+        {labelByChainID[network.chainID] || network.chainID}
       </Typography>
       <Typography
         fontSize={12}

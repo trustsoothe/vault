@@ -11,10 +11,7 @@ import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import {
-  getAddressFromPrivateKey,
-  protocolsAreEquals,
-} from "../../../utils/networkOperations";
+import { getAddressFromPrivateKey } from "../../../utils/networkOperations";
 import AccountsAutocompleteV2 from "../../Account/Autocomplete";
 import NetworkAutocomplete from "./NetworkAutocomplete";
 import AutocompleteAsset from "../../Account/AutocompleteAsset";
@@ -60,8 +57,7 @@ const TransferForm: React.FC<TransferFormProps> = ({
     if (fromType === "saved_account" && isAddress(from) && asset) {
       const account = accounts.find(
         (item) =>
-          item.address === from &&
-          protocolsAreEquals(item.protocol, asset.protocol)
+          item.address === from && item.asset.protocol === asset.protocol
       );
 
       if (account) {
@@ -76,12 +72,8 @@ const TransferForm: React.FC<TransferFormProps> = ({
       setValue("from", newAccount.address);
       clearErrors("from");
 
-      const asset = getAssetByProtocol(assets, newAccount.protocol);
-
-      if (asset) {
-        setValue("asset", asset);
-        clearErrors("asset");
-      }
+      setValue("asset", newAccount.asset);
+      clearErrors("asset");
 
       clearErrors("network");
     },
@@ -106,7 +98,7 @@ const TransferForm: React.FC<TransferFormProps> = ({
       setSelectedAccount(null);
 
       if (value === "private_key" && request?.protocol) {
-        const asset = getAssetByProtocol(assets, request.protocol);
+        const asset = getAssetByProtocol(assets, request.protocol.name);
 
         if (asset) {
           setValue("asset", asset);

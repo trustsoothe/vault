@@ -13,7 +13,7 @@ import {
   SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/keyring";
-import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
+import { labelByProtocolMap } from "../../constants/protocols";
 import CopyIcon from "../../assets/img/copy_icon.svg";
 import KeyIcon from "../../assets/img/key_icon.svg";
 import EditIcon from "../../assets/img/edit_icon.svg";
@@ -21,7 +21,6 @@ import RemoveIcon from "../../assets/img/remove_icon.svg";
 import ExploreIcon from "../../assets/img/explore_icon.svg";
 import TransferIcon from "../../assets/img/transfer_icon.svg";
 import ReimportIcon from "../../assets/img/reimport_icon.svg";
-import { protocolsAreEquals } from "../../utils/networkOperations";
 import {
   ACCOUNT_PK_PAGE,
   IMPORT_ACCOUNT_PAGE,
@@ -37,7 +36,7 @@ interface ListAccountItemProps {
   isLoadingTokens?: boolean;
   containerProps?: StackProps;
   compact?: boolean;
-  assets: RootState["vault"]["entities"]["assets"]["list"];
+  selectedChainByNetwork: RootState["app"]["selectedChainByNetwork"];
   balanceInfoMap: RootState["vault"]["entities"]["accounts"]["balances"]["byId"];
   onClickRename: (account: SerializedAccountReference) => void;
 }
@@ -125,10 +124,10 @@ const ListAccountItem: React.FC<ListAccountItemProps> = ({
   account,
   isLoadingTokens,
   containerProps,
-  assets,
   compact = false,
   balanceInfoMap,
   onClickRename,
+  selectedChainByNetwork,
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -144,9 +143,11 @@ const ListAccountItem: React.FC<ListAccountItemProps> = ({
 
   const onClickTransfer = useCallback(() => {
     navigate(
-      `${TRANSFER_PAGE}?fromAddress=${account.address}&protocol=${account.protocol.name}&chainID=${account.protocol.chainID}`
+      `${TRANSFER_PAGE}?fromAddress=${account.address}&protocol=${
+        account.asset.protocol
+      }&chainID=${selectedChainByNetwork[account.asset.protocol]}`
     );
-  }, [navigate, account]);
+  }, [navigate, account, selectedChainByNetwork]);
 
   const onClickRemove = useCallback(() => {
     navigate(`${REMOVE_ACCOUNT_PAGE}?id=${account.id}`);
@@ -163,9 +164,10 @@ const ListAccountItem: React.FC<ListAccountItemProps> = ({
   const onClickExplorer = useCallback(() => {
     let link: string;
     if (account) {
-      const { name, chainID } = account.protocol;
+      const protocol = account.asset.protocol;
+      const chainID = selectedChainByNetwork[protocol];
 
-      if (name === SupportedProtocols.Pocket) {
+      if (protocol === SupportedProtocols.Pocket) {
         link = `https://poktscan.com${
           chainID === "testnet" ? "/testnet" : ""
         }/account/${account.address}`;
@@ -175,7 +177,7 @@ const ListAccountItem: React.FC<ListAccountItemProps> = ({
     if (link) {
       window.open(link, "_blank");
     }
-  }, [account]);
+  }, [account, selectedChainByNetwork]);
 
   const handleCopyAddress = useCallback(() => {
     navigator.clipboard.writeText(account.address).then(() => {
@@ -187,17 +189,16 @@ const ListAccountItem: React.FC<ListAccountItemProps> = ({
   const onClickRetry = useCallback(() => {
     AppToBackground.getAccountBalance({
       address: account.address,
-      protocol: account.protocol,
+      protocol: account.asset.protocol,
+      chainId: selectedChainByNetwork[account.asset.protocol] as any,
     }).catch();
-  }, [account]);
+  }, [account, selectedChainByNetwork]);
 
   const symbol = useMemo(() => {
-    if (assets && account) {
-      return assets.find((asset) =>
-        protocolsAreEquals(asset.protocol, account.protocol)
-      )?.symbol;
+    if (account) {
+      return account.asset.symbol;
     }
-  }, [assets, account]);
+  }, [account]);
 
   const balanceComponent = useMemo(() => {
     if (loadingBalance) {
@@ -317,11 +318,7 @@ const ListAccountItem: React.FC<ListAccountItemProps> = ({
         <Row left={`Balance ${symbol}`} right={balanceComponent} />
         <Row
           left={`Protocol`}
-          right={labelByProtocolMap[account.protocol.name]}
-        />
-        <Row
-          left={`Chain ID`}
-          right={labelByChainID[account.protocol.chainID]}
+          right={labelByProtocolMap[account.asset.protocol]}
         />
       </Stack>
       {!compact && (
@@ -369,7 +366,7 @@ const ListAccountItem: React.FC<ListAccountItemProps> = ({
 };
 
 const mapStateToProps = (state: RootState) => ({
-  assets: state.vault.entities.assets.list,
+  selectedChainByNetwork: state.app.selectedChainByNetwork,
   balanceInfoMap: state.vault.entities.accounts.balances.byId,
 });
 

@@ -57,7 +57,7 @@ export const getSelectedNetworkAndAccount = createAsyncThunk(
 
     if (!accountFromList) {
       const accountOfNetwork = accounts.find(
-        (item) => item.protocol.name === selectedNetwork
+        (item) => item.asset.protocol === selectedNetwork
       );
 
       if (accountOfNetwork) {
@@ -95,7 +95,7 @@ export const changeSelectedNetwork = createAsyncThunk(
       if (!selectedAccountByNetwork[network]) {
         const accounts = state.vault.entities.accounts.list;
         const accountOfNetwork = accounts.find(
-          (item) => item.protocol.name === selectedNetwork
+          (item) => item.asset.protocol === selectedNetwork
         );
 
         if (accountOfNetwork) {

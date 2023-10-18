@@ -1,4 +1,3 @@
-import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import React, { useCallback, useState } from "react";
 import Summary from "./Summary/Component";
 import Stack from "@mui/material/Stack";
@@ -12,17 +11,24 @@ import Button from "@mui/material/Button";
 import { useNavigate } from "react-router-dom";
 import { SupportedProtocols } from "@poktscan/keyring";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
+import { RootState } from "../../redux/store";
+import { connect } from "react-redux";
 
 interface SummaryStepProps {
   fromBalance: number;
   hash: string;
-  protocol: Protocol;
+  protocol: SupportedProtocols;
+  selectedChainByNetwork: RootState["app"]["selectedChainByNetwork"];
 }
 
-const getTransactionLink = (protocol: Protocol, hash: string) => {
-  if (protocol.name === SupportedProtocols.Pocket) {
+const getTransactionLink = (
+  protocol: SupportedProtocols,
+  chainId: string,
+  hash: string
+) => {
+  if (protocol === SupportedProtocols.Pocket) {
     return `https://poktscan.com/${
-      protocol.chainID === "testnet" ? "testnet/" : ""
+      chainId === "testnet" ? "testnet/" : ""
     }tx/${hash}`;
   }
 
@@ -33,6 +39,7 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
   fromBalance,
   hash,
   protocol,
+  selectedChainByNetwork,
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -46,7 +53,11 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
     }
   }, [hash]);
 
-  const link = getTransactionLink(protocol, hash);
+  const link = getTransactionLink(
+    protocol,
+    selectedChainByNetwork[protocol],
+    hash
+  );
 
   return (
     <Stack flexGrow={1} justifyContent={"space-between"}>
@@ -102,4 +113,8 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
   );
 };
 
-export default TransferSubmittedStep;
+const mapStateToProps = (state: RootState) => ({
+  selectedChainByNetwork: state.app.selectedChainByNetwork,
+});
+
+export default connect(mapStateToProps)(TransferSubmittedStep);

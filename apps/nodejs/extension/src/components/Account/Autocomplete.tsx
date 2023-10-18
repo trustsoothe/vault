@@ -5,10 +5,7 @@ import type {
   TextFieldProps,
   Theme,
 } from "@mui/material";
-import type {
-  SerializedAccountReference,
-  SerializedAsset,
-} from "@poktscan/keyring";
+import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
 import type { AccountWithBalance } from "../../types";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
@@ -25,20 +22,15 @@ import { roundAndSeparate } from "../../utils/ui";
 import { useAppDispatch } from "../../hooks/redux";
 import RowSpaceBetween from "../common/RowSpaceBetween";
 import { getAllBalances } from "../../redux/slices/vault";
-import { protocolsAreEquals } from "../../utils/networkOperations";
-import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
 
 export const renderAutocompleteOption = (
   props: React.HTMLAttributes<HTMLLIElement>,
   account: AccountWithBalance,
   state: AutocompleteRenderOptionState,
-  assets: SerializedAsset[],
   theme: Theme,
   balancesAreLoading: boolean
 ) => {
-  const symbol =
-    assets.find((asset) => protocolsAreEquals(asset.protocol, account.protocol))
-      ?.symbol || "";
+  const symbol = account.asset?.symbol || "";
 
   return (
     <Stack
@@ -79,25 +71,12 @@ export const renderAutocompleteOption = (
           )}
         </span>
       </Typography>
-      <Typography color={theme.customColors.dark50}>
-        Protocol:{" "}
-        <span>
-          {labelByProtocolMap[account.protocol.name] || account.protocol.name}
-        </span>
-      </Typography>
-      <Typography color={theme.customColors.dark50}>
-        Chain ID:{" "}
-        <span>
-          {labelByChainID[account.protocol.chainID] || account.protocol.chainID}
-        </span>
-      </Typography>
     </Stack>
   );
 };
 
 interface AccountsAutocompleteProps {
   accounts: SerializedAccountReference[];
-  assets: RootState["vault"]["entities"]["assets"]["list"];
   balancesMapById: RootState["vault"]["entities"]["accounts"]["balances"]["byId"];
   balancesAreLoading: boolean;
   selectedAccount: SerializedAccountReference | null;
@@ -113,7 +92,6 @@ const AccountsAutocomplete: React.FC<AccountsAutocompleteProps> = ({
   accounts,
   balancesAreLoading,
   balancesMapById,
-  assets,
   textFieldProps,
   autocompleteProps,
   containerProps,
@@ -153,12 +131,11 @@ const AccountsAutocomplete: React.FC<AccountsAutocompleteProps> = ({
         props,
         account,
         state,
-        assets,
         theme,
         balancesAreLoading
       );
     },
-    [theme, assets, balancesAreLoading]
+    [theme, balancesAreLoading]
   );
 
   const filterOptions = useCallback(
@@ -185,9 +162,7 @@ const AccountsAutocomplete: React.FC<AccountsAutocompleteProps> = ({
   );
 
   const symbolSelectedAccount = selectedAccount
-    ? assets.find((asset) =>
-        protocolsAreEquals(asset.protocol, selectedAccount.protocol)
-      )?.symbol || ""
+    ? selectedAccount.asset?.symbol || ""
     : "";
 
   const selectedAccountBalance =
@@ -239,20 +214,6 @@ const AccountsAutocomplete: React.FC<AccountsAutocompleteProps> = ({
             )
           }
         />
-        <RowSpaceBetween
-          label={"Protocol"}
-          value={
-            labelByProtocolMap[selectedAccount?.protocol?.name] ||
-            selectedAccount?.protocol?.name
-          }
-        />
-        <RowSpaceBetween
-          label={"Chain ID"}
-          value={
-            labelByChainID[selectedAccount?.protocol?.chainID] ||
-            selectedAccount?.protocol?.chainID
-          }
-        />
       </Stack>
     </Stack>
   );
@@ -260,7 +221,6 @@ const AccountsAutocomplete: React.FC<AccountsAutocompleteProps> = ({
 
 const mapStateToProps = (state: RootState) => ({
   accounts: state.vault.entities.accounts.list,
-  assets: state.vault.entities.assets.list,
   balancesMapById: state.vault.entities.accounts.balances.byId,
   balancesAreLoading: state.vault.entities.accounts.balances.loading,
 });

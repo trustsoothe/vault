@@ -1,4 +1,3 @@
-import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import type {
   BaseErrors,
   ConnectionRequestMessage,
@@ -51,7 +50,12 @@ import {
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
-import { getVault, NetworkStorage, returnExtensionErr } from "../../utils";
+import {
+  AssetStorage,
+  getVault,
+  NetworkStorage,
+  returnExtensionErr,
+} from "../../utils";
 import { getFee, getAccountBalance } from "../../utils/networkOperations";
 import {
   getAccountBalance as getAccountBalanceFromState,
@@ -297,25 +301,40 @@ class ExternalCommunicationController {
           .dispatch(
             getAccountBalanceFromState({
               address: fromAddress,
-              protocol: protocol as Protocol,
+              protocol: protocol.name,
+              chainId: protocol.chainID as any,
             })
           )
           .unwrap();
         balance = result.amount;
         const feeResult = await store
-          .dispatch(getProtocolFee(protocol as Protocol))
+          .dispatch(
+            getProtocolFee({
+              chainId: protocol.chainID as any,
+              protocol: protocol.name,
+            })
+          )
           .unwrap();
         minFee = feeResult.fee;
       } else {
         const networks = await NetworkStorage.list().then((items) =>
           items.concat()
         );
-        balance = await getAccountBalance(
-          fromAddress,
-          protocol as Protocol,
-          networks
+        const assets = await AssetStorage.list().then((items) =>
+          items.concat()
         );
-        const feeResult = await getFee(protocol as Protocol, networks);
+        balance = await getAccountBalance({
+          address: fromAddress,
+          protocol: protocol.name,
+          chainId: protocol.chainID as any,
+          assets,
+          networks,
+        });
+        const feeResult = await getFee({
+          protocol: protocol.name,
+          chainId: protocol.chainID as any,
+          networks,
+        });
         minFee = feeResult.fee;
       }
 

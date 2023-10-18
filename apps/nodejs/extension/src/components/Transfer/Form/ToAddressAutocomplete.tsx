@@ -18,14 +18,12 @@ import Typography from "@mui/material/Typography";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Controller, useFormContext } from "react-hook-form";
 import React, { useCallback, useMemo, useState } from "react";
-import { protocolsAreEquals } from "../../../utils/networkOperations";
 import { renderAutocompleteOption } from "../../Account/Autocomplete";
 import { filterAccounts } from "../../Account/List";
 import { isAddress } from "../../../utils";
 
 interface ToAddressAutocompleteProps {
   accounts: RootState["vault"]["entities"]["accounts"]["list"];
-  assets: RootState["vault"]["entities"]["assets"]["list"];
   balanceByIdMap: RootState["vault"]["entities"]["accounts"]["balances"]["byId"];
   balancesAreLoading: boolean;
   disabled?: boolean;
@@ -39,7 +37,6 @@ const StyledPaper = styled(Paper)<PaperProps>(() => ({
 
 const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
   accounts,
-  assets,
   disabled,
   balanceByIdMap,
   balancesAreLoading,
@@ -55,7 +52,7 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
       ? []
       : orderBy(
           accounts
-            .filter((item) => protocolsAreEquals(asset.protocol, item.protocol))
+            .filter((item) => asset.protocol === item.asset.protocol)
             .map((item) => ({
               ...item,
               balance: balanceByIdMap[item.id]?.amount || 0,
@@ -127,12 +124,11 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
         props,
         account,
         state,
-        assets,
         theme,
         balancesAreLoading
       );
     },
-    [accountsMap, assets]
+    [accountsMap]
   );
 
   const getOptionLabel = useCallback(
@@ -241,7 +237,6 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
 const mapStateToAccountProps = (state: RootState) => {
   return {
     accounts: state.vault.entities.accounts.list,
-    assets: state.vault.entities.assets.list,
     balanceByIdMap: state.vault.entities.accounts.balances.byId,
     balancesAreLoading: state.vault.entities.accounts.balances.loading,
   };
