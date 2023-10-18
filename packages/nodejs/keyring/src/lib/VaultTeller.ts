@@ -27,14 +27,14 @@ import {
 import { v4 , validate} from "uuid";
 import {SupportedTransferOrigins} from "./core/common/values";
 import {SupportedTransferDestinations} from "./core/common/values";
-import {Network} from "./core/network";
 import {ProtocolTransferFundsArguments} from "./core/common/protocols/ProtocolTransferFundsArguments";
 import {Asset} from "./core/asset";
 import {
   IAbstractTransferFundsResult,
 } from "./core/common/protocols/ProtocolTransferFundsResult";
+import {INetwork} from "./core/common/protocols/INetwork";
 
-export type AllowedProtocols = SupportedProtocols.Pocket | SupportedProtocols.Ethereum | SupportedProtocols.Unspecified;
+export type AllowedProtocols = keyof typeof SupportedProtocols;
 
 export interface TransferOptions<T extends SupportedProtocols> {
   from: {
@@ -48,7 +48,7 @@ export interface TransferOptions<T extends SupportedProtocols> {
     value: string;
   },
   amount: number;
-  network: Network<T>;
+  network: INetwork;
   transferArguments: ProtocolTransferFundsArguments<T>;
 }
 

@@ -93,7 +93,7 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
       afterAll(() => server.close());
 
       test('returns the balance of the account', async () => {
-        const balance = await protocolService.getBalance(exampleNetwork, exampleAccountRef)
+        const balance = await protocolService.getBalance(exampleAccountRef, exampleNetwork)
         expect(balance).toBe(200)
       })
     })
@@ -108,7 +108,7 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
       afterAll(() => server.close());
 
       test('throws a request error if request fails', () => {
-        return expect(protocolService.getBalance(exampleNetwork, exampleAccountRef)).rejects.toThrow(NetworkRequestError)
+        return expect(protocolService.getBalance(exampleAccountRef, exampleNetwork)).rejects.toThrow(NetworkRequestError)
       })
     })
   })
@@ -117,16 +117,16 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     describe('validations', () => {
       test('throws if undefined is provided', () => {
         // @ts-ignore
-        return expect(protocolService.updateNetworkStatus(undefined)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.getNetworkStatus(undefined)).rejects.toThrow(ArgumentError);
       })
 
       test('throws if null is provided', () => {
         // @ts-ignore
-        return expect(protocolService.updateNetworkStatus(null)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.getNetworkStatus(null)).rejects.toThrow(ArgumentError);
       })
 
       test('throws if an invalid network is provided', () => {
-        return expect(protocolService.updateNetworkStatus({} as Network<T>)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.getNetworkStatus({} as Network<T>)).rejects.toThrow(ArgumentError);
       })
     })
 
@@ -140,24 +140,24 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
       afterAll(() => server.close());
 
       test('updates the fee status', async () => {
-        const network = await protocolService.updateNetworkStatus(exampleNetwork)
-        expect(network.status.canProvideFee).toBe(true)
-        expect(network.status.feeStatusLastUpdated).toBeDefined()
-        expect(network.status.feeStatusLastUpdated).closeTo(Date.now(), 1000)
+        const status = await protocolService.getNetworkStatus(exampleNetwork)
+        expect(status.canProvideFee).toBe(true)
+        expect(status.feeStatusLastUpdated).toBeDefined()
+        expect(status.feeStatusLastUpdated).closeTo(Date.now(), 1000)
       })
 
       test('updates the balance status', async () => {
-        const network = await protocolService.updateNetworkStatus(exampleNetwork)
-        expect(network.status.canProvideBalance).toBe(true)
-        expect(network.status.balanceStatusLastUpdated).toBeDefined()
-        expect(network.status.balanceStatusLastUpdated).closeTo(Date.now(), 1000)
+        const status = await protocolService.getNetworkStatus(exampleNetwork)
+        expect(status.canProvideBalance).toBe(true)
+        expect(status.balanceStatusLastUpdated).toBeDefined()
+        expect(status.balanceStatusLastUpdated).closeTo(Date.now(), 1000)
       })
 
       test('updates the send transaction status', async () => {
-        const network = await protocolService.updateNetworkStatus(exampleNetwork)
-        expect(network.status.canSendTransaction).toBe(true)
-        expect(network.status.sendTransactionStatusLastUpdated).toBeDefined()
-        expect(network.status.sendTransactionStatusLastUpdated).closeTo(Date.now(), 1000)
+        const status = await protocolService.getNetworkStatus(exampleNetwork)
+        expect(status.canSendTransaction).toBe(true)
+        expect(status.sendTransactionStatusLastUpdated).toBeDefined()
+        expect(status.sendTransactionStatusLastUpdated).closeTo(Date.now(), 1000)
       })
     })
   })

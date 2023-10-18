@@ -1,9 +1,7 @@
 import {v4, validate} from "uuid";
 import IEntity from "../common/IEntity";
-import {Status} from "./values/Status";
 import {SupportedProtocols} from "../common/values";
 import {ChainID} from "../common/protocols/ChainID";
-import {IAbstractNetwork} from "./IAbstractNetwork";
 import {INetworkOptions} from "./INetworkOptions";
 
 export interface SerializedNetwork extends IEntity {
@@ -16,17 +14,9 @@ export interface SerializedNetwork extends IEntity {
   chainID: string;
   createdAt: number
   updatedAt: number
-  status: {
-    fee: boolean
-    feeStatusLastUpdated?: number
-    balance: boolean
-    balanceStatusLastUpdated?: number
-    sendTransaction: boolean
-    sendTransactionStatusLastUpdated?: number
-  }
 }
 
-export class Network<T extends SupportedProtocols> implements IAbstractNetwork {
+export class Network<T extends SupportedProtocols> {
   private readonly _id: string
   private readonly _name: string
   private readonly _rpcUrl: string
@@ -34,7 +24,6 @@ export class Network<T extends SupportedProtocols> implements IAbstractNetwork {
   private readonly _chainID: string;
   private readonly _isDefault: boolean
   private _isPreferred: boolean
-  private _status: Status
   private _createdAt: number
   private _updatedAt: number
 
@@ -52,7 +41,6 @@ export class Network<T extends SupportedProtocols> implements IAbstractNetwork {
     this._updatedAt = this._createdAt
     this._isDefault = options.isDefault || false
     this._isPreferred = options.isPreferred || false
-    this._status = new Status()
   }
 
   get id(): string {
@@ -75,10 +63,6 @@ export class Network<T extends SupportedProtocols> implements IAbstractNetwork {
     return this._isDefault
   }
 
-  get status(): Status {
-    return this._status
-  }
-
   get isPreferred(): boolean {
     return this._isPreferred
   }
@@ -98,14 +82,6 @@ export class Network<T extends SupportedProtocols> implements IAbstractNetwork {
       chainID: this._chainID,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
-      status: {
-        fee: this._status.canProvideFee,
-        feeStatusLastUpdated: this._status.feeStatusLastUpdated,
-        balance: this._status.canProvideBalance,
-        balanceStatusLastUpdated: this._status.balanceStatusLastUpdated,
-        sendTransaction: this._status.canSendTransaction,
-        sendTransactionStatusLastUpdated: this._status.sendTransactionStatusLastUpdated
-      }
     }
   }
 
@@ -123,7 +99,6 @@ export class Network<T extends SupportedProtocols> implements IAbstractNetwork {
 
     deserializedNetwork._createdAt = serializedNetwork.createdAt
     deserializedNetwork._updatedAt = serializedNetwork.updatedAt
-    deserializedNetwork._status = new Status(serializedNetwork)
 
     return deserializedNetwork
   }

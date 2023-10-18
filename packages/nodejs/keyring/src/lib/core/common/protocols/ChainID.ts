@@ -4,9 +4,9 @@ export type PocketNetworkChainIDList = 'mainnet' | 'testnet';
 export type EthereumChainIDList = '11155111' | '5' | '1';
 export type UnspecifiedChainIDList = 'unspecified';
 
-export type ChainID<T extends SupportedProtocols> =
-    T extends SupportedProtocols.Pocket
+export type ChainID<SupportedProtocolTypes> =
+  SupportedProtocolTypes extends SupportedProtocols.Pocket
       ? PocketNetworkChainIDList
-      : T extends SupportedProtocols.Ethereum
+      : SupportedProtocolTypes extends SupportedProtocols.Ethereum
         ? EthereumChainIDList
         : UnspecifiedChainIDList;

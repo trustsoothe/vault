@@ -19,6 +19,9 @@ import {ArgumentError, NetworkRequestError} from "../../../../errors";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
 import {ProtocolFee} from "../ProtocolFee";
 import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
+import {INetwork} from "../INetwork";
+import {IAsset} from "../IAsset";
+import {NetworkStatus} from "../../values/NetworkStatus";
 
 type Network = NetworkObject<SupportedProtocols.Ethereum>;
 
@@ -87,21 +90,26 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     return privateKeyToAddress(this.parsePrivateKey(privateKey))
   }
 
-  async getBalance(network: Network, account: AccountReference): Promise<number> {
-    this.validateNetwork(network)
-
-    if (!account || !(account instanceof AccountReference)) {
-      throw new ArgumentError('account');
-    }
-
-    if (account.asset.isNative) {
-      return await this.getNativeTokenBalance(network, account);
-    }
-
+  async getBalance(
+    account: AccountReference,
+    network: INetwork,
+    asset?: IAsset
+  ): Promise<number> {
+    // this.validateNetwork(network)
+    //
+    // if (!account || !(account instanceof AccountReference)) {
+    //   throw new ArgumentError('account');
+    // }
+    //
+    // if (account.asset.isNative) {
+    //   return await this.getNativeTokenBalance(network, account);
+    // }
+    //
+    // return 0;
     return 0;
   }
 
-  async getFee(network: Network): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
+  async getFee(network: INetwork): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
     return {
       protocol: SupportedProtocols.Ethereum,
       gasLimit: BigInt(21000),
@@ -121,23 +129,23 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     }
   }
 
-  async transferFunds(network: Network, transferOptions: TransferFundsOptions<SupportedProtocols.Ethereum>): Promise<IAbstractTransferFundsResult<SupportedProtocols.Ethereum>> {
+  async transferFunds(network: INetwork): Promise<IAbstractTransferFundsResult<SupportedProtocols.Ethereum>> {
     throw new Error('Not Implemented')
   }
 
-  async updateBalanceStatus(network: Network): Promise<Network> {
+  async getNetworkBalanceStatus(network: INetwork): Promise<NetworkStatus> {
     throw new Error('Not Implemented')
   }
 
-  async updateFeeStatus(network: Network): Promise<Network> {
+  async getNetworkFeeStatus(network: INetwork): Promise<NetworkStatus> {
     throw new Error('Not Implemented')
   }
 
-  async updateNetworkStatus(network: Network): Promise<Network> {
+  async getNetworkStatus(network: INetwork): Promise<NetworkStatus> {
     throw new Error('Not Implemented')
   }
 
-  async updateSendTransactionStatus(network: Network): Promise<Network> {
+  async getNetworkSendTransactionStatus(network: INetwork): Promise<NetworkStatus> {
     throw new Error('Not Implemented')
   }
 

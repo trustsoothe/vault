@@ -1,6 +1,4 @@
-import {SupportedProtocols} from "../values";
-
-export interface IAbstractTransferFundsResult<T extends SupportedProtocols> {
-  protocol: T;
+export interface IAbstractTransferFundsResult<SupportedProtocolTypes> {
+  protocol: SupportedProtocolTypes;
   transactionHash: string;
 }

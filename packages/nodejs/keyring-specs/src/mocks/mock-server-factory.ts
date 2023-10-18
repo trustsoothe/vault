@@ -1,5 +1,5 @@
 import {setupServer} from 'msw/node';
-import {IAbstractNetwork, ProtocolNotSupported, SupportedProtocols} from '@poktscan/keyring';
+import {INetwork, ProtocolNotSupported, SupportedProtocols} from '@poktscan/keyring';
 import {
   successfulHandlersFactory as pnSuccessfulHandlers,
   failureHandlerFactory as pnFailureHandlers
@@ -11,7 +11,7 @@ import {
 } from './ethereum-network'
 
 export class MockServerFactory  {
-  static getSuccessMockServer(network: IAbstractNetwork){
+  static getSuccessMockServer(network: INetwork){
     switch (network.protocol) {
       case SupportedProtocols.Pocket:
         return setupServer(...pnSuccessfulHandlers(network.rpcUrl));
@@ -22,7 +22,7 @@ export class MockServerFactory  {
     }
   }
 
-  static getFailureMockServer(network: IAbstractNetwork){
+  static getFailureMockServer(network: INetwork){
     switch (network.protocol) {
       case SupportedProtocols.Pocket:
         return setupServer(...pnFailureHandlers(network.rpcUrl));

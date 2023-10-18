@@ -18,6 +18,7 @@ import {
   PocketRpcCanSendTransactionResponseSchema,
   PocketRpcFeeParamsResponseSchema,
   PocketRpcFeeParamsResponseValue,
+  PocketProtocolNetworkSchema,
 } from "./schemas";
 import {
   ArgumentError,
@@ -33,6 +34,9 @@ import {
 import { RawTxRequest } from "@pokt-foundation/pocketjs-types";
 import {ProtocolFee} from "../ProtocolFee";
 import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
+import {INetwork} from "../INetwork";
+import {NetworkStatus} from "../../values/NetworkStatus";
+import {IAsset} from "../IAsset";
 
 type Network = NetworkObject<SupportedProtocols.Pocket>;
 
@@ -110,30 +114,34 @@ export class PocketNetworkProtocolService
     });
   }
 
-  async updateFeeStatus(network: Network): Promise<Network> {
+  async getNetworkFeeStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
     this.validateNetwork(network);
+
+    const updatedStatus = NetworkStatus.createFrom(status);
 
     const response = await this.requestFee(network);
 
     if (!response.ok) {
-      network.status.updateFeeStatus(false);
-      return network;
+      updatedStatus.updateFeeStatus(false);
+      return updatedStatus;
     }
 
     const responseRawBody = await response.json();
 
     try {
       PocketRpcFeeParamsResponseSchema.parse(responseRawBody);
-      network.status.updateFeeStatus(true);
+      updatedStatus.updateFeeStatus(true);
     } catch {
-      network.status.updateFeeStatus(false);
+      updatedStatus.updateFeeStatus(false);
     }
 
-    return network;
+    return updatedStatus;
   }
 
-  async updateBalanceStatus(network: Network): Promise<Network> {
+  async getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
     this.validateNetwork(network);
+
+    const updatedStatus = NetworkStatus.createFrom(status);
 
     const url = urlJoin(network.rpcUrl, "v1/query/balance");
 
@@ -142,24 +150,26 @@ export class PocketNetworkProtocolService
     });
 
     if (!response.ok) {
-      network.status.updateBalanceStatus(false);
-      return network;
+      updatedStatus.updateBalanceStatus(false);
+      return updatedStatus;
     }
 
     const responseRawBody = await response.json();
 
     try {
       PocketRpcBalanceResponseSchema.parse(responseRawBody);
-      network.status.updateBalanceStatus(true);
+      updatedStatus.updateBalanceStatus(true);
     } catch {
-      network.status.updateBalanceStatus(false);
+      updatedStatus.updateBalanceStatus(false);
     }
 
-    return network;
+    return updatedStatus;
   }
 
-  async updateSendTransactionStatus(network: Network): Promise<Network> {
+  async getNetworkSendTransactionStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
     this.validateNetwork(network);
+
+    const updatedStatus = NetworkStatus.createFrom(status);
 
     const url = urlJoin(network.rpcUrl, "v1/client/rawtx");
 
@@ -168,34 +178,32 @@ export class PocketNetworkProtocolService
     });
 
     if (!response.ok) {
-      network.status.updateSendTransactionStatus(false);
-      return network;
+      updatedStatus.updateSendTransactionStatus(false);
+      return updatedStatus;
     }
 
     const responseRawBody = await response.json();
 
     try {
       PocketRpcCanSendTransactionResponseSchema.parse(responseRawBody);
-      network.status.updateSendTransactionStatus(true);
+      updatedStatus.updateSendTransactionStatus(true);
     } catch (e) {
-      network.status.updateSendTransactionStatus(false);
+      updatedStatus.updateSendTransactionStatus(false);
     }
 
-    return network;
+    return updatedStatus;
   }
 
-  async updateNetworkStatus(network: Network): Promise<Network> {
-    this.validateNetwork(network);
-    await this.updateFeeStatus(network);
-    await this.updateBalanceStatus(network);
-    await this.updateSendTransactionStatus(network);
-
-    return network;
+  async getNetworkStatus(network: INetwork): Promise<NetworkStatus> {
+    const withFeeStatus = await this.getNetworkFeeStatus(network);
+    const withFeeAndBalanceStatus = await this.getNetworkBalanceStatus(network, withFeeStatus);
+    return await this.getNetworkSendTransactionStatus(network, withFeeAndBalanceStatus);
   }
 
   async getBalance(
-    network: Network,
-    account: AccountReference
+    account: AccountReference,
+    network: INetwork,
+    asset?: IAsset
   ): Promise<number> {
     this.validateNetwork(network);
 
@@ -218,7 +226,7 @@ export class PocketNetworkProtocolService
     return balanceResponse.balance;
   }
 
-  async getFee(network: Network): Promise<ProtocolFee<SupportedProtocols.Pocket>> {
+  async getFee(network: INetwork): Promise<ProtocolFee<SupportedProtocols.Pocket>> {
     this.validateNetwork(network);
     const response = await this.requestFee(network);
 
@@ -237,7 +245,7 @@ export class PocketNetworkProtocolService
   }
 
   async transferFunds(
-    network: Network,
+    network: INetwork,
     options: TransferFundsOptions<SupportedProtocols.Pocket>
   ): Promise<IAbstractTransferFundsResult<SupportedProtocols.Pocket>> {
     const txMsg = new MsgProtoSend(
@@ -311,13 +319,15 @@ export class PocketNetworkProtocolService
     return /^[0-9A-Fa-f]{128}$/.test(privateKey);
   }
 
-  private validateNetwork(network: Network) {
-    if (!network || !(network instanceof NetworkObject<SupportedProtocols.Pocket>)) {
+  private validateNetwork(network: INetwork) {
+    try {
+      PocketProtocolNetworkSchema.parse(network);
+    } catch {
       throw new ArgumentError("network");
     }
   }
 
-  private async requestFee(network: Network) {
+  private async requestFee(network: INetwork) {
     const FEE_PARAM_KEY = "auth/FeeMultipliers";
 
     const url = urlJoin(network.rpcUrl, "v1/query/param");
