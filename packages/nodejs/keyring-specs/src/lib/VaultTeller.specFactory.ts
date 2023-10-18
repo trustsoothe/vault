@@ -1,12 +1,14 @@
 import {
   Account,
   AccountExistError,
+  AccountNotFoundError,
   AccountOptions,
   AccountReference,
   Asset,
   ExternalAccessRequest,
   ForbiddenSessionError,
   IEncryptionService,
+  InvalidPrivateKeyError,
   IStorage,
   IVaultStore,
   Network,
@@ -14,21 +16,16 @@ import {
   Passphrase,
   Permission,
   PermissionsBuilder,
-  PocketNetworkProtocol,
-  ProtocolMismatchError,
+  PrivateKeyRestoreError,
   SerializedSession,
   Session,
   SessionIdRequiredError,
   SupportedProtocols,
-  SupportedTransferOrigins,
   SupportedTransferDestinations,
-  UnspecifiedProtocol,
+  SupportedTransferOrigins,
+  VaultIsLockedError,
   VaultRestoreError,
   VaultTeller,
-  InvalidPrivateKeyError,
-  PocketNetworkTransferArguments,
-  AccountNotFoundError,
-  VaultIsLockedError, PrivateKeyRestoreError,
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
 import sinon from 'sinon'
@@ -54,10 +51,7 @@ export default <
 
   const pocketAsset = new Asset({
     name: 'Example Asset',
-    protocol: {
-      name: SupportedProtocols.Pocket,
-      chainID: 'testnet'
-    },
+    protocol: SupportedProtocols.Pocket,
     symbol: 'POKT'
   });
 
@@ -83,10 +77,7 @@ export default <
 
     unspecifiedNetworkAsset = new Asset({
       name: 'Example Asset',
-      protocol: {
-        name: SupportedProtocols.Unspecified,
-        chainID: 'unspecified'
-      },
+      protocol: SupportedProtocols.Unspecified,
       symbol: 'EXM'
     })
 
@@ -168,14 +159,6 @@ export default <
         await vaultTeller.initializeVault('passphrase')
         const session = await vaultTeller.unlockVault('passphrase')
         expect(session).toBeInstanceOf(Session)
-      })
-
-      test('returns a new Session object with a maxAge of of zero (do not expire)', async () => {
-        vaultStore = createVaultStore()
-        const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
-        await vaultTeller.initializeVault('passphrase');
-        const session = await vaultTeller.unlockVault('passphrase')
-        expect(session.maxAge).toBe(0)
       })
 
       test('persists the newly created session', async () => {
@@ -583,34 +566,6 @@ export default <
         await expect(transferFundsOperation).rejects.toThrow(ForbiddenSessionError)
       })
 
-      test('throws "ProtocolMismatchError" if the network protocol does not match the arguments protocol', async () => {
-        vaultStore = createVaultStore()
-        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
-        await vaultTeller.initializeVault('passphrase')
-        const session = await vaultTeller.unlockVault('passphrase')
-        const transferFundsOperation = vaultTeller.transferFunds(session.id, {
-          from: {
-            type: SupportedTransferOrigins.RawPrivateKey,
-            value: 'some-amazingly-secret-private-key',
-          },
-          to: {
-            type: SupportedTransferDestinations.RawAddress,
-            value: 'some-address',
-          },
-          amount: 200,
-          network: new Network({
-            name: 'Example POKT Testnet Network',
-            protocol: new PocketNetworkProtocol('testnet'),
-            rpcUrl: 'https://example.com',
-          }),
-          transferArguments: {
-            protocol: new UnspecifiedProtocol('unspecified'),
-          }
-        })
-
-        await expect(transferFundsOperation).rejects.toThrow(ProtocolMismatchError)
-      })
-
       describe(`when the transfer origin is ${SupportedTransferOrigins.RawPrivateKey}`, () => {
         test('throws "InvalidPrivateKeyError" if the private key is not a valid (Pocket Network)', async () => {
           vaultStore = createVaultStore()
@@ -627,12 +582,14 @@ export default <
               value: 'some-address',
             },
             amount: 200,
-            network: new Network({
+            network: new Network<SupportedProtocols.Pocket>({
               name: 'Example POKT Testnet Network',
-              protocol: new PocketNetworkProtocol('testnet'),
+              protocol: SupportedProtocols.Pocket,
               rpcUrl: 'https://example.com',
+              chainID: 'testnet',
             }),
-            transferArguments: new PocketNetworkTransferArguments('testnet'),
+            transferArguments: {
+            },
           })
 
           await expect(transferFundsOperation).rejects.toThrow(InvalidPrivateKeyError)
@@ -655,12 +612,13 @@ export default <
               value: 'some-address',
             },
             amount: 200,
-            network: new Network({
+            network: new Network<SupportedProtocols.Pocket>({
               name: 'Example POKT Testnet Network',
-              protocol: new PocketNetworkProtocol('testnet'),
+              protocol: SupportedProtocols.Pocket,
               rpcUrl: 'https://example.com',
+              chainID: 'testnet',
             }),
-            transferArguments: new PocketNetworkTransferArguments('testnet'),
+            transferArguments: {},
           })
 
           await expect(transferFundsOperation).rejects.toThrow(/^.*from\.value.*$/);
@@ -682,12 +640,13 @@ export default <
               value: 'some-address',
             },
             amount: 200,
-            network: new Network({
+            network: new Network<SupportedProtocols.Pocket>({
               name: 'Example POKT Testnet Network',
-              protocol: new PocketNetworkProtocol('testnet'),
+              protocol: SupportedProtocols.Pocket,
               rpcUrl: 'https://example.com',
+              chainID: 'testnet',
             }),
-            transferArguments: new PocketNetworkTransferArguments('testnet'),
+            transferArguments: {},
           })
 
           await expect(transferFundsOperation).rejects.toThrow(/^.*from\.passphrase.*$/);
@@ -709,12 +668,13 @@ export default <
               value: 'some-address',
             },
             amount: 200,
-            network: new Network({
+            network: new Network<SupportedProtocols.Pocket>({
               name: 'Example POKT Testnet Network',
-              protocol: new PocketNetworkProtocol('testnet'),
+              protocol:SupportedProtocols.Pocket,
               rpcUrl: 'https://example.com',
+              chainID: 'testnet',
             }),
-            transferArguments: new PocketNetworkTransferArguments('testnet'),
+            transferArguments: {},
           })
 
           await expect(transferFundsOperation).rejects.toThrow(AccountNotFoundError)
@@ -741,12 +701,13 @@ export default <
               value: 'some-address',
             },
             amount: 200,
-            network: new Network({
+            network: new Network<SupportedProtocols.Pocket>({
               name: 'Example POKT Testnet Network',
-              protocol: new PocketNetworkProtocol('testnet'),
+              protocol: SupportedProtocols.Pocket,
               rpcUrl: 'https://example.com',
+              chainID: 'testnet',
             }),
-            transferArguments: new PocketNetworkTransferArguments('testnet'),
+            transferArguments: {},
           })
 
           await expect(transferFundsOperation).rejects.toThrow(VaultIsLockedError)
@@ -830,7 +791,7 @@ export default <
       test('creates an account from a private key', async () => {
         const {account} = await createVaultAndImportAccountFromPK();
         expect(account.name).toEqual('example-account')
-        expect(account.protocol).toEqual(pocketAsset.protocol)
+        expect(account.asset.protocol).toEqual(pocketAsset.protocol)
         expect(account.address).toEqual(expectedAddress)
       })
 
@@ -865,7 +826,7 @@ export default <
 
         expect(accountWithSameName.name).toEqual(account.name)
         expect(accountWithSameName.address).toEqual(account.address)
-        expect(accountWithSameName.protocol).toEqual(account.protocol)
+        expect(accountWithSameName.asset.protocol).toEqual(account.asset.protocol)
       })
     })
 

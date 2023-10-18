@@ -33,7 +33,7 @@ export class Session implements IEntity {
   private _lastActivity: number
 
   constructor(options: SessionOptions = {}, id?: string) {
-    if (id && validate(id) === false) {
+    if (id && !validate(id)) {
       throw new Error('Invalid session id: ' + id)
     }
 
@@ -41,8 +41,8 @@ export class Session implements IEntity {
       throw new Error('Invalid argument: permissions. Expected an array of Permission objects')
     }
 
-    if (options.maxAge && options.maxAge < 0) {
-      throw new Error('maxAge must be greater than or equal to 0')
+    if (options.maxAge && options.maxAge <= 0) {
+      throw new Error('maxAge must be greater than 0')
     }
 
     this._id = id || v4()
@@ -114,10 +114,6 @@ export class Session implements IEntity {
   isValid(): boolean {
     if (this._invalidated) {
       return false
-    }
-
-    if (this._maxAge === 0) {
-      return true
     }
 
     return this.lastActivity + this.maxAge * 1000 > Date.now()

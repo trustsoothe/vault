@@ -16,7 +16,7 @@ export interface SerializedVault extends IEntity {
 export class Vault implements IEntity {
   private readonly _id: string;
   private readonly _createdAt: number;
-  private _updatedAt: number;
+  private readonly _updatedAt: number;
   private _accounts: Account[];
 
   constructor(
@@ -25,7 +25,7 @@ export class Vault implements IEntity {
     originalCreationDate?: number,
     lastUpdatedAt?: number
   ) {
-    if (id && validate(id) === false) {
+    if (id && !validate(id)) {
       throw new Error("Invalid vault id: " + id);
     }
 
@@ -80,8 +80,7 @@ export class Vault implements IEntity {
     const accountExists = this._accounts.some((a) => {
       return (
         a.address === account.address &&
-        a.asset.protocol.name === account.asset.protocol.name &&
-        a.asset.protocol.chainID === account.asset.protocol.chainID
+        a.asset.protocol === account.asset.protocol
       );
     });
 
@@ -93,8 +92,7 @@ export class Vault implements IEntity {
       this._accounts = this._accounts.filter((a) => {
         return (
           a.address !== account.address &&
-          a.asset.protocol.name === account.asset.protocol.name &&
-          a.asset.protocol.chainID === account.asset.protocol.chainID
+          a.asset.protocol === account.asset.protocol
         );
       });
     }

@@ -16,7 +16,7 @@
     "test": "vitest",
     "ci:test": "vitest run",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
-    "typecheck": "tsc src/index.ts --noEmit --moduleResolution node --target ES6 --allowSyntheticDefaultImports",
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit --moduleResolution node --target ES6 --allowSyntheticDefaultImports",
     "lint": "eslint .",
     "lint:fix": "yarn lint --fix",
     "build": "node esbuild.js && tsc -p tsconfig.json"
@@ -30,6 +30,7 @@
     "process": "0.11.10",
     "utf-8-validate": "6.0.3",
     "web3-eth": "4.2.1-dev.80986bb.0",
+    "web3-eth-accounts": "4.0.7-dev.9a5fd87.0",
     "vitest": "0.32.0"
   },
   "dependencies": {

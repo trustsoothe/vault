@@ -1,12 +1,15 @@
 import sinon from 'sinon'
-import {describe, test, expect, beforeEach, afterEach} from 'vitest'
+import {afterEach, beforeEach, describe, expect, test} from 'vitest'
 import {
-  InvalidSessionError,
-  PocketNetworkProtocol,
-  Session,
   AccountReference,
-  ForbiddenSessionError, PermissionsBuilder
+  Asset,
+  ForbiddenSessionError,
+  InvalidSessionError,
+  PermissionsBuilder,
+  Session,
+  SupportedProtocols
 } from "@poktscan/keyring";
+
 describe('session', () => {
   let  clock: sinon.SinonFakeTimers
 
@@ -30,7 +33,7 @@ describe('session', () => {
     })
 
     test('fails if the maxAge is less than 0', () => {
-      expect(() => new Session({ permissions: [], maxAge: -1 })).toThrow('maxAge must be greater than or equal to 0')
+      expect(() => new Session({ permissions: [], maxAge: -1 })).toThrow('maxAge must be greater than 0')
     })
   })
 
@@ -73,12 +76,6 @@ describe('session', () => {
       expect(session.isValid()).toBe(false)
     })
 
-    test('always returns true when maxAge is 0', () => {
-      const session = new Session({ permissions: [], maxAge: 0 })
-      clock.tick(2000) // Simulate 2 seconds has passed
-      expect(session.isValid()).toBe(true)
-    })
-
     test('returns false if the session has been invalidated', () => {
       const session = new Session({ permissions: []})
       expect(session.isValid()).toBe(true)
@@ -112,8 +109,15 @@ describe('session', () => {
   })
 
   describe('addAccount', () => {
+    const asset: Asset = new Asset({
+      name: 'Test Asset',
+      symbol: 'TST',
+      isNative: true,
+      protocol: SupportedProtocols.Unspecified
+    });
+
     const exampleAccountReference: AccountReference
-      = new AccountReference('123', 'Testnet Account','0x32344', new PocketNetworkProtocol('testnet'))
+      = new AccountReference('123', 'Testnet Account','0x32344', asset)
 
     const permissions =
       new PermissionsBuilder()

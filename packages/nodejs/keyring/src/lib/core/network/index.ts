@@ -1,7 +1,10 @@
 import {v4, validate} from "uuid";
 import IEntity from "../common/IEntity";
-import {Protocol} from "../common/Protocol";
 import {Status} from "./values/Status";
+import {SupportedProtocols} from "../common/values";
+import {ChainID} from "../common/protocols/ChainID";
+import {IAbstractNetwork} from "./IAbstractNetwork";
+import {INetworkOptions} from "./INetworkOptions";
 
 export interface SerializedNetwork extends IEntity {
   id: string
@@ -9,7 +12,8 @@ export interface SerializedNetwork extends IEntity {
   rpcUrl: string
   isDefault: boolean
   isPreferred?: boolean
-  protocol: Protocol
+  protocol: SupportedProtocols
+  chainID: string;
   createdAt: number
   updatedAt: number
   status: {
@@ -22,26 +26,19 @@ export interface SerializedNetwork extends IEntity {
   }
 }
 
-export interface NetworkOptions {
-  name: string
-  rpcUrl: string
-  protocol: Protocol
-  isDefault?: boolean
-  isPreferred?: boolean
-}
-
-export class Network implements IEntity {
+export class Network<T extends SupportedProtocols> implements IAbstractNetwork {
   private readonly _id: string
   private readonly _name: string
   private readonly _rpcUrl: string
-  private readonly _protocol: Protocol
+  private readonly _protocol: SupportedProtocols
+  private readonly _chainID: string;
   private readonly _isDefault: boolean
   private _isPreferred: boolean
   private _status: Status
   private _createdAt: number
   private _updatedAt: number
 
-  constructor(options: NetworkOptions, id?: string) {
+  constructor(options: INetworkOptions<T>, id?: string) {
     if (id && !validate(id)) {
       throw new Error('Invalid session id: ' + id)
     }
@@ -50,6 +47,7 @@ export class Network implements IEntity {
     this._name = options.name
     this._rpcUrl = options.rpcUrl
     this._protocol = options.protocol
+    this._chainID = options.chainID
     this._createdAt = Date.now()
     this._updatedAt = this._createdAt
     this._isDefault = options.isDefault || false
@@ -69,8 +67,8 @@ export class Network implements IEntity {
     return this._rpcUrl
   }
 
-  get protocol(): Protocol {
-    return Object.assign({}, this._protocol)
+  get protocol(): SupportedProtocols {
+    return this._protocol
   }
 
   get isDefault(): boolean {
@@ -85,6 +83,10 @@ export class Network implements IEntity {
     return this._isPreferred
   }
 
+  get chainID(): string {
+    return this._chainID
+  }
+
   serialize(): SerializedNetwork {
     return {
       id: this._id,
@@ -93,6 +95,7 @@ export class Network implements IEntity {
       isDefault: this._isDefault,
       isPreferred: this._isPreferred,
       protocol: this._protocol,
+      chainID: this._chainID,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
       status: {
@@ -106,11 +109,12 @@ export class Network implements IEntity {
     }
   }
 
-  static deserialize(serializedNetwork: SerializedNetwork): Network {
-    const options: NetworkOptions = {
+  static deserialize<T extends SupportedProtocols>(serializedNetwork: SerializedNetwork): Network<T> {
+    const options: INetworkOptions<T> = {
       name: serializedNetwork.name,
       rpcUrl: serializedNetwork.rpcUrl,
       protocol: serializedNetwork.protocol,
+      chainID: serializedNetwork.chainID as ChainID<T>,
       isDefault: serializedNetwork.isDefault,
       isPreferred: serializedNetwork.isPreferred,
     }

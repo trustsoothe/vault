@@ -2,7 +2,7 @@ import type {
   SerializedAccountReference,
   SerializedSession,
 } from "@poktscan/keyring";
-import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
+import type { Protocol } from "packages/nodejs/keyring/src/lib/core/common/protocols/Protocol";
 import type {
   TPermissionsAllowedToSuggest,
   TProtocol,

@@ -1,65 +1,105 @@
-import {describe, expect, test} from "vitest";
+import {afterAll, afterEach, beforeAll, describe, expect, test} from "vitest";
 import ProtocolServiceSpecFactory from '../IProtocolService.specFactory';
 import {
+  AccountReference,
+  ArgumentError,
   Asset,
+  IEncryptionService,
+  Network,
+  NetworkRequestError,
   PocketNetworkProtocolService,
-  IEncryptionService, PocketNetworkProtocol, ArgumentError, Passphrase
+  SupportedProtocols
 } from "@poktscan/keyring";
 
 // @ts-ignore
 import {WebEncryptionService} from '@poktscan/keyring-encryption-web'
+import {MockServerFactory} from "../../../../../mocks/mock-server-factory";
 
 describe('PocketNetworkProtocolService', () => {
   const asset: Asset = new Asset({
     name: 'Pokt Network - Testnet',
-    protocol: new PocketNetworkProtocol('testnet'),
+    protocol: SupportedProtocols.Pocket,
     symbol: 'POKT'
   })
 
+  const network = new Network<SupportedProtocols.Pocket>({
+    name: 'test',
+    rpcUrl: 'http://localhost:8080',
+    protocol: asset.protocol,
+    chainID: 'testnet',
+  })
+
+  const account =
+    new AccountReference(
+      'account-id',
+      'test-account',
+      'test-address',
+      asset,
+    );
+
   const encryptionService: IEncryptionService = new WebEncryptionService();
   const protocolService = new PocketNetworkProtocolService(encryptionService);
-  const passphrase = new Passphrase('passphrase')
 
-  ProtocolServiceSpecFactory<PocketNetworkProtocolService>(() => protocolService, asset)
 
-  describe('Account Creation and Import - Pocket Network', () => {
-    const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'
-    const expectedPublicKey = '49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db';
-    const expectedAddress = '30fd308b3bf2126030aba7f0e342dcb8b4922a8b';
+  const accountImport = {
+    privateKey: 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db',
+    publicKey: '49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db',
+    address: '30fd308b3bf2126030aba7f0e342dcb8b4922a8b',
+  }
 
-    describe('createAccountFromPrivateKey', () => {
-      test('throws if an asset instance is not provided', async () => {
+  ProtocolServiceSpecFactory<SupportedProtocols.Pocket>(
+    () => protocolService,
+    { asset, network, account, accountImport }
+  )
+
+  describe('getFee', () => {
+    describe('validations', () => {
+      test('throws if undefined is provided as the network', () => {
         // @ts-ignore
-        await expect(protocolService.createAccountFromPrivateKey({ asset: undefined, passphrase })).rejects.toThrow(ArgumentError)
+        return expect(protocolService.getFee(undefined)).rejects.toThrow(ArgumentError);
       })
 
-      test('throws if a passphrase is not provided', async () => {
+      test('throws if null is provided as the network', () => {
         // @ts-ignore
-        await expect(protocolService.createAccountFromPrivateKey({ asset, passphrase: undefined })).rejects.toThrow(ArgumentError)
+        return expect(protocolService.getFee(null)).rejects.toThrow(ArgumentError);
       })
 
-      test('throws if a private key is not provided', async () => {
+      test('throws if non Network object is provided as the network', () => {
         // @ts-ignore
-        await expect(protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: undefined })).rejects.toThrow(ArgumentError)
-      })
-
-      test('derives the correct public key for the account', async () => {
-        const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: examplePrivateKey })
-        expect(account).toBeDefined()
-        expect(account.publicKey).toBe(expectedPublicKey)
-      })
-
-      test('derives the correct address for the account', async () => {
-        const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: examplePrivateKey })
-        expect(account).toBeDefined()
-        expect(account.address).toBe(expectedAddress)
-      })
-
-      test('encrypts the private key with the passphrase', async () => {
-        const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: examplePrivateKey })
-        expect(account).toBeDefined()
-        expect(account.privateKey).not.toBe(examplePrivateKey)
+        return expect(protocolService.getFee({})).rejects.toThrow(ArgumentError);
       })
     })
-  });
+
+    describe('Successful requests', () => {
+      const server = MockServerFactory.getSuccessMockServer(network)
+
+      beforeAll(() => server.listen());
+
+      afterEach(() => server.resetHandlers());
+
+      afterAll(() => server.close());
+
+      test('returns the fee of the network', async () => {
+        const fee = await protocolService.getFee(network)
+        expect(fee).toStrictEqual({
+          protocol: SupportedProtocols.Pocket,
+          value: 0.01,
+        })
+      })
+    })
+
+    describe('Unsuccessful requests', () => {
+      const server = MockServerFactory.getFailureMockServer(network)
+
+      beforeAll(() => server.listen());
+
+      afterEach(() => server.resetHandlers());
+
+      afterAll(() => server.close());
+
+      test('throws a request error if request fails', () => {
+        return expect(protocolService.getFee(network)).rejects.toThrow(NetworkRequestError)
+      })
+    })
+  })
 })

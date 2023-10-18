@@ -136,6 +136,6 @@ export class Account implements IEntity {
   }
 
   asAccountReference(): AccountReference {
-    return new AccountReference(this.id, this.name, this.address, this.asset.protocol)
+    return new AccountReference(this.id, this.name, this.address, this._asset)
   }
 }
