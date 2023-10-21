@@ -16,6 +16,15 @@ export const commonRPCHandlerFactory = (baseUrl: string) => {
             result: "0xC8", // 200 in hex
           }),
         );
+      case 'eth_estimateGas':
+        return res(
+          ctx.status(200),
+          ctx.json({
+            id,
+            jsonrpc: "2.0",
+            result: "0x5208", // 21000 in hex
+          }),
+        );
       default:
         throw new Error(`Ethereum RPC method ${method} not implemented`);
     }

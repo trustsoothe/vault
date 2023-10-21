@@ -2,7 +2,6 @@ import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
   IProtocolService,
-  TransferFundsOptions,
 } from "../IProtocolService";
 import {Account} from "../../../vault";
 import {AccountReference, SupportedProtocols} from "../../values";
@@ -22,6 +21,7 @@ import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
 import {INetwork} from "../INetwork";
 import {IAsset} from "../IAsset";
 import {NetworkStatus} from "../../values/NetworkStatus";
+import {EthereumProtocolNetworkSchema} from "./schemas";
 
 type Network = NetworkObject<SupportedProtocols.Ethereum>;
 
@@ -95,21 +95,20 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     network: INetwork,
     asset?: IAsset
   ): Promise<number> {
-    // this.validateNetwork(network)
-    //
-    // if (!account || !(account instanceof AccountReference)) {
-    //   throw new ArgumentError('account');
-    // }
-    //
-    // if (account.asset.isNative) {
-    //   return await this.getNativeTokenBalance(network, account);
-    // }
-    //
-    // return 0;
+    this.validateNetwork(network)
+
+    if (!account || !(account instanceof AccountReference)) {
+      throw new ArgumentError('account');
+    }
+
+    if (!asset) {
+      return await this.getNativeTokenBalance(network, account);
+    }
+
     return 0;
   }
 
-  async getFee(network: INetwork): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
+  async getFee(network: INetwork, options: IAbstractTransferFundsResult<SupportedProtocols.Ethereum>): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
     return {
       protocol: SupportedProtocols.Ethereum,
       gasLimit: BigInt(21000),
@@ -133,28 +132,31 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     throw new Error('Not Implemented')
   }
 
-  async getNetworkBalanceStatus(network: INetwork): Promise<NetworkStatus> {
+  async getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
     throw new Error('Not Implemented')
   }
 
-  async getNetworkFeeStatus(network: INetwork): Promise<NetworkStatus> {
+  async getNetworkFeeStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
+    throw new Error('Not Implemented')
+  }
+
+  async getNetworkSendTransactionStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
     throw new Error('Not Implemented')
   }
 
   async getNetworkStatus(network: INetwork): Promise<NetworkStatus> {
+    this.validateNetwork(network);
     throw new Error('Not Implemented')
   }
 
-  async getNetworkSendTransactionStatus(network: INetwork): Promise<NetworkStatus> {
-    throw new Error('Not Implemented')
-  }
-
-  private getEthClient(network: Network): Eth {
+  private getEthClient(network: INetwork): Eth {
     return new Eth(network.rpcUrl)
   }
 
-  private validateNetwork(network: Network) {
-    if (!network || !(network instanceof NetworkObject<SupportedProtocols.Ethereum>)) {
+  private validateNetwork(network: INetwork) {
+    try {
+      EthereumProtocolNetworkSchema.parse(network);
+    } catch {
       throw new ArgumentError('network');
     }
   }
@@ -167,7 +169,7 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     return `0x${Buffer.from(parseAndValidatePrivateKey(rawPrivateKey)).toString('hex')}`;
   }
 
-  private async getNativeTokenBalance(network: Network, account: AccountReference) {
+  private async getNativeTokenBalance(network: INetwork, account: AccountReference) {
     const ethClient = this.getEthClient(network)
 
     try {

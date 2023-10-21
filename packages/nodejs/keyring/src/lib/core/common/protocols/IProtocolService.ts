@@ -7,6 +7,7 @@ import {IAbstractTransferFundsResult} from "./ProtocolTransferFundsResult";
 import {INetwork} from "./INetwork";
 import {IAsset} from "./IAsset";
 import {NetworkStatus} from "../values/NetworkStatus";
+import {IAbstractProtocolFeeRequestOptions} from "./ProtocolFeeRequestOptions";
 
 export interface CreateAccountOptions {
   name?: string
@@ -36,7 +37,7 @@ export interface IProtocolService<T extends SupportedProtocols> {
   getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus>
   getNetworkSendTransactionStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus>
   getNetworkStatus(network: INetwork): Promise<NetworkStatus>
-  getFee(network: INetwork): Promise<ProtocolFee<T>>
+  getFee(network: INetwork, options?: IAbstractProtocolFeeRequestOptions<T>): Promise<ProtocolFee<T>>
   getBalance(account: AccountReference, network: INetwork, asset?: IAsset): Promise<number>
   getAddressFromPrivateKey(privateKey: string): Promise<string>
 }
