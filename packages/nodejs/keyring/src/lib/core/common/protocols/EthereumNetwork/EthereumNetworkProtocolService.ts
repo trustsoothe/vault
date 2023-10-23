@@ -111,11 +111,21 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
   async getFee(network: INetwork, options: IAbstractTransferFundsResult<SupportedProtocols.Ethereum>): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
     return {
       protocol: SupportedProtocols.Ethereum,
-      gasLimit: BigInt(21000),
-      gasPrice: BigInt(1),
-      suggestedLow: BigInt(1),
-      suggestedMedium: BigInt(1),
-      suggestedHigh: BigInt(1),
+      low: {
+        suggestedMaxFeePerGas: 0,
+        suggestedMaxPriorityFeePerGas: 0,
+        amount: 0,
+      },
+      medium: {
+        suggestedMaxFeePerGas: 0,
+        suggestedMaxPriorityFeePerGas: 0,
+        amount: 0,
+      },
+      high: {
+        suggestedMaxFeePerGas: 0,
+        suggestedMaxPriorityFeePerGas: 0,
+        amount: 0,
+      }
     }
   }
 
