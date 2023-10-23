@@ -3,18 +3,18 @@ import {SupportedProtocols} from "../../values";
 
 export interface EthereumNetworkFee extends IAbstractProtocolFee<SupportedProtocols.Ethereum> {
   low: {
-    suggestedMaxFeePerGas: bigint;
-    suggestedMaxPriorityFeePerGas: bigint;
-    amount: bigint;
+    suggestedMaxFeePerGas: number;
+    suggestedMaxPriorityFeePerGas: number;
+    amount: number;
   };
   medium: {
-    suggestedMaxFeePerGas: bigint;
-    suggestedMaxPriorityFeePerGas: bigint;
-    amount: bigint;
+    suggestedMaxFeePerGas: number;
+    suggestedMaxPriorityFeePerGas: number;
+    amount: number;
   };
   high: {
-    suggestedMaxFeePerGas: bigint;
-    suggestedMaxPriorityFeePerGas: bigint;
-    amount: bigint;
+    suggestedMaxFeePerGas: number;
+    suggestedMaxPriorityFeePerGas: number;
+    amount: number;
   };
 }
