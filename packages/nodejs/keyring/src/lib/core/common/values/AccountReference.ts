@@ -41,7 +41,7 @@ export class AccountReference {
       id: this._id,
       name: this._name,
       address: this._address,
-      asset: this._asset,
+      asset: this._asset.serialize(),
     };
   }
 
