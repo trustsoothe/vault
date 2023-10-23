@@ -55,12 +55,12 @@ export const filterAccounts = (
     }
 
     if (
-      labelByProtocolMap[account.protocol.name].toLowerCase().includes(text)
+      labelByProtocolMap[account.asset.protocol].toLowerCase().includes(text)
     ) {
       return true;
     }
 
-    if (labelByChainID[account.protocol.chainID].toLowerCase().includes(text)) {
+    if (account.asset.symbol.toLowerCase().includes(text)) {
       return true;
     }
 

@@ -25,7 +25,6 @@ import {
   getAddressFromPrivateKey,
   getPrivateKeyFromPPK,
   isValidPPK,
-  protocolsAreEquals,
 } from "../../utils/networkOperations";
 import { isPrivateKey } from "../../utils";
 import { enqueueSnackbar } from "../../utils/ui";
@@ -73,14 +72,12 @@ type FormStatus = "normal" | "loading" | "error" | "account_exists";
 
 interface ImportAccountProps {
   accounts: RootState["vault"]["entities"]["accounts"]["list"];
-  assets: RootState["vault"]["entities"]["assets"]["list"];
   passwordRemembered: RootState["vault"]["passwordRemembered"];
 }
 
 const ImportAccount: React.FC<ImportAccountProps> = ({
   passwordRemembered,
   accounts,
-  assets,
 }) => {
   const theme = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -140,11 +137,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     if (accountFromStore && accountToReimport?.id !== id) {
       setAccountToReImport(accountFromStore);
 
-      const asset = assets.find((item) =>
-        protocolsAreEquals(item.protocol, accountFromStore.protocol)
-      );
-
-      setValue("asset", asset);
+      setValue("asset", accountFromStore.asset);
       setValue("account_name", accountFromStore.name);
       return;
     }
@@ -246,7 +239,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
             const account = accounts.find(
               (item) =>
                 item.address === address &&
-                protocolsAreEquals(item.protocol, data.asset.protocol)
+                item.asset.protocol === data.asset.protocol
             );
             setAccountToReImport(account);
             setStatus("account_exists");
@@ -644,7 +637,6 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 const mapStateToProps = (state: RootState) => {
   return {
     accounts: state.vault.entities.accounts.list,
-    assets: state.vault.entities.assets.list,
     passwordRemembered: state.vault.passwordRemembered,
   };
 };

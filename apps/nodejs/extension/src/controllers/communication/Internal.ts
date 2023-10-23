@@ -1,4 +1,3 @@
-import type { Protocol } from "packages/nodejs/keyring/src/lib/core/common/protocols/Protocol";
 import type {
   ExternalConnectionRequest,
   ExternalNewAccountRequest,
@@ -17,6 +16,7 @@ import {
   PrivateKeyRestoreError,
   SerializedAccountReference,
   SerializedAsset,
+  SupportedProtocols,
   VaultRestoreError,
 } from "@poktscan/keyring";
 import store from "../../redux/store";
@@ -76,6 +76,7 @@ import {
   updateAccount,
 } from "../../redux/slices/vault";
 import { UnknownError } from "../../errors/communication";
+import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 
 type MessageSender = Runtime.MessageSender;
 type UnknownErrorType = typeof UnknownError;
@@ -129,7 +130,7 @@ export interface AnswerTransferRequest {
   type: typeof ANSWER_TRANSFER_REQUEST;
   data: {
     rejected?: boolean;
-    transferData: SerializedTransferOptions<Protocol> | null;
+    transferData: SerializedTransferOptions<SupportedProtocols> | null;
     request?: ExternalTransferRequest | null;
   };
 }
@@ -272,7 +273,8 @@ export interface AccountBalanceMessage {
   type: typeof ACCOUNT_BALANCE_REQUEST;
   data: {
     address: string;
-    protocol: Protocol;
+    protocol: SupportedProtocols;
+    chainId: ChainID<SupportedProtocols>;
   };
 }
 

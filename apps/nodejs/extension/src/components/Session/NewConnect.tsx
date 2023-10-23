@@ -25,19 +25,16 @@ import OperationFailed from "../common/OperationFailed";
 import CheckIcon from "../../assets/img/check_icon.svg";
 import { getAllBalances } from "../../redux/slices/vault";
 import CheckedIcon from "../../assets/img/checked_icon.svg";
-import { protocolsAreEquals } from "../../utils/networkOperations";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface NewConnectProps {
   accounts: RootState["vault"]["entities"]["accounts"]["list"];
-  assets: RootState["vault"]["entities"]["assets"]["list"];
   balancesById: RootState["vault"]["entities"]["accounts"]["balances"]["byId"];
   balancesLoading: RootState["vault"]["entities"]["accounts"]["balances"]["loading"];
 }
 
 const NewConnect: React.FC<NewConnectProps> = ({
   accounts,
-  assets,
   balancesLoading,
   balancesById,
 }) => {
@@ -188,10 +185,7 @@ const NewConnect: React.FC<NewConnectProps> = ({
             const lastCharacters = account.address.substring(
               account.address.length - 4
             );
-            const symbol =
-              assets.find((asset) =>
-                protocolsAreEquals(asset.protocol, account.protocol)
-              )?.symbol || "";
+            const symbol = account.asset.symbol;
 
             return (
               <Stack
@@ -309,7 +303,6 @@ const NewConnect: React.FC<NewConnectProps> = ({
 
 const mapStateToProps = (state: RootState) => ({
   accounts: state.vault.entities.accounts.list,
-  assets: state.vault.entities.assets.list,
   balancesById: state.vault.entities.accounts.balances.byId,
   balancesLoading: state.vault.entities.accounts.balances.loading,
 });

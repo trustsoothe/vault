@@ -13,7 +13,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Autocomplete from "@mui/material/Autocomplete";
-import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
+import { labelByProtocolMap } from "../../constants/protocols";
 
 interface AutocompleteAssetProps {
   assets: RootState["vault"]["entities"]["assets"]["list"];
@@ -41,27 +41,21 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
 
       if (!value) return options;
 
-      return options.filter(
-        ({ name, symbol, protocol: { name: protocolName, chainID } }) => {
-          if (symbol.toLowerCase().includes(value)) {
-            return true;
-          }
-
-          if (name.toLowerCase().includes(value)) {
-            return true;
-          }
-
-          if (labelByProtocolMap[protocolName].toLowerCase().includes(value)) {
-            return true;
-          }
-
-          if (chainID.toLowerCase().includes(value)) {
-            return true;
-          }
-
-          return false;
+      return options.filter(({ name, symbol, protocol }) => {
+        if (symbol.toLowerCase().includes(value)) {
+          return true;
         }
-      );
+
+        if (name.toLowerCase().includes(value)) {
+          return true;
+        }
+
+        if (labelByProtocolMap[protocol].toLowerCase().includes(value)) {
+          return true;
+        }
+
+        return false;
+      });
     },
     []
   );
@@ -94,17 +88,11 @@ const AutocompleteAsset: React.FC<AutocompleteAssetProps> = ({
           justifyContent={"flex-start"}
         >
           <Typography fontSize={12} fontWeight={600}>
-            {asset.name} ({asset.symbol})
+            {asset.symbol}
           </Typography>
-          <Stack direction={"row"} spacing={"5px"} alignItems={"center"}>
-            <Typography fontSize={12}>
-              Protocol: {labelByProtocolMap[asset.protocol.name]}
-            </Typography>
-            <Typography fontSize={12}>-</Typography>
-            <Typography fontSize={12}>
-              ChainID: {labelByChainID[asset.protocol.chainID]}
-            </Typography>
-          </Stack>
+          <Typography fontSize={12}>
+            Protocol: {labelByProtocolMap[asset.protocol]}
+          </Typography>
         </Stack>
       );
     },

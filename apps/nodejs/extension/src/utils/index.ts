@@ -1,14 +1,9 @@
-import type { Protocol } from "packages/nodejs/keyring/src/lib/core/common/protocols/Protocol";
-import type { TProtocol } from "../controllers/communication/Proxy";
 import {
   ForbiddenSessionError,
   InvalidSessionError,
-  Network,
-  NetworkOptions,
-  ProtocolServiceFactory,
   SerializedAsset,
-  SerializedNetwork,
   SessionNotFoundError,
+  SupportedProtocols,
   VaultTeller,
 } from "@poktscan/keyring";
 import {
@@ -55,13 +50,8 @@ export const isPrivateKey = (str: string) =>
 
 export const getAssetByProtocol = (
   assets: SerializedAsset[],
-  protocol: TProtocol | Protocol
-) =>
-  assets.find(
-    (item) =>
-      item.protocol.name === protocol.name &&
-      item.protocol.chainID === protocol.chainID
-  );
+  protocol: SupportedProtocols
+) => assets.find((item) => item.protocol === protocol);
 
 export const returnExtensionErr = <T extends string>(
   error: Error,

@@ -1,9 +1,12 @@
-import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/IProtocol";
-import type { Protocol } from "@poktscan/keyring/dist/lib/core/common/Protocol";
 import type {
   SerializedAccountReference,
   SerializedAsset,
   SerializedNetwork,
+} from "@poktscan/keyring";
+import {
+  SupportedProtocols,
+  SupportedTransferDestinations,
+  SupportedTransferOrigins,
 } from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
 import type { AmountStatus } from "./Form/AmountFeeInputs";
@@ -22,11 +25,6 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { FormProvider, useForm } from "react-hook-form";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import {
-  SupportedProtocols,
-  SupportedTransferDestinations,
-  SupportedTransferOrigins,
-} from "@poktscan/keyring";
 import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { getAccountBalance, getProtocolFee } from "../../redux/slices/vault";
@@ -40,9 +38,9 @@ import TransferForm from "./Form/index";
 import {
   getAddressFromPrivateKey,
   isTransferHealthyForNetwork,
-  protocolsAreEquals,
 } from "../../utils/networkOperations";
 import Requester from "../common/Requester";
+import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 
 export interface FormValues {
   fromType: "saved_account" | "private_key";
@@ -60,6 +58,7 @@ interface TransferProps {
   accounts: SerializedAccountReference[];
   assets: SerializedAsset[];
   networks: SerializedNetwork[];
+  selectedChainByNetwork: RootState["app"]["selectedChainByNetwork"];
 }
 
 type Status =
@@ -72,7 +71,12 @@ type Status =
 
 export type FromAddressStatus = "is_account_saved" | "private_key_required";
 
-const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
+const Transfer: React.FC<TransferProps> = ({
+  accounts,
+  assets,
+  networks,
+  selectedChainByNetwork,
+}) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -145,9 +149,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       const account = accounts.find((value) => value.address === from);
 
       if (account) {
-        const asset = getAssetByProtocol(assets, account.protocol);
-
-        setValue("asset", asset || null);
+        setValue("asset", account.asset);
       }
     }
   }, [from]);
@@ -155,12 +157,10 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
   useEffect(() => {
     if (asset) {
       const preferred = networks.find(
-        (item) =>
-          protocolsAreEquals(item.protocol, asset.protocol) && item.isPreferred
+        (item) => item.protocol === asset.protocol && item.isPreferred
       );
       const networkToSelect = networks.find(
-        (item) =>
-          protocolsAreEquals(item.protocol, asset.protocol) && item.isDefault
+        (item) => item.protocol === asset.protocol && item.isDefault
       );
 
       if (networkToSelect) {
@@ -181,7 +181,13 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       } else {
         address = from;
       }
-      dispatch(getAccountBalance({ address, protocol: asset.protocol }))
+      dispatch(
+        getAccountBalance({
+          address,
+          protocol: asset.protocol,
+          chainId: selectedChainByNetwork[asset.protocol] as any,
+        })
+      )
         .unwrap()
         .then((result) => {
           if (result) {
@@ -194,7 +200,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       setFromBalance(null);
       setBalanceStatus("not-fetched");
     }
-  }, [from, dispatch, fromType, asset]);
+  }, [from, dispatch, fromType, asset, selectedChainByNetwork]);
 
   useEffect(() => {
     getFromBalance();
@@ -206,10 +212,19 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
     if (asset?.id && asset.id !== previousAsset.current) {
       previousAsset.current = asset.id;
       setFeeStatus("loading");
-      dispatch(getProtocolFee(asset.protocol))
+      dispatch(
+        getProtocolFee({
+          protocol: asset.protocol,
+          chainId: selectedChainByNetwork[asset.protocol] as any,
+        })
+      )
         .unwrap()
         .then((result) => {
-          setAssetFee(result.fee);
+          setAssetFee(
+            result.fee.protocol === SupportedProtocols.Pocket
+              ? result.fee.value
+              : Number(result.fee.suggestedHigh.toString())
+          );
           setValue("fee", result.fee.toString());
           setFeeStatus("fetched");
         })
@@ -219,7 +234,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       setFeeStatus("not-fetched");
       previousAsset.current = null;
     }
-  }, [asset, networks, dispatch]);
+  }, [asset, networks, dispatch, selectedChainByNetwork]);
 
   useEffect(() => {
     getAssetFee();
@@ -230,7 +245,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       fromAddress:
         searchParams?.get("fromAddress") || requesterInfo?.fromAddress,
       protocol: (searchParams?.get("protocol") ||
-        requesterInfo?.protocol?.name) as Protocol["name"],
+        requesterInfo?.protocol?.name) as SupportedProtocols,
       chainID: (searchParams?.get("chainID") ||
         requesterInfo?.protocol?.chainID) as ChainID<SupportedProtocols>,
     };
@@ -239,16 +254,10 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
   useEffect(() => {
     const { fromAddress: address, protocol, chainID } = fromInfo;
 
-    const protocolObj = {
-      name: protocol,
-      chainID,
-    } as Protocol;
-
     if (address) {
       const account = accounts.find(
         (account) =>
-          account.address === address &&
-          protocolsAreEquals(protocolObj, account.protocol)
+          account.address === address && account.asset.protocol === protocol
       );
       if (account) {
         setValue("from", address);
@@ -260,7 +269,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
         setValue("fromType", "private_key");
         setFromAddressStatus("private_key_required");
 
-        const asset = getAssetByProtocol(assets, protocolObj);
+        const asset = getAssetByProtocol(assets, protocol);
 
         if (asset) {
           setValue("asset", asset);
@@ -314,7 +323,7 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       const accountId = accounts.find(
         (item) =>
           item.address === data.from &&
-          protocolsAreEquals(item.protocol, data.asset.protocol)
+          item.asset.protocol === data.asset.protocol
       )?.id;
 
       const response = await AppToBackground.sendRequestToAnswerTransfer({
@@ -336,8 +345,9 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
             value: data.toAddress,
           },
           transferArguments: {
-            chainID: data.asset.protocol
-              .chainID as ChainID<SupportedProtocols.Pocket>,
+            chainID: selectedChainByNetwork[
+              data.asset.protocol
+            ] as ChainID<SupportedProtocols.Pocket>,
             memo: data.memo,
             fee: Number(data.fee),
           },
@@ -362,7 +372,14 @@ const Transfer: React.FC<TransferProps> = ({ accounts, assets, networks }) => {
       }
       setSendingStatus(null);
     },
-    [requesterInfo, status, balanceStatus, feeStatus, accounts]
+    [
+      requesterInfo,
+      status,
+      balanceStatus,
+      feeStatus,
+      accounts,
+      selectedChainByNetwork,
+    ]
   );
 
   const onClickOk = useCallback(() => {
@@ -614,6 +631,7 @@ const mapStateToProps = (state: RootState) => ({
   accounts: state.vault.entities.accounts.list,
   assets: state.vault.entities.assets.list,
   networks: state.vault.entities.networks.list,
+  selectedChainByNetwork: state.app.selectedChainByNetwork,
 });
 
 export default connect(mapStateToProps)(Transfer);

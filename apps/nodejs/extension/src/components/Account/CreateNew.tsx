@@ -87,7 +87,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
 
   useEffect(() => {
     if (currentRequest?.protocol) {
-      const asset = getAssetByProtocol(assets, currentRequest.protocol);
+      const asset = getAssetByProtocol(assets, currentRequest.protocol.name);
 
       if (asset) {
         setValue("asset", asset);

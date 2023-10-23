@@ -13,7 +13,6 @@ import Typography from "@mui/material/Typography";
 import React, { useCallback, useMemo } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Controller, useFormContext } from "react-hook-form";
-import { protocolsAreEquals } from "../../../utils/networkOperations";
 
 type TNetwork = RootState["vault"]["entities"]["networks"]["list"];
 
@@ -36,7 +35,7 @@ const NetworkAutocomplete: React.FC<NetworkAutocompleteProps> = ({
 
     return orderBy(
       networks
-        .filter((item) => protocolsAreEquals(item.protocol, asset.protocol))
+        .filter((item) => item.protocol === asset.protocol)
         .map((item) => ({
           ...item,
           rank: item.isPreferred ? 1 : item.isDefault ? 2 : 3,

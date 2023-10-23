@@ -1,4 +1,4 @@
-import type { ChainID } from "packages/nodejs/keyring/src/lib/core/common/protocols/IProtocol";
+import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 import type { RootState } from "../../redux/store";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -11,11 +11,7 @@ import Button from "@mui/material/Button";
 import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { connect } from "react-redux";
-import {
-  type NetworkOptions,
-  SupportedProtocols,
-  SerializedNetwork,
-} from "@poktscan/keyring";
+import { SupportedProtocols, SerializedNetwork } from "@poktscan/keyring";
 import { useAppDispatch } from "../../hooks/redux";
 import { NETWORKS_PAGE } from "../../constants/routes";
 import CircularLoading from "../common/CircularLoading";
@@ -32,20 +28,16 @@ import { isNetworkUrlHealthy } from "../../utils/networkOperations";
 interface FormValues {
   name: string;
   rpcUrl: string;
-  protocol: {
-    name: SupportedProtocols;
-    chainID: ChainID<SupportedProtocols> | "";
-  };
+  protocol: SupportedProtocols;
+  chainID: ChainID<SupportedProtocols>;
   isPreferred: boolean;
 }
 
 const defaultFormValues: FormValues = {
   name: "",
   rpcUrl: "",
-  protocol: {
-    name: SupportedProtocols.Pocket,
-    chainID: "mainnet",
-  },
+  protocol: SupportedProtocols.Pocket,
+  chainID: "mainnet",
   isPreferred: false,
 };
 
@@ -82,10 +74,10 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
     defaultValues: { ...defaultFormValues },
   });
 
-  const selectedProtocol = watch("protocol.name");
+  const selectedProtocol = watch("protocol");
 
   useEffect(() => {
-    setValue("protocol.chainID", "");
+    setValue("chainID", null);
   }, [selectedProtocol]);
 
   const onCancel = useCallback(() => {
@@ -119,7 +111,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
   }, [networkToUpdate]);
 
   const onSubmit = useCallback(
-    async (data: NetworkOptions) => {
+    async (data: FormValues) => {
       setStatus("loading");
 
       if (
@@ -223,7 +215,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
             helperText={errors?.name?.message}
           />
           <Controller
-            name={"protocol.name"}
+            name={"protocol"}
             control={control}
             rules={{ required: "Required" }}
             render={({ field, fieldState: { error } }) => (
@@ -250,7 +242,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
             )}
           />
           <Controller
-            name={"protocol.chainID"}
+            name={"chainID"}
             control={control}
             rules={{ required: "Required" }}
             render={({ field, fieldState: { error } }) => (

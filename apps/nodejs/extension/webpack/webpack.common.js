@@ -51,6 +51,7 @@ module.exports = {
       assert: require.resolve("assert/"),
       tls: require.resolve("tls-browserify"),
       querystring: require.resolve("querystring-es3/"),
+      "process/browser": require.resolve("process/browser"),
       fs: false,
       net: false,
     },
@@ -76,13 +77,10 @@ module.exports = {
     }),
     new webpack.ProvidePlugin({
       Buffer: ["buffer", "Buffer"],
-      process: 'process/browser',
+      process: "process/browser",
     }),
-    new webpack.NormalModuleReplacementPlugin(
-        /^node:/,
-        (resource) => {
-          resource.request = resource.request.replace(/^node:/, '');
-        },
-    ),
+    new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+      resource.request = resource.request.replace(/^node:/, "");
+    }),
   ],
 };
