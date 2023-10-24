@@ -9,6 +9,7 @@ export * from './lib/core/common/protocols'
 export * from './lib/core/common/storage/AssetStorage'
 export * from './lib/core/common/storage/NetworkStorage'
 export * from './lib/errors'
+export * from './lib/constants';
 
 import EncryptionServiceSpecFactory from './lib/core/common/encryption/IEncryptionService.specFactory'
 

@@ -71,7 +71,8 @@ describe('PocketNetworkProtocolService', () => {
     })
 
     describe('Successful requests', () => {
-      const server = MockServerFactory.getSuccessMockServer(network)
+      const mockServer = new MockServerFactory(network);
+      const server = mockServer.addSuccessfulQueryFeeHandler().buildServer();
 
       beforeAll(() => server.listen());
 
@@ -89,7 +90,8 @@ describe('PocketNetworkProtocolService', () => {
     })
 
     describe('Unsuccessful requests', () => {
-      const server = MockServerFactory.getFailureMockServer(network)
+      const mockServer = new MockServerFactory(network);
+      const server = mockServer.addFailedQueryFeeHandler().buildServer();
 
       beforeAll(() => server.listen());
 

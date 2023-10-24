@@ -14,6 +14,7 @@ import {
   privateKeyToAddress,
   parseAndValidatePrivateKey,
 } from 'web3-eth-accounts';
+import {fromWei, toWei} from 'web3-utils';
 import {ArgumentError, NetworkRequestError} from "../../../../errors";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
 import {ProtocolFee} from "../ProtocolFee";
@@ -21,9 +22,29 @@ import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
 import {INetwork} from "../INetwork";
 import {IAsset} from "../IAsset";
 import {NetworkStatus} from "../../values/NetworkStatus";
-import {EthereumProtocolNetworkSchema} from "./schemas";
+import {EthereumProtocolFeeRequestSchema, EthereumProtocolNetworkSchema} from "./schemas";
+import {EthereumNetworkFeeRequestOptions} from "./EthereumNetworkFeeRequestOptions";
+import {SUGGESTED_GAS_FEES_URL} from "../../../../constants";
 
-type Network = NetworkObject<SupportedProtocols.Ethereum>;
+interface SuggestedFeeSpeed {
+  suggestedMaxPriorityFeePerGas: string;
+  suggestedMaxFeePerGas: string;
+  minWaitTimeEstimate: number;
+  maxWaitTimeEstimate: number;
+}
+
+interface SuggestedFees {
+  low: SuggestedFeeSpeed;
+  medium: SuggestedFeeSpeed;
+  high: SuggestedFeeSpeed;
+  estimatedBaseFee: string;
+  networkCongestion: number;
+  latestPriorityFeeRange: string[];
+  historicalPriorityFeeRange: string[];
+  historicalBaseFeeRange: string[];
+  priorityFeeTrend: string;
+  baseFeeTrend: string;
+};
 
 export class EthereumNetworkProtocolService implements IProtocolService<SupportedProtocols.Ethereum> {
   constructor(private encryptionService: IEncryptionService) {}
@@ -108,23 +129,58 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     return 0;
   }
 
-  async getFee(network: INetwork, options: IAbstractTransferFundsResult<SupportedProtocols.Ethereum>): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
+  async getFee(network: INetwork, options: EthereumNetworkFeeRequestOptions): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
+    this.validateNetwork(network);
+    this.validateFeeRequestOptions(options);
+
+    const url = SUGGESTED_GAS_FEES_URL.replace(':chainid', network.chainID);
+
+    const ethClient = this.getEthClient(network);
+
+    let estimatedGas = 0;
+    let suggestions: SuggestedFees;
+
+    try {
+      estimatedGas = Number(await ethClient.estimateGas(options)) * 1.5;
+    } catch (e) {
+      console.error(e);
+      throw new NetworkRequestError('Failed while estimating gas');
+    }
+
+    try {
+      const suggestionsResponse = await globalThis.fetch(url);
+      suggestions = await suggestionsResponse.json();
+    } catch (e) {
+      console.log(e);
+      throw new NetworkRequestError('Failed while fetching suggested fees');
+    }
+
+    const calculateAmountForSpeed = (baseFee: string, estimatedGas: number, speed: SuggestedFeeSpeed) => {
+      const baseFeeAsBigInt = Number(baseFee);
+      const maxPriorityFeePerGasAsBigInt = Number(speed.suggestedMaxPriorityFeePerGas);
+      const feeInGwei = ((baseFeeAsBigInt + maxPriorityFeePerGasAsBigInt) * estimatedGas).toFixed(6);
+      const feeInWei = toWei(feeInGwei, 'gwei');
+      return Number(fromWei(feeInWei, 'ether')).toFixed(7);
+    }
+
     return {
       protocol: SupportedProtocols.Ethereum,
+      estimatedGas: Number(estimatedGas),
+      baseFee: suggestions.estimatedBaseFee,
       low: {
-        suggestedMaxFeePerGas: 0,
-        suggestedMaxPriorityFeePerGas: 0,
-        amount: 0,
+        suggestedMaxFeePerGas: Number(toWei(suggestions.low.suggestedMaxFeePerGas, 'gwei')),
+        suggestedMaxPriorityFeePerGas: Number(toWei(suggestions.low.suggestedMaxPriorityFeePerGas, 'gwei')),
+        amount: calculateAmountForSpeed(suggestions.estimatedBaseFee, estimatedGas, suggestions.low),
       },
       medium: {
-        suggestedMaxFeePerGas: 0,
-        suggestedMaxPriorityFeePerGas: 0,
-        amount: 0,
+        suggestedMaxFeePerGas: Number(toWei(suggestions.medium.suggestedMaxFeePerGas, 'gwei')),
+        suggestedMaxPriorityFeePerGas: Number(toWei(suggestions.medium.suggestedMaxPriorityFeePerGas, 'gwei')),
+        amount: calculateAmountForSpeed(suggestions.estimatedBaseFee, estimatedGas, suggestions.medium)
       },
       high: {
-        suggestedMaxFeePerGas: 0,
-        suggestedMaxPriorityFeePerGas: 0,
-        amount: 0,
+        suggestedMaxFeePerGas: Number(toWei(suggestions.high.suggestedMaxFeePerGas, 'gwei')),
+        suggestedMaxPriorityFeePerGas: Number(toWei(suggestions.high.suggestedMaxPriorityFeePerGas, 'gwei')),
+        amount: calculateAmountForSpeed(suggestions.estimatedBaseFee, estimatedGas, suggestions.high),
       }
     }
   }
@@ -166,6 +222,14 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
   private validateNetwork(network: INetwork) {
     try {
       EthereumProtocolNetworkSchema.parse(network);
+    } catch {
+      throw new ArgumentError('network');
+    }
+  }
+
+  private validateFeeRequestOptions(options: EthereumNetworkFeeRequestOptions) {
+    try {
+      EthereumProtocolFeeRequestSchema.parse(options);
     } catch {
       throw new ArgumentError('network');
     }

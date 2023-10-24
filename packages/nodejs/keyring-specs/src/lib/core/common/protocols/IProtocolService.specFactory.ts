@@ -63,7 +63,7 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     })
   })
 
-  describe('getBalance', () => {
+  describe('getBalance - (Native)', () => {
     const {account: exampleAccountRef} = options
 
     describe('validations', () => {
@@ -84,7 +84,8 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     })
 
     describe('Successful requests', () => {
-      const server = MockServerFactory.getSuccessMockServer(exampleNetwork)
+      const mockServer = new MockServerFactory(exampleNetwork);
+      const server = mockServer.addSuccessfulQueryBalanceHandler().buildServer();
 
       beforeAll(() => server.listen());
 
@@ -99,7 +100,8 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     })
 
     describe('Unsuccessful requests', () => {
-      const server = MockServerFactory.getFailureMockServer(exampleNetwork)
+      const mockServer = new MockServerFactory(exampleNetwork);
+      const server = mockServer.addFailedQueryBalanceHandler().buildServer();
 
       beforeAll(() => server.listen());
 
@@ -131,7 +133,13 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     })
 
     describe('Successful requests', () => {
-      const server = MockServerFactory.getSuccessMockServer(exampleNetwork)
+      const mockServer = new MockServerFactory(exampleNetwork);
+      const server =
+          mockServer
+            .addSuccessfulQueryFeeHandler()
+            .addSuccessfulQueryBalanceHandler()
+            .addSendTransactionHandler()
+            .buildServer();
 
       beforeAll(() => server.listen());
 

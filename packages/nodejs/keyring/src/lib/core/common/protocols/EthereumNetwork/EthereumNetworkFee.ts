@@ -5,16 +5,18 @@ export interface EthereumNetworkFee extends IAbstractProtocolFee<SupportedProtoc
   low: {
     suggestedMaxFeePerGas: number;
     suggestedMaxPriorityFeePerGas: number;
-    amount: number;
+    amount: string;
   };
   medium: {
     suggestedMaxFeePerGas: number;
     suggestedMaxPriorityFeePerGas: number;
-    amount: number;
+    amount: string;
   };
   high: {
     suggestedMaxFeePerGas: number;
     suggestedMaxPriorityFeePerGas: number;
-    amount: number;
+    amount: string;
   };
+  baseFee: string;
+  estimatedGas: number;
 }

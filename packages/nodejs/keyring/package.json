@@ -29,8 +29,6 @@
     "bufferutil": "4.0.7",
     "process": "0.11.10",
     "utf-8-validate": "6.0.3",
-    "web3-eth": "4.2.1-dev.80986bb.0",
-    "web3-eth-accounts": "4.0.7-dev.9a5fd87.0",
     "vitest": "0.32.0"
   },
   "dependencies": {
@@ -42,6 +40,9 @@
     "url-join": "5.0.0",
     "uuid": "9.0.0",
     "varint": "6.0.0",
+    "web3-eth": "4.3.0",
+    "web3-eth-accounts": "4.1.0",
+    "web3-utils": "4.0.7",
     "zod": "3.21.4"
   },
   "peerDependencies": {
