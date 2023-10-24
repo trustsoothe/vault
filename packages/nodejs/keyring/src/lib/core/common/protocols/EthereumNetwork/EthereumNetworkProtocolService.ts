@@ -5,7 +5,6 @@ import {
 } from "../IProtocolService";
 import {Account} from "../../../vault";
 import {AccountReference, SupportedProtocols} from "../../values";
-import {Network as NetworkObject} from "../../../network";
 import Eth from 'web3-eth'
 import {
   create,
@@ -203,7 +202,24 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
   }
 
   async getNetworkFeeStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
-    throw new Error('Not Implemented')
+    const updatedStatus = NetworkStatus.createFrom(status);
+
+    const url = SUGGESTED_GAS_FEES_URL.replace(':chainid', network.chainID);
+
+    const ethClient = this.getEthClient(network);
+
+    let suggestions: SuggestedFees;
+
+    try {
+      await ethClient.estimateGas({});
+      const suggestionsResponse = await globalThis.fetch(url);
+      suggestions = await suggestionsResponse.json();
+      updatedStatus.updateFeeStatus(true);
+    } catch (e) {
+      updatedStatus.updateFeeStatus(false);
+    }
+
+    return updatedStatus;
   }
 
   async getNetworkSendTransactionStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
@@ -212,7 +228,8 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
 
   async getNetworkStatus(network: INetwork): Promise<NetworkStatus> {
     this.validateNetwork(network);
-    throw new Error('Not Implemented')
+    const updatingStatus = new NetworkStatus();
+    return this.getNetworkFeeStatus(network, updatingStatus);
   }
 
   private getEthClient(network: INetwork): Eth {
