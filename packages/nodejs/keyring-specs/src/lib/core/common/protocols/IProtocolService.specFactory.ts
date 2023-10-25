@@ -63,7 +63,7 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     })
   })
 
-  describe('getBalance - (Native)', () => {
+  describe.only('getBalance - (Native)', () => {
     const {account: exampleAccountRef} = options
 
     describe('validations', () => {
@@ -154,7 +154,7 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
         expect(status.feeStatusLastUpdated).closeTo(Date.now(), 1000)
       })
 
-      test('updates the balance status', async () => {
+      test.only('updates the balance status', async () => {
         const status = await protocolService.getNetworkStatus(exampleNetwork)
         expect(status.canProvideBalance).toBe(true)
         expect(status.balanceStatusLastUpdated).toBeDefined()

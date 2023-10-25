@@ -6,13 +6,13 @@ export function withMethod(expectedMethod: string, resolver: ResponseResolver<an
     const contentType = req.headers.get('Content-Type') || ''
 
     if (!contentType.includes('application/json')) {
-      return
+      return null;
     }
 
     const actualBody = await req.clone().json()
 
     if (actualBody.method !== expectedMethod) {
-      return
+      return null;
     }
 
     return resolver(req, res, ctx);

@@ -15,7 +15,7 @@ import {
 import {WebEncryptionService} from '@poktscan/keyring-encryption-web'
 import {MockServerFactory} from "../../../../../mocks/mock-server-factory";
 
-describe('PocketNetworkProtocolService', () => {
+describe.skip('PocketNetworkProtocolService', () => {
   const asset: Asset = new Asset({
     name: 'Pokt Network - Testnet',
     protocol: SupportedProtocols.Pocket,

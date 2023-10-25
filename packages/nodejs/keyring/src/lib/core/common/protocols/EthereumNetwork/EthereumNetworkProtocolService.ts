@@ -198,7 +198,31 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
   }
 
   async getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
-    throw new Error('Not Implemented')
+    const updatingStatus = NetworkStatus.createFrom(status);
+    try {
+      const id = Math.random().toString(36).substring(7);
+      const response = await globalThis.fetch(network.rpcUrl, {
+        method: 'post',
+        headers:{
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          jsonrpc: '2.0',
+          method: 'eth_getBalance',
+          params: ['', 'latest'],
+        }),
+      });
+
+      if (response.ok) {
+        updatingStatus.updateBalanceStatus(true);
+      }
+    } catch (e) {
+      console.log(e);
+      updatingStatus.updateBalanceStatus(false);
+    }
+
+    return updatingStatus;
   }
 
   async getNetworkFeeStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
@@ -229,7 +253,8 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
   async getNetworkStatus(network: INetwork): Promise<NetworkStatus> {
     this.validateNetwork(network);
     const updatingStatus = new NetworkStatus();
-    return this.getNetworkFeeStatus(network, updatingStatus);
+    const withFeeStatus = await this.getNetworkFeeStatus(network, updatingStatus);
+    return await this.getNetworkBalanceStatus(network, withFeeStatus);
   }
 
   private getEthClient(network: INetwork): Eth {
