@@ -14,3 +14,12 @@ export const EthereumProtocolFeeRequestSchema = z.object({
   value: z.string().optional(),
   data: z.string().optional(),
 });
+
+export const EthereumProtocolSendTransactionForStatusResponseSchema = z.object({
+  id: z.string(),
+  error: z.object({
+    code: z.union([z.literal(-32600), z.literal(-32602), z.literal(-32000), z.literal(-32003)]),
+    message: z.string(),
+  }),
+  jsonrpc: z.literal('2.0'),
+});

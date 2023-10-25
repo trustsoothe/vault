@@ -7,14 +7,22 @@ export const sendTransactionHandlerFactory = (network: INetwork) => {
   const url = new Url.URL(network.rpcUrl);
   // @ts-ignore
   const resolver = async (req, res, ctx) => {
+    const {id} = await req.json();
     return res(
-      ctx.status(500),
-      ctx.json({}),
+      ctx.status(200),
+      ctx.json({
+        id,
+        jsonrpc: "2.0",
+        error: {
+          code: -32000,
+          message: "Transaction execution error.",
+        }
+      }),
     );
   };
 
   return [
     // @ts-ignore
-    rest.post(url.toString(), withMethod('eth_sendTransaction', resolver)),
+    rest.post(url.toString(), withMethod('eth_sendRawTransaction', resolver)),
   ];
 }

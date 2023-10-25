@@ -21,7 +21,11 @@ import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
 import {INetwork} from "../INetwork";
 import {IAsset} from "../IAsset";
 import {NetworkStatus} from "../../values/NetworkStatus";
-import {EthereumProtocolFeeRequestSchema, EthereumProtocolNetworkSchema} from "./schemas";
+import {
+  EthereumProtocolFeeRequestSchema,
+  EthereumProtocolNetworkSchema,
+  EthereumProtocolSendTransactionForStatusResponseSchema
+} from "./schemas";
 import {EthereumNetworkFeeRequestOptions} from "./EthereumNetworkFeeRequestOptions";
 import {SUGGESTED_GAS_FEES_URL} from "../../../../constants";
 
@@ -247,14 +251,44 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
   }
 
   async getNetworkSendTransactionStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
-    throw new Error('Not Implemented')
+    const updatingStatus = NetworkStatus.createFrom(status);
+
+    try {
+      const id = Math.random().toString(36).substring(7);
+      const response = await globalThis.fetch(network.rpcUrl, {
+        method: 'post',
+        headers:{
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          jsonrpc: '2.0',
+          method: 'eth_sendRawTransaction',
+          params: ['Signed transaction'],
+        }),
+      });
+
+      if (response.ok) {
+        const responseJson = await response.json();
+        EthereumProtocolSendTransactionForStatusResponseSchema.parse(responseJson);
+        updatingStatus.updateSendTransactionStatus(true);
+      } else {
+        updatingStatus.updateSendTransactionStatus(false);
+      }
+    } catch (e) {
+      console.log(e);
+      updatingStatus.updateSendTransactionStatus(false);
+    }
+
+    return updatingStatus;
   }
 
   async getNetworkStatus(network: INetwork): Promise<NetworkStatus> {
     this.validateNetwork(network);
     const updatingStatus = new NetworkStatus();
     const withFeeStatus = await this.getNetworkFeeStatus(network, updatingStatus);
-    return await this.getNetworkBalanceStatus(network, withFeeStatus);
+    const withBalanceStatus = await this.getNetworkBalanceStatus(network, withFeeStatus);
+    return await this.getNetworkSendTransactionStatus(network, withBalanceStatus);
   }
 
   private getEthClient(network: INetwork): Eth {
