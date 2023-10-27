@@ -3,8 +3,8 @@ import ProtocolServiceSpecFactory from '../IProtocolService.specFactory';
 import {
   AccountReference,
   ArgumentError,
-  Asset,
-  IEncryptionService,
+  Asset, IAsset,
+  IEncryptionService, INetwork,
   Network,
   NetworkRequestError,
   PocketNetworkProtocolService,
@@ -16,25 +16,25 @@ import {WebEncryptionService} from '@poktscan/keyring-encryption-web'
 import {MockServerFactory} from "../../../../../mocks/mock-server-factory";
 
 describe.skip('PocketNetworkProtocolService', () => {
-  const asset: Asset = new Asset({
-    name: 'Pokt Network - Testnet',
+  const asset: IAsset = {
     protocol: SupportedProtocols.Pocket,
-    symbol: 'POKT'
-  })
+    chainID: "testnet",
+    contractAddress: "0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465",
+  };
 
-  const network = new Network<SupportedProtocols.Pocket>({
-    name: 'test',
-    rpcUrl: 'http://localhost:8080',
+  const network : INetwork = {
+    rpcUrl: "http://localhost:8080",
     protocol: asset.protocol,
-    chainID: 'testnet',
-  })
+    chainID: "testnet",
+  };
+
 
   const account =
     new AccountReference(
       'account-id',
       'test-account',
       'test-address',
-      asset,
+      SupportedProtocols.Pocket,
     );
 
   const encryptionService: IEncryptionService = new WebEncryptionService();

@@ -80,7 +80,7 @@ export class Vault implements IEntity {
     const accountExists = this._accounts.some((a) => {
       return (
         a.address === account.address &&
-        a.asset.protocol === account.asset.protocol
+        a.protocol === account.protocol
       );
     });
 
@@ -92,7 +92,7 @@ export class Vault implements IEntity {
       this._accounts = this._accounts.filter((a) => {
         return (
           a.address !== account.address &&
-          a.asset.protocol === account.asset.protocol
+          a.protocol === account.protocol
         );
       });
     }

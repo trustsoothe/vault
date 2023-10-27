@@ -1,23 +1,24 @@
 import { Asset, SerializedAsset } from "../../asset";
+import {SupportedProtocols} from "./SupportedProtocols";
 
 export interface SerializedAccountReference {
   id: string;
   name: string;
   address: string;
-  asset: SerializedAsset;
+  protocol: SupportedProtocols;
 }
 
 export class AccountReference {
   private readonly _id: string = "";
   private readonly _name: string = "";
   private readonly _address: string = "";
-  private readonly _asset: Asset;
+  private readonly _protocol: SupportedProtocols;
 
-  constructor(id: string, name: string, address: string, asset: Asset) {
+  constructor(id: string, name: string, address: string, protocol: SupportedProtocols) {
     this._id = id;
     this._name = name;
     this._address = address;
-    this._asset = asset;
+    this._protocol = protocol;
   }
 
   get id(): string {
@@ -32,8 +33,8 @@ export class AccountReference {
     return this._address;
   }
 
-  get asset(): Asset {
-    return this._asset;
+  get protocol(): SupportedProtocols {
+    return this._protocol;
   }
 
   serialize(): SerializedAccountReference {
@@ -41,7 +42,7 @@ export class AccountReference {
       id: this._id,
       name: this._name,
       address: this._address,
-      asset: this._asset.serialize(),
+      protocol: this._protocol,
     };
   }
 
@@ -50,7 +51,7 @@ export class AccountReference {
       data.id,
       data.name,
       data.address,
-      Asset.deserialize(data.asset)
+      data.protocol,
     );
   }
 }

@@ -13,6 +13,8 @@ import {
   privateKeyToAddress,
   parseAndValidatePrivateKey,
 } from 'web3-eth-accounts';
+import {Contract} from 'web3-eth-contract';
+import {HttpProvider} from 'web3-providers-http';
 import {fromWei, toWei} from 'web3-utils';
 import {ArgumentError, NetworkRequestError} from "../../../../errors";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
@@ -28,6 +30,7 @@ import {
 } from "./schemas";
 import {EthereumNetworkFeeRequestOptions} from "./EthereumNetworkFeeRequestOptions";
 import {SUGGESTED_GAS_FEES_URL} from "../../../../constants";
+import ERC20Abi from './contracts/ERC20Detailed';
 
 interface SuggestedFeeSpeed {
   suggestedMaxPriorityFeePerGas: string;
@@ -53,8 +56,8 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
   constructor(private encryptionService: IEncryptionService) {}
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
-    if (!options.asset) {
-      throw new ArgumentError('options.asset')
+    if (!options.protocol) {
+      throw new ArgumentError('options.protocol')
     }
 
     if (!options.passphrase && !options.skipEncryption) {
@@ -70,7 +73,7 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     }
 
     return new Account({
-      asset: options.asset,
+      protocol: options.protocol,
       name: options.name || '',
       address: account.address,
       publicKey: privateKeyToPublicKey(account.privateKey, false),
@@ -79,8 +82,8 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
   }
 
   async createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
-    if (!options.asset) {
-      throw new ArgumentError('options.asset');
+    if (!options.protocol) {
+      throw new ArgumentError('options.protocol');
     }
 
     if (!options.passphrase && !options.skipEncryption) {
@@ -102,7 +105,7 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     }
 
     return new Account({
-      asset: options.asset,
+      protocol: options.protocol,
       name: options.name || '',
       address: account.address,
       publicKey: privateKeyToPublicKey(account.privateKey, false),
@@ -129,7 +132,7 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
       return await this.getNativeTokenBalance(network, account);
     }
 
-    return 0;
+    return await this.getAssetBalance(network, account, asset);
   }
 
   async getFee(network: INetwork, options: EthereumNetworkFeeRequestOptions): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
@@ -291,10 +294,6 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     return await this.getNetworkSendTransactionStatus(network, withBalanceStatus);
   }
 
-  private getEthClient(network: INetwork): Eth {
-    return new Eth(network.rpcUrl)
-  }
-
   private validateNetwork(network: INetwork) {
     try {
       EthereumProtocolNetworkSchema.parse(network);
@@ -328,5 +327,26 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     } catch (e) {
       throw new NetworkRequestError('Failed to fetch balance');
     }
+  }
+
+  private async getAssetBalance(network: INetwork, account: AccountReference, asset: IAsset) {
+    const ethContract = this.getEthContractClient(network, asset);
+
+    // @ts-ignore
+    const balance = await ethContract.methods.balanceOf(account.address).call();
+
+    const calculatedBalance = Number(balance) / (10 ** (asset.decimals || 18));
+    return  Number(calculatedBalance.toFixed(5));
+  }
+
+  private getEthClient(network: INetwork): Eth {
+    return new Eth(network.rpcUrl)
+  }
+
+  private getEthContractClient(network: INetwork, asset: IAsset) {
+    const provider = new HttpProvider(network.rpcUrl);
+    const contract = new Contract(ERC20Abi, asset.contractAddress);
+    contract.setProvider(provider);
+    return contract;
   }
 }

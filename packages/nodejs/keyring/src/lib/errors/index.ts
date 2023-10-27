@@ -106,7 +106,7 @@ export class AccountExistError extends KeyringError {
   constructor(account: Account) {
     super({
       name: 'AccountExistError',
-      message: `An account with address: ${account.address} and protocol: "${account.asset.protocol}" already exists within the vault.`,
+      message: `An account with address: ${account.address} and protocol: "${account.protocol}" already exists within the vault.`,
     });
   }
 }

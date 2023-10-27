@@ -1,7 +1,7 @@
 import {v4, validate} from "uuid";
-import {AccountReference} from "../../common/values";
+import {AccountReference, SupportedProtocols} from "../../common/values";
 import IEntity from "../../common/IEntity";
-import {Asset, SerializedAsset} from "../../asset";
+import {ArgumentError} from "../../../errors";
 
 export interface SerializedAccount extends IEntity {
   id: string
@@ -9,7 +9,7 @@ export interface SerializedAccount extends IEntity {
   publicKey: string
   privateKey: string
   address: string
-  asset: SerializedAsset
+  protocol: SupportedProtocols
   createdAt: number
   updatedAt: number
 }
@@ -19,7 +19,7 @@ export interface AccountOptions {
   publicKey: string
   privateKey: string
   address: string
-  asset: Asset
+  protocol: SupportedProtocols
 }
 
 export interface AccountUpdateOptions {
@@ -33,29 +33,29 @@ export class Account implements IEntity {
   private readonly _publicKey: string
   private readonly _privateKey: string
   private readonly _address: string
-  private readonly _asset: Asset
+  private readonly _protocol: SupportedProtocols
   private _createdAt: number
   private _updatedAt: number
 
   constructor(options: AccountOptions, id?: string) {
     if (id && validate(id) === false) {
-      throw new Error('Invalid account id: ' + id)
+      throw new ArgumentError(`"id = ${id}"`)
     }
 
     if (!options.publicKey) {
-      throw new Error('Public key cannot be null or empty')
+      throw new ArgumentError('Public key cannot be null or empty')
     }
 
     if (!options.privateKey) {
-      throw new Error('Private key cannot be null or empty')
+      throw new ArgumentError('Private key cannot be null or empty')
     }
 
     if  (!options.address) {
-      throw new Error('Address cannot be null or empty')
+      throw new ArgumentError('Address cannot be null or empty')
     }
 
-    if (!options.asset) {
-      throw new Error('Asset information cannot be null or empty')
+    if (!options.protocol)  {
+      throw new ArgumentError('Protocol cannot be null or empty')
     }
 
     this._id = id || v4()
@@ -63,7 +63,7 @@ export class Account implements IEntity {
     this._publicKey = options.publicKey
     this._privateKey = options.privateKey
     this._address = options.address
-    this._asset = options.asset
+    this._protocol = options.protocol
     this._createdAt = Date.now()
     this._updatedAt = Date.now()
   }
@@ -88,16 +88,16 @@ export class Account implements IEntity {
     return this._address
   }
 
-  get asset(): Readonly<Asset> {
-    return this._asset
-  }
-
   get createdAt(): number {
     return this._createdAt
   }
 
   get updatedAt(): number {
     return this._updatedAt
+  }
+
+  get protocol(): SupportedProtocols {
+    return this._protocol
   }
 
   updateName(name: string): void {
@@ -112,7 +112,7 @@ export class Account implements IEntity {
       publicKey: this.publicKey,
       privateKey: this.privateKey,
       address: this.address,
-      asset: this.asset.serialize(),
+      protocol: this.protocol,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     }
@@ -124,7 +124,7 @@ export class Account implements IEntity {
       publicKey: serializedAccount.publicKey,
       privateKey: serializedAccount.privateKey,
       address: serializedAccount.address,
-      asset: Asset.deserialize(serializedAccount.asset)
+      protocol: serializedAccount.protocol,
     }
 
     const deserializedAccount =  new Account(options, serializedAccount.id)
@@ -136,6 +136,6 @@ export class Account implements IEntity {
   }
 
   asAccountReference(): AccountReference {
-    return new AccountReference(this.id, this.name, this.address, this._asset)
+    return new AccountReference(this.id, this.name, this.address, this.protocol)
   }
 }

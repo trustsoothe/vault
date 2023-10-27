@@ -175,7 +175,7 @@ export class VaultTeller {
     await this.validateSessionForPermissions(sessionId, "account", "create");
 
     const protocolService = ProtocolServiceFactory.getProtocolService(
-      options.asset.protocol,
+      options.protocol,
       this.encryptionService
     );
 
@@ -199,7 +199,7 @@ export class VaultTeller {
     await this.validateSessionForPermissions(sessionId, "account", "create");
 
     const protocolService = ProtocolServiceFactory.getProtocolService(
-      options.asset.protocol,
+      options.protocol,
       this.encryptionService
     );
 
@@ -228,7 +228,7 @@ export class VaultTeller {
 
   async deriveAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
     const protocolService=
-      ProtocolServiceFactory.getProtocolService(options.asset.protocol, this.encryptionService);
+      ProtocolServiceFactory.getProtocolService(options.protocol, this.encryptionService);
 
     return await protocolService.createAccountFromPrivateKey({
       ...options,
@@ -444,7 +444,7 @@ export class VaultTeller {
     }
 
     const account = await protocolService.createAccountFromPrivateKey({
-      asset: options.from.asset,
+      protocol: options.network.protocol,
       privateKey: options.from.value,
       skipEncryption: true,
     });
@@ -568,8 +568,7 @@ export class VaultTeller {
     return vault.accounts.find((a) => {
       return (
         a.address === accountReference.address &&
-        a.asset.protocol === accountReference.asset.protocol
-      );
+        a.protocol === accountReference.protocol);
     });
   }
 

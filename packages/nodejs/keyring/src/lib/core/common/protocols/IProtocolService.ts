@@ -11,7 +11,7 @@ import {IAbstractProtocolFeeRequestOptions} from "./ProtocolFeeRequestOptions";
 
 export interface CreateAccountOptions {
   name?: string
-  asset: Asset
+  protocol: SupportedProtocols
   passphrase?: Passphrase
   skipEncryption?: boolean
 }

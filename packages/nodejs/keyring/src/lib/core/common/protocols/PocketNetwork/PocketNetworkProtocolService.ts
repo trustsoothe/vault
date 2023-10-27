@@ -46,8 +46,8 @@ export class PocketNetworkProtocolService
   constructor(private encryptionService: IEncryptionService) {}
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
-    if (!options.asset) {
-      throw new ArgumentError("options.asset");
+    if (!options.protocol) {
+      throw new ArgumentError("options.protocol");
     }
 
     if (!options.passphrase && !options.skipEncryption) {
@@ -72,7 +72,7 @@ export class PocketNetworkProtocolService
     }
 
     return new Account({
-      asset: options.asset,
+      protocol: options.protocol,
       name: options.name,
       address,
       publicKey: Buffer.from(publicKey).toString("hex"),
@@ -83,8 +83,8 @@ export class PocketNetworkProtocolService
   async createAccountFromPrivateKey(
     options: CreateAccountFromPrivateKeyOptions
   ): Promise<Account> {
-    if (!options.asset) {
-      throw new ArgumentError("options.asset");
+    if (!options.protocol) {
+      throw new ArgumentError("options.protocol");
     }
 
     if (!options.passphrase && !options.skipEncryption) {
@@ -107,7 +107,7 @@ export class PocketNetworkProtocolService
 
     return new Account({
       name: options.name,
-      asset: options.asset,
+      protocol: options.protocol,
       address,
       publicKey,
       privateKey: finalPrivateKey,

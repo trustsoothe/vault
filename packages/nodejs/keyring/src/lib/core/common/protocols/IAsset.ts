@@ -4,4 +4,5 @@ export interface IAsset {
   protocol: SupportedProtocols
   chainID: string;
   contractAddress?: string;
+  decimals?: number;
 }

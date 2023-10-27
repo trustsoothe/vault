@@ -6,30 +6,30 @@ import {
   EthereumNetworkProtocolService,
   Network,
   SupportedProtocols,
-  IEncryptionService, ArgumentError, NetworkRequestError, EthereumNetworkFeeRequestOptions,
+  IEncryptionService, ArgumentError, NetworkRequestError, EthereumNetworkFeeRequestOptions, IAsset, INetwork,
 } from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 import {MockServerFactory} from "../../../../../mocks/mock-server-factory";
 
 describe("EthereumNetworkProtocolService", () => {
-  const asset: Asset = new Asset({
-    name: "Ethereum Sepolia",
+  const asset: IAsset = {
     protocol: SupportedProtocols.Ethereum,
-    symbol: "ETH",
-  });
+    chainID: "11155111",
+    contractAddress: "0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465",
+    decimals: 8,
+  };
 
-  const network = new Network<SupportedProtocols.Ethereum>({
-    name: "test",
+  const network : INetwork = {
     rpcUrl: "http://localhost:8080",
     protocol: asset.protocol,
     chainID: "11155111",
-  });
+  };
 
   const account = new AccountReference(
     "account-id",
     "test-account",
     "0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465",
-    asset
+    SupportedProtocols.Ethereum,
   );
 
   const accountImport = {
@@ -137,6 +137,22 @@ describe("EthereumNetworkProtocolService", () => {
 
         return expect(protocolService.getFee(network, feeRequestOptions)).rejects.toThrow(NetworkRequestError)
       })
+    })
+  })
+
+  describe('getBalance - ERC20', () => {
+    const mockServer = new MockServerFactory(network);
+    const server = mockServer.addSuccessfulQueryBalanceHandler().buildServer();
+
+    beforeAll(() => server.listen());
+
+    afterEach(() => server.resetHandlers());
+
+    afterAll(() => server.close());
+
+    test('returns the balance of the account', async () => {
+      const balance = await protocolService.getBalance(account, network, asset)
+      expect(balance).toBe(408.71715)
     })
   })
 });

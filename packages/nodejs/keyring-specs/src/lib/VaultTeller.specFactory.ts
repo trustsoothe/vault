@@ -85,7 +85,7 @@ export default <
       publicKey: '1234',
       privateKey: '1234',
       address: 'derived-address',
-      asset: unspecifiedNetworkAsset
+      protocol: unspecifiedNetworkAsset.protocol,
     }
 
     exampleAccount =
@@ -519,7 +519,7 @@ export default <
         const session = await vaultTeller.unlockVault(passphrase.get())
         const account = await vaultTeller.createAccount(session.id, passphrase, {
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           passphrase,
         });
         const accounts = await vaultTeller.listAccounts(session.id)
@@ -687,7 +687,7 @@ export default <
           const session = await vaultTeller.unlockVault('passphrase')
           const account = await vaultTeller.createAccount(session.id, new Passphrase('passphrase'), {
             name: 'example-account',
-            asset: pocketAsset,
+            protocol: pocketAsset.protocol,
             passphrase: new Passphrase('passphrase'),
           })
           vaultTeller.lockVault()
@@ -728,7 +728,7 @@ export default <
       const ownerSession = await vaultTeller.unlockVault(passphrase.get())
       const account = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
         name: 'example-account',
-        asset: pocketAsset,
+        protocol: pocketAsset.protocol,
         passphrase,
         privateKey: examplePrivateKey,
       })
@@ -763,7 +763,7 @@ export default <
         // @ts-ignore
         const createAccountOperation = vaultTeller.createAccountFromPrivateKey(session.id, passphrase, {
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           passphrase,
           privateKey: examplePrivateKey,
         })
@@ -780,7 +780,7 @@ export default <
         // @ts-ignore
         const createAccountOperation = vaultTeller.createAccountFromPrivateKey(session.id, null, {
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           passphrase,
           privateKey: examplePrivateKey,
         });
@@ -791,7 +791,7 @@ export default <
       test('creates an account from a private key', async () => {
         const {account} = await createVaultAndImportAccountFromPK();
         expect(account.name).toEqual('example-account')
-        expect(account.asset.protocol).toEqual(pocketAsset.protocol)
+        expect(account.protocol).toEqual(pocketAsset.protocol)
         expect(account.address).toEqual(expectedAddress)
       })
 
@@ -806,7 +806,7 @@ export default <
 
         const createAccountOperation = vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           passphrase,
           privateKey: examplePrivateKey,
         })
@@ -819,14 +819,14 @@ export default <
 
         const accountWithSameName = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           passphrase,
           privateKey: examplePrivateKey,
         }, true)
 
         expect(accountWithSameName.name).toEqual(account.name)
         expect(accountWithSameName.address).toEqual(account.address)
-        expect(accountWithSameName.asset.protocol).toEqual(account.asset.protocol)
+        expect(accountWithSameName.protocol).toEqual(account.protocol)
       })
     })
 
@@ -855,7 +855,7 @@ export default <
         // @ts-ignore
         const createAccountOperation = vaultTeller.createAccount(session.id, null, {
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           passphrase: new Passphrase('passphrase'),
         })
 
@@ -880,7 +880,7 @@ export default <
         // @ts-ignore
         const createAccountOperation = vaultTeller.createAccount(session.id, passphrase, {
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           passphrase,
         })
 
@@ -895,7 +895,7 @@ export default <
         const passphrase = new Passphrase('passphrase');
         const account = await vaultTeller.createAccount(session.id, passphrase, {
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           passphrase,
         })
 
@@ -910,7 +910,7 @@ export default <
         const passphrase = new Passphrase('passphrase');
         const account = await vaultTeller.createAccount(session.id, passphrase, {
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           passphrase,
         })
 
@@ -928,12 +928,12 @@ export default <
         await vaultTeller.unlockVault(passphrase.get())
         const account = await vaultTeller.deriveAccountFromPrivateKey({
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           privateKey: examplePrivateKey,
         })
 
         expect(account.name).toEqual('example-account')
-        expect(account.asset.protocol).toEqual(pocketAsset.protocol)
+        expect(account.protocol).toEqual(pocketAsset.protocol)
         expect(account.address).toEqual(expectedAddress)
         expect(account.privateKey).toEqual(examplePrivateKey)
       })
@@ -982,7 +982,7 @@ export default <
 
         const newAccountOptions = {
           name: 'example-account',
-          asset: pocketAsset,
+          protocol: pocketAsset.protocol,
           passphrase,
           privateKey: examplePrivateKey,
         }
