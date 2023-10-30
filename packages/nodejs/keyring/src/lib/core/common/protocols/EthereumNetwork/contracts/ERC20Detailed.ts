@@ -745,4 +745,4 @@ export default [
     "name": "ExecutionOperator",
     "type": "event"
   }
-];
+] as const;

@@ -1,42 +1,36 @@
 // @ts-ignore
-import { fromUint8Array } from "hex-lite";
+import {fromUint8Array} from "hex-lite";
 import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
   IProtocolService,
   TransferFundsOptions,
 } from "../IProtocolService";
-import { Account } from "../../../vault";
-import { utils, getPublicKeyAsync, signAsync } from "@noble/ed25519";
-import { Buffer } from "buffer";
-import { IEncryptionService } from "../../encryption/IEncryptionService";
-import { Network as NetworkObject} from "../../../network";
-import { AccountReference, SupportedProtocols } from "../../values";
+import {Account} from "../../../vault";
+import {getPublicKeyAsync, signAsync, utils} from "@noble/ed25519";
+import {Buffer} from "buffer";
+import {IEncryptionService} from "../../encryption/IEncryptionService";
+import {Network as NetworkObject} from "../../../network";
+import {AccountReference, SupportedProtocols} from "../../values";
 import urlJoin from "url-join";
 import {
+  PocketProtocolNetworkSchema,
   PocketRpcBalanceResponseSchema,
   PocketRpcCanSendTransactionResponseSchema,
   PocketRpcFeeParamsResponseSchema,
   PocketRpcFeeParamsResponseValue,
-  PocketProtocolNetworkSchema,
 } from "./schemas";
-import {
-  ArgumentError,
-  NetworkRequestError,
-  ProtocolTransactionError,
-} from "../../../../errors";
-import {
-  CoinDenom,
-  MsgProtoSend,
-  TxEncoderFactory,
-  TxSignature,
-} from "./pocket-js";
-import { RawTxRequest } from "@pokt-foundation/pocketjs-types";
+import {ArgumentError, NetworkRequestError, ProtocolTransactionError,} from "../../../../errors";
+import {CoinDenom, MsgProtoSend, TxEncoderFactory, TxSignature,} from "./pocket-js";
+import {RawTxRequest} from "@pokt-foundation/pocketjs-types";
 import {ProtocolFee} from "../ProtocolFee";
 import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
 import {INetwork} from "../INetwork";
 import {NetworkStatus} from "../../values/NetworkStatus";
 import {IAsset} from "../IAsset";
+import {IAbstractProtocolTransaction, IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
+import {PocketNetworkTransactionTypes} from "./PocketNetworkTransactionTypes";
+import {PocketNetworkProtocolTransaction} from "./PocketNetworkProtocolTransaction";
 
 type Network = NetworkObject<SupportedProtocols.Pocket>;
 
@@ -315,6 +309,15 @@ export class PocketNetworkProtocolService
     };
   }
 
+  async sendTransaction(network: INetwork, transaction: ProtocolTransaction<SupportedProtocols.Pocket>): Promise<IProtocolTransactionResult<SupportedProtocols.Pocket>> {
+    switch (transaction.transactionType) {
+      case PocketNetworkTransactionTypes.Send:
+        return await this.executeSendTransaction(network, transaction as PocketNetworkProtocolTransaction);
+      default:
+        throw new ProtocolTransactionError('Unsupported transaction type. Not implemented.');
+    }
+  }
+
   isValidPrivateKey(privateKey: string): boolean {
     return /^[0-9A-Fa-f]{128}$/.test(privateKey);
   }
@@ -371,5 +374,72 @@ export class PocketNetworkProtocolService
     }
 
     throw new Error("Invalid hex string");
+  }
+
+  private async executeSendTransaction(network: INetwork, transactionParams: PocketNetworkProtocolTransaction): Promise<IProtocolTransactionResult<SupportedProtocols.Pocket>> {
+    const txMsg = new MsgProtoSend(
+      transactionParams.from,
+      transactionParams.to,
+      (Number(transactionParams.amount) * 1e6).toString()
+    );
+
+    const entropy = Number(
+      BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString()
+    ).toString();
+
+    let fee = transactionParams.fee;
+
+    if (!fee) {
+      const feeResponse = await this.getFee(network);
+      fee = feeResponse.value;
+    }
+
+    const signer = TxEncoderFactory.createEncoder(
+      entropy,
+      network.chainID,
+      txMsg,
+      fee.toString(),
+      CoinDenom.Upokt,
+      transactionParams.memo || '',
+    );
+
+    const bytesToSign = signer.marshalStdSignDoc();
+
+    const txBytes = await signAsync(
+      bytesToSign.toString("hex"),
+      transactionParams.privateKey.slice(0, 64)
+    );
+
+    const marshalledTx = new TxSignature(
+      Buffer.from(this.getPublicKeyFromPrivateKey(transactionParams.privateKey), "hex"),
+      Buffer.from(txBytes)
+    );
+
+    const rawHexBytes = signer.marshalStdTx(marshalledTx).toString("hex");
+
+    const rawTx = new RawTxRequest(transactionParams.from, rawHexBytes);
+
+    const url = urlJoin(network.rpcUrl, "v1/client/rawtx");
+
+    const response = await globalThis.fetch(url, {
+      method: "POST",
+      body: JSON.stringify(rawTx.toJSON()),
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      throw new NetworkRequestError("Failed when sending transaction at the network level.", new Error(responseText));
+    }
+
+    const responseRawBody = await response.json();
+
+    if (responseRawBody.code || responseRawBody.raw_log) {
+      throw new ProtocolTransactionError('Failed to send transaction at the protocol level', new Error(responseRawBody.raw_log));
+    }
+
+    return {
+      protocol: SupportedProtocols.Pocket,
+      transactionHash: responseRawBody.txhash,
+    };
   }
 }

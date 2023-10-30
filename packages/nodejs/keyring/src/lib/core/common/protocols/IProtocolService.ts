@@ -1,6 +1,5 @@
 import { Account } from "../../vault";
 import {AccountReference, Passphrase, SupportedProtocols} from "../values";
-import { Asset } from "../../asset";
 import {ProtocolTransferFundsArguments} from "./ProtocolTransferFundsArguments";
 import {ProtocolFee} from "./ProtocolFee";
 import {IAbstractTransferFundsResult} from "./ProtocolTransferFundsResult";
@@ -8,6 +7,7 @@ import {INetwork} from "./INetwork";
 import {IAsset} from "./IAsset";
 import {NetworkStatus} from "../values/NetworkStatus";
 import {IAbstractProtocolFeeRequestOptions} from "./ProtocolFeeRequestOptions";
+import {ProtocolTransaction} from "./ProtocolTransaction";
 
 export interface CreateAccountOptions {
   name?: string
@@ -32,6 +32,7 @@ export interface IProtocolService<T extends SupportedProtocols> {
   createAccount(options: CreateAccountOptions): Promise<Account>
   createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account>
   transferFunds(network: INetwork,  transferOptions: TransferFundsOptions<T>): Promise<IAbstractTransferFundsResult<T>>
+  sendTransaction(network: INetwork, transaction: ProtocolTransaction<T>, asset?: IAsset): Promise<IAbstractTransferFundsResult<T>>
   isValidPrivateKey(privateKey: string): boolean
   getNetworkFeeStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus>
   getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus>

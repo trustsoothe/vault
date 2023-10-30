@@ -3,13 +3,13 @@ import {PocketNetworkTransferFundsArguments} from "./PocketNetwork";
 import {EthereumNetworkTransferFundsArguments} from "./EthereumNetwork";
 import {UnspecifiedProtocolTransferFundsArguments} from "./Unspecified/UnspecifiedProtocolTransferFundsArguments";
 
-export interface IAbstractTransferFundsArguments<SupportedProtocolTypes> {
-  protocol: SupportedProtocolTypes
+export interface IAbstractTransferFundsArguments<T extends SupportedProtocols> {
+  protocol: T
 }
 
-export type ProtocolTransferFundsArguments<SupportedProtocolTypes> =
-  SupportedProtocolTypes extends SupportedProtocols.Pocket
+export type ProtocolTransferFundsArguments<T extends SupportedProtocols> =
+  T extends SupportedProtocols.Pocket
       ? PocketNetworkTransferFundsArguments
-      : SupportedProtocolTypes extends SupportedProtocols.Ethereum
+      : T extends SupportedProtocols.Ethereum
         ? EthereumNetworkTransferFundsArguments
         :  UnspecifiedProtocolTransferFundsArguments;

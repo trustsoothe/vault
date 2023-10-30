@@ -1,22 +1,20 @@
-import {
-  CreateAccountFromPrivateKeyOptions,
-  CreateAccountOptions,
-  IProtocolService,
-} from "../IProtocolService";
+import {CreateAccountFromPrivateKeyOptions, CreateAccountOptions, IProtocolService,} from "../IProtocolService";
 import {Account} from "../../../vault";
 import {AccountReference, SupportedProtocols} from "../../values";
-import Eth from 'web3-eth'
+import Eth, {Web3Eth} from 'web3-eth'
 import {
   create,
-  privateKeyToPublicKey,
+  parseAndValidatePrivateKey,
   privateKeyToAccount,
   privateKeyToAddress,
-  parseAndValidatePrivateKey,
+  privateKeyToPublicKey,
+  signTransaction,
+  FeeMarketEIP1559Transaction,
 } from 'web3-eth-accounts';
 import {Contract} from 'web3-eth-contract';
 import {HttpProvider} from 'web3-providers-http';
-import {fromWei, toWei} from 'web3-utils';
-import {ArgumentError, NetworkRequestError} from "../../../../errors";
+import {fromWei, toHex, toWei} from 'web3-utils';
+import {ArgumentError, NetworkRequestError, ProtocolTransactionError} from "../../../../errors";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
 import {ProtocolFee} from "../ProtocolFee";
 import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
@@ -31,6 +29,11 @@ import {
 import {EthereumNetworkFeeRequestOptions} from "./EthereumNetworkFeeRequestOptions";
 import {SUGGESTED_GAS_FEES_URL} from "../../../../constants";
 import ERC20Abi from './contracts/ERC20Detailed';
+import {IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
+import * as console from "console";
+import {Buffer} from "buffer";
+import {EthereumNetworkProtocolTransaction} from "./EthereumNetworkProtocolTransaction";
+import {EthereumNetworkTransactionTypes} from "./EthereumNetworkTransactionTypes";
 
 interface SuggestedFeeSpeed {
   suggestedMaxPriorityFeePerGas: string;
@@ -61,7 +64,7 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     }
 
     if (!options.passphrase && !options.skipEncryption) {
-      throw new ArgumentError('options.passphrase')
+      throw new ArgumentError('options.passphrase');
     }
 
     const account = create()
@@ -69,7 +72,7 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     let privateKey = account.privateKey
 
     if (options.passphrase) {
-      privateKey = await this.encryptionService.encrypt(options.passphrase, privateKey)
+      privateKey = await this.encryptionService.encrypt(options.passphrase, privateKey);
     }
 
     return new Account({
@@ -202,6 +205,15 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
 
   async transferFunds(network: INetwork): Promise<IAbstractTransferFundsResult<SupportedProtocols.Ethereum>> {
     throw new Error('Not Implemented')
+  }
+
+  async sendTransaction(network: INetwork, transaction: ProtocolTransaction<SupportedProtocols.Ethereum>, asset?: IAsset): Promise<IAbstractTransferFundsResult<SupportedProtocols.Ethereum>> {
+    switch (transaction.transactionType) {
+      case EthereumNetworkTransactionTypes.Transfer:
+        return await this.executeTransferTransaction(network, transaction, asset);
+      default:
+        throw new ProtocolTransactionError('Unsupported transaction type. Not implemented.');
+    }
   }
 
   async getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
@@ -343,10 +355,92 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     return new Eth(network.rpcUrl)
   }
 
-  private getEthContractClient(network: INetwork, asset: IAsset) {
+  private getEthContractClient(network: INetwork, asset: IAsset): Contract<typeof ERC20Abi> {
     const provider = new HttpProvider(network.rpcUrl);
     const contract = new Contract(ERC20Abi, asset.contractAddress);
     contract.setProvider(provider);
     return contract;
+  }
+
+  private async signAndSendTransaction(txParams: { gasLimit: bigint; chainId: number; maxPriorityFeePerGas: string | "address" | "bool" | "string" | "int256" | "uint256" | "bytes" | "bigint"; from: string; to: string; maxFeePerGas: string | "address" | "bool" | "string" | "int256" | "uint256" | "bytes" | "bigint"; value: string | "address" | "bool" | "string" | "int256" | "uint256" | "bytes" | "bigint"; nonce: bigint }, transactionParams: EthereumNetworkProtocolTransaction, ethClient: Web3Eth) : Promise<IProtocolTransactionResult<SupportedProtocols.Ethereum>> {
+    const tx = new FeeMarketEIP1559Transaction(txParams);
+
+    const signedTx = await signTransaction(tx, this.parsePrivateKey(transactionParams.privateKey));
+
+    try {
+      const result = await ethClient.sendSignedTransaction(signedTx.rawTransaction);
+
+      return {
+        protocol: SupportedProtocols.Ethereum,
+        transactionHash: Buffer.from(result.transactionHash).toString('hex'),
+      }
+    } catch (e) {
+      throw new ProtocolTransactionError('Failed to send transaction', e as Error);
+    }
+  }
+
+  private async executeTransferTransaction(network: INetwork, transactionParams: EthereumNetworkProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.Ethereum>> {
+    if (!asset) {
+      return await this.executeNativeTransferTransaction(network, transactionParams);
+    }
+
+    return await this.executeERC20TransferTransaction(network, transactionParams, asset);
+  }
+
+  private async executeNativeTransferTransaction(network: INetwork, transactionParams: EthereumNetworkProtocolTransaction): Promise<IProtocolTransactionResult<SupportedProtocols.Ethereum>> {
+    const ethClient = this.getEthClient(network);
+
+    const nonce = await ethClient.getTransactionCount(transactionParams.from);
+
+    const txParams = {
+      from: transactionParams.from,
+      to: transactionParams.to,
+      value: toHex(toWei(Number(transactionParams.amount), 'ether')),
+      gasLimit: BigInt(21000),
+      chainId: Number(network.chainID),
+      nonce,
+      maxFeePerGas: toHex(transactionParams.maxFeePerGas),
+      maxPriorityFeePerGas: toHex(transactionParams.maxPriorityFeePerGas),
+    };
+
+    return this.signAndSendTransaction(txParams, transactionParams, ethClient);
+  }
+
+  private async executeERC20TransferTransaction(network: INetwork, transactionParams: EthereumNetworkProtocolTransaction, asset: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.Ethereum>> {
+    const amount = Number(transactionParams.amount) * (10 ** (asset.decimals || 18));
+    const ethContractClient = this.getEthContractClient(network, asset);
+    const transferFn = ethContractClient.methods.transfer(transactionParams.to, amount);
+
+    let estimatedGas = BigInt(0);
+
+    try {
+      estimatedGas = await transferFn.estimateGas({
+        from: transactionParams.from,
+      });
+    } catch (e) {
+      throw new ProtocolTransactionError('Failed to estimate gas', e as Error);
+    }
+
+    const gasLimit = estimatedGas * BigInt(2);
+
+    const data = transferFn.encodeABI();
+
+    const ethClient = this.getEthClient(network);
+
+    const nonce = await ethClient.getTransactionCount(transactionParams.from);
+
+    const txParams = {
+      from: transactionParams.from,
+      to: transactionParams.to,
+      value: '0x0',
+      gasLimit,
+      chainId: Number(network.chainID),
+      nonce,
+      maxFeePerGas: toHex(transactionParams.maxFeePerGas),
+      maxPriorityFeePerGas: toHex(transactionParams.maxPriorityFeePerGas),
+      data,
+    };
+
+    return this.signAndSendTransaction(txParams, transactionParams, ethClient);
   }
 }
