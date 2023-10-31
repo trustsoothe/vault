@@ -588,8 +588,8 @@ export default <
               rpcUrl: 'https://example.com',
               chainID: 'testnet',
             }),
-            transferArguments: {
-            },
+            // @ts-ignore
+            transactionParams: {},
           })
 
           await expect(transferFundsOperation).rejects.toThrow(InvalidPrivateKeyError)
@@ -618,7 +618,8 @@ export default <
               rpcUrl: 'https://example.com',
               chainID: 'testnet',
             }),
-            transferArguments: {},
+            // @ts-ignore
+            transactionParams: {},
           })
 
           await expect(transferFundsOperation).rejects.toThrow(/^.*from\.value.*$/);
@@ -646,7 +647,8 @@ export default <
               rpcUrl: 'https://example.com',
               chainID: 'testnet',
             }),
-            transferArguments: {},
+            // @ts-ignore
+            transactionParams: {},
           })
 
           await expect(transferFundsOperation).rejects.toThrow(/^.*from\.passphrase.*$/);
@@ -674,7 +676,8 @@ export default <
               rpcUrl: 'https://example.com',
               chainID: 'testnet',
             }),
-            transferArguments: {},
+            // @ts-ignore
+            transactionParams: {},
           })
 
           await expect(transferFundsOperation).rejects.toThrow(AccountNotFoundError)
@@ -707,7 +710,8 @@ export default <
               rpcUrl: 'https://example.com',
               chainID: 'testnet',
             }),
-            transferArguments: {},
+            // @ts-ignore
+            transactionParams: {},
           })
 
           await expect(transferFundsOperation).rejects.toThrow(VaultIsLockedError)

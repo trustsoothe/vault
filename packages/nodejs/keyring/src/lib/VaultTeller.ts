@@ -1,19 +1,25 @@
 import {
-  Passphrase,
+  AccountReference,
   EncryptedVault,
   ExternalAccessRequest,
-  AccountReference, SupportedProtocols,
+  Passphrase,
+  SupportedProtocols,
+  SupportedTransferDestinations,
+  SupportedTransferOrigins,
 } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
-import { IEncryptionService } from "./core/common/encryption/IEncryptionService";
-import { Account, AccountUpdateOptions,Vault } from "./core/vault";
-import { SerializedSession, Session, SessionOptions } from "./core/session";
-import { Permission,PermissionsBuilder } from "./core/common/permissions";
+import {IEncryptionService} from "./core/common/encryption/IEncryptionService";
+import {Account, AccountUpdateOptions, Vault} from "./core/vault";
+import {SerializedSession, Session, SessionOptions} from "./core/session";
+import {Permission, PermissionsBuilder} from "./core/common/permissions";
 import IStorage from "./core/common/storage/IStorage";
 import {
-  AccountNotFoundError, ArgumentError,
-  ForbiddenSessionError, InvalidPrivateKeyError,
-  InvalidSessionError, PrivateKeyRestoreError,
+  AccountNotFoundError,
+  ArgumentError,
+  ForbiddenSessionError,
+  InvalidPrivateKeyError,
+  InvalidSessionError,
+  PrivateKeyRestoreError,
   SessionIdRequiredError,
   SessionNotFoundError,
   VaultIsLockedError,
@@ -22,21 +28,20 @@ import {
 import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
+  EthereumNetworkProtocolService,
+  PocketNetworkProtocolService,
   ProtocolServiceFactory,
 } from "./core/common/protocols";
-import { v4 , validate} from "uuid";
-import {SupportedTransferOrigins} from "./core/common/values";
-import {SupportedTransferDestinations} from "./core/common/values";
-import {ProtocolTransferFundsArguments} from "./core/common/protocols/ProtocolTransferFundsArguments";
+import {v4, validate} from "uuid";
 import {Asset} from "./core/asset";
-import {
-  IAbstractTransferFundsResult,
-} from "./core/common/protocols/ProtocolTransferFundsResult";
 import {INetwork} from "./core/common/protocols/INetwork";
+import {IProtocolTransactionResult} from "./core/common/protocols/ProtocolTransaction";
+import {PocketNetworkTransactionTypes} from "./core/common/protocols/PocketNetwork/PocketNetworkTransactionTypes";
+import {EthereumNetworkTransactionTypes} from "./core/common/protocols/EthereumNetwork/EthereumNetworkTransactionTypes";
 
 export type AllowedProtocols = keyof typeof SupportedProtocols;
 
-export interface TransferOptions<T extends SupportedProtocols> {
+export interface TransferOptions {
   from: {
     type: SupportedTransferOrigins;
     passphrase?: string;
@@ -49,7 +54,17 @@ export interface TransferOptions<T extends SupportedProtocols> {
   },
   amount: number;
   network: INetwork;
-  transferArguments: ProtocolTransferFundsArguments<T>;
+  transactionParams: {
+    from: string;
+    to: string;
+    amount: string;
+    privateKey: string;
+    maxFeePerGas?: number;
+    maxPriorityFeePerGas?: number;
+    data?: string;
+    fee?: number;
+    memo?: string;
+  }
 }
 
 export class VaultTeller {
@@ -365,7 +380,7 @@ export class VaultTeller {
     }
   }
 
-  async transferFunds<T extends SupportedProtocols>(sessionId: string, options: TransferOptions<T>): Promise<IAbstractTransferFundsResult<AllowedProtocols>> {
+  async transferFunds(sessionId: string, options: TransferOptions): Promise<IProtocolTransactionResult<AllowedProtocols>> {
     await this.validateSessionForPermissions(sessionId, "transaction", "send");
 
     switch (options.from.type) {
@@ -378,7 +393,41 @@ export class VaultTeller {
     }
   }
 
-  private async transferWithVaultAccount<T extends SupportedProtocols>(options: TransferOptions<T>): Promise<IAbstractTransferFundsResult<AllowedProtocols>> {
+  private async sendTransaction(account: Account, privateKey: string, options: TransferOptions) {
+    switch (options.network.protocol) {
+      case SupportedProtocols.Pocket:
+        return await new PocketNetworkProtocolService(this.encryptionService).sendTransaction(
+          options.network,
+          {
+            protocol: SupportedProtocols.Pocket,
+            transactionType: PocketNetworkTransactionTypes.Send,
+            from: account.address,
+            to: options.to.value,
+            amount: options.amount.toString(),
+            fee: options.transactionParams.fee,
+            privateKey,
+          },
+        );
+      case SupportedProtocols.Ethereum:
+        return await new EthereumNetworkProtocolService(this.encryptionService).sendTransaction(
+          options.network,
+          {
+            protocol: SupportedProtocols.Ethereum,
+            transactionType: EthereumNetworkTransactionTypes.Transfer,
+            from: account.address,
+            to: options.to.value,
+            amount: options.amount.toString(),
+            privateKey,
+            maxPriorityFeePerGas: options.transactionParams.maxPriorityFeePerGas || 0,
+            maxFeePerGas: options.transactionParams.maxFeePerGas || 0,
+          },
+        );
+      default:
+        throw new Error(`Protocol ${options.network.protocol} not supported`);
+    }
+  }
+
+  private async transferWithVaultAccount(options: TransferOptions): Promise<IProtocolTransactionResult<AllowedProtocols>> {
     if (!this.isUnlocked) {
       throw new VaultIsLockedError();
     }
@@ -401,35 +450,17 @@ export class VaultTeller {
 
     try {
       privateKey = await this.encryptionService.decrypt(
-        new Passphrase(options.from.passphrase),
+        new Passphrase(options.from.passphrase || ''),
         account.privateKey
       );
     } catch (e) {
       throw new PrivateKeyRestoreError();
     }
 
-    const protocolService = ProtocolServiceFactory.getProtocolService(
-      options.network.protocol,
-      this.encryptionService
-    );
-
-    const transferArguments: ProtocolTransferFundsArguments<T> = {
-      ...options.transferArguments,
-    };
-
-    return await protocolService.transferFunds(
-      options.network,
-      {
-        from: account.address,
-        to: options.to.value,
-        amount: options.amount,
-        privateKey,
-        transferArguments,
-      },
-    );
+    return await this.sendTransaction(account, privateKey, options);
   }
 
-  private async transferWithPrivateKey<T extends SupportedProtocols>(options: TransferOptions<T>): Promise<IAbstractTransferFundsResult<AllowedProtocols>> {
+  private async transferWithPrivateKey(options: TransferOptions): Promise<IProtocolTransactionResult<AllowedProtocols>> {
     const protocolService=
       ProtocolServiceFactory.getProtocolService(options.network.protocol, this.encryptionService);
 
@@ -440,7 +471,11 @@ export class VaultTeller {
     }
 
     if (!options.from.asset) {
-      throw new ArgumentError('from.asset');
+      throw new ArgumentError('from.asset', 'from.asset is required');
+    }
+
+    if (options.from.asset.protocol !== options.network.protocol) {
+      throw new ArgumentError('from.asset.protocol', 'from.asset.protocol must match network.protocol');
     }
 
     const account = await protocolService.createAccountFromPrivateKey({
@@ -449,16 +484,7 @@ export class VaultTeller {
       skipEncryption: true,
     });
 
-    return await protocolService.transferFunds(
-       options.network,
-      {
-        from: account.address,
-        to: options.to.value,
-        amount: options.amount,
-        privateKey: account.privateKey,
-        transferArguments: options.transferArguments,
-      }
-    );
+    return await this.sendTransaction(account, options.from.value, options);
   }
 
   get isUnlocked(): boolean {

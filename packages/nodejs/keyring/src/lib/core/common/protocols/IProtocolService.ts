@@ -1,13 +1,13 @@
 import { Account } from "../../vault";
 import {AccountReference, Passphrase, SupportedProtocols} from "../values";
-import {ProtocolTransferFundsArguments} from "./ProtocolTransferFundsArguments";
 import {ProtocolFee} from "./ProtocolFee";
-import {IAbstractTransferFundsResult} from "./ProtocolTransferFundsResult";
 import {INetwork} from "./INetwork";
 import {IAsset} from "./IAsset";
 import {NetworkStatus} from "../values/NetworkStatus";
 import {IAbstractProtocolFeeRequestOptions} from "./ProtocolFeeRequestOptions";
-import {ProtocolTransaction} from "./ProtocolTransaction";
+import {IProtocolTransactionResult, ProtocolTransaction} from "./ProtocolTransaction";
+import {PocketNetworkProtocolTransaction} from "./PocketNetwork/PocketNetworkProtocolTransaction";
+import {EthereumNetworkProtocolTransaction} from "./EthereumNetwork/EthereumNetworkProtocolTransaction";
 
 export interface CreateAccountOptions {
   name?: string
@@ -20,19 +20,10 @@ export interface CreateAccountFromPrivateKeyOptions extends CreateAccountOptions
   privateKey: string
 }
 
-export interface TransferFundsOptions<T extends SupportedProtocols> {
-  from: string;
-  to: string;
-  amount: number;
-  privateKey: string;
-  transferArguments: ProtocolTransferFundsArguments<T>;
-}
-
 export interface IProtocolService<T extends SupportedProtocols> {
   createAccount(options: CreateAccountOptions): Promise<Account>
   createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account>
-  transferFunds(network: INetwork,  transferOptions: TransferFundsOptions<T>): Promise<IAbstractTransferFundsResult<T>>
-  sendTransaction(network: INetwork, transaction: ProtocolTransaction<T>, asset?: IAsset): Promise<IAbstractTransferFundsResult<T>>
+  sendTransaction(network: INetwork, transaction: ProtocolTransaction<T>, asset?: IAsset): Promise<IProtocolTransactionResult<T>>
   isValidPrivateKey(privateKey: string): boolean
   getNetworkFeeStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus>
   getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus>

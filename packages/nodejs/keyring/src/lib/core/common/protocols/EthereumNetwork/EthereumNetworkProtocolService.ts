@@ -17,7 +17,6 @@ import {fromWei, toHex, toWei} from 'web3-utils';
 import {ArgumentError, NetworkRequestError, ProtocolTransactionError} from "../../../../errors";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
 import {ProtocolFee} from "../ProtocolFee";
-import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
 import {INetwork} from "../INetwork";
 import {IAsset} from "../IAsset";
 import {NetworkStatus} from "../../values/NetworkStatus";
@@ -203,11 +202,7 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     }
   }
 
-  async transferFunds(network: INetwork): Promise<IAbstractTransferFundsResult<SupportedProtocols.Ethereum>> {
-    throw new Error('Not Implemented')
-  }
-
-  async sendTransaction(network: INetwork, transaction: ProtocolTransaction<SupportedProtocols.Ethereum>, asset?: IAsset): Promise<IAbstractTransferFundsResult<SupportedProtocols.Ethereum>> {
+  async sendTransaction(network: INetwork, transaction: EthereumNetworkProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.Ethereum>> {
     switch (transaction.transactionType) {
       case EthereumNetworkTransactionTypes.Transfer:
         return await this.executeTransferTransaction(network, transaction, asset);

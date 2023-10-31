@@ -4,7 +4,6 @@ import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
   IProtocolService,
-  TransferFundsOptions,
 } from "../IProtocolService";
 import {Account} from "../../../vault";
 import {getPublicKeyAsync, signAsync, utils} from "@noble/ed25519";
@@ -24,11 +23,10 @@ import {ArgumentError, NetworkRequestError, ProtocolTransactionError,} from "../
 import {CoinDenom, MsgProtoSend, TxEncoderFactory, TxSignature,} from "./pocket-js";
 import {RawTxRequest} from "@pokt-foundation/pocketjs-types";
 import {ProtocolFee} from "../ProtocolFee";
-import {IAbstractTransferFundsResult} from "../ProtocolTransferFundsResult";
 import {INetwork} from "../INetwork";
 import {NetworkStatus} from "../../values/NetworkStatus";
 import {IAsset} from "../IAsset";
-import {IAbstractProtocolTransaction, IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
+import {IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
 import {PocketNetworkTransactionTypes} from "./PocketNetworkTransactionTypes";
 import {PocketNetworkProtocolTransaction} from "./PocketNetworkProtocolTransaction";
 
@@ -238,78 +236,7 @@ export class PocketNetworkProtocolService
     };
   }
 
-  async transferFunds(
-    network: INetwork,
-    options: TransferFundsOptions<SupportedProtocols.Pocket>
-  ): Promise<IAbstractTransferFundsResult<SupportedProtocols.Pocket>> {
-    const txMsg = new MsgProtoSend(
-      options.from,
-      options.to,
-      (options.amount * 1e6).toString()
-    );
-
-    const entropy = Number(
-      BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString()
-    ).toString();
-
-    const transferArguments = options.transferArguments;
-
-    let fee = transferArguments.fee;
-
-    if (!fee) {
-      const feeResponse = await this.getFee(network);
-      fee = feeResponse.value;
-    }
-
-    const signer = TxEncoderFactory.createEncoder(
-      entropy,
-      network.chainID,
-      txMsg,
-      fee.toString(),
-      CoinDenom.Upokt,
-      transferArguments.memo || '',
-    );
-
-    const bytesToSign = signer.marshalStdSignDoc();
-
-    const txBytes = await signAsync(
-      bytesToSign.toString("hex"),
-      options.privateKey.slice(0, 64)
-    );
-
-    const marshalledTx = new TxSignature(
-      Buffer.from(this.getPublicKeyFromPrivateKey(options.privateKey), "hex"),
-      Buffer.from(txBytes)
-    );
-
-    const rawHexBytes = signer.marshalStdTx(marshalledTx).toString("hex");
-
-    const rawTx = new RawTxRequest(options.from, rawHexBytes);
-
-    const url = urlJoin(network.rpcUrl, "v1/client/rawtx");
-
-    const response = await globalThis.fetch(url, {
-      method: "POST",
-      body: JSON.stringify(rawTx.toJSON()),
-    });
-
-    if (!response.ok) {
-      throw new NetworkRequestError("Failed to send transaction");
-    }
-
-    const responseRawBody = await response.json();
-
-    if (responseRawBody.code || responseRawBody.raw_log) {
-      throw new ProtocolTransactionError();
-    }
-
-    return {
-      protocol: SupportedProtocols.Pocket,
-      transactionHash: responseRawBody.txhash,
-    };
-  }
-
-  async sendTransaction(network: INetwork, transaction: ProtocolTransaction<SupportedProtocols.Pocket>): Promise<IProtocolTransactionResult<SupportedProtocols.Pocket>> {
+  async sendTransaction(network: INetwork, transaction: PocketNetworkProtocolTransaction): Promise<IProtocolTransactionResult<SupportedProtocols.Pocket>> {
     switch (transaction.transactionType) {
       case PocketNetworkTransactionTypes.Send:
         return await this.executeSendTransaction(network, transaction as PocketNetworkProtocolTransaction);

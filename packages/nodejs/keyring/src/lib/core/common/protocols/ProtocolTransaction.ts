@@ -17,7 +17,9 @@ export interface IAbstractProtocolTransaction<T extends SupportedProtocols, TTra
   privateKey: string;
 }
 
-export interface IProtocolTransactionResult<T extends SupportedProtocols> {
+type AllowedProtocols = keyof typeof SupportedProtocols;
+
+export interface IProtocolTransactionResult<T extends AllowedProtocols> {
   protocol: T;
   transactionHash: string;
 }
@@ -25,6 +27,4 @@ export interface IProtocolTransactionResult<T extends SupportedProtocols> {
 export type ProtocolTransaction<T extends SupportedProtocols> =
   T extends SupportedProtocols.Pocket
     ? PocketNetworkProtocolTransaction
-    : T extends SupportedProtocols.Ethereum
-      ? EthereumNetworkProtocolTransaction
-      :  never;
+    : EthereumNetworkProtocolTransaction;
