@@ -29,7 +29,6 @@ import {EthereumNetworkFeeRequestOptions} from "./EthereumNetworkFeeRequestOptio
 import {SUGGESTED_GAS_FEES_URL} from "../../../../constants";
 import ERC20Abi from './contracts/ERC20Detailed';
 import {IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
-import * as console from "console";
 import {Buffer} from "buffer";
 import {EthereumNetworkProtocolTransaction} from "./EthereumNetworkProtocolTransaction";
 import {EthereumNetworkTransactionTypes} from "./EthereumNetworkTransactionTypes";
@@ -151,7 +150,6 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
     try {
       estimatedGas = Number(await ethClient.estimateGas(options)) * 1.5;
     } catch (e) {
-      console.error(e);
       throw new NetworkRequestError('Failed while estimating gas');
     }
 
@@ -159,7 +157,6 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
       const suggestionsResponse = await globalThis.fetch(url);
       suggestions = await suggestionsResponse.json();
     } catch (e) {
-      console.log(e);
       throw new NetworkRequestError('Failed while fetching suggested fees');
     }
 
@@ -232,7 +229,6 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
         updatingStatus.updateBalanceStatus(true);
       }
     } catch (e) {
-      console.log(e);
       updatingStatus.updateBalanceStatus(false);
     }
 
@@ -286,7 +282,6 @@ export class EthereumNetworkProtocolService implements IProtocolService<Supporte
         updatingStatus.updateSendTransactionStatus(false);
       }
     } catch (e) {
-      console.log(e);
       updatingStatus.updateSendTransactionStatus(false);
     }
 
