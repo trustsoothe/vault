@@ -1,9 +1,3 @@
-import {commonRPCHandlerFactory, commonRPCFailureHandlerFactory} from "./ethCommonRPC.handler";
-
-export const successfulHandlersFactory = (baseUrl: string) => [
-  commonRPCHandlerFactory(baseUrl),
-]
-
-export const failureHandlerFactory = (baseUrl: string) => [
-  commonRPCFailureHandlerFactory(baseUrl),
-]
+export * from './queryBalance.handler';
+export * from './queryFee.handler';
+export * from './sendTransaction.handler';

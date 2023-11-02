@@ -1,5 +1,5 @@
 import {z} from "zod";
-
+import {POCKET_NETWORK_PROTOCOL} from "../../values";
 
 export const PocketRpcFeeParamValueSchema =  z.object({
   fee_multiplier: z.number().nullable().transform((value, ctx) => {
@@ -75,4 +75,10 @@ export const PocketRpcBalanceResponseSchema = z.object({
 export const PocketRpcCanSendTransactionResponseSchema = z.object({
   code: z.literal(2),
   raw_log: z.string().regex(/^.*txBytes are empty.*$/),
+});
+
+export const PocketProtocolNetworkSchema = z.object({
+  protocol: z.literal(POCKET_NETWORK_PROTOCOL),
+  chainID: z.enum(["mainnet", "testnet"]),
+  rpcUrl: z.string().url(),
 });

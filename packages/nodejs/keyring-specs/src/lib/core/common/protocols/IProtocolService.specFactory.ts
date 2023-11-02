@@ -6,7 +6,7 @@ import {
   Network,
   AccountReference,
   ArgumentError,
-  NetworkRequestError, SupportedProtocols,
+  NetworkRequestError, SupportedProtocols, INetwork, IAsset,
 } from "@poktscan/keyring";
 import { webcrypto } from 'node:crypto';
 import {MockServerFactory} from "../../../../mocks/mock-server-factory";
@@ -22,8 +22,8 @@ if (!globalThis.crypto) {
 }
 
 export interface IProtocolServiceSpecFactoryOptions<T extends SupportedProtocols> {
-  asset: Asset
-  network: Network<T>
+  asset: IAsset
+  network: INetwork
   account: AccountReference
   accountImport: {
     privateKey: string
@@ -54,7 +54,8 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
 
     describe('new random accounts generations', () => {
       test('creates a new random account using the asset.', async () => {
-        const account = await protocolService.createAccount({ asset, passphrase })
+        const {protocol} = asset;
+        const account = await protocolService.createAccount({ protocol, passphrase })
         expect(account).toBeDefined()
         expect(account.address).toBeDefined()
         expect(account.publicKey).toBeDefined()
@@ -63,7 +64,7 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     })
   })
 
-  describe('getBalance', () => {
+  describe('getBalance - (Native)', () => {
     const {account: exampleAccountRef} = options
 
     describe('validations', () => {
@@ -84,7 +85,8 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     })
 
     describe('Successful requests', () => {
-      const server = MockServerFactory.getSuccessMockServer(exampleNetwork)
+      const mockServer = new MockServerFactory(exampleNetwork);
+      const server = mockServer.addSuccessfulQueryBalanceHandler().buildServer();
 
       beforeAll(() => server.listen());
 
@@ -93,13 +95,14 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
       afterAll(() => server.close());
 
       test('returns the balance of the account', async () => {
-        const balance = await protocolService.getBalance(exampleNetwork, exampleAccountRef)
+        const balance = await protocolService.getBalance(exampleAccountRef, exampleNetwork)
         expect(balance).toBe(200)
       })
     })
 
     describe('Unsuccessful requests', () => {
-      const server = MockServerFactory.getFailureMockServer(exampleNetwork)
+      const mockServer = new MockServerFactory(exampleNetwork);
+      const server = mockServer.addFailedQueryBalanceHandler().buildServer();
 
       beforeAll(() => server.listen());
 
@@ -108,7 +111,7 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
       afterAll(() => server.close());
 
       test('throws a request error if request fails', () => {
-        return expect(protocolService.getBalance(exampleNetwork, exampleAccountRef)).rejects.toThrow(NetworkRequestError)
+        return expect(protocolService.getBalance(exampleAccountRef, exampleNetwork)).rejects.toThrow(NetworkRequestError)
       })
     })
   })
@@ -117,21 +120,27 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     describe('validations', () => {
       test('throws if undefined is provided', () => {
         // @ts-ignore
-        return expect(protocolService.updateNetworkStatus(undefined)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.getNetworkStatus(undefined)).rejects.toThrow(ArgumentError);
       })
 
       test('throws if null is provided', () => {
         // @ts-ignore
-        return expect(protocolService.updateNetworkStatus(null)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.getNetworkStatus(null)).rejects.toThrow(ArgumentError);
       })
 
       test('throws if an invalid network is provided', () => {
-        return expect(protocolService.updateNetworkStatus({} as Network<T>)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.getNetworkStatus({} as Network<T>)).rejects.toThrow(ArgumentError);
       })
     })
 
     describe('Successful requests', () => {
-      const server = MockServerFactory.getSuccessMockServer(exampleNetwork)
+      const mockServer = new MockServerFactory(exampleNetwork);
+      const server =
+          mockServer
+            .addSuccessfulQueryFeeHandler()
+            .addSuccessfulQueryBalanceHandler()
+            .addSendTransactionHandler()
+            .buildServer();
 
       beforeAll(() => server.listen());
 
@@ -140,24 +149,24 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
       afterAll(() => server.close());
 
       test('updates the fee status', async () => {
-        const network = await protocolService.updateNetworkStatus(exampleNetwork)
-        expect(network.status.canProvideFee).toBe(true)
-        expect(network.status.feeStatusLastUpdated).toBeDefined()
-        expect(network.status.feeStatusLastUpdated).closeTo(Date.now(), 1000)
+        const status = await protocolService.getNetworkStatus(exampleNetwork)
+        expect(status.canProvideFee).toBe(true)
+        expect(status.feeStatusLastUpdated).toBeDefined()
+        expect(status.feeStatusLastUpdated).closeTo(Date.now(), 1000)
       })
 
       test('updates the balance status', async () => {
-        const network = await protocolService.updateNetworkStatus(exampleNetwork)
-        expect(network.status.canProvideBalance).toBe(true)
-        expect(network.status.balanceStatusLastUpdated).toBeDefined()
-        expect(network.status.balanceStatusLastUpdated).closeTo(Date.now(), 1000)
+        const status = await protocolService.getNetworkStatus(exampleNetwork)
+        expect(status.canProvideBalance).toBe(true)
+        expect(status.balanceStatusLastUpdated).toBeDefined()
+        expect(status.balanceStatusLastUpdated).closeTo(Date.now(), 1000)
       })
 
       test('updates the send transaction status', async () => {
-        const network = await protocolService.updateNetworkStatus(exampleNetwork)
-        expect(network.status.canSendTransaction).toBe(true)
-        expect(network.status.sendTransactionStatusLastUpdated).toBeDefined()
-        expect(network.status.sendTransactionStatusLastUpdated).closeTo(Date.now(), 1000)
+        const status = await protocolService.getNetworkStatus(exampleNetwork)
+        expect(status.canSendTransaction).toBe(true)
+        expect(status.sendTransactionStatusLastUpdated).toBeDefined()
+        expect(status.sendTransactionStatusLastUpdated).closeTo(Date.now(), 1000)
       })
     })
   })
@@ -180,19 +189,19 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     })
 
     test('derives the correct public key for the account', async () => {
-      const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: accountImport.privateKey })
+      const account = await protocolService.createAccountFromPrivateKey({ protocol: asset.protocol, passphrase, privateKey: accountImport.privateKey })
       expect(account).toBeDefined()
       expect(account.publicKey).toBe(accountImport.publicKey)
     })
 
     test('derives the correct address for the account', async () => {
-      const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: accountImport.privateKey })
+      const account = await protocolService.createAccountFromPrivateKey({ protocol: asset.protocol, passphrase, privateKey: accountImport.privateKey })
       expect(account).toBeDefined()
       expect(account.address).toBe(accountImport.address)
     })
 
     test('encrypts the private key with the passphrase', async () => {
-      const account = await protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: accountImport.privateKey })
+      const account = await protocolService.createAccountFromPrivateKey({ protocol: asset.protocol, passphrase, privateKey: accountImport.privateKey })
       expect(account).toBeDefined()
       expect(account.privateKey).not.toBe(accountImport.privateKey)
     })

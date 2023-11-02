@@ -11,11 +11,6 @@ export abstract class NetworkStorage implements IStorage<SerializedNetwork> {
       rpcUrl: "https://node1.testnet.pokt.network",
       protocol: SupportedProtocols.Pocket,
       chainID: "testnet",
-      status: {
-        fee: false,
-        balance: false,
-        sendTransaction: false,
-      },
       createdAt: 1688595970086,
       updatedAt: 1688595970086,
     },
@@ -26,11 +21,6 @@ export abstract class NetworkStorage implements IStorage<SerializedNetwork> {
       rpcUrl: "https://pocket.tango.admin.poktscan.cloud",
       protocol: SupportedProtocols.Pocket,
       chainID: "mainnet",
-      status: {
-        fee: false,
-        balance: false,
-        sendTransaction: false,
-      },
       createdAt: 1693499936849,
       updatedAt: 1693499936849,
     },

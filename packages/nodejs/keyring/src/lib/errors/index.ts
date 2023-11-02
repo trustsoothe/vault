@@ -106,7 +106,7 @@ export class AccountExistError extends KeyringError {
   constructor(account: Account) {
     super({
       name: 'AccountExistError',
-      message: `An account with address: ${account.address} and protocol: "${account.asset.protocol}" already exists within the vault.`,
+      message: `An account with address: ${account.address} and protocol: "${account.protocol}" already exists within the vault.`,
     });
   }
 }
@@ -139,10 +139,11 @@ export class AccountNotFoundError extends KeyringError {
 }
 
 export class ProtocolTransactionError extends KeyringError {
-  constructor(message?: string) {
+  constructor(message?: string, innerError?: Error) {
     super({
       name: 'ProtocolTransactionError',
       message: message || 'The provided transaction failed',
+      innerError,
     });
   }
 }

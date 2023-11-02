@@ -1,6 +1,4 @@
-import {SerializedNetwork} from "../index";
-
-export class Status {
+export class NetworkStatus {
   private _fee: boolean = false;
   private _feeStatusLastUpdated: number = 0;
   private _balance: boolean = false;
@@ -8,15 +6,21 @@ export class Status {
   private _sendTransaction: boolean = false;
   private _sendTransactionStatusLastUpdated: number = 0;
 
-  constructor(serializedNetwork?: SerializedNetwork) {
-    if (serializedNetwork) {
-      this._fee = serializedNetwork.status.fee;
-      this._feeStatusLastUpdated = serializedNetwork.status.feeStatusLastUpdated || 0;
-      this._balance = serializedNetwork.status.balance;
-      this._balanceStatusLastUpdated = serializedNetwork.status.balanceStatusLastUpdated || 0;
-      this._sendTransaction = serializedNetwork.status.sendTransaction;
-      this._sendTransactionStatusLastUpdated = serializedNetwork.status.sendTransactionStatusLastUpdated || 0;
+  static createFrom(originStatus?: NetworkStatus): NetworkStatus {
+    const status = new NetworkStatus();
+
+    if (!originStatus) {
+      return status;
     }
+
+    status._fee = originStatus._fee;
+    status._feeStatusLastUpdated = originStatus._feeStatusLastUpdated;
+    status._balance = originStatus._balance;
+    status._balanceStatusLastUpdated = originStatus._balanceStatusLastUpdated;
+    status._sendTransaction = originStatus._sendTransaction;
+    status._sendTransactionStatusLastUpdated = originStatus._sendTransactionStatusLastUpdated;
+
+    return status;
   }
 
   updateFeeStatus(status: boolean) {

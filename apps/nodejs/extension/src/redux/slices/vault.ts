@@ -190,7 +190,7 @@ export type SerializedTransferOptions<T extends SupportedProtocols> = Omit<
     asset: SerializedAsset;
   };
   network: SerializedNetwork;
-  transferArguments: {
+  transactionParams: {
     chainID: ChainID<SupportedProtocols.Pocket>;
     memo?: string;
     fee: number;

@@ -9,6 +9,7 @@ export * from './lib/core/common/protocols'
 export * from './lib/core/common/storage/AssetStorage'
 export * from './lib/core/common/storage/NetworkStorage'
 export * from './lib/errors'
+export * from './lib/constants';
 
 import EncryptionServiceSpecFactory from './lib/core/common/encryption/IEncryptionService.specFactory'
 
@@ -16,7 +17,8 @@ import type {IEncryptionService} from './lib/core/common/encryption/IEncryptionS
 import type IVaultStore from './lib/core/common/storage/IVaultStorage'
 import type IStorage from './lib/core/common/storage/IStorage'
 import type IEntity from './lib/core/common/IEntity'
-import type {IAbstractNetwork} from './lib/core/network/IAbstractNetwork'
+import type {INetwork} from './lib/core/common/protocols/INetwork'
+import type {IAsset} from './lib/core/common/protocols/IAsset'
 import type {INetworkOptions} from "./lib/core/network/INetworkOptions";
 
 export type {
@@ -24,8 +26,9 @@ export type {
   IVaultStore,
   IStorage,
   IEntity,
-  IAbstractNetwork,
   INetworkOptions,
+  INetwork,
+  IAsset,
 };
 
 export { EncryptionServiceSpecFactory };
