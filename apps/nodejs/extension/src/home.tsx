@@ -14,7 +14,6 @@ import { Provider, connect } from "react-redux";
 import { RootState } from "./redux/store";
 import Header from "./components/common/Header";
 import thunkMiddleware from "redux-thunk";
-import AccountList from "./components/Account/List";
 import CircularLoading from "./components/common/CircularLoading";
 import NetworkList from "./components/Network/List";
 import AssetList from "./components/Asset/List";
@@ -57,9 +56,20 @@ import Sites from "./components/Session";
 import { HEIGHT, WIDTH } from "./constants/ui";
 import SuccessIcon from "./assets/img/success_icon.svg";
 import NewConnect from "./components/Session/NewConnect";
+import SelectedAccount from "./components/Account/SelectedAccount";
+import { pricesApi } from "./redux/slices/prices";
 
 const store = new Store();
-const storeWithMiddleware = applyMiddleware(store, thunkMiddleware);
+const storeWithMiddleware = applyMiddleware(
+  store,
+  thunkMiddleware,
+  pricesApi.middleware
+);
+Object.assign(storeWithMiddleware, {
+  dispatch: storeWithMiddleware.dispatch.bind(storeWithMiddleware),
+  getState: storeWithMiddleware.getState.bind(storeWithMiddleware),
+  subscribe: storeWithMiddleware.subscribe.bind(storeWithMiddleware),
+});
 
 const router = createHashRouter([
   {
@@ -68,7 +78,7 @@ const router = createHashRouter([
     children: [
       {
         path: ACCOUNTS_PAGE,
-        element: <AccountList />,
+        element: <SelectedAccount />,
       },
       {
         path: ACCOUNT_PK_PAGE,
@@ -182,6 +192,12 @@ const Home: React.FC<HomeProps> = ({
   }, []);
 
   useEffect(() => {
+    if (vaultSession) {
+      //todo: close vault if session is invalid
+    }
+  }, []);
+
+  useEffect(() => {
     const interval = setInterval(async () => {
       const length = externalRequests.length;
       let requestsRemoved = 0;
@@ -244,6 +260,7 @@ const Home: React.FC<HomeProps> = ({
       <GlobalStyles
         styles={{
           body: {
+            width: isPopup ? 400 : undefined,
             marginLeft: isPopup ? 0 : undefined,
             marginRight: isPopup ? 0 : undefined,
             scrollbarColor: `${theme.customColors.dark25} ${theme.customColors.dark5}`,
@@ -286,7 +303,7 @@ const Home: React.FC<HomeProps> = ({
             position: "relative",
             display: "flex",
             "& .notistack-SnackbarContainer": {
-              top: 70,
+              bottom: 12,
               left: 10,
               position: "absolute",
               height: 55,
@@ -341,8 +358,9 @@ const Home: React.FC<HomeProps> = ({
 };
 
 const mapStateToProps = (state: RootState) => ({
-  ...state?.vault,
-  ...state.app,
+  vaultSession: state.vault.vaultSession,
+  initializeStatus: state.vault.initializeStatus,
+  externalRequests: state.app.externalRequests,
 });
 
 const ConnectedHome = connect(mapStateToProps)(Home);

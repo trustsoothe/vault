@@ -7,10 +7,10 @@ import {
   VaultTeller,
 } from "@poktscan/keyring";
 import {
-  ExtensionSessionStorage,
-  ExtensionVaultStorage,
   ExtensionAssetStorage,
   ExtensionNetworkStorage,
+  ExtensionSessionStorage,
+  ExtensionVaultStorage,
 } from "@poktscan/keyring-storage-extension";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 import {
@@ -45,8 +45,24 @@ export const byteLength = (str: string) => new Blob([str]).size;
 
 export const isAddress = (str: string) => isHex(str) && byteLength(str) === 40;
 
-export const isPrivateKey = (str: string) =>
-  isHex(str) && byteLength(str) === 128;
+export const isPrivateKey = (
+  str: string,
+  protocol = SupportedProtocols.Pocket
+) => {
+  if (protocol === SupportedProtocols.Pocket) {
+    return isHex(str) && byteLength(str) === 128;
+  }
+
+  if (protocol === SupportedProtocols.Ethereum) {
+    if (!str.startsWith("0x")) {
+      return false;
+    }
+
+    str = str.substring(2);
+
+    return isHex(str) && byteLength(str) === 64;
+  }
+};
 
 export const getAssetByProtocol = (
   assets: SerializedAsset[],

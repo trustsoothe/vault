@@ -1,4 +1,4 @@
-import type { SerializedAsset } from "@poktscan/keyring";
+import type { SupportedProtocols } from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
 import type { ExternalNewAccountRequest } from "../../types/communication";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -12,8 +12,6 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useNavigate, useLocation } from "react-router-dom";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import AutocompleteAsset from "./AutocompleteAsset";
-import { getAssetByProtocol } from "../../utils";
 import Requester from "../common/Requester";
 import { enqueueSnackbar } from "../../utils/ui";
 import { useAppDispatch } from "../../hooks/redux";
@@ -26,7 +24,6 @@ interface FormValues {
   vault_password: string;
   account_password: string;
   confirm_account_password: string;
-  asset: SerializedAsset | null;
 }
 
 export const nameRules = {
@@ -47,13 +44,13 @@ export const nameRules = {
 type FormStatus = "normal" | "loading" | "error";
 
 interface CreateNewAccountProps {
-  assets: RootState["vault"]["entities"]["assets"]["list"];
+  network: SupportedProtocols;
   passwordRemembered: RootState["vault"]["passwordRemembered"];
 }
 
 const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
-  assets,
   passwordRemembered,
+  network,
 }) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
@@ -70,30 +67,11 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
       vault_password: "",
       account_password: "",
       confirm_account_password: "",
-      asset: null,
     },
   });
 
-  const {
-    register,
-    formState,
-    handleSubmit,
-    getValues,
-    control,
-    setValue,
-    watch,
-  } = methods;
-  const [asset, vaultPassword] = watch(["asset", "vault_password"]);
-
-  useEffect(() => {
-    if (currentRequest?.protocol) {
-      const asset = getAssetByProtocol(assets, currentRequest.protocol.name);
-
-      if (asset) {
-        setValue("asset", asset);
-      }
-    }
-  }, [currentRequest]);
+  const { register, formState, handleSubmit, getValues, watch } = methods;
+  const [vaultPassword] = watch(["vault_password"]);
 
   const [status, setStatus] = useState<FormStatus>("normal");
   const [wrongPassword, setWrongPassword] = useState(false);
@@ -138,7 +116,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
         vaultPassword: !passwordRemembered ? data.vault_password : undefined,
         accountData: {
           name: data.account_name,
-          asset: data.asset,
+          protocol: network,
           password: data.account_password,
         },
         request: currentRequest || null,
@@ -159,7 +137,14 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
         }
       }
     },
-    [currentRequest, dispatch, passwordRemembered, navigate, passwordStep]
+    [
+      currentRequest,
+      dispatch,
+      passwordRemembered,
+      navigate,
+      passwordStep,
+      network,
+    ]
   );
 
   const content = useMemo(() => {
@@ -204,10 +189,6 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
               />
             </>
           )}
-          <AutocompleteAsset
-            control={control}
-            disabled={!!currentRequest?.protocol && !!asset}
-          />
           <TextField
             label={"Account Name"}
             size={"small"}
@@ -219,11 +200,12 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
           />
           <FormProvider {...methods}>
             <AccountAndVaultPasswords
-              introduceVaultPassword={passwordStep === "vault"}
+              showAll={true}
+              requireVaultPassword={!passwordRemembered}
               vaultPasswordTitle={`To save the account, introduce the vault’s password:`}
               accountRandomKey={"new-acc"}
               vaultTitleProps={{
-                marginTop: "20px!important",
+                marginTop: "31px!important",
                 marginBottom: "5px!important",
               }}
               vaultPasswordIsWrong={wrongPassword}
@@ -295,7 +277,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
 };
 
 const mapStateToProps = (state: RootState) => ({
-  assets: state.vault.entities.assets.list,
+  network: state.app.selectedNetwork,
   passwordRemembered: state.vault.passwordRemembered,
 });
 

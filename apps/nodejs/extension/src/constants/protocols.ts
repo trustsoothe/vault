@@ -31,3 +31,23 @@ export const labelByChainID: Record<ChainID<SupportedProtocols>, string> = {
   "5": "Ethereum Goerli",
   "1": "Ethereum Mainnet",
 };
+
+interface PriceIdByProtocolAndChain {
+  [SupportedProtocols.Ethereum]: Partial<
+    Record<ChainID<SupportedProtocols.Ethereum>, string>
+  >;
+  [SupportedProtocols.Pocket]: Partial<
+    Record<ChainID<SupportedProtocols.Pocket>, string>
+  >;
+}
+
+// the chain ids not found here is because their price is equal to $0
+export const priceIdByProtocolAndChain: PriceIdByProtocolAndChain = {
+  [SupportedProtocols.Pocket]: {
+    mainnet: "pocket-network",
+  },
+  [SupportedProtocols.Ethereum]: {
+    "1": "ethereum",
+    "5": "goerli-eth",
+  },
+};

@@ -16,10 +16,10 @@ export abstract class AssetStorage implements IStorage<SerializedAsset> {
     },
     {
       id: "2beccab6-5341-4393-8c8d-c7b5ef6b246b",
-      name: "Pocket",
-      symbol: "POKT",
+      name: "Ethereum",
+      symbol: "ETH",
       isDefault: true,
-      protocol: SupportedProtocols.Pocket,
+      protocol: SupportedProtocols.Ethereum,
       isNative: true,
       createdAt: 1693499936849,
       updatedAt: 1693499936849,

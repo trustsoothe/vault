@@ -1,6 +1,6 @@
 import type {
   SerializedAccountReference,
-  SerializedAsset,
+  SupportedProtocols,
 } from "@poktscan/keyring";
 import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -15,7 +15,6 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { connect } from "react-redux";
 import CircularLoading from "../common/CircularLoading";
-import AutocompleteAsset from "./AutocompleteAsset";
 import OperationFailed from "../common/OperationFailed";
 import { nameRules } from "./CreateNew";
 import AccountAndVaultPasswords from "../common/AccountAndVaultPasswords";
@@ -28,7 +27,6 @@ import {
 } from "../../utils/networkOperations";
 import { isPrivateKey } from "../../utils";
 import { enqueueSnackbar } from "../../utils/ui";
-import AccountsAutocomplete from "./Autocomplete";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -51,7 +49,6 @@ interface FormValues {
   account_password: string;
   confirm_account_password: string;
   vault_password: string;
-  asset?: SerializedAsset;
 }
 
 const getPrivateKey = async (data: FormValues) => {
@@ -71,12 +68,14 @@ const getPrivateKey = async (data: FormValues) => {
 type FormStatus = "normal" | "loading" | "error" | "account_exists";
 
 interface ImportAccountProps {
+  network: SupportedProtocols;
   accounts: RootState["vault"]["entities"]["accounts"]["list"];
   passwordRemembered: RootState["vault"]["passwordRemembered"];
 }
 
 const ImportAccount: React.FC<ImportAccountProps> = ({
   passwordRemembered,
+  network,
   accounts,
 }) => {
   const theme = useTheme();
@@ -104,7 +103,6 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
       account_password: "",
       confirm_account_password: "",
       vault_password: "",
-      asset: null,
     },
   });
   const {
@@ -137,7 +135,6 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     if (accountFromStore && accountToReimport?.id !== id) {
       setAccountToReImport(accountFromStore);
 
-      setValue("asset", accountFromStore.asset);
       setValue("account_name", accountFromStore.name);
       return;
     }
@@ -147,9 +144,8 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     }
   }, [searchParams, accounts]);
 
-  const [type, asset, file_password, json_file, vault_password] = watch([
+  const [type, file_password, json_file, vault_password] = watch([
     "import_type",
-    "asset",
     "file_password",
     "json_file",
     "vault_password",
@@ -216,7 +212,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 
       AppToBackground.importAccount({
         accountData: {
-          asset: data.asset,
+          protocol: network,
           name: data.account_name,
           accountPassword: data.account_password,
           privateKey,
@@ -231,15 +227,11 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
             setWrongPassword(true);
             setStatus("normal");
           } else if (response.data.accountAlreadyExists) {
-            const address = await getAddressFromPrivateKey(
-              privateKey,
-              data.asset.protocol
-            );
+            const address = await getAddressFromPrivateKey(privateKey, network);
 
             const account = accounts.find(
               (item) =>
-                item.address === address &&
-                item.asset.protocol === data.asset.protocol
+                item.address === address && item.asset.protocol === network
             );
             setAccountToReImport(account);
             setStatus("account_exists");
@@ -255,7 +247,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
         }
       });
     },
-    [navigate, accountToReimport, passwordStep, passwordRemembered]
+    [navigate, accountToReimport, passwordStep, passwordRemembered, network]
   );
 
   const onClickAccountExists = useCallback(async () => {
@@ -324,27 +316,16 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
           boxSizing={"border-box"}
           overflow={"hidden"}
         >
-          {accountToReimport ? (
-            <AccountsAutocomplete
-              selectedAccount={accountToReimport}
-              onChangeSelectedAccount={onChangeAccount}
+          {!accountToReimport && (
+            <TextField
+              fullWidth
+              label={"Account Name"}
+              autoComplete={"off"}
+              size={"small"}
+              {...register("account_name", nameRules)}
+              error={!!formState?.errors?.account_name}
+              helperText={formState?.errors?.account_name?.message}
             />
-          ) : (
-            <>
-              <AutocompleteAsset
-                control={control}
-                textFieldProps={{ autoFocus: true }}
-              />
-              <TextField
-                fullWidth
-                label={"Account Name"}
-                autoComplete={"off"}
-                size={"small"}
-                {...register("account_name", nameRules)}
-                error={!!formState?.errors?.account_name}
-                helperText={formState?.errors?.account_name?.message}
-              />
-            </>
           )}
 
           <Divider
@@ -370,7 +351,6 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
                   select
                   size={"small"}
                   placeholder={"Type"}
-                  disabled={!asset}
                   SelectProps={{
                     MenuProps: {
                       sx: {
@@ -416,7 +396,6 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
               size={"small"}
               fullWidth
               autoComplete={"off"}
-              disabled={!asset}
               {...register("private_key", {
                 validate: async (value, formValues) => {
                   if (formValues.import_type === "private_key") {
@@ -424,16 +403,13 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
                       return "Required";
                     }
 
-                    if (!isPrivateKey(value)) {
+                    if (!isPrivateKey(value, network)) {
                       return "Invalid Private Key";
                     }
 
-                    if (accountToReimport && formValues.asset) {
+                    if (accountToReimport) {
                       const addressOfPrivateKey =
-                        await getAddressFromPrivateKey(
-                          value,
-                          formValues.asset.protocol
-                        );
+                        await getAddressFromPrivateKey(value, network);
 
                       if (accountToReimport.address !== addressOfPrivateKey) {
                         return "This is not the PK of the account to reimport";
@@ -637,6 +613,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 const mapStateToProps = (state: RootState) => {
   return {
     accounts: state.vault.entities.accounts.list,
+    network: state.app.selectedNetwork,
     passwordRemembered: state.vault.passwordRemembered,
   };
 };

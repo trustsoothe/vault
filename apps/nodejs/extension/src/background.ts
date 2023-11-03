@@ -3,6 +3,7 @@ import { wrapStore } from "webext-redux";
 import store from "./redux/store";
 import InternalCommunicationController from "./controllers/communication/Internal";
 import ExternalCommunicationController from "./controllers/communication/External";
+import { changeActiveTab } from "./redux/slices/app";
 
 wrapStore(store);
 
@@ -30,6 +31,31 @@ browser.runtime.onInstalled.addListener((details) => {
       })
       .catch();
   }
+});
+
+// todo: create controller or function
+browser.tabs.onActivated.addListener((activeInfo) => {
+  browser.tabs.get(activeInfo.tabId).then((tab) => {
+    store.dispatch(
+      changeActiveTab({ id: tab.id, url: tab.url, favIconUrl: tab.favIconUrl })
+    );
+  });
+});
+
+browser.tabs.onUpdated.addListener((activeInfo) => {
+  browser.tabs.get(activeInfo).then((tab) => {
+    const activeTab = store.getState().app.activeTab;
+
+    if (activeTab.id && activeTab.id === tab.id) {
+      store.dispatch(
+        changeActiveTab({
+          id: tab.id,
+          url: tab.url,
+          favIconUrl: tab.favIconUrl,
+        })
+      );
+    }
+  });
 });
 
 const internal = new InternalCommunicationController();

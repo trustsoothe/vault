@@ -1,24 +1,17 @@
 import { AnyAction, configureStore, ThunkDispatch } from "@reduxjs/toolkit";
 import vaultSliceReducer, { checkInitializeStatus } from "./slices/vault";
 import generalAppReducer from "./slices/app";
+import { pricesApi } from "./slices/prices";
 
 const store = configureStore({
   reducer: {
     vault: vaultSliceReducer,
     app: generalAppReducer,
+    [pricesApi.reducerPath]: pricesApi.reducer,
   },
   middleware: (getDefaultMiddleware) => {
     return getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [
-          "vault/unlockVault/fulfilled",
-          "vault/unlockVault/pending",
-          "vault/AuthorizeExternalSession/fulfilled",
-          "vault/AuthorizeExternalSession/pending",
-        ],
-        ignoredActionPaths: ["payload"],
-        ignoredPaths: ["vault.session", "vault.entities.sessions.list"],
-      },
+      serializableCheck: false,
     });
   },
 });

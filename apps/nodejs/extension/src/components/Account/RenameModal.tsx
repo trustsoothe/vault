@@ -283,6 +283,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
         position={"absolute"}
         boxSizing={"border-box"}
         zIndex={9}
+        top={-60}
         left={0}
         bgcolor={"rgba(255,255,255,0.5)"}
       >

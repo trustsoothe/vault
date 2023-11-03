@@ -1,5 +1,5 @@
 import type { ExternalConnectionRequest } from "../../types/communication";
-import type { AccountWithBalance } from "../../types";
+import type { AccountBalanceInfo } from "../../redux/slices/app";
 import type { RootState } from "../../redux/store";
 import React, {
   useCallback,
@@ -17,6 +17,10 @@ import Checkbox from "@mui/material/Checkbox";
 import Skeleton from "@mui/material/Skeleton";
 import { useLocation } from "react-router-dom";
 import Typography from "@mui/material/Typography";
+import {
+  type SerializedAccountReference,
+  SupportedProtocols,
+} from "@poktscan/keyring";
 import Requester from "../common/Requester";
 import { roundAndSeparate } from "../../utils/ui";
 import { useAppDispatch } from "../../hooks/redux";
@@ -27,20 +31,118 @@ import { getAllBalances } from "../../redux/slices/vault";
 import CheckedIcon from "../../assets/img/checked_icon.svg";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
+type AccountWithBalanceInfo = SerializedAccountReference & {
+  balanceInfo: AccountBalanceInfo;
+};
+
+interface AccountItemProps {
+  account: AccountWithBalanceInfo;
+  isChecked: boolean;
+  onClickCheckbox: () => void;
+  showBorderBottom?: boolean;
+  protocol: SupportedProtocols;
+  chainId: string;
+}
+
+const AccountItem: React.FC<AccountItemProps> = ({
+  account,
+  isChecked,
+  onClickCheckbox,
+  showBorderBottom,
+  protocol,
+  chainId,
+}) => {
+  const theme = useTheme();
+
+  const { address, balanceInfo } = account;
+
+  useEffect(() => {
+    AppToBackground.getAccountBalance({
+      address,
+      chainId: chainId as any,
+      protocol,
+    }).catch();
+  }, [protocol, chainId, address]);
+
+  const balance = (balanceInfo?.amount as number) || 0;
+  const errorBalance = balanceInfo?.error || false;
+  const loadingBalance = balanceInfo?.loading || false;
+
+  const firstCharacters = address.substring(0, 4);
+  const lastCharacters = address.substring(address.length - 4);
+  const symbol = account.asset.symbol;
+
+  return (
+    <Stack
+      spacing={1.4}
+      paddingX={0.5}
+      direction={"row"}
+      height={45}
+      minHeight={45}
+      width={1}
+      boxSizing={"border-box"}
+      borderBottom={
+        showBorderBottom ? `1px solid ${theme.customColors.dark15}` : undefined
+      }
+    >
+      <Checkbox
+        size={"small"}
+        checked={isChecked}
+        onClick={onClickCheckbox}
+        checkedIcon={<CheckedIcon />}
+        icon={<CheckIcon />}
+        component={"div"}
+        sx={{
+          minWidth: 19,
+          width: 19,
+          height: 19,
+          padding: 0,
+          marginTop: "5px!important",
+        }}
+      />
+
+      <Stack width={1}>
+        <Typography
+          fontWeight={500}
+          fontSize={13}
+          letterSpacing={"0.5px"}
+          lineHeight={"22px"}
+        >
+          {account.name} ({firstCharacters}...{lastCharacters})
+        </Typography>
+        {loadingBalance ? (
+          <Skeleton variant={"rectangular"} width={75} height={14} />
+        ) : (
+          <Typography
+            sx={{ fontSize: "12px!important" }}
+            lineHeight={"16px"}
+            component={"span"}
+            color={theme.customColors.dark75}
+          >
+            {roundAndSeparate(balance, 2, "0")} {symbol}
+          </Typography>
+        )}
+      </Stack>
+    </Stack>
+  );
+};
+
 interface NewConnectProps {
   accounts: RootState["vault"]["entities"]["accounts"]["list"];
-  balancesById: RootState["vault"]["entities"]["accounts"]["balances"]["byId"];
-  balancesLoading: RootState["vault"]["entities"]["accounts"]["balances"]["loading"];
+  accountBalances: RootState["app"]["accountBalances"];
+  selectedChainByNetwork: RootState["app"]["selectedChainByNetwork"];
 }
 
 const NewConnect: React.FC<NewConnectProps> = ({
   accounts,
-  balancesLoading,
-  balancesById,
+  accountBalances,
+  selectedChainByNetwork,
 }) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const loadingBalanceRef = useRef(false);
+  // todo: this should come with the request
+  const [protocol, setProtocol] = useState(SupportedProtocols.Pocket);
   const currentRequest: ExternalConnectionRequest = useLocation()?.state;
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
@@ -92,16 +194,22 @@ const NewConnect: React.FC<NewConnectProps> = ({
     [currentRequest, selectedAccounts]
   );
 
-  const accountsWithBalance: AccountWithBalance[] = useMemo(() => {
+  const selectedChainId = selectedChainByNetwork[protocol];
+
+  const accountsWithBalance: AccountWithBalanceInfo[] = useMemo(() => {
+    const balancesById = accountBalances[protocol][selectedChainId];
+
     return orderBy(
-      accounts.map((item) => ({
-        ...item,
-        balance: balancesById[item.id]?.amount || 0,
-      })),
-      ["balance"],
+      accounts
+        .filter((item) => item.asset?.protocol === protocol)
+        .map((item) => ({
+          ...item,
+          balanceInfo: balancesById[item.address],
+        })),
+      ["balanceInfo.amount"],
       ["desc"]
     );
-  }, [accounts, balancesById]);
+  }, [accounts, accountBalances, selectedChainId, protocol]);
 
   if (!currentRequest) {
     return null;
@@ -180,69 +288,16 @@ const NewConnect: React.FC<NewConnectProps> = ({
           boxSizing={"border-box"}
           border={`1px solid ${theme.customColors.primary250}`}
         >
-          {accountsWithBalance.map((account, index) => {
-            const firstCharacters = account.address.substring(0, 4);
-            const lastCharacters = account.address.substring(
-              account.address.length - 4
-            );
-            const symbol = account.asset.symbol;
-
-            return (
-              <Stack
-                spacing={1.4}
-                paddingX={0.5}
-                direction={"row"}
-                height={45}
-                minHeight={45}
-                width={1}
-                boxSizing={"border-box"}
-                borderBottom={
-                  index !== accounts.length - 1
-                    ? `1px solid ${theme.customColors.dark15}`
-                    : undefined
-                }
-              >
-                <Checkbox
-                  size={"small"}
-                  checked={selectedAccounts.includes(account.id)}
-                  onClick={() => toggleSelectAccount(account.id)}
-                  checkedIcon={<CheckedIcon />}
-                  icon={<CheckIcon />}
-                  component={"div"}
-                  sx={{
-                    minWidth: 19,
-                    width: 19,
-                    height: 19,
-                    padding: 0,
-                    marginTop: "5px!important",
-                  }}
-                />
-
-                <Stack width={1}>
-                  <Typography
-                    fontWeight={500}
-                    fontSize={13}
-                    letterSpacing={"0.5px"}
-                    lineHeight={"22px"}
-                  >
-                    {account.name} ({firstCharacters}...{lastCharacters})
-                  </Typography>
-                  {balancesLoading ? (
-                    <Skeleton variant={"rectangular"} width={75} height={14} />
-                  ) : (
-                    <Typography
-                      sx={{ fontSize: "12px!important" }}
-                      lineHeight={"16px"}
-                      component={"span"}
-                      color={theme.customColors.dark75}
-                    >
-                      {roundAndSeparate(account.balance, 2, "0")} {symbol}
-                    </Typography>
-                  )}
-                </Stack>
-              </Stack>
-            );
-          })}
+          {accountsWithBalance.map((account, index) => (
+            <AccountItem
+              onClickCheckbox={() => toggleSelectAccount(account.id)}
+              isChecked={selectedAccounts.includes(account.id)}
+              account={account}
+              showBorderBottom={index !== accounts.length - 1}
+              protocol={protocol}
+              chainId={selectedChainId}
+            />
+          ))}
         </Stack>
         <Typography
           fontSize={10}
@@ -301,10 +356,15 @@ const NewConnect: React.FC<NewConnectProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  accounts: state.vault.entities.accounts.list,
-  balancesById: state.vault.entities.accounts.balances.byId,
-  balancesLoading: state.vault.entities.accounts.balances.loading,
-});
+const mapStateToProps = (state: RootState) => {
+  const selectedNetwork = state.app.selectedNetwork;
+  const selectedChain = state.app.selectedChainByNetwork[selectedNetwork];
+
+  return {
+    accounts: state.vault.entities.accounts.list,
+    selectedChainByNetwork: state.app.selectedChainByNetwork,
+    accountBalances: state.app.accountBalances,
+  };
+};
 
 export default connect(mapStateToProps)(NewConnect);

@@ -61,7 +61,6 @@ import {
 import {
   addNewAccount,
   authorizeExternalSession,
-  getAccountBalance,
   getPrivateKeyOfAccount,
   importAccount,
   ImportAccountParam,
@@ -77,6 +76,7 @@ import {
 } from "../../redux/slices/vault";
 import { UnknownError } from "../../errors/communication";
 import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
+import { getAccountBalance } from "../../redux/slices/app/network";
 
 type MessageSender = Runtime.MessageSender;
 type UnknownErrorType = typeof UnknownError;
@@ -109,7 +109,7 @@ export interface AnswerNewAccountRequest {
     accountData: {
       name: string;
       password: string;
-      asset: SerializedAsset;
+      protocol: SupportedProtocols;
     } | null;
     request?: ExternalNewAccountRequest | null;
   };
@@ -682,7 +682,7 @@ class InternalCommunicationController {
           .dispatch(
             addNewAccount({
               sessionId: request?.sessionId,
-              asset: accountData.asset,
+              protocol: accountData.protocol,
               password: accountData.password,
               name: accountData.name,
               vaultPassword,
@@ -699,7 +699,7 @@ class InternalCommunicationController {
             data: {
               rejected: false,
               address,
-              protocol: accountData.asset.protocol,
+              protocol: accountData.protocol,
             },
             error: null,
           };

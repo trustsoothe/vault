@@ -1,11 +1,12 @@
 import type { StackProps } from "@mui/material/Stack";
-import React, { useMemo } from "react";
+import React from "react";
+import { useTheme } from "@mui/material";
 import Divider, { type DividerProps } from "@mui/material/Divider";
 import Typography, { type TypographyProps } from "@mui/material/Typography";
 import Password from "./Password";
 
 interface AccountAndVaultPasswordsProps {
-  introduceVaultPassword: boolean;
+  introduceVaultPassword?: boolean;
   vaultPasswordTitle?: string;
   vaultTitleProps?: TypographyProps;
   vaultPasswordLabel?: string;
@@ -14,6 +15,8 @@ interface AccountAndVaultPasswordsProps {
   accountRandomKey?: string;
   dividerProps?: DividerProps;
   passwordContainerProps?: StackProps;
+  showAll?: boolean;
+  requireVaultPassword?: boolean;
 }
 
 const AccountAndVaultPasswords: React.FC<AccountAndVaultPasswordsProps> = ({
@@ -22,70 +25,82 @@ const AccountAndVaultPasswords: React.FC<AccountAndVaultPasswordsProps> = ({
   vaultPasswordLabel = "Vault Password",
   vaultPasswordName = "vault_password",
   vaultPasswordIsWrong = false,
+  requireVaultPassword = true,
   accountRandomKey,
   vaultTitleProps,
   dividerProps,
   passwordContainerProps,
+  showAll,
 }) => {
-  const content = useMemo(() => {
-    return !introduceVaultPassword ? (
+  const theme = useTheme();
+  const accountPass = (
+    <Password
+      passwordName={"account_password"}
+      labelPassword={"Account Password"}
+      confirmPasswordName={"confirm_account_password"}
+      containerProps={{
+        width: 1,
+        marginTop: "10px!important",
+        spacing: 0.5,
+        ...passwordContainerProps,
+      }}
+      inputsContainerProps={{
+        spacing: "18px",
+      }}
+      randomKey={accountRandomKey}
+    />
+  );
+
+  const vaultPass = requireVaultPassword ? (
+    <>
+      <Typography
+        marginTop={"15px!important"}
+        fontSize={13}
+        letterSpacing={"0.5px"}
+        fontWeight={500}
+        {...vaultTitleProps}
+      >
+        {vaultPasswordTitle}
+      </Typography>
       <Password
-        passwordName={"account_password"}
-        labelPassword={"Account Password"}
-        confirmPasswordName={"confirm_account_password"}
+        passwordName={vaultPasswordName}
+        canGenerateRandom={false}
+        justRequire={true}
+        canShowPassword={true}
+        labelPassword={vaultPasswordLabel}
+        hidePasswordStrong={true}
+        errorPassword={vaultPasswordIsWrong ? "Wrong password" : undefined}
         containerProps={{
-          width: 1,
           marginTop: "10px!important",
           spacing: 0.5,
           ...passwordContainerProps,
         }}
-        inputsContainerProps={{
-          spacing: "18px",
-        }}
-        randomKey={accountRandomKey}
       />
-    ) : (
+    </>
+  ) : null;
+
+  let component: React.ReactNode;
+
+  if (showAll) {
+    component = (
       <>
-        <Typography
-          marginTop={"15px!important"}
-          fontSize={13}
-          letterSpacing={"0.5px"}
-          fontWeight={500}
-          {...vaultTitleProps}
-        >
-          {vaultPasswordTitle}
-        </Typography>
-        <Password
-          passwordName={vaultPasswordName}
-          canGenerateRandom={false}
-          justRequire={true}
-          canShowPassword={true}
-          labelPassword={vaultPasswordLabel}
-          hidePasswordStrong={true}
-          errorPassword={vaultPasswordIsWrong ? "Wrong password" : undefined}
-          containerProps={{
-            marginTop: "10px!important",
-            spacing: 0.5,
-            ...passwordContainerProps,
-          }}
-        />
+        {accountPass}
+        {vaultPass}
       </>
     );
-  }, [
-    vaultPasswordIsWrong,
-    vaultPasswordName,
-    vaultPasswordLabel,
-    vaultPasswordTitle,
-    introduceVaultPassword,
-    accountRandomKey,
-    vaultTitleProps,
-    passwordContainerProps,
-  ]);
+  } else if (introduceVaultPassword) {
+    component = vaultPass;
+  } else {
+    component = accountPass;
+  }
 
   return (
     <>
-      <Divider {...dividerProps} />
-      {content}
+      <Divider
+        {...dividerProps}
+        sx={{ borderColor: theme.customColors.dark25, ...dividerProps?.sx }}
+      />
+      {component}
     </>
   );
 };

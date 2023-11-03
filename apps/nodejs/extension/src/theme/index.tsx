@@ -14,6 +14,7 @@ interface CustomColors {
   dark75: string;
   dark90: string;
   dark100: string;
+  primary100: string;
   primary250: string;
   primary500: string;
   primary999: string;
@@ -42,6 +43,7 @@ const customColors: CustomColors = {
   dark75: "#5D5D5D",
   dark90: "#333333",
   dark100: "#272727",
+  primary100: "#F0F6FF",
   primary250: "#5CA3E5",
   primary500: "#1E70EB",
   primary999: "#152A48",

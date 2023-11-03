@@ -1,3 +1,4 @@
+import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 import type {
   ExternalConnectionRequest,
   ExternalNewAccountRequest,
@@ -8,9 +9,14 @@ import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
   SerializedAccountReference,
+  SerializedNetwork,
   SupportedProtocols,
 } from "@poktscan/keyring";
 import { SELECTED_CHAIN_CHANGED } from "../../constants/communication";
+import {
+  addNetworksExtraReducers,
+  setGetAccountPending as setGetAccountPendingFromNetwork,
+} from "./app/network";
 
 export type RequestsType = (
   | ExternalConnectionRequest
@@ -18,7 +24,38 @@ export type RequestsType = (
   | ExternalTransferRequest
 ) & { requestedAt?: number };
 
-interface GeneralAppSlice {
+export interface AccountBalanceInfo {
+  amount: number;
+  lastUpdatedAt: number;
+  error?: boolean;
+  loading?: boolean;
+}
+
+interface IAccountBalances {
+  [SupportedProtocols.Ethereum]: Record<
+    ChainID<SupportedProtocols.Ethereum>,
+    Record<string, AccountBalanceInfo | Record<string, AccountBalanceInfo>>
+  >;
+  [SupportedProtocols.Pocket]: Record<
+    ChainID<SupportedProtocols.Pocket>,
+    Record<string, AccountBalanceInfo>
+  >;
+}
+
+export type ErrorsByNetwork = Record<string, number>;
+
+export interface ErrorsPreferredNetwork {
+  [SupportedProtocols.Pocket]: Record<
+    ChainID<SupportedProtocols.Pocket>,
+    ErrorsByNetwork
+  >;
+  [SupportedProtocols.Ethereum]: Record<
+    ChainID<SupportedProtocols.Ethereum>,
+    ErrorsByNetwork
+  >;
+}
+
+export interface GeneralAppSlice {
   requestsWindowId: number | null;
   externalRequests: RequestsType[];
   blockedSites: {
@@ -28,6 +65,14 @@ interface GeneralAppSlice {
   selectedNetwork: SupportedProtocols;
   selectedChainByNetwork: Partial<Record<SupportedProtocols, string>>;
   selectedAccountByNetwork: Partial<Record<SupportedProtocols, string>>;
+  accountBalances: IAccountBalances;
+  networks: SerializedNetwork[];
+  errorsPreferredNetwork: ErrorsPreferredNetwork;
+  activeTab?: {
+    id?: number;
+    url: string;
+    favIconUrl?: string;
+  };
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -37,7 +82,7 @@ const SELECTED_CHAINS_KEY = "SELECTED_CHAINS_KEY";
 // only to be called in unlockVault thunk
 export const getSelectedNetworkAndAccount = createAsyncThunk(
   "app/getSelectedNetworkAndAccount",
-  async (accounts: SerializedAccountReference[], context) => {
+  async (accounts: SerializedAccountReference[]) => {
     const response = await browser.storage.local.get([
       SELECTED_NETWORK_KEY,
       SELECTED_ACCOUNTS_KEY,
@@ -139,6 +184,34 @@ export const changeSelectedNetwork = createAsyncThunk(
   }
 );
 
+export const changeSelectedAccountOfNetwork = createAsyncThunk(
+  "app/changeSelectedAccountOfNetwork",
+  async (
+    {
+      network,
+      accountId,
+    }: {
+      network: SupportedProtocols;
+      accountId: string;
+    },
+    context
+  ) => {
+    const state = context.getState() as RootState;
+    const { selectedAccountByNetwork } = state.app;
+
+    const newSelectedAccount = {
+      ...selectedAccountByNetwork,
+      [network]: accountId,
+    };
+
+    await browser.storage.local.set({
+      [SELECTED_ACCOUNTS_KEY]: newSelectedAccount,
+    });
+
+    return newSelectedAccount;
+  }
+);
+
 const BLOCKED_SITES_KEY = "BLOCKED_SITES";
 
 export const getBlockedSites = createAsyncThunk<string[]>(
@@ -198,6 +271,7 @@ const initialState: GeneralAppSlice = {
     loaded: false,
     list: [],
   },
+  networks: [],
   selectedAccountByNetwork: {
     [SupportedProtocols.Pocket]: "",
   },
@@ -205,6 +279,28 @@ const initialState: GeneralAppSlice = {
     [SupportedProtocols.Pocket]: "mainnet",
   },
   selectedNetwork: SupportedProtocols.Pocket,
+  accountBalances: {
+    [SupportedProtocols.Pocket]: {
+      mainnet: {},
+      testnet: {},
+    },
+    [SupportedProtocols.Ethereum]: {
+      "1": {},
+      "5": {},
+      "11155111": {},
+    },
+  },
+  errorsPreferredNetwork: {
+    [SupportedProtocols.Pocket]: {
+      mainnet: {},
+      testnet: {},
+    },
+    [SupportedProtocols.Ethereum]: {
+      "1": {},
+      "5": {},
+      "11155111": {},
+    },
+  },
 };
 
 const generalAppSlice = createSlice({
@@ -234,8 +330,18 @@ const generalAppSlice = createSlice({
         (request) => !(request.origin === origin && request.type === type)
       );
     },
+    changeActiveTab: (
+      state,
+      action: PayloadAction<Required<GeneralAppSlice["activeTab"]>>
+    ) => {
+      state.activeTab = action.payload;
+    },
+    // this is here to only set that an account is loading after verifying it in the thunk
+    setGetAccountPending: setGetAccountPendingFromNetwork,
   },
   extraReducers: (builder) => {
+    addNetworksExtraReducers(builder);
+
     builder.addCase(getBlockedSites.fulfilled, (state, action) => {
       state.blockedSites.list = action.payload;
       state.blockedSites.loaded = true;
@@ -272,6 +378,12 @@ const generalAppSlice = createSlice({
       state.selectedChainByNetwork = selectedChainByNetwork;
       state.selectedAccountByNetwork = selectedAccountByNetwork;
     });
+    builder.addCase(
+      changeSelectedAccountOfNetwork.fulfilled,
+      (state, action) => {
+        state.selectedAccountByNetwork = action.payload;
+      }
+    );
   },
 });
 
@@ -280,6 +392,8 @@ export const {
   removeExternalRequest,
   addExternalRequest,
   addWindow,
+  setGetAccountPending,
+  changeActiveTab,
 } = generalAppSlice.actions;
 
 export default generalAppSlice.reducer;

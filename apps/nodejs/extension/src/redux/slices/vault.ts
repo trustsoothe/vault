@@ -409,13 +409,12 @@ export const addNewAccount = createAsyncThunk<
     sessionId?: string;
     password: string;
     name: string;
-    asset: SerializedAsset;
+    protocol: SupportedProtocols;
     vaultPassword?: string;
   }
 >("vault/addNewAccount", async (args, context) => {
-  const {
-    vault: { vaultSession, passwordRemembered },
-  } = context.getState() as RootState;
+  const state = context.getState() as RootState;
+  const { vaultSession, passwordRemembered } = state.vault;
   let vaultPassword: string;
   if (passwordRemembered) {
     const passwordEncryptedObj = await browser.storage.session.get(
@@ -441,12 +440,16 @@ export const addNewAccount = createAsyncThunk<
   const session = args.sessionId || vaultSession.id;
   const accountPassphrase = new Passphrase(args.password);
 
+  const assets = state.vault.entities.assets.list;
+
+  const asset = assets.find((item) => item.protocol === args.protocol);
+
   const accountReference = await ExtensionVaultInstance.createAccount(
     session,
     vaultPassphrase,
     {
       name: args.name.trim(),
-      asset: Asset.deserialize(args.asset),
+      asset: Asset.deserialize(asset),
       passphrase: accountPassphrase,
     }
   );
@@ -461,7 +464,7 @@ export const addNewAccount = createAsyncThunk<
 
 export interface ImportAccountParam {
   accountData: {
-    asset: SerializedAsset;
+    protocol: SupportedProtocols;
     name: string;
     accountPassword: string;
     privateKey: string;
@@ -474,9 +477,8 @@ export const importAccount = createAsyncThunk<
   SerializedAccountReference,
   ImportAccountParam
 >("vault/importAccount", async (args, context) => {
-  const {
-    vault: { vaultSession, passwordRemembered },
-  } = context.getState() as RootState;
+  const state = context.getState() as RootState;
+  const { vaultSession, passwordRemembered } = state.vault;
   let vaultPassword: string;
   if (passwordRemembered) {
     const passwordEncryptedObj = await browser.storage.session.get(
@@ -500,12 +502,19 @@ export const importAccount = createAsyncThunk<
 
   const vaultPassphrase = new Passphrase(vaultPassword);
   const accountPassphrase = new Passphrase(args.accountData.accountPassword);
+
+  const assets = state.vault.entities.assets.list;
+
+  const asset = assets.find(
+    (item) => item.protocol === args.accountData.protocol
+  );
+
   const accountReference =
     await ExtensionVaultInstance.createAccountFromPrivateKey(
       vaultSession.id,
       vaultPassphrase,
       {
-        asset: Asset.deserialize(args.accountData.asset),
+        asset: Asset.deserialize(asset),
         passphrase: accountPassphrase,
         name: args.accountData.name,
         privateKey: args.accountData.privateKey,
@@ -1065,6 +1074,7 @@ const vaultSlice = createSlice({
     });
 
     builder.addCase(importAccount.rejected, (state, action) => {
+      console.log("IMPORT ACCOUNT ERR:", action.error);
       state.entities.accounts.loading = false;
 
       increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
