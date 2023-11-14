@@ -13,10 +13,13 @@ import type {
   InitializeVaultResponse,
   LockVaultMessage,
   LockVaultResponse,
+  NetworkFeeMessage,
+  NetworkFeeResponse,
   PrivateKeyAccountMessage,
   PrivateKeyAccountResponse,
   RemoveAccountMessage,
   RemoveAccountResponse,
+  RevokeExternalSessionsMessage,
   RevokeExternalSessionsResponse,
   RevokeSessionMessage,
   RevokeSessionResponse,
@@ -24,7 +27,6 @@ import type {
   UnlockVaultResponse,
   UpdateAccountMessage,
   UpdateAccountResponse,
-  RevokeExternalSessionsMessage,
 } from "./Internal";
 import browser from "webextension-polyfill";
 import {
@@ -35,6 +37,7 @@ import {
   IMPORT_ACCOUNT_REQUEST,
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
+  NETWORK_FEE_REQUEST,
   PK_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_REQUEST,
   REVOKE_EXTERNAL_SESSIONS_REQUEST,
@@ -166,6 +169,16 @@ export default class AppToBackground {
   ): Promise<AccountBalanceResponse> {
     const message: AccountBalanceMessage = {
       type: ACCOUNT_BALANCE_REQUEST,
+      data,
+    };
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async getNetworkFee(
+    data: NetworkFeeMessage["data"]
+  ): Promise<NetworkFeeResponse> {
+    const message: NetworkFeeMessage = {
+      type: NETWORK_FEE_REQUEST,
       data,
     };
     return browser.runtime.sendMessage(message);

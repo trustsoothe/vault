@@ -7,11 +7,7 @@ import type {
 import type { RootState } from "../store";
 import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import {
-  SerializedAccountReference,
-  SerializedNetwork,
-  SupportedProtocols,
-} from "@poktscan/keyring";
+import { SupportedProtocols } from "@poktscan/keyring";
 import { SELECTED_CHAIN_CHANGED } from "../../constants/communication";
 import {
   addNetworksExtraReducers,
@@ -55,6 +51,29 @@ export interface ErrorsPreferredNetwork {
   >;
 }
 
+export interface Network {
+  id: string;
+  label: string;
+  protocol: SupportedProtocols;
+  chainId: string;
+  chainIdLabel: string;
+  currencySymbol: string;
+  coinGeckoId: string;
+  decimals: number;
+  isTestnet: boolean;
+  isDefault: boolean;
+  iconUrl: string;
+  rpcUrl: string;
+  explorerAccountUrl: string;
+  explorerTransactionUrl: string;
+  transferMinValue: string;
+}
+
+export interface NetworkCanBeSelectedMap {
+  [SupportedProtocols.Pocket]: string[];
+  [SupportedProtocols.Ethereum]: string[];
+}
+
 export interface GeneralAppSlice {
   requestsWindowId: number | null;
   externalRequests: RequestsType[];
@@ -62,61 +81,73 @@ export interface GeneralAppSlice {
     loaded: boolean;
     list: string[];
   };
+  showTestNetworks: boolean;
   selectedNetwork: SupportedProtocols;
   selectedChainByNetwork: Partial<Record<SupportedProtocols, string>>;
   selectedAccountByNetwork: Partial<Record<SupportedProtocols, string>>;
   accountBalances: IAccountBalances;
-  networks: SerializedNetwork[];
+  networks: Network[];
   errorsPreferredNetwork: ErrorsPreferredNetwork;
   activeTab?: {
     id?: number;
     url: string;
     favIconUrl?: string;
   };
+  networksCanBeSelected: NetworkCanBeSelectedMap;
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
 const SELECTED_ACCOUNTS_KEY = "SELECTED_ACCOUNTS_KEY";
 const SELECTED_CHAINS_KEY = "SELECTED_CHAINS_KEY";
+const SHOW_TEST_NETWORKS_KEY = "SHOW_TEST_NETWORKS";
+const NETWORKS_CAN_BE_SELECTED_KEY = "NETWORKS_CAN_BE_SELECTED";
 
-// only to be called in unlockVault thunk
-export const getSelectedNetworkAndAccount = createAsyncThunk(
-  "app/getSelectedNetworkAndAccount",
-  async (accounts: SerializedAccountReference[]) => {
+export const loadSelectedNetworkAndAccount = createAsyncThunk(
+  "app/loadSelectedNetworkAndAccount",
+  async (_: never, context) => {
+    const networks = (context.getState() as RootState).app.networks;
+
     const response = await browser.storage.local.get([
       SELECTED_NETWORK_KEY,
       SELECTED_ACCOUNTS_KEY,
       SELECTED_CHAINS_KEY,
+      SHOW_TEST_NETWORKS_KEY,
+      NETWORKS_CAN_BE_SELECTED_KEY,
     ]);
 
     const selectedNetwork =
       response[SELECTED_NETWORK_KEY] || SupportedProtocols.Pocket;
-    const accountsByNetwork = {
-      ...response[SELECTED_ACCOUNTS_KEY],
+    const selectedAccountByNetwork = {
+      ...(response[SELECTED_ACCOUNTS_KEY] || {}),
     };
+    const showTestNetworks = response[SHOW_TEST_NETWORKS_KEY] || false;
+    const networksCanBeSelected =
+      response[NETWORKS_CAN_BE_SELECTED_KEY] ||
+      initialState.networksCanBeSelected;
 
-    const lastAccountId = accountsByNetwork[selectedNetwork];
-    const accountFromList = accounts.find(
-      (account) => account.id === lastAccountId
-    );
+    const selectedChainByNetwork = {
+      [SupportedProtocols.Pocket]: "mainnet",
+      [SupportedProtocols.Ethereum]: "1",
+    };
+    const savedSelectedChain = response[SELECTED_CHAINS_KEY] || {};
 
-    if (!accountFromList) {
-      const accountOfNetwork = accounts.find(
-        (item) => item.asset.protocol === selectedNetwork
+    for (const protocol in savedSelectedChain) {
+      const chainId = savedSelectedChain[protocol];
+      const networkExists = networks.some(
+        (item) => item.protocol === protocol && item.chainId === chainId
       );
 
-      if (accountOfNetwork) {
-        accountsByNetwork[selectedNetwork] = accountOfNetwork.id;
+      if (networkExists) {
+        selectedChainByNetwork[protocol] = chainId;
       }
     }
 
     return {
       selectedNetwork,
-      selectedChainByNetwork: {
-        [SupportedProtocols.Pocket]: "mainnet",
-        ...response[SELECTED_CHAINS_KEY],
-      },
-      selectedAccountByNetwork: accountsByNetwork,
+      selectedChainByNetwork,
+      selectedAccountByNetwork,
+      showTestNetworks,
+      networksCanBeSelected,
     };
   }
 );
@@ -140,7 +171,7 @@ export const changeSelectedNetwork = createAsyncThunk(
       if (!selectedAccountByNetwork[network]) {
         const accounts = state.vault.entities.accounts.list;
         const accountOfNetwork = accounts.find(
-          (item) => item.asset.protocol === selectedNetwork
+          (item) => item.protocol === selectedNetwork
         );
 
         if (accountOfNetwork) {
@@ -183,6 +214,46 @@ export const changeSelectedNetwork = createAsyncThunk(
     };
   }
 );
+
+export const toggleShowTestNetworks = createAsyncThunk(
+  "app/toggleShowTestNetworks",
+  async (_, context) => {
+    const currentValue = (context.getState() as RootState).app.showTestNetworks;
+    const newValue = !currentValue;
+    await browser.storage.local.set({
+      [SHOW_TEST_NETWORKS_KEY]: newValue,
+    });
+
+    return newValue;
+  }
+);
+
+export const toggleNetworkCanBeSelected = createAsyncThunk<
+  NetworkCanBeSelectedMap,
+  { protocol: SupportedProtocols; chainId: string }
+>("app/toggleNetworkCanBeSelected", async ({ protocol, chainId }, context) => {
+  const networksCanBeSelected = (context.getState() as RootState).app
+    .networksCanBeSelected;
+
+  const canBeSelected = networksCanBeSelected[protocol].includes(chainId);
+
+  if (canBeSelected) {
+    networksCanBeSelected[protocol] = networksCanBeSelected[protocol].filter(
+      (item) => item !== chainId
+    );
+  } else {
+    networksCanBeSelected[protocol] = [
+      ...networksCanBeSelected[protocol],
+      chainId,
+    ];
+  }
+
+  await browser.storage.local.set({
+    [NETWORKS_CAN_BE_SELECTED_KEY]: networksCanBeSelected,
+  });
+
+  return networksCanBeSelected;
+});
 
 export const changeSelectedAccountOfNetwork = createAsyncThunk(
   "app/changeSelectedAccountOfNetwork",
@@ -266,6 +337,7 @@ export const toggleBlockWebsite = createAsyncThunk<string[], string>(
 
 const initialState: GeneralAppSlice = {
   requestsWindowId: null,
+  showTestNetworks: false,
   externalRequests: [],
   blockedSites: {
     loaded: false,
@@ -300,6 +372,10 @@ const initialState: GeneralAppSlice = {
       "5": {},
       "11155111": {},
     },
+  },
+  networksCanBeSelected: {
+    [SupportedProtocols.Ethereum]: [],
+    [SupportedProtocols.Pocket]: [],
   },
 };
 
@@ -356,17 +432,24 @@ const generalAppSlice = createSlice({
         list: [],
       };
     });
-    builder.addCase(getSelectedNetworkAndAccount.fulfilled, (state, action) => {
-      const {
-        selectedNetwork,
-        selectedChainByNetwork,
-        selectedAccountByNetwork,
-      } = action.payload;
+    builder.addCase(
+      loadSelectedNetworkAndAccount.fulfilled,
+      (state, action) => {
+        const {
+          selectedNetwork,
+          selectedChainByNetwork,
+          selectedAccountByNetwork,
+          showTestNetworks,
+          networksCanBeSelected,
+        } = action.payload;
 
-      state.selectedNetwork = selectedNetwork;
-      state.selectedChainByNetwork = selectedChainByNetwork;
-      state.selectedAccountByNetwork = selectedAccountByNetwork;
-    });
+        state.selectedNetwork = selectedNetwork;
+        state.selectedChainByNetwork = selectedChainByNetwork;
+        state.selectedAccountByNetwork = selectedAccountByNetwork;
+        state.showTestNetworks = showTestNetworks;
+        state.networksCanBeSelected = networksCanBeSelected;
+      }
+    );
     builder.addCase(changeSelectedNetwork.fulfilled, (state, action) => {
       const {
         selectedNetwork,
@@ -384,6 +467,14 @@ const generalAppSlice = createSlice({
         state.selectedAccountByNetwork = action.payload;
       }
     );
+
+    builder.addCase(toggleShowTestNetworks.fulfilled, (state, action) => {
+      state.showTestNetworks = action.payload;
+    });
+
+    builder.addCase(toggleNetworkCanBeSelected.fulfilled, (state, action) => {
+      state.networksCanBeSelected = action.payload;
+    });
   },
 });
 

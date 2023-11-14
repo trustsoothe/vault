@@ -2,10 +2,9 @@ import type {
   AutocompleteRenderOptionState,
   FilterOptionsState,
 } from "@mui/material";
-import type { RootState } from "../../../redux/store";
 import type { FormValues } from "../index";
+import type { Network } from "../../../redux/slices/app";
 import { useTheme } from "@mui/material";
-import { connect } from "react-redux";
 import orderBy from "lodash/orderBy";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -13,47 +12,47 @@ import Typography from "@mui/material/Typography";
 import React, { useCallback, useMemo } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Controller, useFormContext } from "react-hook-form";
+import { useAppSelector } from "../../../hooks/redux";
 
-type TNetwork = RootState["vault"]["entities"]["networks"]["list"];
-
-interface NetworkAutocompleteProps {
-  networks: TNetwork;
-}
-
-const NetworkAutocomplete: React.FC<NetworkAutocompleteProps> = ({
-  networks,
-}) => {
+const NetworkAutocomplete: React.FC = () => {
   const theme = useTheme();
   const { control, watch } = useFormContext<FormValues>();
 
-  const [asset, fromType] = watch(["asset", "fromType"]);
-
-  const allowedNetworks: TNetwork = useMemo(() => {
-    if (!asset) {
-      return [];
-    }
-
+  const [protocol, chainId, rpcUrl] = watch(["protocol", "chainId", "rpcUrl"]);
+  const networks = useAppSelector((state) => state.app.networks);
+  const allowedNetworks: Network[] = useMemo(() => {
     return orderBy(
       networks
-        .filter((item) => item.protocol === asset.protocol)
+        .filter(
+          (item) => item.protocol === protocol && item.chainId === chainId
+        )
         .map((item) => ({
           ...item,
-          rank: item.isPreferred ? 1 : item.isDefault ? 2 : 3,
+          // todo: add rpcs and consider is preferred
+          rank: /*item.isPreferred ? 1 :*/ item.isDefault ? 2 : 3,
         })),
       ["rank"],
       ["asc"]
     );
-  }, [networks, asset]);
+  }, [networks, protocol, chainId]);
+  const selectedNetwork = useMemo(() => {
+    return allowedNetworks.find(
+      (item) =>
+        item.rpcUrl === rpcUrl &&
+        item.chainId === chainId &&
+        item.protocol === protocol
+    );
+  }, [allowedNetworks]);
 
   const filterOptions = useCallback(
-    (options: TNetwork, state: FilterOptionsState<TNetwork[0]>) => {
+    (options: Network[], state: FilterOptionsState<Network>) => {
       const value = state.inputValue.toLowerCase().trim();
 
       if (!value) return options.slice(0, 25);
 
       return options
         .filter((item) => {
-          if (item.name.toLowerCase().includes(value)) {
+          if (item.label.toLowerCase().includes(value)) {
             return true;
           }
         })
@@ -65,7 +64,7 @@ const NetworkAutocomplete: React.FC<NetworkAutocompleteProps> = ({
   const renderOption = useCallback(
     (
       props: React.HTMLAttributes<unknown>,
-      option: TNetwork[0],
+      option: Network,
       state: AutocompleteRenderOptionState
     ) => {
       return (
@@ -91,9 +90,10 @@ const NetworkAutocomplete: React.FC<NetworkAutocompleteProps> = ({
           <Typography color={theme.customColors.dark90}>
             {option.isDefault
               ? "(Default)"
-              : option.isPreferred
-              ? "(Preferred)"
-              : ""}
+              : // todo: when rpcs are enabled
+                // : option.isPreferred
+                // ? "(Preferred)"
+                ""}
           </Typography>
         </Stack>
       );
@@ -101,22 +101,22 @@ const NetworkAutocomplete: React.FC<NetworkAutocompleteProps> = ({
     [theme]
   );
 
-  const getOptionLabel = useCallback((option: TNetwork[0]) => {
+  const getOptionLabel = useCallback((option: Network) => {
     return option ? option.rpcUrl : "";
   }, []);
 
   const isOptionEqualToValue = useCallback(
-    (option: TNetwork[0], value: TNetwork[0]) => {
+    (option: Network, value: Network) => {
       return option.id === value.id;
     },
     []
   );
 
-  const disabled = !asset || allowedNetworks?.length === 1;
+  const disabled = allowedNetworks?.length === 1;
 
   return (
     <Controller
-      name={"network"}
+      name={"rpcUrl"}
       control={control}
       rules={{ required: "Required" }}
       render={({
@@ -128,14 +128,19 @@ const NetworkAutocomplete: React.FC<NetworkAutocompleteProps> = ({
           filterOptions={filterOptions}
           renderOption={renderOption}
           getOptionLabel={getOptionLabel}
-          onChange={(_, newValue) => onChange(newValue)}
+          onChange={(_, newValue) => onChange(newValue.rpcUrl)}
           isOptionEqualToValue={isOptionEqualToValue}
-          value={value || null}
+          value={
+            allowedNetworks.find(
+              (item) => item.protocol === protocol && selectedNetwork
+            ) || null
+          }
           clearIcon={null}
           {...otherProps}
           sx={{
             width: 1,
-            order: fromType === "private_key" ? 2 : 3,
+            order: 2,
+            marginTop: 2,
           }}
           openOnFocus
           ListboxProps={{
@@ -172,10 +177,4 @@ const NetworkAutocomplete: React.FC<NetworkAutocompleteProps> = ({
   );
 };
 
-const mapStateToNetworkProps = (state: RootState) => {
-  return {
-    networks: state.vault.entities.networks.list,
-  };
-};
-
-export default connect(mapStateToNetworkProps)(NetworkAutocomplete);
+export default NetworkAutocomplete;

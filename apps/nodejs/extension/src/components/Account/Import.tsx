@@ -2,7 +2,6 @@ import type {
   SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/keyring";
-import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -13,7 +12,6 @@ import MenuItem from "@mui/material/MenuItem";
 import Divider from "@mui/material/Divider";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import { connect } from "react-redux";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import { nameRules } from "./CreateNew";
@@ -24,9 +22,11 @@ import {
   getAddressFromPrivateKey,
   getPrivateKeyFromPPK,
   isValidPPK,
+  isValidPrivateKey,
 } from "../../utils/networkOperations";
-import { isPrivateKey } from "../../utils";
 import { enqueueSnackbar } from "../../utils/ui";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -51,13 +51,22 @@ interface FormValues {
   vault_password: string;
 }
 
-const getPrivateKey = async (data: FormValues) => {
+const INVALID_PPK_MESSAGE = "File is not valid";
+
+const getPrivateKey = async (
+  data: FormValues,
+  protocol: SupportedProtocols
+) => {
   let privateKey: string;
 
   if (data.json_file) {
     const contentFile = await data.json_file.text();
 
-    privateKey = await getPrivateKeyFromPPK(contentFile, data.file_password);
+    privateKey = await getPrivateKeyFromPPK(
+      contentFile,
+      data.file_password,
+      protocol
+    );
   } else {
     privateKey = data.private_key;
   }
@@ -67,19 +76,27 @@ const getPrivateKey = async (data: FormValues) => {
 
 type FormStatus = "normal" | "loading" | "error" | "account_exists";
 
-interface ImportAccountProps {
-  network: SupportedProtocols;
-  accounts: RootState["vault"]["entities"]["accounts"]["list"];
-  passwordRemembered: RootState["vault"]["passwordRemembered"];
-}
-
-const ImportAccount: React.FC<ImportAccountProps> = ({
-  passwordRemembered,
-  network,
-  accounts,
-}) => {
+const ImportAccount: React.FC = () => {
   const theme = useTheme();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const dispatch = useAppDispatch();
+  const selectedProtocol = useAppSelector((state) => state.app.selectedNetwork);
+  const passwordRemembered = useAppSelector(
+    (state) => state.vault.passwordRemembered
+  );
+  const accounts = useAppSelector(
+    (state) => state.vault.entities.accounts.list
+  );
+  const selectedAccount = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    const selectedAccountId =
+      state.app.selectedAccountByNetwork[selectedNetwork];
+
+    return state.vault.entities.accounts.list.find(
+      (account) => account.id === selectedAccountId
+    );
+  });
+
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [accountToReimport, setAccountToReImport] =
@@ -118,31 +135,23 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 
   const { isValidating } = formState;
 
-  const onChangeAccount = useCallback(
-    (newAccount: SerializedAccountReference) => {
-      setAccountToReImport(newAccount);
-      setSearchParams((prev) => {
-        prev.set("id", newAccount.id);
-        return prev;
-      });
-    },
-    []
-  );
-
   useEffect(() => {
-    const id = searchParams.get("reimport");
-    const accountFromStore = accounts.find((item) => item.id === id);
-    if (accountFromStore && accountToReimport?.id !== id) {
-      setAccountToReImport(accountFromStore);
+    const isReimporting = searchParams.get("reimport") === "true";
+    if (
+      isReimporting &&
+      selectedAccount &&
+      accountToReimport?.id !== selectedAccount.id
+    ) {
+      setAccountToReImport({ ...selectedAccount });
 
-      setValue("account_name", accountFromStore.name);
+      setValue("account_name", selectedAccount.name);
       return;
     }
 
-    if (!accountFromStore) {
+    if (!selectedAccount || !isReimporting) {
       setAccountToReImport(null);
     }
-  }, [searchParams, accounts]);
+  }, [selectedAccount]);
 
   const [type, file_password, json_file, vault_password] = watch([
     "import_type",
@@ -156,7 +165,8 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
     setValue("json_file", null);
     setValue("file_password", "");
     clearErrors(["private_key", "json_file"]);
-  }, [type]);
+    setWrongFilePassword(false);
+  }, [type, selectedProtocol]);
 
   useEffect(() => {
     if (wrongPassword) {
@@ -199,9 +209,12 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 
       let privateKey: string;
       try {
-        privateKey = await getPrivateKey(data);
+        privateKey = await getPrivateKey(data, selectedProtocol);
       } catch (e) {
-        if (e?.message === "Unsupported state or unable to authenticate data") {
+        if (
+          e?.message === "Unsupported state or unable to authenticate data" ||
+          e?.message === "Key derivation failed - possibly wrong password"
+        ) {
           setWrongFilePassword(true);
         } else {
           setErrorPpk(true);
@@ -212,7 +225,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 
       AppToBackground.importAccount({
         accountData: {
-          protocol: network,
+          protocol: selectedProtocol,
           name: data.account_name,
           accountPassword: data.account_password,
           privateKey,
@@ -227,27 +240,47 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
             setWrongPassword(true);
             setStatus("normal");
           } else if (response.data.accountAlreadyExists) {
-            const address = await getAddressFromPrivateKey(privateKey, network);
+            const address = await getAddressFromPrivateKey(
+              privateKey,
+              selectedProtocol
+            );
 
             const account = accounts.find(
               (item) =>
-                item.address === address && item.asset.protocol === network
+                item.address === address && item.protocol === selectedProtocol
             );
             setAccountToReImport(account);
             setStatus("account_exists");
           } else {
-            enqueueSnackbar({
-              message: `Account ${
-                accountToReimport ? "re" : ""
-              }imported successfully.`,
-              variant: "success",
+            dispatch(
+              changeSelectedAccountOfNetwork({
+                network: selectedProtocol,
+                accountId: response.data.accountId,
+              })
+            ).then(() => {
+              setTimeout(() => {
+                enqueueSnackbar({
+                  message: `Account ${
+                    accountToReimport ? "re" : ""
+                  }imported successfully.`,
+                  variant: "success",
+                });
+                navigate(ACCOUNTS_PAGE);
+              }, 500);
             });
-            navigate(ACCOUNTS_PAGE);
           }
         }
       });
     },
-    [navigate, accountToReimport, passwordStep, passwordRemembered, network]
+    [
+      navigate,
+      accountToReimport,
+      passwordStep,
+      passwordRemembered,
+      selectedProtocol,
+      dispatch,
+      accounts,
+    ]
   );
 
   const onClickAccountExists = useCallback(async () => {
@@ -288,7 +321,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
             },
           }}
           onCancel={onClickAccountExists}
-          cancelBtnText={"Go To Account"}
+          cancelBtnText={"Cancel"}
           retryBtnText={"Reimport"}
           onRetry={onClickReimport}
           buttonsContainerProps={{
@@ -317,20 +350,19 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
           overflow={"hidden"}
         >
           {!accountToReimport && (
-            <TextField
-              fullWidth
-              label={"Account Name"}
-              autoComplete={"off"}
-              size={"small"}
-              {...register("account_name", nameRules)}
-              error={!!formState?.errors?.account_name}
-              helperText={formState?.errors?.account_name?.message}
-            />
+            <>
+              <TextField
+                fullWidth
+                label={"Account Name"}
+                autoComplete={"off"}
+                size={"small"}
+                {...register("account_name", nameRules)}
+                error={!!formState?.errors?.account_name}
+                helperText={formState?.errors?.account_name?.message}
+              />
+              <Divider />
+            </>
           )}
-
-          <Divider
-            sx={{ marginTop: accountToReimport ? "10px!important" : undefined }}
-          />
 
           <Stack
             direction={"row"}
@@ -338,7 +370,7 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
             alignItems={"center"}
             width={1}
             height={30}
-            marginTop={"15px!important"}
+            marginTop={accountToReimport ? undefined : "15px!important"}
           >
             <Typography fontSize={14} fontWeight={500} letterSpacing={"0.5px"}>
               Import from
@@ -403,13 +435,13 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
                       return "Required";
                     }
 
-                    if (!isPrivateKey(value, network)) {
+                    if (!isValidPrivateKey(value, selectedProtocol)) {
                       return "Invalid Private Key";
                     }
 
                     if (accountToReimport) {
                       const addressOfPrivateKey =
-                        await getAddressFromPrivateKey(value, network);
+                        await getAddressFromPrivateKey(value, selectedProtocol);
 
                       if (accountToReimport.address !== addressOfPrivateKey) {
                         return "This is not the PK of the account to reimport";
@@ -440,8 +472,30 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
 
                       const content = await value.text();
 
-                      if (!isValidPPK(content)) {
-                        return "File is not valid";
+                      if (!isValidPPK(content, selectedProtocol)) {
+                        return INVALID_PPK_MESSAGE;
+                      }
+
+                      if (accountToReimport) {
+                        try {
+                          const ppkContent = await value.text();
+                          const privateKey = await getPrivateKeyFromPPK(
+                            ppkContent,
+                            formValues.file_password,
+                            selectedProtocol
+                          );
+                          const addressOfPrivateKey =
+                            await getAddressFromPrivateKey(
+                              privateKey,
+                              selectedProtocol
+                            );
+
+                          if (
+                            accountToReimport.address !== addressOfPrivateKey
+                          ) {
+                            return INVALID_PPK_MESSAGE;
+                          }
+                        } catch (e) {}
                       }
                     }
 
@@ -460,11 +514,18 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
                   >
                     <Typography
                       fontSize={12}
+                      textOverflow={"ellipsis"}
+                      whiteSpace={"nowrap"}
+                      overflow={"hidden"}
                       color={
                         error
                           ? theme.customColors.red100
                           : theme.customColors.dark75
                       }
+                      sx={{
+                        maxWidth: 165,
+                        marginRight: 0.5,
+                      }}
                     >
                       {json_file?.name || "None File Selected"}
                     </Typography>
@@ -479,14 +540,18 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
                         justifyContent: "flex-end",
                         paddingX: 0,
                         fontSize: 13,
-                        color: theme.customColors.primary500,
+                        color: error
+                          ? theme.customColors.red100
+                          : theme.customColors.primary500,
                         "&:hover": {
                           textDecoration: "underline",
                           backgroundColor: theme.customColors.dark2,
                         },
                       }}
                     >
-                      Select File
+                      {error?.message === INVALID_PPK_MESSAGE
+                        ? "Wrong File. Select Another"
+                        : "Select File"}
                       <VisuallyHiddenInput
                         type={"file"}
                         accept={"application/json"}
@@ -534,6 +599,13 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
               }}
               passwordContainerProps={{
                 marginTop: "10px!important",
+                sx: {
+                  ...(type === "json_file" && {
+                    "& #password-strength-bar-container": {
+                      marginBottom: "-11px!important",
+                    },
+                  }),
+                },
               }}
             />
           </FormProvider>
@@ -610,12 +682,4 @@ const ImportAccount: React.FC<ImportAccountProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => {
-  return {
-    accounts: state.vault.entities.accounts.list,
-    network: state.app.selectedNetwork,
-    passwordRemembered: state.vault.passwordRemembered,
-  };
-};
-
-export default connect(mapStateToProps)(ImportAccount);
+export default ImportAccount;

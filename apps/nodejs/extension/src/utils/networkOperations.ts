@@ -1,25 +1,57 @@
-import type { ErrorsPreferredNetwork } from "../redux/slices/vault";
+import type { ErrorsPreferredNetwork } from "../redux/slices/app";
 import { Buffer } from "buffer";
 import crypto from "crypto-browserify";
 import scrypt from "scrypt-js";
+import { isAddress as isEthAddress, validator } from "web3-validator";
+import { decrypt, encrypt, keyStoreSchema } from "web3-eth-accounts";
 import {
   AccountReference,
-  Network,
+  EthereumNetworkFeeRequestOptions,
+  INetwork,
   INetworkOptions,
+  Network,
   ProtocolServiceFactory,
-  SerializedNetwork,
-  SupportedProtocols,
   SerializedAsset,
-  Asset,
+  SupportedProtocols,
 } from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 
-interface GetFeeParam {
-  protocol: SupportedProtocols;
-  chainId: ChainID<SupportedProtocols>;
-  networks: SerializedNetwork[];
+const isPocketAddress = (address: string) => {
+  return address.match(/^[0-9a-fA-F]+$/g) && new Blob([address]).size === 40;
+};
+
+export const isValidAddress = (
+  address: string,
+  protocol: SupportedProtocols
+) => {
+  const fn =
+    protocol === SupportedProtocols.Pocket ? isPocketAddress : isEthAddress;
+  return fn(address);
+};
+
+export const isValidPrivateKey = (
+  privateKey: string,
+  protocol: SupportedProtocols
+) => {
+  return ProtocolServiceFactory.getProtocolService(
+    protocol,
+    null
+  ).isValidPrivateKey(privateKey);
+};
+
+interface GetFeeParam<T extends SupportedProtocols = SupportedProtocols> {
+  protocol: T;
+  chainId: ChainID<T>;
+  networks: (INetwork & {
+    isPreferred?: boolean;
+    isDefault: boolean;
+    id: string;
+  })[];
   errorsPreferredNetwork?: ErrorsPreferredNetwork;
+  options: T extends SupportedProtocols.Ethereum
+    ? EthereumNetworkFeeRequestOptions
+    : undefined;
 }
 
 export const getFee = async ({
@@ -27,6 +59,7 @@ export const getFee = async ({
   chainId,
   networks,
   errorsPreferredNetwork,
+  options,
 }: GetFeeParam) => {
   const ProtocolService = ProtocolServiceFactory.getProtocolService(
     protocol,
@@ -50,8 +83,10 @@ export const getFee = async ({
     if (preferredNetworks.length) {
       for (const preferredNetwork of preferredNetworks) {
         try {
-          const network = Network.deserialize(preferredNetwork);
-          const fee = await ProtocolService.getFee(network);
+          const fee = await ProtocolService.getFee(
+            preferredNetwork,
+            protocol === SupportedProtocols.Ethereum ? options : undefined
+          );
 
           return { fee, networksWithErrors };
         } catch (e) {
@@ -66,13 +101,10 @@ export const getFee = async ({
       item.chainID === chainId && item.protocol === protocol && item.isDefault
   );
 
-  if (!networkSerialized) {
-    throw new Error("there is not a default network for this protocol");
-  }
-
-  const network = Network.deserialize(networkSerialized);
-
-  const fee = await ProtocolService.getFee(network);
+  const fee = await ProtocolService.getFee(
+    networkSerialized,
+    protocol === SupportedProtocols.Ethereum ? options : undefined
+  );
   return { fee, networksWithErrors };
 };
 
@@ -80,7 +112,11 @@ interface GetAccountBalanceParam {
   address: string;
   protocol: SupportedProtocols;
   chainId: ChainID<SupportedProtocols>;
-  networks: SerializedNetwork[];
+  networks: (INetwork & {
+    isPreferred?: boolean;
+    isDefault: boolean;
+    id: string;
+  })[];
   assets: SerializedAsset[];
   errorsPreferredNetwork?: ErrorsPreferredNetwork;
 }
@@ -90,11 +126,9 @@ export const getAccountBalance = async ({
   protocol,
   chainId,
   networks,
-  assets,
   errorsPreferredNetwork,
 }: GetAccountBalanceParam) => {
-  const asset = assets.find((item) => item.protocol === protocol);
-  const acc = new AccountReference("", "", address, Asset.deserialize(asset));
+  const acc = new AccountReference("", "", address, protocol);
 
   const ProtocolService = ProtocolServiceFactory.getProtocolService(
     protocol,
@@ -118,11 +152,17 @@ export const getAccountBalance = async ({
     if (preferredNetworks.length) {
       for (const preferredNetwork of preferredNetworks) {
         try {
-          const network = Network.deserialize(preferredNetwork);
+          const balance = await ProtocolService.getBalance(
+            acc,
+            preferredNetwork
+          );
 
-          const balance = await ProtocolService.getBalance(network, acc);
-
-          return { balance: balance ? balance / 1e6 : 0, networksWithErrors };
+          return {
+            balance: balance
+              ? balance / (protocol === SupportedProtocols.Pocket ? 1e6 : 1e18)
+              : 0,
+            networksWithErrors,
+          };
         } catch (e) {
           networksWithErrors.push(preferredNetwork.id);
         }
@@ -139,71 +179,14 @@ export const getAccountBalance = async ({
     throw new Error("there is not a default network for this protocol");
   }
 
-  const network = Network.deserialize(networkSerialized);
+  const balance = await ProtocolService.getBalance(acc, networkSerialized);
 
-  const balance = await ProtocolService.getBalance(network, acc);
-
-  return { balance: balance ? balance / 1e6 : 0, networksWithErrors };
-};
-
-interface GetBalancesParam {
-  accounts: {
-    address: string;
-    protocol: SupportedProtocols;
-    chainId: ChainID<SupportedProtocols>;
-  }[];
-  networks: SerializedNetwork[];
-  assets: SerializedAsset[];
-  errorsPreferredNetwork: ErrorsPreferredNetwork;
-}
-
-export const getBalances = ({
-  accounts,
-  networks,
-  assets,
-  errorsPreferredNetwork,
-}: GetBalancesParam) => {
-  return Promise.all(
-    accounts.map(({ address, protocol, chainId }) => {
-      return new Promise(async (resolve) => {
-        let balance: number,
-          error = false,
-          networksWithErrors: string[] = [];
-        try {
-          const result = await getAccountBalance({
-            address,
-            protocol,
-            chainId,
-            networks,
-            assets,
-            errorsPreferredNetwork,
-          });
-          balance = result.balance;
-          networksWithErrors = result.networksWithErrors;
-        } catch (e) {
-          balance = 0;
-          error = true;
-        }
-
-        resolve({
-          address,
-          error,
-          balance: balance,
-          protocol,
-          networksWithErrors,
-        });
-      });
-    })
-  ) as Promise<
-    {
-      address: string;
-      balance: number;
-      protocol: SupportedProtocols;
-      chainId: ChainID<SupportedProtocols>;
-      networksWithErrors: string[];
-      error: boolean;
-    }[]
-  >;
+  return {
+    balance: balance
+      ? balance / (protocol === SupportedProtocols.Pocket ? 1e6 : 1e18)
+      : 0,
+    networksWithErrors,
+  };
 };
 
 export const isNetworkUrlHealthy = async (
@@ -217,39 +200,34 @@ export const isNetworkUrlHealthy = async (
       new WebEncryptionService()
     );
 
-    const result = await ProtocolService.updateNetworkStatus(network);
+    const result = await ProtocolService.getNetworkStatus(network);
 
     return (
-      result?.status?.canProvideBalance &&
-      result?.status?.canSendTransaction &&
-      result?.status?.canProvideFee
+      result?.canProvideBalance &&
+      result?.canSendTransaction &&
+      result?.canProvideFee
     );
   } catch (e) {
     return false;
   }
 };
 
-export const isTransferHealthyForNetwork = async (
-  serializedNetwork: SerializedNetwork
-) => {
+export const isTransferHealthyForNetwork = async (network: INetwork) => {
   try {
-    const network = Network.deserialize(serializedNetwork);
-
     const ProtocolService = ProtocolServiceFactory.getProtocolService(
       network.protocol,
       new WebEncryptionService()
     );
 
-    const result = await ProtocolService.updateSendTransactionStatus(network);
+    const result = await ProtocolService.getNetworkSendTransactionStatus(
+      network
+    );
 
-    return !!result?.status?.canSendTransaction;
+    return !!result?.canSendTransaction;
   } catch (e) {
     return false;
   }
 };
-
-// export const protocolsAreEquals = (p1: Protocol, p2: Protocol) =>
-//   p1.name === p2.name && p1.chainID === p2.chainID;
 
 export const getAddressFromPrivateKey = async (
   privateKey: string,
@@ -263,28 +241,36 @@ export const getAddressFromPrivateKey = async (
   return ProtocolService.getAddressFromPrivateKey(privateKey);
 };
 
-export const isValidPPK = (ppkContent: string) => {
+export const isValidPPK = (
+  ppkContent: string,
+  protocol: SupportedProtocols
+) => {
   try {
-    const jsonObject = JSON.parse(ppkContent);
-    // Check if undefined
-    if (
-      jsonObject.kdf === undefined ||
-      jsonObject.salt === undefined ||
-      jsonObject.secparam === undefined ||
-      jsonObject.ciphertext === undefined
-    ) {
-      return false;
+    if (protocol === SupportedProtocols.Pocket) {
+      const jsonObject = JSON.parse(ppkContent);
+      // Check if undefined
+      if (
+        jsonObject.kdf === undefined ||
+        jsonObject.salt === undefined ||
+        jsonObject.secparam === undefined ||
+        jsonObject.ciphertext === undefined
+      ) {
+        return false;
+      }
+      // Validate the properties
+      if (
+        jsonObject.kdf !== "scrypt" ||
+        !new RegExp(/^[0-9a-fA-F]+$/).test(jsonObject.salt) ||
+        jsonObject.secparam <= 0 ||
+        jsonObject.ciphertext.length <= 0
+      ) {
+        return false;
+      }
+      return true;
+    } else {
+      validator.validateJSONSchema(keyStoreSchema, JSON.parse(ppkContent));
+      return true;
     }
-    // Validate the properties
-    if (
-      jsonObject.kdf !== "scrypt" ||
-      !new RegExp(/^[0-9a-fA-F]+$/).test(jsonObject.salt) ||
-      jsonObject.secparam <= 0 ||
-      jsonObject.ciphertext.length <= 0
-    ) {
-      return false;
-    }
-    return true;
   } catch (e) {
     return false;
   }
@@ -292,57 +278,63 @@ export const isValidPPK = (ppkContent: string) => {
 
 export const getPrivateKeyFromPPK = async (
   ppkContent: string,
-  filePassword: string
+  filePassword: string,
+  protocol: SupportedProtocols
 ) => {
-  const isPPKValid = isValidPPK(ppkContent);
+  if (protocol === SupportedProtocols.Pocket) {
+    const isPPKValid = isValidPPK(ppkContent, protocol);
 
-  if (!isPPKValid) {
-    throw new Error();
+    if (!isPPKValid) {
+      throw new Error();
+    }
+
+    const jsonObject = JSON.parse(ppkContent);
+    const scryptHashLength = 32;
+    const ivLength = Number(jsonObject.secparam);
+    const tagLength = 16;
+    const algorithm = "aes-256-gcm";
+    const scryptOptions = {
+      N: 32768,
+      r: 8,
+      p: 1,
+      maxmem: 4294967290,
+    };
+    // Retrieve the salt
+    const decryptSalt = Buffer.from(jsonObject.salt, "hex");
+    // Scrypt hash
+    const scryptHash = await scrypt.scrypt(
+      Buffer.from(filePassword, "utf8"),
+      decryptSalt,
+      scryptOptions.N,
+      scryptOptions.r,
+      scryptOptions.p,
+      scryptHashLength
+    );
+    // Create a buffer from the ciphertext
+    const inputBuffer = Buffer.from(jsonObject.ciphertext, "base64");
+
+    // Create empty iv, tag and data constants
+    const iv = scryptHash.slice(0, ivLength);
+    const tag = inputBuffer.slice(inputBuffer.length - tagLength);
+    const data = inputBuffer.slice(0, inputBuffer.length - tagLength);
+
+    // Create the decipher
+    const decipher = crypto.createDecipheriv(
+      algorithm,
+      Buffer.from(scryptHash),
+      iv
+    );
+    // Set the auth tag
+    decipher.setAuthTag(tag);
+    // Update the decipher with the data to utf8
+    let privateKey = decipher.update(data, undefined, "utf8");
+    privateKey += decipher.final("utf8");
+
+    return privateKey;
+  } else {
+    const web3Account = await decrypt(ppkContent, filePassword);
+    return web3Account.privateKey;
   }
-
-  const jsonObject = JSON.parse(ppkContent);
-  const scryptHashLength = 32;
-  const ivLength = Number(jsonObject.secparam);
-  const tagLength = 16;
-  const algorithm = "aes-256-gcm";
-  const scryptOptions = {
-    N: 32768,
-    r: 8,
-    p: 1,
-    maxmem: 4294967290,
-  };
-  // Retrieve the salt
-  const decryptSalt = Buffer.from(jsonObject.salt, "hex");
-  // Scrypt hash
-  const scryptHash = await scrypt.scrypt(
-    Buffer.from(filePassword, "utf8"),
-    decryptSalt,
-    scryptOptions.N,
-    scryptOptions.r,
-    scryptOptions.p,
-    scryptHashLength
-  );
-  // Create a buffer from the ciphertext
-  const inputBuffer = Buffer.from(jsonObject.ciphertext, "base64");
-
-  // Create empty iv, tag and data constants
-  const iv = scryptHash.slice(0, ivLength);
-  const tag = inputBuffer.slice(inputBuffer.length - tagLength);
-  const data = inputBuffer.slice(0, inputBuffer.length - tagLength);
-
-  // Create the decipher
-  const decipher = crypto.createDecipheriv(
-    algorithm,
-    Buffer.from(scryptHash),
-    iv
-  );
-  // Set the auth tag
-  decipher.setAuthTag(tag);
-  // Update the decipher with the data to utf8
-  let privateKey = decipher.update(data, undefined, "utf8");
-  privateKey += decipher.final("utf8");
-
-  return privateKey;
 };
 
 const SCRYPT_HASH_LENGTH = 32;
@@ -355,40 +347,47 @@ const SCRYPT_OPTIONS = {
 
 export const getPortableWalletContent = async (
   privateKey: string,
-  password: string
+  password: string,
+  protocol: SupportedProtocols
 ): Promise<string> => {
-  const secParam = 12;
-  const algorithm = "aes-256-gcm";
-  const salt = crypto.randomBytes(16);
+  if (protocol === SupportedProtocols.Pocket) {
+    const secParam = 12;
+    const algorithm = "aes-256-gcm";
+    const salt = crypto.randomBytes(16);
 
-  const scryptHash = await scrypt.scrypt(
-    Buffer.from(password, "utf8"),
-    salt,
-    SCRYPT_OPTIONS.N,
-    SCRYPT_OPTIONS.r,
-    SCRYPT_OPTIONS.p,
-    SCRYPT_HASH_LENGTH
-  );
-  // Create the nonce from the first 12 bytes of the sha256 Scrypt hash
-  const scryptHashBuffer = Buffer.from(scryptHash);
-  const iv = Buffer.allocUnsafe(secParam);
-  scryptHashBuffer.copy(iv, 0, 0, secParam);
-  // Generate ciphertext by using the privateKey, nonce and sha256 Scrypt hash
-  const cipher = await crypto.createCipheriv(algorithm, scryptHashBuffer, iv);
-  let cipherText = cipher.update(privateKey, "utf8", "hex");
-  cipherText += cipher.final("hex");
-  // Concatenate the ciphertext final + auth tag
-  cipherText = cipherText + cipher.getAuthTag().toString("hex");
-  // Returns the Armored JSON string
-  return JSON.stringify(
-    {
-      kdf: "scrypt",
-      salt: salt.toString("hex"),
-      secparam: secParam.toString(),
-      hint: "pocket wallet",
-      ciphertext: Buffer.from(cipherText, "hex").toString("base64"),
-    },
-    null,
-    2
-  );
+    const scryptHash = await scrypt.scrypt(
+      Buffer.from(password, "utf8"),
+      salt,
+      SCRYPT_OPTIONS.N,
+      SCRYPT_OPTIONS.r,
+      SCRYPT_OPTIONS.p,
+      SCRYPT_HASH_LENGTH
+    );
+    // Create the nonce from the first 12 bytes of the sha256 Scrypt hash
+    const scryptHashBuffer = Buffer.from(scryptHash);
+    const iv = Buffer.allocUnsafe(secParam);
+    scryptHashBuffer.copy(iv, 0, 0, secParam);
+    // Generate ciphertext by using the privateKey, nonce and sha256 Scrypt hash
+    const cipher = await crypto.createCipheriv(algorithm, scryptHashBuffer, iv);
+    let cipherText = cipher.update(privateKey, "utf8", "hex");
+    cipherText += cipher.final("hex");
+    // Concatenate the ciphertext final + auth tag
+    cipherText = cipherText + cipher.getAuthTag().toString("hex");
+    // Returns the Armored JSON string
+    return JSON.stringify(
+      {
+        kdf: "scrypt",
+        salt: salt.toString("hex"),
+        secparam: secParam.toString(),
+        hint: "pocket wallet",
+        ciphertext: Buffer.from(cipherText, "hex").toString("base64"),
+      },
+      null,
+      2
+    );
+  } else {
+    const keyStore = await encrypt(privateKey, password);
+
+    return JSON.stringify(keyStore);
+  }
 };

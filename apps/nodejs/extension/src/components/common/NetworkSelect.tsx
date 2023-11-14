@@ -1,7 +1,6 @@
 import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
-import type { RootState } from "../../redux/store";
-import { connect } from "react-redux";
 import Grow from "@mui/material/Grow";
+import orderBy from "lodash/orderBy";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -13,16 +12,15 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import React, { useCallback, useMemo, useState } from "react";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
 import { SupportedProtocols } from "@poktscan/keyring";
-import { useAppDispatch } from "../../hooks/redux";
-import { changeSelectedNetwork } from "../../redux/slices/app";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import {
+  changeSelectedNetwork,
+  toggleShowTestNetworks,
+} from "../../redux/slices/app";
 import ExpandIcon from "../../assets/img/drop_down_icon.svg";
 import CloseIcon from "../../assets/img/close_icon.svg";
-import PocketIcon from "../../assets/img/networks/pocket.svg";
-import EthereumIcon from "../../assets/img/networks/ethereum.svg";
 
 interface NetworkSelectProps {
-  selectedNetwork: RootState["app"]["selectedNetwork"];
-  selectedChainByNetwork: RootState["app"]["selectedChainByNetwork"];
   toggleShowBackdrop: () => void;
 }
 
@@ -32,66 +30,19 @@ type Option<T extends SupportedProtocols = SupportedProtocols> = {
   isTest?: true;
 };
 
-const options: Option[] = [
-  {
-    network: SupportedProtocols.Pocket,
-    chainId: "mainnet",
-  },
-  {
-    network: SupportedProtocols.Pocket,
-    chainId: "testnet",
-    isTest: true,
-  },
-  {
-    network: SupportedProtocols.Ethereum,
-    chainId: "1",
-  },
-  {
-    network: SupportedProtocols.Ethereum,
-    chainId: "5",
-    isTest: true,
-  },
-  {
-    network: SupportedProtocols.Ethereum,
-    chainId: "11155111",
-    isTest: true,
-  },
-];
-
-const iconByNetwork = {
-  [SupportedProtocols.Ethereum]: EthereumIcon,
-  [SupportedProtocols.Pocket]: PocketIcon,
-};
-
-const getLabelByNetworkAndChain = (option: Option) => {
-  if (option.network === SupportedProtocols.Pocket) {
-    return `Pocket ${option.chainId === "mainnet" ? "Mainnet" : "Testnet"}`;
-  }
-
-  if (option.network === SupportedProtocols.Ethereum) {
-    if (option.chainId === "1") {
-      return "ETH Mainnet";
-    }
-
-    if (option.chainId === "11155111") {
-      return "Sepolia";
-    }
-
-    if (option.chainId === "5") {
-      return "Goerli";
-    }
-  }
-
-  return `${option.network} ${option.chainId}`;
-};
-
 const NetworkSelect: React.FC<NetworkSelectProps> = ({
-  selectedNetwork,
-  selectedChainByNetwork,
   toggleShowBackdrop,
 }) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
+  const selectedNetwork = useAppSelector((state) => state.app.selectedNetwork);
+  const selectedChainByNetwork = useAppSelector(
+    (state) => state.app.selectedChainByNetwork
+  );
+  const networks = useAppSelector((state) => state.app.networks);
+  const networksCanBeSelected = useAppSelector(
+    (state) => state.app.networksCanBeSelected
+  );
 
   const selectedOption: Option = useMemo(() => {
     return {
@@ -101,16 +52,19 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
       ] as ChainID<SupportedProtocols>,
     };
   }, [selectedNetwork, selectedChainByNetwork]);
-  const SelectedOptionIcon = iconByNetwork[selectedNetwork];
+  const selectedOptionIconUrl = networks.find(
+    (network) =>
+      network.protocol === selectedOption.network &&
+      network.chainId === selectedOption.chainId
+  )?.iconUrl;
 
-  const [showTestNetworks, setShowTestNetworks] = useState(false);
-
-  const onChangeShowTestNetworks = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setShowTestNetworks(event.target.checked);
-    },
-    []
+  const showTestNetworks = useAppSelector(
+    (state) => state.app.showTestNetworks
   );
+
+  const onChangeShowTestNetworks = useCallback(() => {
+    dispatch(toggleShowTestNetworks());
+  }, []);
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
 
@@ -128,33 +82,43 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
   }, [toggleShowBackdrop]);
 
   const handleChangeNetwork = useCallback(
-    (option: Option) => {
-      dispatch(changeSelectedNetwork(option));
+    (option: { protocol: SupportedProtocols; chainId: string }) => {
+      dispatch(
+        changeSelectedNetwork({
+          network: option.protocol,
+          chainId: option.chainId,
+        })
+      );
       onCloseSelector();
     },
     [onCloseSelector]
   );
 
   const optionsToShow = useMemo(() => {
-    const selectedOptionFromArr = options.find(
-      (option) =>
-        option.chainId === selectedOption.chainId &&
-        option.network === selectedOption.network
+    const networkFiltered = [];
+
+    for (const network of networks) {
+      if (
+        network.isDefault ||
+        networksCanBeSelected[network.protocol].includes(network.chainId)
+      ) {
+        if (showTestNetworks) {
+          networkFiltered.push(network);
+        } else if (!network.isTestnet) {
+          networkFiltered.push(network);
+        }
+      }
+    }
+
+    return orderBy(
+      networkFiltered.map((network) => ({
+        ...network,
+        rank: network.isTestnet ? 2 : 1,
+      })),
+      ["rank"],
+      ["asc"]
     );
-
-    return [
-      selectedOptionFromArr,
-      ...options.filter((option) => {
-        const isNotSelected =
-          option.network !== selectedOption.network ||
-          option.chainId !== selectedOption.chainId;
-
-        return showTestNetworks
-          ? isNotSelected
-          : isNotSelected && !option.isTest;
-      }),
-    ];
-  }, [showTestNetworks, selectedOption]);
+  }, [showTestNetworks, networksCanBeSelected, networks]);
 
   return (
     <>
@@ -186,7 +150,14 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
         }}
         onClick={anchorEl ? undefined : onOpenSelector}
       >
-        {!anchorEl && <SelectedOptionIcon />}
+        {!anchorEl && (
+          <img
+            src={selectedOptionIconUrl}
+            alt={`${selectedOption.network}-${selectedOption.chainId}-img`}
+            width={24}
+            height={24}
+          />
+        )}
         <Typography
           flexGrow={1}
           fontSize={13}
@@ -195,7 +166,11 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
           letterSpacing={"0.5px"}
         >
           {!anchorEl
-            ? getLabelByNetworkAndChain(selectedOption)
+            ? networks.find(
+                (network) =>
+                  network.protocol === selectedOption.network &&
+                  network.chainId === selectedOption.chainId
+              )?.label
             : "Select Network"}
         </Typography>
         {!anchorEl ? (
@@ -235,10 +210,9 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
                 overflow={"auto"}
               >
                 {optionsToShow.map((option) => {
-                  const { network, chainId } = option;
-                  const Icon = iconByNetwork[network];
+                  const { protocol, chainId } = option;
                   const isSelected =
-                    selectedOption.network === network &&
+                    selectedOption.network === protocol &&
                     selectedOption.chainId === chainId;
 
                   return (
@@ -251,7 +225,7 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
                       boxSizing={"border-box"}
                       direction={"row"}
                       alignItems={"center"}
-                      key={`${option.network}-${option.chainId}`}
+                      key={`${option.protocol}-${option.chainId}`}
                       onClick={
                         isSelected
                           ? onCloseSelector
@@ -269,13 +243,18 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
                         },
                       }}
                     >
-                      <Icon />
+                      <img
+                        src={option.iconUrl}
+                        alt={`${option.protocol}-${option.chainId}-img`}
+                        width={24}
+                        height={24}
+                      />
                       <Typography
                         fontSize={12}
                         fontWeight={500}
                         letterSpacing={"0.5px"}
                       >
-                        {getLabelByNetworkAndChain(option)}
+                        {option.label}
                       </Typography>
                     </Stack>
                   );
@@ -339,10 +318,4 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  networks: state.vault.entities.networks.list,
-  selectedNetwork: state.app.selectedNetwork,
-  selectedChainByNetwork: state.app.selectedChainByNetwork,
-});
-
-export default connect(mapStateToProps)(NetworkSelect);
+export default NetworkSelect;

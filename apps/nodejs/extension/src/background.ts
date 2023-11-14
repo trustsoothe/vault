@@ -3,7 +3,14 @@ import { wrapStore } from "webext-redux";
 import store from "./redux/store";
 import InternalCommunicationController from "./controllers/communication/Internal";
 import ExternalCommunicationController from "./controllers/communication/External";
-import { changeActiveTab } from "./redux/slices/app";
+import {
+  changeActiveTab,
+  loadSelectedNetworkAndAccount,
+} from "./redux/slices/app";
+import {
+  loadNetworksFromCdn,
+  loadNetworksFromStorage,
+} from "./redux/slices/app/network";
 
 wrapStore(store);
 
@@ -81,3 +88,15 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
     type: "UNKNOWN",
   };
 });
+
+// todo:
+(async () => {
+  await store.dispatch(loadNetworksFromStorage());
+  await store.dispatch(loadNetworksFromCdn());
+  await store.dispatch(loadSelectedNetworkAndAccount());
+
+  setInterval(async () => {
+    await store.dispatch(loadNetworksFromCdn());
+    await store.dispatch(loadSelectedNetworkAndAccount());
+  }, 1000 * 60 * 20);
+})();

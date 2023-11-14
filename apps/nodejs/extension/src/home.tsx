@@ -27,7 +27,6 @@ import {
   DISCONNECT_SITE_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
-  REMOVE_ACCOUNT_PAGE,
   REMOVE_NETWORK_PAGE,
   REQUEST_CONNECTION_PAGE,
   SITES_PAGE,
@@ -40,7 +39,6 @@ import ImportAccount from "./components/Account/Import";
 import RequestHandler from "./components/RequestHandler";
 import Transfer from "./components/Transfer";
 import ThemeProvider from "./theme";
-import RemoveAccount from "./components/Account/Remove";
 import { SnackbarProvider } from "notistack";
 import AddUpdateNetwork from "./components/Network/AddUpdate";
 import RemoveNetwork from "./components/Network/Remove";
@@ -83,10 +81,6 @@ const router = createHashRouter([
       {
         path: ACCOUNT_PK_PAGE,
         element: <ViewPrivateKey />,
-      },
-      {
-        path: REMOVE_ACCOUNT_PAGE,
-        element: <RemoveAccount />,
       },
       {
         path: SITES_PAGE,

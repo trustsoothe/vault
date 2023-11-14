@@ -1,8 +1,5 @@
-import type { SupportedProtocols } from "@poktscan/keyring";
-import type { RootState } from "../../redux/store";
 import type { ExternalNewAccountRequest } from "../../types/communication";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -14,10 +11,11 @@ import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import Requester from "../common/Requester";
 import { enqueueSnackbar } from "../../utils/ui";
-import { useAppDispatch } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
 import AccountAndVaultPasswords from "../common/AccountAndVaultPasswords";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 
 interface FormValues {
   account_name: string;
@@ -43,22 +41,17 @@ export const nameRules = {
 
 type FormStatus = "normal" | "loading" | "error";
 
-interface CreateNewAccountProps {
-  network: SupportedProtocols;
-  passwordRemembered: RootState["vault"]["passwordRemembered"];
-}
-
-const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
-  passwordRemembered,
-  network,
-}) => {
+const CreateNewAccount: React.FC = () => {
   const theme = useTheme();
+
+  const protocol = useAppSelector((state) => state.app.selectedNetwork);
+  const passwordRemembered = useAppSelector(
+    (state) => state.vault.passwordRemembered
+  );
+
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const [passwordStep, setPasswordStep] = useState<"account" | "vault">(
-    "account"
-  );
   const currentRequest: ExternalNewAccountRequest = location?.state;
 
   const methods = useForm<FormValues>({
@@ -83,11 +76,6 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
   }, [vaultPassword]);
 
   const onClickCancel = useCallback(async () => {
-    if (passwordStep === "vault") {
-      setPasswordStep("account");
-      return;
-    }
-
     if (currentRequest) {
       await AppToBackground.answerNewAccount({
         rejected: true,
@@ -101,22 +89,17 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
         navigate("/");
       }
     }
-  }, [currentRequest, navigate, location, dispatch, passwordStep]);
+  }, [currentRequest, navigate, location, dispatch]);
 
   const onClickCreate = useCallback(
     async (data: FormValues) => {
-      if (!passwordRemembered && passwordStep === "account") {
-        setPasswordStep("vault");
-        return;
-      }
-
       setStatus("loading");
       const result = await AppToBackground.answerNewAccount({
         rejected: false,
         vaultPassword: !passwordRemembered ? data.vault_password : undefined,
         accountData: {
           name: data.account_name,
-          protocol: network,
+          protocol,
           password: data.account_password,
         },
         request: currentRequest || null,
@@ -129,22 +112,22 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
           setWrongPassword(true);
           setStatus("normal");
         } else {
-          enqueueSnackbar({
-            message: `Account created successfully.`,
-            variant: "success",
+          dispatch(
+            changeSelectedAccountOfNetwork({
+              network: protocol,
+              accountId: result.data.accountId,
+            })
+          ).then(() => {
+            enqueueSnackbar({
+              message: `Account created successfully.`,
+              variant: "success",
+            });
+            navigate(ACCOUNTS_PAGE);
           });
-          navigate(ACCOUNTS_PAGE);
         }
       }
     },
-    [
-      currentRequest,
-      dispatch,
-      passwordRemembered,
-      navigate,
-      passwordStep,
-      network,
-    ]
+    [currentRequest, dispatch, passwordRemembered, navigate, protocol]
   );
 
   const content = useMemo(() => {
@@ -226,9 +209,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
             variant={"outlined"}
             fullWidth
           >
-            {!passwordRemembered && passwordStep === "vault"
-              ? "Back"
-              : "Cancel"}
+            Cancel
           </Button>
           <Button
             sx={{
@@ -240,9 +221,7 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
             fullWidth
             type={"submit"}
           >
-            {!passwordRemembered && passwordStep === "account"
-              ? "Next"
-              : "Create"}
+            Create
           </Button>
         </Stack>
       </Stack>
@@ -255,7 +234,6 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
     getValues,
     methods,
     passwordRemembered,
-    passwordStep,
   ]);
 
   return (
@@ -276,9 +254,4 @@ const CreateNewAccount: React.FC<CreateNewAccountProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  network: state.app.selectedNetwork,
-  passwordRemembered: state.vault.passwordRemembered,
-});
-
-export default connect(mapStateToProps)(CreateNewAccount);
+export default CreateNewAccount;

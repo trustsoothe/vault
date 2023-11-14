@@ -9,20 +9,20 @@ import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   type SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/keyring";
 import { roundAndSeparate } from "../../utils/ui";
-import { useAppDispatch } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import CloseIcon from "../../assets/img/close_icon.svg";
 import ExpandIcon from "../../assets/img/drop_down_icon.svg";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface AccountItemProps {
-  account: SerializedAccountReference;
+  account: SerializedAccountReference & { symbol: string };
   showBorderTop?: boolean;
   closeSelector: () => void;
   balanceMap: RootState["app"]["accountBalances"][SupportedProtocols.Ethereum]["1"];
@@ -51,7 +51,7 @@ const AccountItemComponent: React.FC<AccountItemProps> = ({
     }).catch();
   }, []);
 
-  const { address, name, id, asset } = account;
+  const { address, name, id } = account;
 
   const balance = (balanceMap[address]?.amount as number) || 0;
   const errorBalance = balanceMap[address]?.error || false;
@@ -141,7 +141,7 @@ const AccountItemComponent: React.FC<AccountItemProps> = ({
           <Typography fontSize={18} fontWeight={500} textAlign={"left"}>
             {roundAndSeparate(balance, 2, "0")}
             <span style={{ color: theme.customColors.dark50, marginLeft: 5 }}>
-              {asset?.symbol}
+              {account.symbol}
             </span>
           </Typography>
         )}
@@ -179,9 +179,23 @@ const AccountSelect: React.FC<AccountSelectProps> = ({
 }) => {
   const theme = useTheme();
 
-  const accountsOfNetwork = accounts.filter(
-    (account) => account.asset?.protocol === selectedNetwork
-  );
+  const assets = useAppSelector((state) => state.vault.entities.assets.list);
+  const symbolByProtocol = useMemo(() => {
+    return assets.reduce(
+      (acc, asset) => ({
+        ...acc,
+        [asset.protocol]: [asset.symbol],
+      }),
+      {}
+    );
+  }, [assets]);
+
+  const accountsOfNetwork = accounts
+    .filter((account) => account.protocol === selectedNetwork)
+    .map((account) => ({
+      ...account,
+      symbol: symbolByProtocol[account.protocol] || "",
+    }));
 
   const selectedAccount = accountsOfNetwork.find(
     (account) => account.id === selectedAccountByNetwork[selectedNetwork]

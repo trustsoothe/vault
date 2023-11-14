@@ -12,6 +12,8 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import { enqueueSnackbar } from "../../utils/ui";
+import ExpandIcon from "../../assets/img/expand_icon.svg";
+import { useAppSelector } from "../../hooks/redux";
 
 interface ListSessionsProps {
   sessionList: RootState["vault"]["entities"]["sessions"]["list"];
@@ -52,6 +54,10 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [secsToExpire, setSecsToExpire] = useState(0);
+  const [accountsExpanded, setAccountsExpanded] = useState(false);
+  const accounts = useAppSelector(
+    (state) => state.vault.entities.accounts.list
+  );
 
   useEffect(() => {
     const sessionSerialized = session.serialize();
@@ -77,6 +83,41 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
     navigate(`${DISCONNECT_SITE_PAGE}?id=${session.id}`);
   }, [session]);
 
+  const toggleExpandAccounts = useCallback(() => {
+    setAccountsExpanded((prevState) => !prevState);
+  }, []);
+
+  const accountsComponent = useMemo(() => {
+    if (!accountsExpanded) {
+      return null;
+    }
+
+    const idMap = session.permissions
+      .filter((item) => item.resource === "account")
+      .reduce(
+        (acc: string[], permission) => [...acc, ...permission.identities],
+        []
+      );
+
+    return accounts
+      .filter((account) => idMap.includes(account.id))
+      .map(({ address, name }) => {
+        const addressFirstCharacters = address?.substring(0, 4);
+        const addressLastCharacters = address?.substring(address?.length - 4);
+
+        return (
+          <Typography
+            marginLeft={2}
+            lineHeight={"20px"}
+            fontSize={11}
+            letterSpacing={"0.5px"}
+          >
+            {name} ({addressFirstCharacters}...{addressLastCharacters})
+          </Typography>
+        );
+      });
+  }, [accountsExpanded, accounts, session]);
+
   if (secsToExpire < 0) {
     return null;
   }
@@ -86,8 +127,6 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
       paddingY={0.5}
       paddingX={1}
       boxSizing={"border-box"}
-      height={65}
-      minHeight={65}
       border={`1px  solid ${theme.customColors.dark15}`}
       bgcolor={theme.customColors.dark2}
       borderRadius={"4px"}
@@ -142,6 +181,33 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
           {secsToText(secsToExpire)}
         </Typography>
       </Stack>
+      <Stack
+        direction={"row"}
+        sx={{
+          "& svg": {
+            transform: `${accountsExpanded ? "rotate(180deg)" : ""}scale(0.67)`,
+          },
+          cursor: "pointer",
+        }}
+        height={20}
+        alignItems={"center"}
+        marginLeft={-1}
+        onClick={toggleExpandAccounts}
+      >
+        <ExpandIcon />
+        <Typography
+          fontSize={12}
+          color={theme.customColors.primary500}
+          letterSpacing={"0.5px"}
+          sx={{
+            textDecoration: !accountsExpanded ? "underline" : undefined,
+            userSelect: "none",
+          }}
+        >
+          Accounts Connected
+        </Typography>
+      </Stack>
+      {accountsComponent}
     </Stack>
   );
 };

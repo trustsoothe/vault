@@ -1,5 +1,5 @@
+import type { FormValues } from "./index";
 import React, { useCallback, useState } from "react";
-import Summary from "./Summary/Component";
 import Stack from "@mui/material/Stack";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import Typography from "@mui/material/Typography";
@@ -7,18 +7,18 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import { useTheme } from "@mui/material";
-import Button from "@mui/material/Button";
 import { useNavigate } from "react-router-dom";
-import { SupportedProtocols } from "@poktscan/keyring";
-import { ACCOUNTS_PAGE } from "../../constants/routes";
-import { RootState } from "../../redux/store";
-import { connect } from "react-redux";
+import { useFormContext } from "react-hook-form";
+import {
+  EthereumNetworkFee,
+  PocketNetworkFee,
+  SupportedProtocols,
+} from "@poktscan/keyring";
+import Summary from "./Summary/Component";
 
 interface SummaryStepProps {
-  fromBalance: number;
   hash: string;
-  protocol: SupportedProtocols;
-  selectedChainByNetwork: RootState["app"]["selectedChainByNetwork"];
+  networkFee: PocketNetworkFee | EthereumNetworkFee;
 }
 
 const getTransactionLink = (
@@ -36,13 +36,13 @@ const getTransactionLink = (
 };
 
 const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
-  fromBalance,
   hash,
-  protocol,
-  selectedChainByNetwork,
+  networkFee,
 }) => {
   const theme = useTheme();
-  const navigate = useNavigate();
+  const { watch } = useFormContext<FormValues>();
+  const [protocol, chainId] = watch(["protocol", "chainId"]);
+
   const [showCopyHashTooltip, setShowCopyHashTooltip] = useState(false);
   const handleCopyHash = useCallback(() => {
     if (hash) {
@@ -53,22 +53,18 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
     }
   }, [hash]);
 
-  const link = getTransactionLink(
-    protocol,
-    selectedChainByNetwork[protocol],
-    hash
-  );
+  const link = getTransactionLink(protocol, chainId, hash);
 
   return (
     <Stack flexGrow={1} justifyContent={"space-between"}>
       <Stack>
-        <Summary fromBalance={fromBalance} />
+        <Summary networkFee={networkFee} />
         <Stack
           direction={"row"}
           alignItems={"center"}
           justifyContent={"center"}
-          mt={2.5}
-          mb={2}
+          mt={2}
+          mb={1}
           spacing={0.5}
         >
           <TaskAltIcon sx={{ fontSize: 20 }} color={"success"} />
@@ -76,9 +72,6 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
             Transfer submitted successfully!
           </Typography>
         </Stack>
-        <Typography fontSize={13} fontWeight={600}>
-          Hash:
-        </Typography>
         <Typography fontSize={12} sx={{ wordBreak: "break-all" }}>
           <a
             href={link}
@@ -97,24 +90,8 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
           </Tooltip>
         </Typography>
       </Stack>
-      <Button
-        sx={{
-          fontWeight: 700,
-          height: 36,
-          fontSize: 16,
-        }}
-        onClick={() => navigate(ACCOUNTS_PAGE)}
-        variant={"contained"}
-        fullWidth
-      >
-        Done
-      </Button>
     </Stack>
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  selectedChainByNetwork: state.app.selectedChainByNetwork,
-});
-
-export default connect(mapStateToProps)(TransferSubmittedStep);
+export default TransferSubmittedStep;

@@ -1,14 +1,11 @@
-import type {
-  SerializedAccountReference,
-  SerializedAsset,
-  SerializedNetwork,
-} from "@poktscan/keyring";
+import type { SerializedAccountReference } from "@poktscan/keyring";
 import {
+  EthereumNetworkFee,
+  PocketNetworkFee,
   SupportedProtocols,
   SupportedTransferDestinations,
   SupportedTransferOrigins,
 } from "@poktscan/keyring";
-import type { RootState } from "../../redux/store";
 import type { AmountStatus } from "./Form/AmountFeeInputs";
 import type { ExternalTransferRequest } from "../../types/communication";
 import React, {
@@ -18,117 +15,120 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { FormProvider, useForm } from "react-hook-form";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { getAccountBalance, getProtocolFee } from "../../redux/slices/vault";
-import { getAssetByProtocol, isAddress, isPrivateKey } from "../../utils";
 import TransferSubmittedStep from "./TransferSubmitted";
-import OperationFailed from "../common/OperationFailed";
-import AccountFromRequest from "./AccountFromRequest";
-import { useAppDispatch } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import SummaryStep from "./Summary/Step";
 import TransferForm from "./Form/index";
 import {
-  getAddressFromPrivateKey,
   isTransferHealthyForNetwork,
+  isValidAddress,
 } from "../../utils/networkOperations";
 import Requester from "../common/Requester";
-import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
+import { AccountBalanceInfo } from "../../redux/slices/app";
+import { AccountComponent } from "../Account/SelectedAccount";
+import useDidMountEffect from "../../hooks/useDidMountEffect";
+import { ACCOUNTS_PAGE } from "../../constants/routes";
+
+export type FeeSpeed = "n/a" | "low" | "medium" | "high";
 
 export interface FormValues {
-  fromType: "saved_account" | "private_key";
   from: string;
   toAddress: string;
   amount: string;
   memo?: string;
-  asset: SerializedAsset | null;
-  network: SerializedNetwork | null;
+  rpcUrl: string | null;
   accountPassword: string;
   fee: string;
-}
-
-interface TransferProps {
-  accounts: SerializedAccountReference[];
-  assets: SerializedAsset[];
-  networks: SerializedNetwork[];
-  selectedChainByNetwork: RootState["app"]["selectedChainByNetwork"];
+  feeSpeed: FeeSpeed;
+  protocol: SupportedProtocols;
+  chainId: string;
 }
 
 type Status =
   | "loading"
   | "error"
-  | "setData"
+  | "form"
   | "summary"
   | "submitted"
   | "invalid_network";
 
-export type FromAddressStatus = "is_account_saved" | "private_key_required";
-
-const Transfer: React.FC<TransferProps> = ({
-  accounts,
-  assets,
-  networks,
-  selectedChainByNetwork,
-}) => {
+const Transfer: React.FC = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const requesterInfo: ExternalTransferRequest = location.state;
-  const [searchParams] = useSearchParams();
-  const previousAsset = useRef<string>(null);
 
-  const [status, setStatus] = useState<Status>("loading");
-  const [balanceStatus, setBalanceStatus] =
-    useState<AmountStatus>("not-fetched");
-  const [feeStatus, setFeeStatus] = useState<AmountStatus>("not-fetched");
-  const [transferHash, setTransferHash] = useState<string>(null);
-  const [sendingStatus, setSendingStatus] = useState<
-    "check_network" | "sending"
-  >(null);
+  const networks = useAppSelector((state) => state.app.networks);
+  const selectedProtocolOnApp = useAppSelector(
+    (state) => state.app.selectedNetwork
+  );
+  const selectedChainOnApp = useAppSelector(
+    (state) => state.app.selectedChainByNetwork[state.app.selectedNetwork]
+  );
+  const idOfSelectedAccountOnApp = useAppSelector(
+    (state) => state.app.selectedAccountByNetwork[state.app.selectedNetwork]
+  );
+  const accounts = useAppSelector(
+    (state) => state.vault.entities.accounts.list
+  );
+
   const methods = useForm<FormValues>({
     mode: "onChange",
     defaultValues: {
-      fromType: "saved_account",
-      asset: null,
-      network: null,
+      rpcUrl: null,
       memo: "",
       from: "",
       toAddress: "",
       amount: "",
       fee: "",
       accountPassword: "",
+      feeSpeed:
+        (requesterInfo?.protocol || selectedProtocolOnApp) ===
+        SupportedProtocols.Pocket
+          ? "n/a"
+          : "low",
+      protocol: requesterInfo?.protocol || selectedProtocolOnApp,
+      chainId: requesterInfo?.chainId || selectedChainOnApp,
     },
   });
   const {
-    control,
     watch,
-    register,
     setValue,
     clearErrors,
     handleSubmit,
-    formState,
     setFocus,
+    getValues,
+    reset,
   } = methods;
 
-  const [fromAddressStatus, setFromAddressStatus] =
-    useState<FromAddressStatus>(null);
-  const [accountFromAddress, setAccountFromAddress] =
-    useState<SerializedAccountReference>(null);
-  const [fromType, from, asset, accountPassword] = watch([
-    "fromType",
-    "from",
-    "asset",
+  const [status, setStatus] = useState<Status>("form");
+  const [feeStatus, setFeeStatus] = useState<AmountStatus>("not-fetched");
+  const [transferHash, setTransferHash] = useState<string>(null);
+  const [sendingStatus, setSendingStatus] = useState<
+    "check_network" | "sending"
+  >(null);
+  const [protocol, chainId, accountPassword, fromAddress, toAddress] = watch([
+    "protocol",
+    "chainId",
     "accountPassword",
+    "from",
+    "toAddress",
   ]);
+  const previousProtocolRef = useRef<SupportedProtocols>(protocol);
   const [wrongPassword, setWrongPassword] = useState(false);
+  const [networkFee, setNetworkFee] = useState<
+    PocketNetworkFee | EthereumNetworkFee
+  >(null);
+  const previousChain = useRef<string>(null);
 
   useEffect(() => {
     if (wrongPassword) {
@@ -137,181 +137,203 @@ const Transfer: React.FC<TransferProps> = ({
   }, [accountPassword]);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setStatus("setData");
-    }, 300);
-
-    return () => clearTimeout(timeout);
-  }, []);
-
-  useEffect(() => {
-    if (from && isAddress(from) && fromType === "saved_account") {
-      const account = accounts.find((value) => value.address === from);
-
-      if (account) {
-        setValue("asset", account.asset);
-      }
-    }
-  }, [from]);
-
-  useEffect(() => {
-    if (asset) {
+    if (protocol) {
       const preferred = networks.find(
-        (item) => item.protocol === asset.protocol && item.isPreferred
+        // todo: fix when rpcs are enabled
+        // @ts-ignore
+        (item) => item.protocol === protocol && 1 === 0 //&& item.isPreferred
       );
       const networkToSelect = networks.find(
-        (item) => item.protocol === asset.protocol && item.isDefault
+        (item) => item.protocol === protocol && item.isDefault
       );
 
       if (networkToSelect) {
-        setValue("network", preferred || networkToSelect);
-        clearErrors("network");
+        setTimeout(() => {
+          setValue("rpcUrl", preferred?.rpcUrl || networkToSelect.rpcUrl);
+          clearErrors("rpcUrl");
+        }, 0);
       }
     }
-  }, [asset, networks]);
-
-  const [fromBalance, setFromBalance] = useState<number>(null);
-
-  const getFromBalance = useCallback(async () => {
-    if (from && asset && (isAddress(from) || isPrivateKey(from))) {
-      setBalanceStatus("loading");
-      let address: string;
-      if (isPrivateKey(from)) {
-        address = await getAddressFromPrivateKey(from, asset.protocol);
-      } else {
-        address = from;
-      }
-      dispatch(
-        getAccountBalance({
-          address,
-          protocol: asset.protocol,
-          chainId: selectedChainByNetwork[asset.protocol] as any,
-        })
-      )
-        .unwrap()
-        .then((result) => {
-          if (result) {
-            setFromBalance(result.amount);
-            setBalanceStatus("fetched");
-          }
-        })
-        .catch(() => setBalanceStatus("error"));
-    } else {
-      setFromBalance(null);
-      setBalanceStatus("not-fetched");
-    }
-  }, [from, dispatch, fromType, asset, selectedChainByNetwork]);
+  }, [protocol, networks]);
 
   useEffect(() => {
-    getFromBalance();
-  }, [getFromBalance]);
+    if (!requesterInfo) {
+      setValue("protocol", selectedProtocolOnApp);
+      setValue("chainId", selectedChainOnApp);
+    }
+  }, [selectedProtocolOnApp, selectedChainOnApp]);
 
-  const [assetFee, setAssetFee] = useState<number>(null);
+  const selectedAccount = useMemo(() => {
+    let callback: (account: SerializedAccountReference) => boolean;
+    if (requesterInfo) {
+      callback = (account) =>
+        account.protocol === requesterInfo.protocol &&
+        account.address === requesterInfo.fromAddress;
+    } else {
+      callback = (account) => account.id === idOfSelectedAccountOnApp;
+    }
 
-  const getAssetFee = useCallback(() => {
-    if (asset?.id && asset.id !== previousAsset.current) {
-      previousAsset.current = asset.id;
+    return accounts.find(callback);
+  }, [accounts, requesterInfo, idOfSelectedAccountOnApp]);
+
+  useDidMountEffect(() => {
+    if (previousProtocolRef.current === protocol) return;
+    previousProtocolRef.current = protocol;
+
+    reset({
+      rpcUrl: null,
+      memo: "",
+      from: selectedAccount?.address || "",
+      toAddress: "",
+      amount: "",
+      fee: "",
+      accountPassword: "",
+      feeSpeed:
+        (requesterInfo?.protocol || selectedProtocolOnApp) ===
+        SupportedProtocols.Pocket
+          ? "n/a"
+          : "low",
+      protocol: requesterInfo?.protocol || selectedProtocolOnApp,
+      chainId: requesterInfo?.chainId || selectedChainOnApp,
+    });
+    setStatus("form");
+    setNetworkFee(null);
+    previousChain.current = null;
+    setFeeStatus("not-fetched");
+  }, [protocol]);
+  //
+  useEffect(() => {
+    if (selectedAccount) {
+      setTimeout(() => setValue("from", selectedAccount.address), 0);
+    }
+  }, [selectedAccount]);
+
+  const errorsPreferredNetwork = useAppSelector(
+    (state) => state.vault.errorsPreferredNetwork
+  );
+
+  const getNetworkFee = useCallback(() => {
+    const isPokt = protocol === SupportedProtocols.Pocket;
+    if (
+      protocol &&
+      chainId &&
+      previousChain.current !== chainId &&
+      (isPokt || isValidAddress(toAddress, protocol))
+    ) {
+      previousChain.current = chainId;
       setFeeStatus("loading");
-      dispatch(
-        getProtocolFee({
-          protocol: asset.protocol,
-          chainId: selectedChainByNetwork[asset.protocol] as any,
-        })
-      )
-        .unwrap()
-        .then((result) => {
-          setAssetFee(
-            result.fee.protocol === SupportedProtocols.Pocket
-              ? result.fee.value
-              : Number(result.fee.suggestedHigh.toString())
+
+      AppToBackground.getNetworkFee({
+        protocol,
+        chainId,
+        toAddress,
+      }).then((response) => {
+        if (response.data) {
+          const fee = response.data.networkFee;
+          setNetworkFee(fee);
+          setValue("feeSpeed", isPokt ? "n/a" : getValues("feeSpeed"));
+          setValue(
+            "fee",
+            isPokt
+              ? (fee as PocketNetworkFee).value.toString()
+              : (fee as EthereumNetworkFee).low.amount
           );
-          setValue("fee", result.fee.toString());
           setFeeStatus("fetched");
-        })
-        .catch(() => setFeeStatus("error"));
-    } else if (!asset) {
-      setAssetFee(null);
+        } else {
+          setFeeStatus("error");
+        }
+      });
+    } else if (!protocol) {
+      setNetworkFee(null);
       setFeeStatus("not-fetched");
-      previousAsset.current = null;
+      previousChain.current = null;
     }
-  }, [asset, networks, dispatch, selectedChainByNetwork]);
+  }, [
+    protocol,
+    networks,
+    errorsPreferredNetwork,
+    dispatch,
+    chainId,
+    toAddress,
+    getValues,
+  ]);
 
   useEffect(() => {
-    getAssetFee();
-  }, [getAssetFee]);
+    getNetworkFee();
 
-  const fromInfo = useMemo(() => {
-    return {
-      fromAddress:
-        searchParams?.get("fromAddress") || requesterInfo?.fromAddress,
-      protocol: (searchParams?.get("protocol") ||
-        requesterInfo?.protocol?.name) as SupportedProtocols,
-      chainID: (searchParams?.get("chainID") ||
-        requesterInfo?.protocol?.chainID) as ChainID<SupportedProtocols>,
+    let interval;
+    if (protocol === SupportedProtocols.Ethereum) {
+      interval = setInterval(() => {
+        previousChain.current = null;
+        getNetworkFee();
+      }, 30000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
     };
-  }, [searchParams, requesterInfo]);
+  }, [
+    chainId,
+    protocol,
+    protocol === SupportedProtocols.Ethereum ? toAddress : undefined,
+  ]);
 
   useEffect(() => {
-    const { fromAddress: address, protocol, chainID } = fromInfo;
-
-    if (address) {
-      const account = accounts.find(
-        (account) =>
-          account.address === address && account.asset.protocol === protocol
-      );
-      if (account) {
-        setValue("from", address);
-        if (requesterInfo) {
-          setFromAddressStatus("is_account_saved");
-          setAccountFromAddress(account);
-        }
-      } else {
-        setValue("fromType", "private_key");
-        setFromAddressStatus("private_key_required");
-
-        const asset = getAssetByProtocol(assets, protocol);
-
-        if (asset) {
-          setValue("asset", asset);
-        }
+    if (requesterInfo) {
+      setValue("amount", requesterInfo.amount.toString());
+      setValue("toAddress", requesterInfo.toAddress);
+      if (requesterInfo.memo) {
+        setValue("memo", requesterInfo.memo);
       }
-    } else {
-      setFromAddressStatus(null);
+      setValue("protocol", requesterInfo.protocol);
+      setValue("chainId", requesterInfo.chainId);
     }
-  }, [accounts, fromInfo]);
+  }, [requesterInfo]);
 
   useEffect(() => {
-    setTimeout(() => {
-      if (requesterInfo) {
-        setValue("amount", requesterInfo.amount.toString());
-        setValue("toAddress", requesterInfo.toAddress);
-        if (requesterInfo.memo) {
-          setValue("memo", requesterInfo.memo);
-        }
+    if (
+      protocol === SupportedProtocols.Ethereum &&
+      !isValidAddress(toAddress, protocol)
+    ) {
+      setValue("amount", "");
+      clearErrors("amount");
+      setFeeStatus("not-fetched");
+      setNetworkFee(null);
+      previousChain.current = null;
+    }
+  }, [toAddress]);
 
-        if (requesterInfo.fee) {
-          setValue("fee", requesterInfo.fee.toString());
-        }
+  useEffect(() => {
+    setValue("amount", "");
+    clearErrors("amount");
+  }, [chainId]);
 
-        if (fromAddressStatus === "is_account_saved") {
-          setStatus("summary");
-        }
-      }
-    }, 100);
-  }, [requesterInfo]);
+  const accountBalances = useAppSelector((state) => state.app.accountBalances);
+
+  const { amount }: AccountBalanceInfo = useMemo(() => {
+    // todo: handle asset (token: i.e. usdc)
+    return accountBalances[protocol][chainId][fromAddress] || {};
+  }, [accountBalances, protocol, chainId, fromAddress]);
 
   const onSubmit = useCallback(
     async (data: FormValues) => {
-      if (balanceStatus !== "fetched" || feeStatus !== "fetched") return;
+      if (!amount || feeStatus !== "fetched") return;
 
-      if (status === "setData") {
+      if (status === "form") {
         setStatus("summary");
         return;
       }
 
       setStatus("loading");
       setSendingStatus("check_network");
-      const isHealthy = await isTransferHealthyForNetwork(data.network);
+      const network = {
+        protocol: data.protocol,
+        chainID: data.chainId,
+        rpcUrl: data.rpcUrl,
+      };
+      const isHealthy = await isTransferHealthyForNetwork(network);
 
       if (!isHealthy) {
         setStatus("invalid_network");
@@ -321,35 +343,39 @@ const Transfer: React.FC<TransferProps> = ({
       setSendingStatus("sending");
 
       const accountId = accounts.find(
-        (item) =>
-          item.address === data.from &&
-          item.asset.protocol === data.asset.protocol
+        (item) => item.address === data.from && item.protocol === data.protocol
       )?.id;
 
       const response = await AppToBackground.sendRequestToAnswerTransfer({
         rejected: false,
         transferData: {
-          amount: Number(data.amount),
           from: {
-            type:
-              data.fromType === "private_key"
-                ? SupportedTransferOrigins.RawPrivateKey
-                : SupportedTransferOrigins.VaultAccountId,
+            type: SupportedTransferOrigins.VaultAccountId,
             passphrase: data.accountPassword,
-            asset: data.asset,
-            value: data.fromType === "private_key" ? data.from : accountId,
+            value: accountId,
           },
-          network: data.network,
           to: {
             type: SupportedTransferDestinations.RawAddress,
             value: data.toAddress,
           },
-          transferArguments: {
-            chainID: selectedChainByNetwork[
-              data.asset.protocol
-            ] as ChainID<SupportedProtocols.Pocket>,
+          amount: Number(data.amount),
+          network,
+          transactionParams: {
+            maxFeePerGas:
+              data.protocol === SupportedProtocols.Ethereum
+                ? (networkFee as EthereumNetworkFee)[data.feeSpeed]
+                    .suggestedMaxFeePerGas
+                : undefined,
+            maxPriorityFeePerGas:
+              data.protocol === SupportedProtocols.Ethereum
+                ? (networkFee as EthereumNetworkFee)[data.feeSpeed]
+                    .suggestedMaxPriorityFeePerGas
+                : undefined,
+            fee:
+              data.protocol === SupportedProtocols.Ethereum
+                ? undefined
+                : Number(data.fee),
             memo: data.memo,
-            fee: Number(data.fee),
           },
         },
         request: requesterInfo,
@@ -366,31 +392,24 @@ const Transfer: React.FC<TransferProps> = ({
             setTransferHash(response.data.hash);
             setStatus("submitted");
           } else {
-            setStatus("setData");
+            setStatus("form");
           }
         }
       }
       setSendingStatus(null);
     },
-    [
-      requesterInfo,
-      status,
-      balanceStatus,
-      feeStatus,
-      accounts,
-      selectedChainByNetwork,
-    ]
+    [requesterInfo, status, feeStatus, accounts, amount]
   );
 
   const onClickOk = useCallback(() => {
-    setStatus("setData");
-    setValue("network", null);
-    setTimeout(() => setFocus("network"), 25);
+    setStatus("form");
+    setValue("rpcUrl", null);
+    setTimeout(() => setFocus("rpcUrl"), 25);
   }, [setFocus, setValue]);
 
   const onClickCancel = useCallback(async () => {
     if (status === "summary") {
-      setStatus("setData");
+      setStatus("form");
       return;
     }
 
@@ -401,84 +420,79 @@ const Transfer: React.FC<TransferProps> = ({
         request: requesterInfo,
       });
     } else {
-      if (location.key !== "default") {
-        navigate(-1);
-      } else {
-        navigate("/");
-      }
+      navigate(ACCOUNTS_PAGE);
     }
   }, [requesterInfo, status, navigate]);
 
   const content = useMemo(() => {
-    if (status === "loading") {
+    const isSubmitted = status === "submitted";
+    const isLoading = status === "loading";
+    const settingAccount = status === "form";
+
+    let component: React.ReactNode,
+      onClickPrimary: () => void,
+      secondaryBtnText: string,
+      primaryBtnText: string;
+
+    if (isSubmitted) {
+      component = (
+        <TransferSubmittedStep hash={transferHash} networkFee={networkFee} />
+      );
+      onClickPrimary = () => navigate(ACCOUNTS_PAGE);
+      primaryBtnText = "Done";
+    } else if (isLoading) {
       let text: string;
       if (sendingStatus === "check_network") {
         text = "Checking RPC...";
       } else if (sendingStatus === "sending") {
         text = "Packing and sending...";
       }
-      return <CircularLoading text={text} />;
-    }
-
-    if (status === "error") {
-      return (
-        <OperationFailed
-          text={"There was an error sending the transaction."}
-          onCancel={onClickCancel}
+      component = <CircularLoading text={text} />;
+    } else if (status === "error") {
+      // todo: add warning (exclamation) icon
+      component = (
+        <Stack alignItems={"center"} justifyContent={"center"} flexGrow={1}>
+          <Typography textAlign={"center"}>
+            There was an error sending the transfer.
+          </Typography>
+        </Stack>
+      );
+      secondaryBtnText = "Cancel";
+      primaryBtnText = "Retry";
+    } else if (status === "invalid_network") {
+      component = (
+        <Stack alignItems={"center"} justifyContent={"center"} flexGrow={1}>
+          <Typography textAlign={"center"}>
+            The provided network is unhealthy at the moment. Please select
+            another one.
+          </Typography>
+        </Stack>
+      );
+      onClickPrimary = onClickOk;
+      secondaryBtnText = "Cancel";
+      primaryBtnText = "Ok";
+    } else if (settingAccount) {
+      component = (
+        <TransferForm
+          networkFee={networkFee}
+          request={requesterInfo}
+          getFee={getNetworkFee}
+          feeStatus={feeStatus}
         />
       );
-    }
-
-    if (status === "invalid_network") {
-      return (
-        <OperationFailed
-          text={
-            "The provided network is unhealthy at the moment. Please select another one."
-          }
-          onCancel={onClickCancel}
-          retryBtnText={"Ok"}
-          retryBtnProps={{
-            type: "button",
-          }}
-          onRetry={onClickOk}
+      secondaryBtnText = "Cancel";
+      primaryBtnText = "Continue";
+    } else {
+      component = (
+        <SummaryStep
+          wrongPassword={wrongPassword}
+          compact={!!requesterInfo}
+          networkFee={networkFee}
         />
       );
+      secondaryBtnText = "Back";
+      primaryBtnText = "Send";
     }
-
-    if (status === "submitted") {
-      return (
-        <TransferSubmittedStep
-          fromBalance={fromBalance}
-          hash={transferHash}
-          protocol={asset.protocol}
-        />
-      );
-    }
-
-    const settingAccount = status === "setData";
-
-    const component = settingAccount ? (
-      <TransferForm
-        fromAddressStatus={fromAddressStatus}
-        fromAddress={fromInfo.fromAddress}
-        fee={assetFee}
-        fromBalance={fromBalance}
-        request={requesterInfo}
-        getBalance={getFromBalance}
-        getFee={getAssetFee}
-        feeStatus={feeStatus}
-        balanceStatus={balanceStatus}
-      />
-    ) : (
-      <SummaryStep
-        fromBalance={fromBalance}
-        wrongPassword={wrongPassword}
-        compact={!!requesterInfo}
-      />
-    );
-
-    const secondaryBtnText = settingAccount ? "Cancel" : "Back";
-    const primaryBtnText = settingAccount ? "Continue" : "Send";
 
     return (
       <>
@@ -498,12 +512,7 @@ const Transfer: React.FC<TransferProps> = ({
               hideBlock={true}
               containerProps={{
                 marginTop: "5px!important",
-                marginBottom:
-                  status === "setData"
-                    ? fromType === "private_key"
-                      ? 1.5
-                      : 2
-                    : 1,
+                marginBottom: settingAccount ? 2 : 1,
                 paddingX: 1.5,
                 paddingY: 0.5,
                 height: 40,
@@ -515,84 +524,61 @@ const Transfer: React.FC<TransferProps> = ({
         <Stack
           flexGrow={1}
           sx={{
-            overflowY:
-              requesterInfo && fromAddressStatus === "is_account_saved"
-                ? undefined
-                : "auto",
-            marginRight: -1,
-            paddingRight: 1,
             position: "relative",
-
             boxSizing: "border-box",
           }}
-          width={"calc(100% + 10px)"}
-        >
-          {fromAddressStatus === "is_account_saved" &&
-            accountFromAddress?.address === from &&
-            status === "setData" && (
-              <AccountFromRequest account={accountFromAddress} />
-            )}
-          {component}
-        </Stack>
-        <Stack
-          direction={"row"}
-          spacing={2}
-          marginTop={"20px!important"}
           width={1}
         >
-          <Button
-            onClick={onClickCancel}
-            sx={{
-              fontWeight: 700,
-              color: theme.customColors.dark50,
-              borderColor: theme.customColors.dark50,
-              height: 36,
-              borderWidth: 1.5,
-              fontSize: 16,
-            }}
-            variant={"outlined"}
-            fullWidth
-          >
-            {secondaryBtnText}
-          </Button>
-          <Button
-            sx={{
-              fontWeight: 700,
-              height: 36,
-              fontSize: 16,
-            }}
-            variant={"contained"}
-            fullWidth
-            disabled={[balanceStatus, feeStatus].includes("error")}
-            type={"submit"}
-          >
-            {primaryBtnText}
-          </Button>
+          {component}
         </Stack>
+        {!isLoading && (
+          <Stack direction={"row"} spacing={2} width={1}>
+            {!isSubmitted && (
+              <Button
+                onClick={onClickCancel}
+                sx={{
+                  fontWeight: 700,
+                  color: theme.customColors.dark50,
+                  borderColor: theme.customColors.dark50,
+                  height: 36,
+                  borderWidth: 1.5,
+                  fontSize: 16,
+                }}
+                variant={"outlined"}
+                fullWidth
+              >
+                {secondaryBtnText}
+              </Button>
+            )}
+            <Button
+              sx={{
+                fontWeight: 700,
+                height: 36,
+                fontSize: 16,
+              }}
+              variant={"contained"}
+              fullWidth
+              disabled={feeStatus === "error" || !amount}
+              type={onClickPrimary ? "button" : "submit"}
+              onClick={onClickPrimary}
+            >
+              {primaryBtnText}
+            </Button>
+          </Stack>
+        )}
       </>
     );
   }, [
     theme,
-    accountFromAddress,
     wrongPassword,
     onClickOk,
     status,
-    register,
-    control,
     onClickCancel,
-    formState,
     requesterInfo,
-    fromBalance,
-    assetFee,
-    fromAddressStatus,
-    fromInfo,
-    fromType,
-    accounts,
+    networkFee,
     navigate,
-    balanceStatus,
     feeStatus,
-    getFromBalance,
-    getAssetFee,
+    getNetworkFee,
     transferHash,
     sendingStatus,
   ]);
@@ -606,32 +592,16 @@ const Transfer: React.FC<TransferProps> = ({
         paddingX={requesterInfo ? 2 : 0}
         boxSizing={"border-box"}
         component={"form"}
+        justifyContent={"flex-start"}
         onSubmit={handleSubmit(onSubmit)}
-        justifyContent={
-          ["setData", "summary", "submitted"].includes(status)
-            ? "flex-start"
-            : "center"
-        }
         alignItems={"center"}
-        marginTop={
-          ["setData", "summary", "submitted"].includes(status)
-            ? requesterInfo
-              ? 1
-              : 1.5
-            : undefined
-        }
+        marginTop={1}
       >
+        {selectedAccount && <AccountComponent account={selectedAccount} />}
         {content}
       </Stack>
     </FormProvider>
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  accounts: state.vault.entities.accounts.list,
-  assets: state.vault.entities.assets.list,
-  networks: state.vault.entities.networks.list,
-  selectedChainByNetwork: state.app.selectedChainByNetwork,
-});
-
-export default connect(mapStateToProps)(Transfer);
+export default Transfer;

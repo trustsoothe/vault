@@ -1,74 +1,55 @@
-import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { EthereumNetworkFee, PocketNetworkFee } from "@poktscan/keyring";
 import type { FormValues } from "../index";
-import type { RootState } from "../../../redux/store";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Typography from "@mui/material/Typography";
 import { useFormContext } from "react-hook-form";
 import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
-import { connect } from "react-redux";
-import {
-  labelByChainID,
-  labelByProtocolMap,
-} from "../../../constants/protocols";
+import { SupportedProtocols } from "@poktscan/keyring";
 import RowSpaceBetween from "../../common/RowSpaceBetween";
-import { roundAndSeparate } from "../../../utils/ui";
-import { isPrivateKey } from "../../../utils";
-import { getAddressFromPrivateKey } from "../../../utils/networkOperations";
+import { returnNumWithTwoDecimals } from "../../../utils/ui";
+import { useAppSelector } from "../../../hooks/redux";
+import useGetPrices from "../../../hooks/useGetPrices";
 
 interface SummaryProps {
-  fromBalance: number;
-  accounts: RootState["vault"]["entities"]["accounts"]["list"];
-  selectedChain: string;
   compact?: boolean;
+  networkFee: PocketNetworkFee | EthereumNetworkFee;
 }
 
-const Summary: React.FC<SummaryProps> = ({
-  fromBalance,
-  accounts,
-  compact = false,
-  selectedChain,
-}) => {
+const Summary: React.FC<SummaryProps> = ({ compact = false, networkFee }) => {
   const theme = useTheme();
   const { watch } = useFormContext<FormValues>();
   const values = watch();
-  const [fromLabel, setFromLabel] = useState("");
+  const { protocol, chainId } = values;
 
-  useEffect(() => {
-    let account: SerializedAccountReference;
-    if (values.fromType === "saved_account") {
-      account = accounts.find(
-        (item) =>
-          item.address === values.from &&
-          item.asset.protocol === values.asset.protocol
-      );
+  const accounts = useAppSelector(
+    (state) => state.vault.entities.accounts.list
+  );
 
-      if (account) {
-        const { name, address } = account;
-        setFromLabel(
-          `${name} (${address.substring(0, 4)}...${address.substring(
-            address.length - 4
-          )})`
-        );
-      } else {
-        setFromLabel(values.from);
-      }
-    } else {
-      if (isPrivateKey(values.from)) {
-        getAddressFromPrivateKey(values.from, values.asset.protocol).then(
-          (address) => setFromLabel(address)
-        );
-      }
-    }
-  }, []);
+  const symbol = useAppSelector((state) => {
+    return (
+      state.vault.entities.assets.list.find(
+        (asset) => asset.protocol === protocol
+      )?.symbol || ""
+    );
+  });
+
+  const { data: pricesByProtocolAndChain } = useGetPrices();
+
+  const selectedNetworkPrice: number =
+    pricesByProtocolAndChain?.[protocol]?.[chainId] || 0;
+  const isEth = values.protocol === SupportedProtocols.Ethereum;
 
   const rows = useMemo(() => {
-    const total = Number(values.fee) + Number(values.amount);
-    const res = fromBalance - total;
+    const fee = Number(
+      isEth ? networkFee[values.feeSpeed]?.amount : values.fee
+    );
+    const transferAmount = Number(values.amount);
+    const total = fee + transferAmount;
 
     const toAccount = accounts.find(
-      (item) => item.address === values.toAddress && item.asset.protocol,
-      values.asset.protocol
+      (item) =>
+        item.address === values.toAddress && item.protocol === values.protocol
     );
 
     let toAddress = values.toAddress;
@@ -82,52 +63,37 @@ const Summary: React.FC<SummaryProps> = ({
 
     return [
       {
-        label: "From",
-        value: fromLabel,
-      },
-      {
-        label: "Protocol",
-        value:
-          labelByProtocolMap[values.asset.protocol] || values.asset.protocol,
-      },
-      {
-        label: "Chain ID",
-        value: labelByChainID[selectedChain] || selectedChain,
-      },
-      {
-        label: "RPC",
-        value: values.network.rpcUrl,
+        label: isEth ? "Max Fee" : "Fee",
+        value: `${fee} ${symbol}`,
       },
       {
         label: "Amount",
-        value: `${roundAndSeparate(Number(values.amount), 2, "0")} ${
-          values.asset.symbol
-        }`,
+        value: `${transferAmount} ${symbol} / $${returnNumWithTwoDecimals(
+          transferAmount * selectedNetworkPrice,
+          "0"
+        )} USD`,
       },
       {
-        label: "Fee",
-        value: `${roundAndSeparate(Number(values.fee), 2, "0")} ${
-          values.asset.symbol
-        }`,
-      },
-      {
-        label: "Total",
-        value: `${roundAndSeparate(total, 2, "0")} ${values.asset.symbol}`,
-      },
-      {
-        label: "Remaining",
-        value: `${roundAndSeparate(res, 2, "0")} ${values.asset.symbol}`,
+        label: isEth ? "Max Total" : "Total",
+        value: `${total} ${symbol} / $${returnNumWithTwoDecimals(
+          total * selectedNetworkPrice,
+          "0"
+        )} USD`,
       },
       {
         label: "To",
         value: toAddress,
       },
-      {
-        label: "Memo",
-        value: values.memo,
-      },
+      ...(isEth || !values.memo
+        ? []
+        : [
+            {
+              label: "Memo",
+              value: values.memo,
+            },
+          ]),
     ];
-  }, [values, accounts, fromLabel, selectedChain]);
+  }, [values, accounts, symbol, selectedNetworkPrice, networkFee, isEth]);
 
   return (
     <Stack maxWidth={"100%"} width={1}>
@@ -143,7 +109,7 @@ const Summary: React.FC<SummaryProps> = ({
         width={360}
         paddingX={1}
         spacing={compact ? 0.4 : 0.5}
-        paddingY={compact ? 0.5 : 1.2}
+        paddingY={compact ? 0.5 : isEth ? 1.2 : 0.7}
         marginTop={0.8}
         borderRadius={"4px"}
         boxSizing={"border-box"}
@@ -169,9 +135,4 @@ const Summary: React.FC<SummaryProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  accounts: state.vault.entities.accounts.list,
-  selectedChain: state.app.selectedChainByNetwork[state.app.selectedNetwork],
-});
-
-export default connect(mapStateToProps)(Summary);
+export default Summary;

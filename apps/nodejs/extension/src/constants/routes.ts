@@ -1,7 +1,6 @@
 export const INIT_VAULT = "/";
 export const ACCOUNTS_PAGE = "/";
 export const ACCOUNT_PK_PAGE = "/account/pk";
-export const REMOVE_ACCOUNT_PAGE = "/account/remove";
 export const SITES_PAGE = "/sites";
 export const BLOCKED_SITES_PAGE = "/sites/blocked";
 export const DISCONNECT_SITE_PAGE = "/sites/disconnect";
@@ -16,3 +15,5 @@ export const REQUEST_CONNECTION_PAGE = "/sites/request";
 export const CREATE_ACCOUNT_PAGE = "/account/create";
 export const IMPORT_ACCOUNT_PAGE = "/account/import";
 export const TRANSFER_PAGE = "/transfer";
+
+export const REIMPORT_SEARCH_PARAM = "?reimport=true";

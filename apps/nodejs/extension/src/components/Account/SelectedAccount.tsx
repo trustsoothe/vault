@@ -1,17 +1,21 @@
-import { RootState } from "../../redux/store";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { connect } from "react-redux";
+import React, { useCallback, useEffect, useState } from "react";
 import Grow from "@mui/material/Grow";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Popper from "@mui/material/Popper";
 import Button from "@mui/material/Button";
+import { shallowEqual } from "react-redux";
 import Tooltip from "@mui/material/Tooltip";
+import Divider from "@mui/material/Divider";
 import Skeleton from "@mui/material/Skeleton";
 import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
-import { SupportedProtocols } from "@poktscan/keyring";
+import {
+  SerializedAccountReference,
+  SupportedProtocols,
+} from "@poktscan/keyring";
 import NotConnectedIcon from "../../assets/img/not_connected_icon.svg";
 import MoreIcon from "../../assets/img/horizontal_more_icon.svg";
 import ConnectedIcon from "../../assets/img/connected_icon.svg";
@@ -21,29 +25,370 @@ import CopyIcon from "../../assets/img/thin_copy_icon.svg";
 import KeyIcon from "../../assets/img/key_icon.svg";
 import { roundAndSeparate } from "../../utils/ui";
 import {
+  ACCOUNT_PK_PAGE,
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
-  REMOVE_ACCOUNT_PAGE,
+  REIMPORT_SEARCH_PARAM,
   TRANSFER_PAGE,
 } from "../../constants/routes";
 import RenameModal from "./RenameModal";
-import ViewPrivateKey from "./ViewPrivateKey";
 import useIsPopup from "../../hooks/useIsPopup";
 import CoinSvg from "../../assets/img/coin.svg";
-import { useGetPricesQuery } from "../../redux/slices/prices";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import PocketIcon from "../../assets/img/networks/pocket.svg";
+import EthereumIcon from "../../assets/img/networks/ethereum.svg";
+import RemoveModal from "./RemoveModal";
+import useGetPrices from "../../hooks/useGetPrices";
 
-interface SelectedAccountProps {
-  accounts: RootState["vault"]["entities"]["accounts"]["list"];
-  balanceMap: RootState["app"]["accountBalances"][SupportedProtocols.Ethereum]["1"];
-  selectedNetwork: RootState["app"]["selectedNetwork"];
-  selectedChain: RootState["app"]["selectedChainByNetwork"][SupportedProtocols.Ethereum];
-  selectedAccountByNetwork: RootState["app"]["selectedAccountByNetwork"];
-  tabHasConnection?: boolean;
-  accountConnectedWithTab?: boolean;
+interface AccountComponentProps {
+  account: SerializedAccountReference;
+  compact?: boolean;
 }
+
+export const AccountComponent: React.FC<AccountComponentProps> = ({
+  account,
+  compact = false,
+}) => {
+  const theme = useTheme();
+  const isPopup = useIsPopup();
+  const [showCopyTooltip, setShowCopyTooltip] = useState(false);
+  // todo: create selectors file?
+  const tabHasConnection = useAppSelector((state) => {
+    const sessionsOfTab = state.vault.entities.sessions.list.filter(
+      (item) =>
+        !!item.origin && !!state.app.activeTab?.url?.startsWith(item.origin)
+    );
+    return !!sessionsOfTab.length;
+  });
+  const accountConnectedWithTab = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    const selectedAccount = state.app.selectedAccountByNetwork[selectedNetwork];
+
+    const sessionsOfTab = state.vault.entities.sessions.list.filter(
+      (item) =>
+        !!item.origin && !!state.app.activeTab?.url?.startsWith(item.origin)
+    );
+
+    let accountConnected = false;
+
+    for (const session of sessionsOfTab) {
+      accountConnected = session.permissions.some(
+        (permission) =>
+          permission.resource === "account" &&
+          permission.action === "read" &&
+          (permission.identities.includes(selectedAccount) ||
+            permission.identities.includes("*"))
+      );
+
+      if (accountConnected) {
+        break;
+      }
+    }
+    return accountConnected;
+  });
+  const balanceMap = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    const selectedChain = state.app.selectedChainByNetwork[selectedNetwork];
+
+    return state.app.accountBalances[selectedNetwork][selectedChain];
+  });
+  const selectedNetwork = useAppSelector((state) => state.app.selectedNetwork);
+  const selectedChain = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    return state.app.selectedChainByNetwork[selectedNetwork];
+  });
+  const symbol = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    return (
+      state.vault.entities.assets.list.find(
+        (asset) => asset.protocol === selectedNetwork
+      )?.symbol || ""
+    );
+  });
+
+  const {
+    data: pricesByProtocolAndChain,
+    isError: errorPrice,
+    isLoading,
+    refetch: refetchPrices,
+    isUninitialized,
+  } = useGetPrices({
+    pollingInterval: 60000,
+  });
+
+  const { address } = account || {};
+  const loadingPrice = isLoading || isUninitialized;
+  const selectedNetworkPrice: number =
+    pricesByProtocolAndChain?.[selectedNetwork]?.[selectedChain] || 0;
+  const balance = (balanceMap[address]?.amount as number) || 0;
+  const errorBalance = balanceMap[address]?.error || false;
+  const loadingBalance = balanceMap[address]?.loading || false;
+
+  const addressFirstCharacters = address?.substring(0, 4);
+  const addressLastCharacters = address?.substring(address?.length - 4);
+
+  const getAccountBalance = useCallback(() => {
+    if (address) {
+      AppToBackground.getAccountBalance({
+        address: address,
+        chainId: selectedChain as any,
+        protocol: selectedNetwork,
+      }).catch();
+    }
+  }, [selectedNetwork, selectedChain, address]);
+
+  useEffect(() => {
+    getAccountBalance();
+    const interval = setInterval(getAccountBalance, 6e4);
+
+    return () => clearInterval(interval);
+  }, [getAccountBalance]);
+
+  const handleCopyAddress = useCallback(() => {
+    if (address) {
+      navigator.clipboard.writeText(account.address).then(() => {
+        setShowCopyTooltip(true);
+        setTimeout(() => setShowCopyTooltip(false), 500);
+      });
+    }
+  }, [address]);
+
+  return (
+    <Stack
+      width={1}
+      {...(compact && {
+        bgcolor: theme.customColors.dark2,
+        height: 68,
+        boxSizing: "border-box",
+        padding: 0.7,
+      })}
+    >
+      {!compact && (
+        <Stack
+          width={"calc(100% + 10px)"}
+          direction={"row"}
+          marginLeft={-0.5}
+          alignItems={"center"}
+          justifyContent={isPopup ? "space-between" : "flex-end"}
+        >
+          <Tooltip title={"Copied"} open={showCopyTooltip}>
+            <Stack
+              height={26}
+              spacing={0.7}
+              minHeight={26}
+              paddingX={0.9}
+              direction={"row"}
+              borderRadius={"12px"}
+              alignItems={"center"}
+              justifyContent={"center"}
+              bgcolor={theme.customColors.dark5}
+              onClick={handleCopyAddress}
+              sx={{ cursor: "pointer", userSelect: "none" }}
+            >
+              <Typography
+                fontSize={11}
+                letterSpacing={"0.5px"}
+                color={theme.customColors.dark75}
+                lineHeight={"24px"}
+              >
+                {addressFirstCharacters}...{addressLastCharacters}
+              </Typography>
+              <CopyIcon />
+            </Stack>
+          </Tooltip>
+          {isPopup && (
+            <Stack direction={"row"} spacing={0.8}>
+              <Typography
+                color={
+                  tabHasConnection && accountConnectedWithTab
+                    ? theme.customColors.dark100
+                    : theme.customColors.dark75
+                }
+                fontSize={11}
+                letterSpacing={"0.5px"}
+                fontWeight={500}
+                lineHeight={"26px"}
+                sx={{ userSelect: "none" }}
+              >
+                {tabHasConnection && accountConnectedWithTab
+                  ? "Connected"
+                  : "Not connected"}
+              </Typography>
+              {tabHasConnection && accountConnectedWithTab ? (
+                <ConnectedIcon />
+              ) : (
+                <NotConnectedIcon />
+              )}
+            </Stack>
+          )}
+        </Stack>
+      )}
+      <Stack
+        marginTop={1.5}
+        paddingLeft={2}
+        paddingRight={2.5}
+        alignItems={"flex-end"}
+        {...(compact && {
+          marginTop: 0,
+          paddingLeft: 0,
+          paddingRight: 0,
+        })}
+      >
+        <Stack
+          width={1}
+          height={60}
+          paddingY={0.5}
+          alignItems={"flex-end"}
+          boxSizing={"border-box"}
+          justifyContent={"center"}
+          borderBottom={`1px solid ${theme.customColors.dark15}`}
+          {...(compact && {
+            height: 30,
+            borderBottom: "none",
+            direction: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingY: 0,
+          })}
+        >
+          {compact && (
+            <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
+              {selectedNetwork === SupportedProtocols.Pocket ? (
+                <PocketIcon />
+              ) : (
+                <EthereumIcon />
+              )}
+              <Typography
+                fontSize={16}
+                fontWeight={500}
+                letterSpacing={"0.5px"}
+                whiteSpace={"nowrap"}
+                textOverflow={"ellipsis"}
+                overflow={"hidden"}
+              >
+                {account.name}
+              </Typography>
+            </Stack>
+          )}
+          {errorBalance ? (
+            <Typography fontSize={16} lineHeight={"50px"}>
+              Error getting balance.
+              <Button
+                sx={{
+                  minWidth: 0,
+                  paddingX: 1,
+                  marginRight: -1,
+                  fontSize: 16,
+                  color: theme.customColors.primary500,
+                  textDecoration: "underline",
+                  "&:hover": {
+                    textDecoration: "underline",
+                  },
+                }}
+                variant={"text"}
+                onClick={getAccountBalance}
+              >
+                Retry
+              </Button>
+            </Typography>
+          ) : loadingBalance ? (
+            <Skeleton variant={"rectangular"} width={200} height={50} />
+          ) : (
+            <Typography
+              fontSize={compact ? 18 : 32}
+              fontWeight={500}
+              textAlign={"left"}
+            >
+              {roundAndSeparate(balance, 2, "0")}{" "}
+              <span
+                style={
+                  compact
+                    ? {}
+                    : { color: theme.customColors.dark25, marginLeft: 5 }
+                }
+              >
+                {symbol}
+              </span>
+            </Typography>
+          )}
+        </Stack>
+        <Stack
+          width={1}
+          direction={"row"}
+          alignItems={"center"}
+          justifyContent={compact ? "space-between" : "flex-end"}
+        >
+          {compact && (
+            <Stack
+              height={24}
+              spacing={0.7}
+              minHeight={24}
+              direction={"row"}
+              alignItems={"center"}
+              justifyContent={"center"}
+              sx={{ cursor: "pointer", userSelect: "none" }}
+            >
+              <Typography
+                fontSize={12}
+                letterSpacing={"0.5px"}
+                color={theme.customColors.dark75}
+                lineHeight={"24px"}
+              >
+                {addressFirstCharacters}...{addressLastCharacters}
+              </Typography>
+              <Tooltip title={"Copied"} open={showCopyTooltip}>
+                <IconButton onClick={handleCopyAddress}>
+                  <CopyIcon />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          )}
+          {loadingPrice || loadingBalance ? (
+            <Skeleton
+              variant={"rectangular"}
+              width={100}
+              height={20}
+              sx={{ marginY: 0.5 }}
+            />
+          ) : errorPrice ? (
+            <Typography fontSize={13} lineHeight={"30px"}>
+              Error getting USD price.
+              <Button
+                sx={{
+                  minWidth: 0,
+                  paddingY: 0,
+                  paddingX: 1,
+                  marginRight: -1,
+                  fontSize: 13,
+                  color: theme.customColors.primary500,
+                  textDecoration: "underline",
+                  "&:hover": {
+                    textDecoration: "underline",
+                  },
+                }}
+                variant={"text"}
+                onClick={refetchPrices}
+              >
+                Retry
+              </Button>
+            </Typography>
+          ) : (
+            <Typography
+              color={theme.customColors.dark75}
+              fontSize={compact ? 12 : 14}
+              fontWeight={compact ? 400 : 500}
+              lineHeight={compact ? "24px" : "30px"}
+            >
+              ${roundAndSeparate(balance * selectedNetworkPrice, 2, "0")} USD
+            </Typography>
+          )}
+        </Stack>
+      </Stack>
+    </Stack>
+  );
+};
 
 interface ButtonActionProps {
   label: string;
@@ -104,49 +449,37 @@ const ButtonAction: React.FC<ButtonActionProps> = ({
   );
 };
 
-const SelectedAccount: React.FC<SelectedAccountProps> = ({
-  accounts,
-  selectedAccountByNetwork,
-  selectedNetwork,
-  balanceMap,
-  selectedChain,
-  tabHasConnection,
-  accountConnectedWithTab,
-}) => {
-  const selectedProtocol = useAppSelector((state) => state.app.selectedNetwork);
+const SelectedAccount: React.FC = () => {
   const theme = useTheme();
-  const isPopup = useIsPopup();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [showPk, setShowPk] = useState(false);
-  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [modalToShow, setModalToShow] = useState<"none" | "rename" | "remove">(
+    "none"
+  );
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
-  const [showCopyTooltip, setShowCopyTooltip] = useState(false);
-
-  const {
-    data: pricesByProtocolAndChain,
-    isError: errorPrice,
-    isLoading,
-    refetch: refetchPrices,
-    isUninitialized,
-  } = useGetPricesQuery({} as never, {
-    pollingInterval: 60000,
+  const accounts = useAppSelector(
+    (state) => state.vault.entities.accounts.list
+  );
+  const selectedNetwork = useAppSelector((state) => state.app.selectedNetwork);
+  const selectedChain = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    return state.app.selectedChainByNetwork[selectedNetwork];
   });
 
-  const loadingPrice = isLoading || isUninitialized;
-  const selectedNetworkPrice: number =
-    pricesByProtocolAndChain?.[selectedNetwork]?.[selectedChain] || 0;
+  const selectedAccount = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    const selectedAccountId =
+      state.app.selectedAccountByNetwork[selectedNetwork];
 
-  const selectedAccount = useMemo(() => {
-    return accounts.find(
-      (account) => account.id === selectedAccountByNetwork[selectedNetwork]
+    return state.vault.entities.accounts.list.find(
+      (account) => account.id === selectedAccountId
     );
-  }, [accounts, selectedAccountByNetwork, selectedNetwork]);
+  }, shallowEqual);
 
   useEffect(() => {
     if (!selectedAccount) {
       const accountOfNetwork = accounts.find(
-        (item) => item.asset.protocol === selectedNetwork
+        (item) => item.protocol === selectedNetwork
       );
       if (accountOfNetwork) {
         dispatch(
@@ -158,11 +491,8 @@ const SelectedAccount: React.FC<SelectedAccountProps> = ({
       }
     }
 
-    setShowPk(false);
-    setShowRenameModal(false);
-  }, [selectedAccount?.id]);
-
-  const { address, asset } = selectedAccount || {};
+    setModalToShow("none");
+  }, [selectedAccount]);
 
   const getAccountBalance = useCallback(() => {
     if (selectedAccount?.address) {
@@ -175,31 +505,15 @@ const SelectedAccount: React.FC<SelectedAccountProps> = ({
   }, [selectedNetwork, selectedChain, selectedAccount?.address]);
 
   useEffect(() => {
-    setShowRenameModal(false);
-  }, [selectedAccount?.id]);
-
-  useEffect(() => {
     getAccountBalance();
     const interval = setInterval(getAccountBalance, 6e4);
 
     return () => clearInterval(interval);
   }, [getAccountBalance]);
 
-  const balance = (balanceMap[address]?.amount as number) || 0;
-  const errorBalance = balanceMap[address]?.error || false;
-  const loadingBalance = balanceMap[address]?.loading || false;
-
-  const addressFirstCharacters = address?.substring(0, 4);
-  const addressLastCharacters = address?.substring(address?.length - 4);
-
-  const toggleShowPk = useCallback(
-    () => setShowPk((prevState) => !prevState),
-    []
-  );
-
-  const toggleShowRenameModal = useCallback(() => {
-    setShowRenameModal((prevState) => !prevState);
-  }, []);
+  const showRenameModal = useCallback(() => setModalToShow("rename"), []);
+  const showRemoveModal = useCallback(() => setModalToShow("remove"), []);
+  const closeModel = useCallback(() => setModalToShow("none"), []);
 
   const onOpenMoreMenu = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -220,26 +534,17 @@ const SelectedAccount: React.FC<SelectedAccountProps> = ({
     }
   }, [navigate, selectedAccount, selectedChain, selectedNetwork]);
 
-  const onClickRemove = useCallback(() => {
+  const onClickPk = useCallback(() => {
     if (selectedAccount) {
-      navigate(`${REMOVE_ACCOUNT_PAGE}?id=${selectedAccount.id}`);
+      navigate(`${ACCOUNT_PK_PAGE}?id=${selectedAccount.id}`);
     }
   }, [navigate, selectedAccount]);
 
   const onClickReimport = useCallback(() => {
     if (selectedAccount) {
-      navigate(`${IMPORT_ACCOUNT_PAGE}?reimport=${selectedAccount.id}`);
+      navigate(`${IMPORT_ACCOUNT_PAGE}${REIMPORT_SEARCH_PARAM}`);
     }
   }, [selectedAccount, navigate]);
-
-  const handleCopyAddress = useCallback(() => {
-    if (selectedAccount) {
-      navigator.clipboard.writeText(selectedAccount.address).then(() => {
-        setShowCopyTooltip(true);
-        setTimeout(() => setShowCopyTooltip(false), 500);
-      });
-    }
-  }, [selectedAccount]);
 
   const onClickExplorer = useCallback(() => {
     let link: string;
@@ -313,154 +618,7 @@ const SelectedAccount: React.FC<SelectedAccountProps> = ({
   return (
     <>
       <Stack paddingTop={1}>
-        <Stack
-          width={"calc(100% + 10px)"}
-          direction={"row"}
-          marginLeft={-0.5}
-          alignItems={"center"}
-          justifyContent={isPopup ? "space-between" : "flex-end"}
-        >
-          <Tooltip title={"Copied"} open={showCopyTooltip}>
-            <Stack
-              height={26}
-              spacing={0.7}
-              minHeight={26}
-              paddingX={0.9}
-              direction={"row"}
-              borderRadius={"12px"}
-              alignItems={"center"}
-              justifyContent={"center"}
-              bgcolor={theme.customColors.dark5}
-              onClick={handleCopyAddress}
-              sx={{ cursor: "pointer", userSelect: "none" }}
-            >
-              <Typography
-                fontSize={11}
-                letterSpacing={"0.5px"}
-                color={theme.customColors.dark75}
-                lineHeight={"24px"}
-              >
-                {addressFirstCharacters}...{addressLastCharacters}
-              </Typography>
-              <CopyIcon />
-            </Stack>
-          </Tooltip>
-          {isPopup && (
-            <Stack direction={"row"} spacing={0.8}>
-              <Typography
-                color={
-                  tabHasConnection && accountConnectedWithTab
-                    ? theme.customColors.dark100
-                    : theme.customColors.dark75
-                }
-                fontSize={11}
-                letterSpacing={"0.5px"}
-                fontWeight={500}
-                lineHeight={"26px"}
-                sx={{ userSelect: "none" }}
-              >
-                {tabHasConnection && accountConnectedWithTab
-                  ? "Connected"
-                  : "Not connected"}
-              </Typography>
-              {tabHasConnection && accountConnectedWithTab ? (
-                <ConnectedIcon />
-              ) : (
-                <NotConnectedIcon />
-              )}
-            </Stack>
-          )}
-        </Stack>
-        <Stack
-          marginTop={1.5}
-          paddingLeft={2}
-          paddingRight={2.5}
-          alignItems={"flex-end"}
-        >
-          <Stack
-            width={1}
-            height={60}
-            paddingY={0.5}
-            alignItems={"flex-end"}
-            boxSizing={"border-box"}
-            justifyContent={"center"}
-            borderBottom={`1px solid ${theme.customColors.dark15}`}
-          >
-            {errorBalance ? (
-              <Typography fontSize={16} lineHeight={"50px"}>
-                Error getting balance.
-                <Button
-                  sx={{
-                    minWidth: 0,
-                    paddingX: 1,
-                    marginRight: -1,
-                    fontSize: 16,
-                    color: theme.customColors.primary500,
-                    textDecoration: "underline",
-                    "&:hover": {
-                      textDecoration: "underline",
-                    },
-                  }}
-                  variant={"text"}
-                  onClick={getAccountBalance}
-                >
-                  Retry
-                </Button>
-              </Typography>
-            ) : loadingBalance ? (
-              <Skeleton variant={"rectangular"} width={200} height={50} />
-            ) : (
-              <Typography fontSize={32} fontWeight={500} textAlign={"left"}>
-                {roundAndSeparate(balance, 2, "0")}
-                <span
-                  style={{ color: theme.customColors.dark25, marginLeft: 20 }}
-                >
-                  {asset?.symbol}
-                </span>
-              </Typography>
-            )}
-          </Stack>
-          {loadingPrice || loadingBalance ? (
-            <Skeleton
-              variant={"rectangular"}
-              width={100}
-              height={20}
-              sx={{ marginY: 0.5 }}
-            />
-          ) : errorPrice ? (
-            <Typography fontSize={13} lineHeight={"30px"}>
-              Error getting USD price.
-              <Button
-                sx={{
-                  minWidth: 0,
-                  paddingY: 0,
-                  paddingX: 1,
-                  marginRight: -1,
-                  fontSize: 13,
-                  color: theme.customColors.primary500,
-                  textDecoration: "underline",
-                  "&:hover": {
-                    textDecoration: "underline",
-                  },
-                }}
-                variant={"text"}
-                onClick={refetchPrices}
-              >
-                Retry
-              </Button>
-            </Typography>
-          ) : (
-            <Typography
-              color={theme.customColors.dark75}
-              fontSize={14}
-              fontWeight={500}
-              lineHeight={"30px"}
-            >
-              ${roundAndSeparate(balance * selectedNetworkPrice, 2, "0")} USD
-            </Typography>
-          )}
-        </Stack>
-
+        {selectedAccount && <AccountComponent account={selectedAccount} />}
         <Stack direction={"row"} spacing={4} marginTop={1.5}>
           <ButtonAction
             label={"Transfer"}
@@ -476,7 +634,7 @@ const SelectedAccount: React.FC<SelectedAccountProps> = ({
           <ButtonAction
             label={"Private Key"}
             icon={KeyIcon}
-            onClick={toggleShowPk}
+            onClick={onClickPk}
           />
           <ButtonAction
             label={"More"}
@@ -494,7 +652,7 @@ const SelectedAccount: React.FC<SelectedAccountProps> = ({
                 <Grow {...TransitionProps}>
                   <Stack
                     width={140}
-                    height={164}
+                    height={148}
                     padding={0.5}
                     borderRadius={"8px"}
                     boxSizing={"border-box"}
@@ -509,56 +667,72 @@ const SelectedAccount: React.FC<SelectedAccountProps> = ({
                     }}
                   >
                     {[
-                      { label: "Switch to wPOKT" },
-                      { label: "Switch from wPOKT" },
+                      { label: "Private Key", onClick: onClickPk },
                       { label: "Reimport Account", onClick: onClickReimport },
                       {
                         label: "Rename Account",
-                        onClick: toggleShowRenameModal,
+                        onClick: showRenameModal,
+                      },
+                      {
+                        type: "divider",
                       },
                       {
                         label: "Remove Account",
-                        onClick: onClickRemove,
+                        onClick: showRemoveModal,
                         customProps: {
                           color: theme.customColors.red100,
-                          borderTop: `1px solid ${theme.customColors.dark15}`,
                           sx: {
                             "&:hover": {
+                              color: theme.customColors.white,
+                              backgroundColor: theme.customColors.red100,
                               fontWeight: 700,
                             },
                           },
                         },
                       },
-                    ].map(({ label, onClick, customProps }) => (
-                      <Typography
-                        width={1}
-                        height={30}
-                        fontSize={11}
-                        paddingX={0.5}
-                        lineHeight={"30px"}
-                        letterSpacing={"0.5px"}
-                        boxSizing={"border-box"}
-                        {...customProps}
-                        onClick={() => {
-                          if (onClick) {
-                            onClick();
-                          }
-                          onCloseMoreMenu();
-                        }}
-                        sx={{
-                          cursor: "pointer",
-                          userSelect: "none",
-                          "&:hover": {
-                            backgroundColor: theme.customColors.primary500,
-                            color: theme.customColors.white,
-                            fontWeight: 700,
-                          },
-                          ...customProps?.sx,
-                        }}
-                      >
-                        {label}
-                      </Typography>
-                    ))}
+                    ].map(({ type, label, onClick, customProps }) => {
+                      if (type === "divider") {
+                        return (
+                          <Divider
+                            sx={{
+                              marginY: 0.7,
+                              borderColor: theme.customColors.dark15,
+                            }}
+                          />
+                        );
+                      } else {
+                        return (
+                          <Typography
+                            width={1}
+                            height={30}
+                            fontSize={11}
+                            paddingX={0.5}
+                            lineHeight={"30px"}
+                            letterSpacing={"0.5px"}
+                            boxSizing={"border-box"}
+                            {...customProps}
+                            onClick={() => {
+                              if (onClick) {
+                                onClick();
+                              }
+                              onCloseMoreMenu();
+                            }}
+                            sx={{
+                              cursor: "pointer",
+                              userSelect: "none",
+                              "&:hover": {
+                                backgroundColor: theme.customColors.primary500,
+                                color: theme.customColors.white,
+                                fontWeight: 700,
+                              },
+                              ...customProps?.sx,
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                        );
+                      }
+                    })}
                   </Stack>
                 </Grow>
               </ClickAwayListener>
@@ -568,49 +742,15 @@ const SelectedAccount: React.FC<SelectedAccountProps> = ({
       </Stack>
 
       <RenameModal
-        account={showRenameModal ? selectedAccount : null}
-        onClose={toggleShowRenameModal}
+        account={modalToShow === "rename" ? selectedAccount : null}
+        onClose={closeModel}
+      />
+      <RemoveModal
+        onClose={closeModel}
+        account={modalToShow === "remove" ? selectedAccount : null}
       />
     </>
   );
 };
 
-const mapStateToProps = (state: RootState) => {
-  const selectedNetwork = state.app.selectedNetwork;
-  const selectedChain = state.app.selectedChainByNetwork[selectedNetwork];
-
-  const sessions = state.vault.entities.sessions.list;
-  const selectedAccount = state.app.selectedAccountByNetwork[selectedNetwork];
-  const sessionsOfTab = sessions.filter(
-    (item) =>
-      !!item.origin && !!state.app.activeTab?.url?.startsWith(item.origin)
-  );
-
-  let accountConnected = false;
-
-  for (const session of sessionsOfTab) {
-    accountConnected = session.permissions.some(
-      (permission) =>
-        permission.resource === "account" &&
-        permission.action === "read" &&
-        (permission.identities.includes(selectedAccount) ||
-          permission.identities.includes("*"))
-    );
-
-    if (accountConnected) {
-      break;
-    }
-  }
-
-  return {
-    accounts: state.vault.entities.accounts.list,
-    balanceMap: state.app.accountBalances[selectedNetwork][selectedChain],
-    selectedNetwork,
-    selectedChain,
-    tabHasConnection: !!sessionsOfTab.length,
-    accountConnectedWithTab: accountConnected,
-    selectedAccountByNetwork: state.app.selectedAccountByNetwork,
-  };
-};
-
-export default connect(mapStateToProps)(SelectedAccount);
+export default SelectedAccount;

@@ -50,19 +50,10 @@ import {
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
-import {
-  AssetStorage,
-  getVault,
-  NetworkStorage,
-  returnExtensionErr,
-} from "../../utils";
-import { getFee, getAccountBalance } from "../../utils/networkOperations";
-import {
-  getAccountBalance as getAccountBalanceFromState,
-  getAllBalances,
-  getProtocolFee,
-  revokeSession,
-} from "../../redux/slices/vault";
+import { getVault, NetworkStorage, returnExtensionErr } from "../../utils";
+import { getAccountBalance } from "../../redux/slices/app/network";
+import { getFee } from "../../utils/networkOperations";
+import { revokeSession } from "../../redux/slices/vault";
 import { HEIGHT, WIDTH } from "../../constants/ui";
 
 type MessageSender = Runtime.MessageSender;
@@ -149,7 +140,8 @@ class ExternalCommunicationController {
     sender: MessageSender
   ): Promise<ExternalConnectionResponse> {
     try {
-      const { origin, faviconUrl, suggestedPermissions } = message?.data || {};
+      const { origin, faviconUrl, suggestedPermissions, protocol } =
+        message?.data || {};
 
       return this._addExternalRequest(
         {
@@ -158,6 +150,7 @@ class ExternalCommunicationController {
           faviconUrl,
           tabId: sender.tab.id,
           suggestedPermissions,
+          protocol,
         },
         CONNECTION_RESPONSE_MESSAGE
       );
@@ -270,6 +263,7 @@ class ExternalCommunicationController {
         amount,
         memo,
         protocol,
+        chainId,
         fee: feeFromData,
       } = message?.data || {};
 
@@ -291,70 +285,56 @@ class ExternalCommunicationController {
         return returnExtensionErr(error, TRANSFER_RESPONSE);
       }
 
-      const state = store.getState();
-      let balance, minFee;
+      const networks = await NetworkStorage.list().then((items) =>
+        items.concat()
+      );
+      const result = await store
+        .dispatch(
+          getAccountBalance({
+            address: fromAddress,
+            protocol,
+            chainId: chainId as any,
+          })
+        )
+        .unwrap();
 
-      const isUnlocked = state.vault.isUnlockedStatus === "yes";
+      // todo: fix validation balance
 
-      if (isUnlocked) {
-        const result = await store
-          .dispatch(
-            getAccountBalanceFromState({
-              address: fromAddress,
-              protocol: protocol.name,
-              chainId: protocol.chainID as any,
-            })
-          )
-          .unwrap();
-        balance = result.amount;
-        const feeResult = await store
-          .dispatch(
-            getProtocolFee({
-              chainId: protocol.chainID as any,
-              protocol: protocol.name,
-            })
-          )
-          .unwrap();
-        minFee = feeResult.fee;
-      } else {
-        const networks = await NetworkStorage.list().then((items) =>
-          items.concat()
-        );
-        const assets = await AssetStorage.list().then((items) =>
-          items.concat()
-        );
-        balance = await getAccountBalance({
-          address: fromAddress,
-          protocol: protocol.name,
-          chainId: protocol.chainID as any,
-          assets,
-          networks,
-        });
-        const feeResult = await getFee({
-          protocol: protocol.name,
-          chainId: protocol.chainID as any,
-          networks,
-        });
-        minFee = feeResult.fee;
-      }
+      const balance = result.amount;
+      // getAccountBalance({
+      //     address: fromAddress,
+      //     protocol: protocol.name,
+      //     chainId: protocol.chainID as any,
+      //     assets,
+      //     networks,
+      //   });
+      const feeResult = await getFee({
+        protocol: protocol,
+        chainId: chainId as any,
+        networks,
+        options: undefined,
+      });
 
-      if (feeFromData && minFee > feeFromData) {
-        return {
-          type: TRANSFER_RESPONSE,
-          error: FeeLowerThanMinFee,
-          data: null,
-        };
-      }
+      const minFee = feeResult.fee;
 
       const fee = feeFromData || minFee;
 
-      if (amount > balance - fee) {
-        return {
-          type: TRANSFER_RESPONSE,
-          error: AmountHigherThanBalance,
-          data: null,
-        };
-      }
+      // if (feeFromData && minFee > feeFromData) {
+      //   return {
+      //     type: TRANSFER_RESPONSE,
+      //     error: FeeLowerThanMinFee,
+      //     data: null,
+      //   };
+      // }
+      //
+      //
+      // if (amount > balance - fee) {
+      //   return {
+      //     type: TRANSFER_RESPONSE,
+      //     error: AmountHigherThanBalance,
+      //     data: null,
+      //   };
+      // }
 
       return this._addExternalRequest(
         {
@@ -368,7 +348,7 @@ class ExternalCommunicationController {
           amount,
           memo,
           protocol,
-          fee,
+          fee: 0,
         },
         TRANSFER_RESPONSE
       );
@@ -408,7 +388,10 @@ class ExternalCommunicationController {
       const { externalRequests, requestsWindowId } = store.getState().app;
 
       const pendingRequestWindow = externalRequests.find(
-        (item) => item.origin === request.origin && item.type === request.type
+        (item) =>
+          item.origin === request.origin &&
+          item.type === request.type &&
+          item.protocol === request.protocol
       );
 
       if (pendingRequestWindow) {
@@ -540,16 +523,17 @@ class ExternalCommunicationController {
         };
       }
 
+      // todo: fix balance
       const accounts = await ExtensionVaultInstance.listAccounts(sessionId);
-      const response = await store.dispatch(getAllBalances()).unwrap();
-      const balanceByIdMap = response.newBalanceMap;
+      // const response = await store.dispatch(getAllBalances()).unwrap();
+      // const balanceByIdMap = response.newBalanceMap;
 
       return {
         type: LIST_ACCOUNTS_RESPONSE,
         data: {
           accounts: accounts.map((item) => ({
             ...item.serialize(),
-            balance: balanceByIdMap[item.id]?.amount || 0,
+            balance: 0, //balanceByIdMap[item.id]?.amount || 0,
           })),
         },
         error: null,

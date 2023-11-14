@@ -3,13 +3,11 @@ import type {
   AutocompleteRenderOptionState,
   FilterOptionsState,
   PaperProps,
+  Theme,
 } from "@mui/material";
 import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { AccountWithBalance } from "../../../types";
-import type { RootState } from "../../../redux/store";
 import type { FormValues } from "../index";
-import { connect } from "react-redux";
-import orderBy from "lodash/orderBy";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import { styled, useTheme } from "@mui/material";
@@ -18,16 +16,63 @@ import Typography from "@mui/material/Typography";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Controller, useFormContext } from "react-hook-form";
 import React, { useCallback, useMemo, useState } from "react";
-import { renderAutocompleteOption } from "../../Account/Autocomplete";
-import { filterAccounts } from "../../Account/List";
-import { isAddress } from "../../../utils";
+import { SupportedProtocols } from "@poktscan/keyring";
+import { isValidAddress } from "../../../utils/networkOperations";
+import { useAppSelector } from "../../../hooks/redux";
 
 interface ToAddressAutocompleteProps {
-  accounts: RootState["vault"]["entities"]["accounts"]["list"];
-  balanceByIdMap: RootState["vault"]["entities"]["accounts"]["balances"]["byId"];
-  balancesAreLoading: boolean;
   disabled?: boolean;
 }
+
+const renderAutocompleteOption = (
+  props: React.HTMLAttributes<HTMLLIElement>,
+  account: AccountWithBalance,
+  theme: Theme
+) => {
+  return (
+    <Stack
+      component={"li"}
+      {...props}
+      sx={{
+        paddingX: "10px!important",
+        paddingY: "5px!important",
+        "& p": {
+          fontSize: 12,
+          lineHeight: "20px",
+        },
+        "& span": {
+          color: `${theme.customColors.dark100}!important`,
+        },
+      }}
+      alignItems={"flex-start!important"}
+      borderTop={`1px solid ${theme.customColors.dark15}`}
+    >
+      <Typography fontWeight={500} color={theme.customColors.dark100}>
+        {account.name}
+      </Typography>
+      <Typography>{account.address}</Typography>
+    </Stack>
+  );
+};
+
+export const filterAccounts = (
+  searchText: string,
+  accounts: SerializedAccountReference[]
+) => {
+  if (!searchText) {
+    return accounts;
+  }
+
+  const text = searchText.trim().toLowerCase();
+
+  return accounts.filter((account) => {
+    if (account.name.toLowerCase().includes(text)) {
+      return true;
+    }
+
+    return account.address.toLowerCase().includes(text);
+  });
+};
 
 const StyledPaper = styled(Paper)<PaperProps>(() => ({
   "& .MuiAutocomplete-noOptions": {
@@ -36,31 +81,25 @@ const StyledPaper = styled(Paper)<PaperProps>(() => ({
 }));
 
 const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
-  accounts,
   disabled,
-  balanceByIdMap,
-  balancesAreLoading,
 }) => {
   const theme = useTheme();
   const { control, watch } = useFormContext<FormValues>();
   const [inputValue, setInputValue] = useState("");
 
-  const asset = watch("asset");
-
-  const accountsWithBalance: AccountWithBalance[] = useMemo(() => {
-    return !asset
-      ? []
-      : orderBy(
-          accounts
-            .filter((item) => asset.protocol === item.asset.protocol)
-            .map((item) => ({
-              ...item,
-              balance: balanceByIdMap[item.id]?.amount || 0,
-            })),
-          ["balance"],
-          ["desc"]
-        );
-  }, [accounts, balanceByIdMap, asset]);
+  const [protocol, fromAddress] = watch(["protocol", "from"]);
+  const accounts = useAppSelector(
+    (state) => state.vault.entities.accounts.list
+  );
+  const accountsWithBalance = useMemo(() => {
+    return accounts
+      .filter(
+        (item) => protocol === item.protocol && item.address !== fromAddress
+      )
+      .map((item) => ({
+        ...item,
+      }));
+  }, [accounts, protocol, fromAddress]);
 
   const accountsMap: Record<string, SerializedAccountReference> =
     useMemo(() => {
@@ -84,10 +123,6 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
   const filterOptions = useCallback(
     (_: never, state: FilterOptionsState<string>) => {
       const value = state.inputValue.toLowerCase().trim();
-
-      if (!value) {
-        return [];
-      }
 
       return filterAccounts(value, accountsWithBalance)
         .map((item) => item.address)
@@ -120,15 +155,26 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
         );
       }
 
-      return renderAutocompleteOption(
-        props,
-        account,
-        state,
-        theme,
-        balancesAreLoading
-      );
+      const itemComponent = renderAutocompleteOption(props, account, theme);
+
+      if (state.index === 0) {
+        return (
+          <>
+            <Typography
+              color={theme.customColors.dark75}
+              fontSize={12}
+              paddingLeft={1}
+              paddingBottom={0.5}
+            >
+              Paste the address or select an internal account.
+            </Typography>
+            {itemComponent}
+          </>
+        );
+      }
+      return itemComponent;
     },
-    [accountsMap]
+    [accountsMap, theme]
   );
 
   const getOptionLabel = useCallback(
@@ -177,14 +223,14 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
               >
                 {inputValue
                   ? "No options found / not valid address."
-                  : "Paste the address or type to search between the internal accounts."}
+                  : "Paste the address or type to search between the saved accounts."}
               </Typography>
             )
           }
           clearOnBlur={true}
           onInputChange={(event, value, reason) => {
             onChangeInputValue(event, value, reason);
-            if (isAddress(value) && reason === "input") {
+            if (isValidAddress(value, protocol) && reason === "input") {
               onChange(value);
               otherProps.onBlur();
             }
@@ -197,9 +243,12 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
           value={value || null}
           {...otherProps}
           sx={{
-            marginTop: "5px!important",
             width: 1,
-            order: 7,
+            marginTop:
+              protocol === SupportedProtocols.Ethereum
+                ? "0px!important"
+                : "20px!important",
+            order: protocol === SupportedProtocols.Ethereum ? 1 : 7,
             "& .MuiAutocomplete-endAdornment": {
               top: 6,
               right: "5px!important",
@@ -207,18 +256,18 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
           }}
           ListboxProps={{
             sx: {
-              maxHeight: 122,
+              maxHeight: 125,
             },
           }}
           PaperComponent={StyledPaper}
-          disabled={!asset || disabled}
+          disabled={disabled}
           renderInput={(params) => (
             <TextField
               {...params}
-              label={"To Address"}
+              label={"Recipient"}
               fullWidth
               size={"small"}
-              disabled={!asset || disabled}
+              disabled={disabled}
               error={!!error}
               helperText={error?.message}
               sx={{
@@ -234,12 +283,4 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
   );
 };
 
-const mapStateToAccountProps = (state: RootState) => {
-  return {
-    accounts: state.vault.entities.accounts.list,
-    balanceByIdMap: state.vault.entities.accounts.balances.byId,
-    balancesAreLoading: state.vault.entities.accounts.balances.loading,
-  };
-};
-
-export default connect(mapStateToAccountProps)(ToAddressAutocomplete);
+export default ToAddressAutocomplete;

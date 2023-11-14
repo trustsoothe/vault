@@ -94,7 +94,7 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
           >
             Are you sure you want to remove the following network?
           </Typography>
-          {network && <NetworkItem network={network} />}
+          {/*{network && <NetworkItem network={network} />}*/}
         </Stack>
         <Stack direction={"row"} width={1} spacing={2}>
           <Button

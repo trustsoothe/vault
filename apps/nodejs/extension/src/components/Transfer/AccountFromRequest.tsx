@@ -8,6 +8,7 @@ import Skeleton from "@mui/material/Skeleton";
 import { roundAndSeparate } from "../../utils/ui";
 import RowSpaceBetween from "../common/RowSpaceBetween";
 import { labelByChainID, labelByProtocolMap } from "../../constants/protocols";
+import { useAppSelector } from "../../hooks/redux";
 
 interface AccountFromRequestProps {
   account: SerializedAccountReference;
@@ -23,10 +24,15 @@ const AccountFromRequest: React.FC<AccountFromRequestProps> = ({
   selectedChainByNetwork,
 }) => {
   const theme = useTheme();
-  const symbol = account.asset.symbol;
+  const protocol = account?.protocol;
+  const symbol = useAppSelector(
+    (state) =>
+      state.vault.entities.assets.list.find(
+        (asset) => asset.protocol === protocol
+      )?.symbol || ""
+  );
 
   const accountBalance = balancesMapById[account?.id]?.amount || 0;
-  const protocol = account?.asset?.protocol;
 
   return (
     <Stack

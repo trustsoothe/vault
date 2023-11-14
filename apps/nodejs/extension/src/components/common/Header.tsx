@@ -26,7 +26,7 @@ import {
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
-  REMOVE_ACCOUNT_PAGE,
+  REMOVE_NETWORK_PAGE,
   SITES_PAGE,
   TRANSFER_PAGE,
   UNBLOCK_SITE_PAGE,
@@ -44,18 +44,18 @@ import SitesIcon from "../../assets/img/sites_icon.svg";
 import NetworkIcon from "../../assets/img/network_icon.svg";
 import AssetIcon from "../../assets/img/asset_icon.svg";
 import LockIcon from "../../assets/img/lock_icon.svg";
+import useShowAccountSelect from "../../hooks/useShowAccountSelect";
 
 const titleMap = {
   [ACCOUNTS_PAGE]: "Account Details",
   [ACCOUNT_PK_PAGE]: "View Private Key",
-  [REMOVE_ACCOUNT_PAGE]: "Remove Account",
   [ASSETS_PAGE]: "Assets",
   [CREATE_ACCOUNT_PAGE]: "Create Account",
   [IMPORT_ACCOUNT_PAGE]: "Import Account",
   [NETWORKS_PAGE]: "Networks",
   [ADD_NETWORK_PAGE]: "New Network",
   [UPDATE_NETWORK_PAGE]: "Edit Network",
-  [REMOVE_ACCOUNT_PAGE]: "Remove Network",
+  [REMOVE_NETWORK_PAGE]: "Remove Network",
   [SITES_PAGE]: "Sites",
   [BLOCKED_SITES_PAGE]: "Blocked Sites",
   [UNBLOCK_SITE_PAGE]: "Unblock Site",
@@ -63,20 +63,23 @@ const titleMap = {
   [TRANSFER_PAGE]: "New Transfer",
 };
 
+const getTitle = (path: string, search: string) => {
+  if (path === IMPORT_ACCOUNT_PAGE && search.startsWith("?reimport=")) {
+    return "Reimport Account";
+  }
+
+  return titleMap[path] || "Soothe Wallet";
+};
+
 const ROUTES_WHERE_HIDE_SELECTORS = [
   NETWORKS_PAGE,
   ADD_NETWORK_PAGE,
   UPDATE_NETWORK_PAGE,
-  REMOVE_ACCOUNT_PAGE,
   SITES_PAGE,
   BLOCKED_SITES_PAGE,
   UNBLOCK_SITE_PAGE,
   BLOCK_SITE_PAGE,
-];
-
-const ROUTES_TO_HIDE_ACCOUNT_SELECT = [
-  CREATE_ACCOUNT_PAGE,
-  IMPORT_ACCOUNT_PAGE,
+  REMOVE_NETWORK_PAGE,
 ];
 
 interface HeaderProps {
@@ -94,6 +97,7 @@ const Header: React.FC<HeaderProps> = ({
   const isPopup = useIsPopup();
   const location = useLocation();
   const navigate = useNavigate();
+  const showAccountSelect = useShowAccountSelect();
   const [showBackdrop, setShowBackdrop] = useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = !!anchorEl;
@@ -242,7 +246,7 @@ const Header: React.FC<HeaderProps> = ({
               color={"white"}
               marginRight={1}
             >
-              {titleMap[location.pathname] || "Keyring Vault"}
+              {getTitle(location.pathname, location.search)}
             </Typography>
           </Stack>
           <IconButton
@@ -436,7 +440,7 @@ const Header: React.FC<HeaderProps> = ({
         display={showSelectors ? "flex" : "none"}
       >
         <NetworkSelect toggleShowBackdrop={toggleShowBackdrop} />
-        {!ROUTES_TO_HIDE_ACCOUNT_SELECT.includes(location.pathname) && (
+        {showAccountSelect && (
           <AccountSelect toggleShowBackdrop={toggleShowBackdrop} />
         )}
       </Stack>
@@ -455,7 +459,7 @@ const Header: React.FC<HeaderProps> = ({
 const mapStateToProps = (state: RootState) => {
   return {
     accountsLength: state.vault.entities.accounts.list.length,
-    networksLength: state.vault.entities.networks.list.length,
+    networksLength: state.app.networks.length,
     assetsLength: state.vault.entities.assets.list.length,
   };
 };

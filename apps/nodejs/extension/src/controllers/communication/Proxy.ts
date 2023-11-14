@@ -105,25 +105,11 @@ export type TPermissionsAllowedToSuggest = z.infer<
   typeof PermissionsAllowedToSuggest
 >;
 
-export type TProtocol = z.infer<typeof Protocol>;
-
 export type TTransferRequestBody = z.infer<typeof TransferRequestBody>;
 
 const protocolsArr = Object.values(SupportedProtocols);
 
-const Protocol = z
-  .object({
-    name: z.enum([protocolsArr[0], ...protocolsArr.slice(1)]),
-    chainID: z.string(),
-  })
-  .strict()
-  .refine(
-    ({ name, chainID }) =>
-      chainIDsByProtocol[name].includes(chainID as ChainID<SupportedProtocols>),
-    "Invalid Protocol"
-  )
-  .optional();
-
+// todo: change toAddress and fromAddress to use isValidAddress
 const TransferRequestBody = z
   .object({
     toAddress: z
@@ -139,7 +125,8 @@ const TransferRequestBody = z
     amount: z.number().min(0.01),
     fee: z.number().min(0).optional(),
     memo: z.string().trim().max(50).optional(),
-    protocol: Protocol,
+    protocol: z.enum([protocolsArr[0], ...protocolsArr.slice(1)]),
+    chainId: z.string(),
   })
   .strict();
 
@@ -267,6 +254,8 @@ class ProxyCommunicationController {
           origin: window.location.origin,
           faviconUrl: this._getFaviconUrl(),
           suggestedPermissions: permissionsToSuggest,
+          // todo: replace with protocol from params
+          protocol: SupportedProtocols.Pocket,
         },
       };
 
@@ -455,23 +444,13 @@ class ProxyCommunicationController {
     let requestWasSent = false;
     try {
       if (this._session) {
-        let protocol: TProtocol;
-
-        if (data?.protocol) {
-          try {
-            protocol = Protocol.parse(data.protocol);
-          } catch (e) {
-            return this._sendNewAccountResponse(null, InvalidProtocol);
-          }
-        }
-
         const message: NewAccountRequestMessage = {
           type: NEW_ACCOUNT_REQUEST,
           data: {
             origin: window.location.origin,
             faviconUrl: this._getFaviconUrl(),
             sessionId: this._session.id,
-            protocol,
+            protocol: data.protocol,
           },
         };
         const response: ExternalNewAccountResOnProxy =
@@ -617,6 +596,8 @@ class ProxyCommunicationController {
             origin: window.location.origin,
             faviconUrl: this._getFaviconUrl(),
             sessionId: this._session.id,
+            // todo: replace with protocol from params
+            protocol: SupportedProtocols.Pocket,
             ...transferData,
           },
         };

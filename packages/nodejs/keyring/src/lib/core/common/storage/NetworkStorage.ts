@@ -24,6 +24,36 @@ export abstract class NetworkStorage implements IStorage<SerializedNetwork> {
       createdAt: 1693499936849,
       updatedAt: 1693499936849,
     },
+    {
+      id: "2beccab6-5341-4393-8c8d-c7b5ef6b246c",
+      name: "Ethereum - Sepolia",
+      isDefault: true,
+      rpcUrl: "https://sepolia.infura.io/v3/58299e4225ae462180ced32f9cdc5700",
+      protocol: SupportedProtocols.Ethereum,
+      chainID: "11155111",
+      createdAt: 1693499936849,
+      updatedAt: 1693499936849,
+    },
+    {
+      id: "2beccab6-5341-4393-8c8d-c7b5ef6b246a",
+      name: "Ethereum - Goerli",
+      isDefault: true,
+      rpcUrl: "https://goerli.infura.io/v3/58299e4225ae462180ced32f9cdc5700",
+      protocol: SupportedProtocols.Ethereum,
+      chainID: "5",
+      createdAt: 1693499936849,
+      updatedAt: 1693499936849,
+    },
+    {
+      id: "2beccab6-5341-4393-8c8d-c7b5ef6b246d",
+      name: "Ethereum - Mainnet",
+      isDefault: true,
+      rpcUrl: "https://mainnet.infura.io/v3/58299e4225ae462180ced32f9cdc5700",
+      protocol: SupportedProtocols.Ethereum,
+      chainID: "1",
+      createdAt: 1693499936849,
+      updatedAt: 1693499936849,
+    },
   ];
 
   abstract getById(id: string): Promise<SerializedNetwork | null>;

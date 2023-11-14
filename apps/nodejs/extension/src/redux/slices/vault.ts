@@ -32,16 +32,10 @@ import {
   SerializedError,
 } from "@reduxjs/toolkit";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
-import { AssetStorage, getVault, NetworkStorage, wait } from "../../utils";
-import {
-  getAccountBalance as getBalance,
-  getBalances,
-  getFee,
-} from "../../utils/networkOperations";
+import { AssetStorage, getVault, NetworkStorage } from "../../utils";
+import { getFee } from "../../utils/networkOperations";
 import { DISCONNECT_RESPONSE } from "../../constants/communication";
-import { getSelectedNetworkAndAccount } from "./app";
 import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
-import { ProtocolTransferFundsArguments } from "@poktscan/keyring/dist/lib/core/common/protocols/ProtocolTransferFundsArguments";
 
 const MAX_PASSWORDS_TRIES = 4;
 const VAULT_PASSWORD_ID = "vault";
@@ -108,10 +102,7 @@ export const PASSPHRASE = v4();
 
 export const unlockVault = createAsyncThunk(
   "vault/unlockVault",
-  async (
-    { password, remember }: { password: string; remember: boolean },
-    { dispatch }
-  ) => {
+  async ({ password, remember }: { password: string; remember: boolean }) => {
     const session = await ExtensionVaultInstance.unlockVault(password);
 
     let passwordEncrypted: string;
@@ -140,8 +131,6 @@ export const unlockVault = createAsyncThunk(
 
     const accountsSerialized = accounts.map((item) => item.serialize());
 
-    await dispatch(getSelectedNetworkAndAccount(accountsSerialized));
-
     return {
       passwordRemembered: remember,
       session: session.serialize(),
@@ -168,7 +157,6 @@ export const getProtocolFee = createAsyncThunk<
   }
 >("vault/getProtocolFee", async ({ protocol, chainId }, context) => {
   const {
-    errorsPreferredNetwork,
     entities: {
       networks: { list },
     },
@@ -178,227 +166,42 @@ export const getProtocolFee = createAsyncThunk<
     protocol,
     chainId,
     networks: list,
-    errorsPreferredNetwork,
+    errorsPreferredNetwork: (context.getState() as RootState).app
+      .errorsPreferredNetwork,
+    options: undefined,
   });
 });
 
-export type SerializedTransferOptions<T extends SupportedProtocols> = Omit<
-  TransferOptions<T>,
-  "from" | "network" | "transferArguments"
-> & {
-  from: Omit<TransferOptions<T>["from"], "asset"> & {
-    asset: SerializedAsset;
-  };
-  network: SerializedNetwork;
+export interface SendTransferParam
+  extends Omit<TransferOptions, "transactionParams"> {
   transactionParams: {
-    chainID: ChainID<SupportedProtocols.Pocket>;
+    maxFeePerGas?: number;
+    maxPriorityFeePerGas?: number;
+    data?: string;
+    fee?: number;
     memo?: string;
-    fee: number;
   };
-};
-
-export const sendTransfer = createAsyncThunk<
-  string,
-  SerializedTransferOptions<SupportedProtocols>
->("vault/sendTransfer", async (transferOptions, context) => {
-  const state = context.getState() as RootState;
-  const sessionId = state.vault.vaultSession.id;
-
-  const network = Network.deserialize(transferOptions.network);
-  const asset = Asset.deserialize(transferOptions.from.asset);
-
-  const transferArguments: ProtocolTransferFundsArguments<SupportedProtocols.Pocket> =
-    {
-      fee: transferOptions.transferArguments.fee,
-      memo: transferOptions.transferArguments.memo,
-    };
-
-  const options: Omit<TransferOptions<SupportedProtocols.Pocket>, "network"> = {
-    ...transferOptions,
-    from: {
-      ...transferOptions.from,
-      asset,
-    },
-    transferArguments,
-  };
-
-  const result =
-    await ExtensionVaultInstance.transferFunds<SupportedProtocols.Pocket>(
-      sessionId,
-      {
-        ...options,
-        network,
-      }
-    );
-
-  return result.transactionHash;
-});
-
-interface GetAccountBalanceParam {
-  address: string;
-  protocol: SupportedProtocols;
-  chainId: ChainID<SupportedProtocols>;
 }
 
-interface GetAccountBalanceResult {
-  address: string;
-  id?: string;
-  amount: number;
-  update: boolean;
-  networksWithErrors: string[];
-}
+export const sendTransfer = createAsyncThunk<string, SendTransferParam>(
+  "vault/sendTransfer",
+  async (transferOptions, context) => {
+    const state = context.getState() as RootState;
+    const sessionId = state.vault.vaultSession.id;
 
-export const getAccountBalance = createAsyncThunk<
-  GetAccountBalanceResult,
-  GetAccountBalanceParam
->(
-  "vault/getAccountBalance",
-  async ({ address, protocol, chainId }, { getState }) => {
-    let counter = 1;
-
-    while (counter <= 5) {
-      const state = getState() as RootState;
-      const isLoading = state.vault.entities.accounts.balances.loading;
-
-      if (isLoading) {
-        await wait(100);
-        counter++;
-      } else {
-        counter = 6;
-      }
-    }
-
-    const state = getState() as RootState;
-    const map = state.vault.entities.accounts.balances.byId;
-    const networks = state.vault.entities.networks.list;
-    const assets = state.vault.entities.assets.list;
-    const errorsPreferredNetwork = state.vault.errorsPreferredNetwork;
-
-    const accountFromSaved = state.vault.entities.accounts.list.find(
-      (item) => item.address === address && item.asset.protocol === protocol
-    );
-
-    if (accountFromSaved && map[accountFromSaved.id]) {
-      const value = map[accountFromSaved.id];
-
-      if (!value.error && value.lastUpdatedAt > new Date().getTime() - 60000) {
-        return {
-          address,
-          id: accountFromSaved.id,
-          amount: value.amount,
-          update: true,
-          networksWithErrors: [],
-        };
-      }
-    }
-
-    const result = await getBalance({
-      address,
-      protocol,
-      chainId,
-      networks,
-      assets,
-      errorsPreferredNetwork,
+    const result = await ExtensionVaultInstance.transferFunds(sessionId, {
+      ...transferOptions,
+      transactionParams: {
+        from: "",
+        to: "",
+        amount: "",
+        ...transferOptions.transactionParams,
+      },
     });
 
-    return {
-      address,
-      id: accountFromSaved?.id,
-      amount: result.balance,
-      update: !!accountFromSaved,
-      networksWithErrors: result.networksWithErrors,
-    };
+    return result.transactionHash;
   }
 );
-
-export const getAllBalances = createAsyncThunk<{
-  newErrorsCounter: ErrorsPreferredNetwork;
-  newBalanceMap: VaultSlice["entities"]["accounts"]["balances"]["byId"];
-}>("vault/getAllBalances", async (_, { getState }) => {
-  const state = getState() as RootState;
-
-  const accounts = state.vault.entities.accounts.list;
-  const networks = state.vault.entities.networks.list;
-  const assets = state.vault.entities.assets.list;
-  const map = state.vault.entities.accounts.balances.byId;
-  const errorsPreferredNetwork = state.vault.errorsPreferredNetwork;
-  const { selectedChainByNetwork } = state.app;
-
-  const accountsToGetBalance: SerializedAccountReference[] = [];
-  const idByAccount: Record<string, string> = {};
-
-  for (const account of accounts) {
-    const {
-      id,
-      address,
-      asset: { protocol },
-    } = account;
-    if (map[id]) {
-      const value = map[id];
-
-      if (!value.error && value.lastUpdatedAt > new Date().getTime() - 60000) {
-        continue;
-      }
-    }
-
-    accountsToGetBalance.push({
-      ...account,
-    });
-    idByAccount[`${address}_${protocol}_${selectedChainByNetwork[protocol]}`] =
-      account.id;
-  }
-
-  const response = await getBalances({
-    accounts: accountsToGetBalance.map((item) => ({
-      address: item.address,
-      protocol: item.asset.protocol,
-      chainId: selectedChainByNetwork[
-        item.asset.protocol
-      ] as ChainID<SupportedProtocols>,
-    })),
-    networks,
-    assets,
-    errorsPreferredNetwork,
-  });
-  const lastUpdatedAt = new Date().getTime();
-
-  const resultConvertedToMap = response.reduce(
-    (acc, { address, balance, error, protocol, chainId }) => ({
-      ...acc,
-      [idByAccount[`${address}_${protocol}_${chainId}`]]: {
-        amount: balance,
-        lastUpdatedAt,
-        error,
-        loading: false,
-      },
-    }),
-    {}
-  );
-
-  const newErrorsCounter = { ...errorsPreferredNetwork };
-
-  response.forEach((item) => {
-    if (item.networksWithErrors.length) {
-      const { protocol, chainId } = item;
-
-      for (const networkId of item.networksWithErrors) {
-        if (newErrorsCounter[protocol][chainId][networkId]) {
-          newErrorsCounter[protocol][chainId][networkId]++;
-        } else {
-          newErrorsCounter[protocol][chainId][networkId] = 1;
-        }
-      }
-    }
-  });
-
-  return {
-    newBalanceMap: {
-      ...map,
-      ...resultConvertedToMap,
-    },
-    newErrorsCounter,
-  };
-});
 
 export const addNewAccount = createAsyncThunk<
   {
@@ -440,16 +243,12 @@ export const addNewAccount = createAsyncThunk<
   const session = args.sessionId || vaultSession.id;
   const accountPassphrase = new Passphrase(args.password);
 
-  const assets = state.vault.entities.assets.list;
-
-  const asset = assets.find((item) => item.protocol === args.protocol);
-
   const accountReference = await ExtensionVaultInstance.createAccount(
     session,
     vaultPassphrase,
     {
       name: args.name.trim(),
-      asset: Asset.deserialize(asset),
+      protocol: args.protocol,
       passphrase: accountPassphrase,
     }
   );
@@ -503,18 +302,12 @@ export const importAccount = createAsyncThunk<
   const vaultPassphrase = new Passphrase(vaultPassword);
   const accountPassphrase = new Passphrase(args.accountData.accountPassword);
 
-  const assets = state.vault.entities.assets.list;
-
-  const asset = assets.find(
-    (item) => item.protocol === args.accountData.protocol
-  );
-
   const accountReference =
     await ExtensionVaultInstance.createAccountFromPrivateKey(
       vaultSession.id,
       vaultPassphrase,
       {
-        asset: Asset.deserialize(asset),
+        protocol: args.accountData.protocol,
         passphrase: accountPassphrase,
         name: args.accountData.name,
         privateKey: args.accountData.privateKey,
@@ -895,6 +688,9 @@ const vaultSlice = createSlice({
       state.entities.accounts.list = accounts;
       state.passwordRemembered = passwordRemembered;
     });
+    builder.addCase(unlockVault.rejected, (state, action) => {
+      console.log("ERROR UNLOCKING VAULT:", action.error);
+    });
 
     builder.addCase(initVault.fulfilled, (state) => {
       state.initializeStatus = "exists";
@@ -1089,7 +885,7 @@ const vaultSlice = createSlice({
       } else {
         state.entities.accounts.list = state.entities.accounts.list.map((a) =>
           a.address === accountReference.address &&
-          a.asset.protocol === accountReference.asset.protocol
+          a.protocol === accountReference.protocol
             ? accountReference
             : a
         );
@@ -1138,107 +934,6 @@ const vaultSlice = createSlice({
       }
 
       resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
-    });
-
-    //balances
-    builder.addCase(getAccountBalance.pending, (state, action) => {
-      const { address, protocol } = action.meta.arg;
-
-      const accountFromSaved = state.entities.accounts.list.find(
-        (account) =>
-          account.address === address && account.asset.protocol === protocol
-      );
-
-      if (accountFromSaved) {
-        const balanceMapById = state.entities.accounts.balances.byId;
-
-        if (balanceMapById[accountFromSaved.id]) {
-          state.entities.accounts.balances.byId[accountFromSaved.id] = {
-            ...state.entities.accounts.balances.byId[accountFromSaved.id],
-            error: false,
-            loading: true,
-          };
-        } else {
-          state.entities.accounts.balances.byId[accountFromSaved.id] = {
-            error: false,
-            amount: 0,
-            lastUpdatedAt: Date.UTC(1970, 0, 1),
-            loading: true,
-          };
-        }
-      }
-    });
-
-    builder.addCase(getAccountBalance.fulfilled, (state, action) => {
-      const result = action.payload;
-
-      if (result) {
-        const { id, amount, update, networksWithErrors } = result;
-        if (update && id) {
-          state.entities.accounts.balances.byId[id] = {
-            lastUpdatedAt: new Date().getTime(),
-            amount,
-            error: false,
-            loading: false,
-          };
-        }
-
-        if (networksWithErrors.length) {
-          const { protocol, chainId } = action.meta.arg;
-
-          for (const networkId of networksWithErrors) {
-            if (state.errorsPreferredNetwork[protocol][chainId][networkId]) {
-              state.errorsPreferredNetwork[protocol][chainId][networkId]++;
-            } else {
-              state.errorsPreferredNetwork[protocol][chainId][networkId] = 1;
-            }
-          }
-        }
-      }
-    });
-
-    builder.addCase(getAccountBalance.rejected, (state, action) => {
-      const { address, protocol } = action.meta.arg;
-
-      const accountFromSaved = state.entities.accounts.list.find(
-        (account) =>
-          account.address === address && account.asset.protocol === protocol
-      );
-
-      if (accountFromSaved) {
-        const balanceMapById =
-          state.entities.accounts.balances.byId[accountFromSaved.id];
-
-        if (balanceMapById[accountFromSaved.id]) {
-          state.entities.accounts.balances.byId[accountFromSaved.id] = {
-            ...state.entities.accounts.balances.byId[accountFromSaved.id],
-            error: true,
-            loading: false,
-          };
-        } else {
-          state.entities.accounts.balances.byId[accountFromSaved.id] = {
-            error: false,
-            amount: 0,
-            lastUpdatedAt: Date.UTC(1970, 0, 1),
-            loading: false,
-          };
-        }
-      }
-    });
-
-    builder.addCase(getAllBalances.pending, (state) => {
-      state.entities.accounts.balances.loading = true;
-    });
-    builder.addCase(getAllBalances.rejected, (state) => {
-      state.entities.accounts.balances.loading = false;
-    });
-    builder.addCase(getAllBalances.fulfilled, (state, action) => {
-      const result = action.payload;
-      if (result) {
-        state.entities.accounts.balances.loading = false;
-        state.entities.accounts.balances.byId = action.payload.newBalanceMap;
-        state.errorsPreferredNetwork = action.payload.newErrorsCounter;
-      }
     });
 
     builder.addCase(getProtocolFee.fulfilled, (state, action) => {

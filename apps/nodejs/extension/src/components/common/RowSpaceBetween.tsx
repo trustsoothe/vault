@@ -46,7 +46,7 @@ const RowSpaceBetween: React.FC<RowProps> = ({
           textAlign={"right"}
           color={theme.customColors.dark100}
         >
-          {value || "-"}
+          {value}
         </Typography>
       ) : (
         value

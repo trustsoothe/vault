@@ -179,3 +179,25 @@ export const roundAndSeparate = (
       })
     : (defaultValue as string);
 };
+
+export const returnNumWithTwoDecimals = (
+  value: number,
+  defaultValue: string | number = "-"
+) => {
+  if (!value) {
+    return defaultValue;
+  }
+
+  let decimals = 1,
+    valueToReturn = roundAndSeparate(value, decimals, defaultValue);
+
+  while (
+    (valueToReturn === defaultValue || valueToReturn === "0") &&
+    decimals <= 98
+  ) {
+    decimals++;
+    valueToReturn = roundAndSeparate(value, decimals, defaultValue);
+  }
+
+  return roundAndSeparate(value, decimals + 1, defaultValue);
+};

@@ -9,13 +9,14 @@ import type {
 import browser, { type Runtime } from "webextension-polyfill";
 import {
   AccountExistError,
+  EthereumNetworkFee,
   ExternalAccessRequest,
   OriginReference,
   PermissionResources,
   PermissionsBuilder,
+  PocketNetworkFee,
   PrivateKeyRestoreError,
   SerializedAccountReference,
-  SerializedAsset,
   SupportedProtocols,
   VaultRestoreError,
 } from "@poktscan/keyring";
@@ -37,6 +38,8 @@ import {
   INITIALIZE_VAULT_RESPONSE,
   LOCK_VAULT_REQUEST,
   LOCK_VAULT_RESPONSE,
+  NETWORK_FEE_REQUEST,
+  NETWORK_FEE_RESPONSE,
   NEW_ACCOUNT_RESPONSE,
   PK_ACCOUNT_REQUEST,
   PK_ACCOUNT_RESPONSE,
@@ -70,13 +73,14 @@ import {
   revokeAllExternalSessions,
   revokeSession,
   sendTransfer,
-  SerializedTransferOptions,
+  SendTransferParam,
   unlockVault,
   updateAccount,
 } from "../../redux/slices/vault";
 import { UnknownError } from "../../errors/communication";
 import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 import { getAccountBalance } from "../../redux/slices/app/network";
+import { getFee } from "../../utils/networkOperations";
 
 type MessageSender = Runtime.MessageSender;
 type UnknownErrorType = typeof UnknownError;
@@ -130,7 +134,7 @@ export interface AnswerTransferRequest {
   type: typeof ANSWER_TRANSFER_REQUEST;
   data: {
     rejected?: boolean;
-    transferData: SerializedTransferOptions<SupportedProtocols> | null;
+    transferData: SendTransferParam | null;
     request?: ExternalTransferRequest | null;
   };
 }
@@ -287,6 +291,24 @@ export interface AccountBalanceResponse {
   error: UnknownErrorType | null;
 }
 
+export interface NetworkFeeMessage {
+  type: typeof NETWORK_FEE_REQUEST;
+  data: {
+    toAddress?: string;
+    protocol: SupportedProtocols;
+    chainId: string;
+  };
+}
+
+export interface NetworkFeeResponse {
+  type: typeof NETWORK_FEE_RESPONSE;
+  data: {
+    answered: true;
+    networkFee: PocketNetworkFee | EthereumNetworkFee;
+  } | null;
+  error: UnknownErrorType | null;
+}
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
@@ -300,7 +322,8 @@ export type Message =
   | ImportAccountMessage
   | PrivateKeyAccountMessage
   | RevokeExternalSessionsMessage
-  | AccountBalanceMessage;
+  | AccountBalanceMessage
+  | NetworkFeeMessage;
 
 // Controller to manage the communication between extension views and the background
 class InternalCommunicationController {
@@ -412,6 +435,10 @@ class InternalCommunicationController {
 
     if (message?.type === ACCOUNT_BALANCE_REQUEST) {
       return this._getAccountBalance(message);
+    }
+
+    if (message?.type === NETWORK_FEE_REQUEST) {
+      return this._getNetworkFee(message);
     }
   }
 
@@ -853,6 +880,8 @@ class InternalCommunicationController {
           .catch();
       }
 
+      console.log("SEND TRANSFER ERROR:", error);
+
       return {
         type: ANSWER_TRANSFER_RESPONSE,
         data: null,
@@ -1038,6 +1067,46 @@ class InternalCommunicationController {
     } catch (e) {
       return {
         type: ACCOUNT_BALANCE_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _getNetworkFee({
+    data: { protocol, chainId, toAddress },
+  }: NetworkFeeMessage): Promise<NetworkFeeResponse> {
+    try {
+      const networks = store.getState().app.networks.map((item) => ({
+        ...item,
+        chainID: item.chainId,
+      }));
+      const errorsPreferredNetwork =
+        store.getState().app.errorsPreferredNetwork;
+      const result = await getFee({
+        protocol,
+        chainId: chainId as any,
+        networks,
+        errorsPreferredNetwork,
+        options:
+          protocol === SupportedProtocols.Ethereum
+            ? { to: toAddress, protocol }
+            : undefined,
+      });
+
+      // todo: save network with errors
+
+      return {
+        type: NETWORK_FEE_RESPONSE,
+        data: {
+          answered: true,
+          networkFee: result.fee,
+        },
+        error: null,
+      };
+    } catch (e) {
+      return {
+        type: NETWORK_FEE_RESPONSE,
         data: null,
         error: UnknownError,
       };

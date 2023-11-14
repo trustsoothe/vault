@@ -1,41 +1,43 @@
-import type { SerializedAccountReference } from "@poktscan/keyring";
-import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
-import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
+import { shallowEqual } from "react-redux";
 import Tooltip from "@mui/material/Tooltip";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import { FormProvider, useForm } from "react-hook-form";
 import Password from "../common/Password";
-import AccountsAutocomplete from "./Autocomplete";
 import CopyIcon from "../../assets/img/copy_icon.svg";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
 import OperationFailed from "../common/OperationFailed";
 import DownloadIcon from "../../assets/img/download_icon.svg";
 import { getPortableWalletContent } from "../../utils/networkOperations";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-
-interface ViewPrivateKeyProps {
-  accounts: RootState["vault"]["entities"]["accounts"]["list"];
-}
+import { AccountComponent } from "./SelectedAccount";
+import { useAppSelector } from "../../hooks/redux";
 
 interface PrivateKeyFormValues {
   account_password: string;
   vault_password: string;
 }
 
-const ViewPrivateKey: React.FC<ViewPrivateKeyProps> = ({ accounts }) => {
+const ViewPrivateKey: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [account, setAccount] = useState<SerializedAccountReference>(null);
+  const account = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    const selectedAccountId =
+      state.app.selectedAccountByNetwork[selectedNetwork];
+
+    return state.vault.entities.accounts.list.find(
+      (account) => account.id === selectedAccountId
+    );
+  }, shallowEqual);
+
   const methods = useForm<PrivateKeyFormValues>({
     defaultValues: {
       account_password: "",
@@ -69,38 +71,21 @@ const ViewPrivateKey: React.FC<ViewPrivateKeyProps> = ({ accounts }) => {
   }, [vaultPassword]);
 
   useEffect(() => {
-    const id = searchParams.get("id");
-    const accountFromStore = accounts.find((item) => item.id === id);
-    if (accountFromStore && account?.id !== id) {
-      setAccount(accountFromStore);
-      return;
-    }
-
-    if (!accountFromStore && !account) {
+    if (!account) {
       navigate(ACCOUNTS_PAGE);
-    }
-  }, [searchParams, accounts]);
-
-  const onChangeAccount = useCallback(
-    (newAccount: SerializedAccountReference) => {
-      setAccount(newAccount);
-      setShowCopyKeyTooltip(false);
-      setWrongAccountPassphrase(false);
-      setWrongVaultPassphrase(false);
-      setLoadingPrivateKey(false);
-      setPrivateKey(null);
-      setErrorPrivateKey(false);
+    } else {
       reset({
         account_password: "",
         vault_password: "",
       });
-      setSearchParams((prev) => {
-        prev.set("id", newAccount.id);
-        return prev;
-      });
-    },
-    [reset]
-  );
+      setShowCopyKeyTooltip(false);
+      setWrongAccountPassphrase(false);
+      setWrongVaultPassphrase(false);
+      setLoadingPrivateKey(false);
+      setErrorPrivateKey(false);
+      setPrivateKey(null);
+    }
+  }, [account]);
 
   const loadPrivateKey = useCallback(
     (data: PrivateKeyFormValues) => {
@@ -132,7 +117,7 @@ const ViewPrivateKey: React.FC<ViewPrivateKeyProps> = ({ accounts }) => {
 
   const exportPortableWallet = useCallback(() => {
     if (privateKey && accountPassword) {
-      getPortableWalletContent(privateKey, accountPassword)
+      getPortableWalletContent(privateKey, accountPassword, account.protocol)
         .then((json) => {
           const blob = new Blob([json], {
             type: "application/json",
@@ -160,7 +145,9 @@ const ViewPrivateKey: React.FC<ViewPrivateKeyProps> = ({ accounts }) => {
 
   const showingPk = !!privateKey || loadingPrivateKey || errorPrivateKey;
   const privateKeyComponent = useMemo(() => {
-    const text = showingPk ? "Private Key" : "Account & Vault Password";
+    const text = showingPk
+      ? "Private Key"
+      : "To continue, introduce Account & Vault Passwords";
 
     const title = (
       <Typography
@@ -331,17 +318,13 @@ const ViewPrivateKey: React.FC<ViewPrivateKeyProps> = ({ accounts }) => {
   return (
     <Stack
       flexGrow={1}
-      marginTop={2}
+      marginTop={1}
       justifyContent={"space-between"}
       component={"form"}
       onSubmit={handleSubmit(loadPrivateKey)}
     >
-      <Stack spacing={1.5} flexGrow={1}>
-        <AccountsAutocomplete
-          selectedAccount={account}
-          onChangeSelectedAccount={onChangeAccount}
-        />
-        <Divider sx={{ borderColor: theme.customColors.dark25 }} />
+      <Stack spacing={3.5} flexGrow={1}>
+        {account && <AccountComponent account={account} />}
         {privateKeyComponent}
       </Stack>
       <Stack direction={"row"} spacing={2} width={1} marginTop={2.5}>
@@ -394,8 +377,4 @@ const ViewPrivateKey: React.FC<ViewPrivateKeyProps> = ({ accounts }) => {
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  accounts: state.vault.entities.accounts.list,
-});
-
-export default connect(mapStateToProps)(ViewPrivateKey);
+export default ViewPrivateKey;

@@ -2,7 +2,7 @@ import type {
   SerializedAccountReference,
   SerializedSession,
 } from "@poktscan/keyring";
-import type { Protocol } from "packages/nodejs/keyring/src/lib/core/common/protocols/Protocol";
+import type { SupportedProtocols } from "@poktscan/keyring";
 import type {
   TPermissionsAllowedToSuggest,
   TProtocol,
@@ -98,6 +98,7 @@ interface BaseProxyResponse {
 type BaseExternalRequestBody = {
   origin: string;
   faviconUrl: string;
+  protocol: SupportedProtocols;
 };
 
 type BaseExternalRequestBodyWithSession = BaseExternalRequestBody & {
@@ -220,12 +221,12 @@ export interface ProxyCheckConnectionRequest extends BaseProxyRequest {
 export interface ProxyNewAccountRequest extends BaseProxyRequest {
   type: typeof NEW_ACCOUNT_REQUEST;
   data: {
-    protocol: TProtocol;
+    protocol: SupportedProtocols;
   };
 }
 
 export interface NewAccountData extends BaseExternalRequestBodyWithSession {
-  protocol?: TProtocol;
+  protocol?: SupportedProtocols;
 }
 
 export interface NewAccountRequestMessage {
@@ -252,7 +253,7 @@ export interface InternalNewAccountResponse {
   data: {
     rejected: boolean;
     address: string | null;
-    protocol: Protocol | null;
+    protocol: SupportedProtocols | null;
   };
   error: null;
 }
@@ -344,7 +345,7 @@ export interface InternalTransferResponse {
   data: {
     rejected: boolean;
     hash: string | null;
-    protocol: Protocol | null;
+    protocol: SupportedProtocols | null;
   };
   error: null;
 }

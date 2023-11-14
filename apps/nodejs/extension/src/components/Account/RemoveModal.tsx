@@ -1,40 +1,32 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
-import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
-import TextField from "@mui/material/TextField";
 import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
-import { connect } from "react-redux";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
-import { Controller, FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import { enqueueSnackbar } from "../../utils/ui";
 import Password from "../common/Password";
-import { nameRules } from "./CreateNew";
+import { AccountComponent } from "./SelectedAccount";
 
 interface RenameModalProps {
-  passwordRemembered: boolean;
   account?: SerializedAccountReference;
   onClose: () => void;
 }
 
 interface FormValues {
-  account_name: string;
   vault_password?: string;
 }
 
-const RenameModal: React.FC<RenameModalProps> = ({
-  passwordRemembered,
-  account,
-  onClose,
-}) => {
+const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   const theme = useTheme();
+
   const [wrongPassword, setWrongPassword] = useState(false);
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
@@ -43,7 +35,6 @@ const RenameModal: React.FC<RenameModalProps> = ({
 
   const methods = useForm<FormValues>({
     defaultValues: {
-      account_name: "",
       vault_password: "",
     },
   });
@@ -62,13 +53,11 @@ const RenameModal: React.FC<RenameModalProps> = ({
       setTimeout(() => setStillShowModal(true), 100);
 
       reset({
-        account_name: account?.name || "",
         vault_password: "",
       });
     } else {
       setTimeout(() => {
         reset({
-          account_name: account?.name || "",
           vault_password: "",
         });
         setStillShowModal(false);
@@ -76,34 +65,30 @@ const RenameModal: React.FC<RenameModalProps> = ({
     }
   }, [account]);
 
-  const onSubmit = useCallback(
+  const removeAccount = useCallback(
     (data: FormValues) => {
-      if (!account) return;
-
       setStatus("loading");
-      AppToBackground.updateAccount({
-        id: account.id,
-        name: data.account_name,
-        vaultPassword: !passwordRemembered ? data?.vault_password : undefined,
-      }).then((result) => {
-        if (result.error) {
+      AppToBackground.removeAccount({
+        serializedAccount: account,
+        vaultPassword: data.vault_password,
+      }).then((response) => {
+        if (response.error) {
           setStatus("error");
-          return;
-        }
-
-        if (result.data?.isPasswordWrong) {
-          setWrongPassword(true);
-          setStatus("normal");
         } else {
-          enqueueSnackbar({
-            message: `Account name updated successfully.`,
-            variant: "success",
-          });
-          onClose();
+          if (response.data.isPasswordWrong) {
+            setStatus("normal");
+            setWrongPassword(true);
+          } else {
+            onClose();
+            enqueueSnackbar({
+              message: `Account removed successfully.`,
+              variant: "success",
+            });
+          }
         }
       });
     },
-    [account, passwordRemembered, onClose]
+    [account]
   );
 
   const onClickAway = useCallback(() => {
@@ -123,7 +108,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
         textAlign={"center"}
         color={theme.customColors.primary999}
       >
-        Rename Account
+        Remove Account
       </Typography>
     );
 
@@ -151,60 +136,53 @@ const RenameModal: React.FC<RenameModalProps> = ({
     } else if (account || stillShowModal) {
       component = (
         <>
-          <Stack spacing={1.5}>
+          <Stack>
             {title}
-            <Controller
-              name={"account_name"}
-              control={control}
-              rules={nameRules}
-              render={({ field, fieldState: { error } }) => (
-                <TextField
-                  label={"Rename"}
-                  autoFocus
-                  size={"small"}
-                  fullWidth
-                  {...field}
-                  InputLabelProps={{
-                    shrink: !!field.value,
+            <Typography
+              color={theme.customColors.red100}
+              fontWeight={700}
+              fontSize={14}
+              lineHeight={"20px"}
+              textAlign={"center"}
+              marginTop={0.5}
+              marginBottom={2}
+              paddingX={0.5}
+            >
+              Are you sure you want to remove the following account?
+            </Typography>
+            {account && <AccountComponent account={account} compact={true} />}
+            <>
+              <Divider
+                sx={{
+                  borderColor: theme.customColors.dark15,
+                  marginTop: "22px!important",
+                  marginBottom: "15px!important",
+                }}
+              />
+              <Typography
+                fontSize={14}
+                width={1}
+                fontWeight={500}
+                lineHeight={"30px"}
+                sx={{ userSelect: "none" }}
+              >
+                To continue, introduce the vault's password:
+              </Typography>
+              <FormProvider {...methods}>
+                <Password
+                  passwordName={"vault_password"}
+                  labelPassword={"Vault Password"}
+                  canGenerateRandom={false}
+                  justRequire={true}
+                  hidePasswordStrong={true}
+                  containerProps={{
+                    marginTop: "5px!important",
+                    spacing: 0.5,
                   }}
-                  error={!!error}
-                  helperText={error?.message}
+                  errorPassword={wrongPassword ? "Wrong password" : undefined}
                 />
-              )}
-            />
-            {!passwordRemembered && (
-              <>
-                <Divider
-                  sx={{
-                    borderColor: theme.customColors.dark15,
-                    marginTop: "25px!important",
-                  }}
-                />
-                <Typography
-                  fontSize={14}
-                  width={1}
-                  fontWeight={500}
-                  lineHeight={"30px"}
-                  sx={{ userSelect: "none" }}
-                >
-                  To continue, introduce the vault's password:
-                </Typography>
-                <FormProvider {...methods}>
-                  <Password
-                    passwordName={"vault_password"}
-                    labelPassword={"Vault Password"}
-                    canGenerateRandom={false}
-                    justRequire={true}
-                    hidePasswordStrong={true}
-                    containerProps={{
-                      marginTop: "15px!important",
-                      spacing: 0.5,
-                    }}
-                    errorPassword={wrongPassword ? "Wrong password" : undefined}
-                  />
-                </FormProvider>
-              </>
-            )}
+              </FormProvider>
+            </>
           </Stack>
           <Stack direction={"row"} spacing={2} width={1}>
             <Button
@@ -212,7 +190,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
               sx={{
                 fontWeight: 700,
                 color: theme.customColors.dark50,
-                borderColor: theme.customColors.dark50,
+                borderColor: theme.customColors.dark25,
                 height: 30,
                 borderWidth: 1.5,
                 fontSize: 14,
@@ -232,7 +210,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
               fullWidth
               type={"submit"}
             >
-              Save
+              Remove
             </Button>
           </Stack>
         </>
@@ -243,7 +221,6 @@ const RenameModal: React.FC<RenameModalProps> = ({
       <ClickAwayListener onClickAway={onClickAway}>
         <Stack
           width={1}
-          height={510}
           paddingX={2.5}
           paddingTop={1.5}
           paddingBottom={2}
@@ -252,9 +229,12 @@ const RenameModal: React.FC<RenameModalProps> = ({
           boxSizing={"border-box"}
           justifyContent={"space-between"}
           bgcolor={theme.customColors.white}
+          height={510}
           boxShadow={"2px 2px 14px 0px #1C2D4A33"}
           border={`1px solid ${theme.customColors.dark25}`}
-          onSubmit={status === "loading" ? undefined : handleSubmit(onSubmit)}
+          onSubmit={
+            status === "loading" ? undefined : handleSubmit(removeAccount)
+          }
         >
           {component}
         </Stack>
@@ -264,10 +244,9 @@ const RenameModal: React.FC<RenameModalProps> = ({
     status,
     account,
     handleSubmit,
-    onSubmit,
+    removeAccount,
     theme,
     wrongPassword,
-    passwordRemembered,
     methods,
     control,
     stillShowModal,
@@ -293,8 +272,4 @@ const RenameModal: React.FC<RenameModalProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  passwordRemembered: state.vault.passwordRemembered,
-});
-
-export default connect(mapStateToProps)(RenameModal);
+export default RemoveModal;
