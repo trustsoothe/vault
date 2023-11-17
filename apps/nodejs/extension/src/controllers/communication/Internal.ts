@@ -57,6 +57,7 @@ import {
   UPDATE_ACCOUNT_RESPONSE,
 } from "../../constants/communication";
 import {
+  IAsset,
   removeExternalRequest,
   RequestsType,
   resetRequestsState,
@@ -78,8 +79,10 @@ import {
   updateAccount,
 } from "../../redux/slices/vault";
 import { UnknownError } from "../../errors/communication";
-import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
-import { getAccountBalance } from "../../redux/slices/app/network";
+import {
+  getAccountBalance,
+  GetAccountBalanceParam,
+} from "../../redux/slices/app/network";
 import { getFee } from "../../utils/networkOperations";
 
 type MessageSender = Runtime.MessageSender;
@@ -275,11 +278,7 @@ export interface PrivateKeyAccountResponse {
 
 export interface AccountBalanceMessage {
   type: typeof ACCOUNT_BALANCE_REQUEST;
-  data: {
-    address: string;
-    protocol: SupportedProtocols;
-    chainId: ChainID<SupportedProtocols>;
-  };
+  data: GetAccountBalanceParam;
 }
 
 export interface AccountBalanceResponse {
@@ -295,6 +294,7 @@ export interface NetworkFeeMessage {
   type: typeof NETWORK_FEE_REQUEST;
   data: {
     toAddress?: string;
+    asset?: IAsset;
     protocol: SupportedProtocols;
     chainId: string;
   };
@@ -1074,7 +1074,7 @@ class InternalCommunicationController {
   }
 
   private async _getNetworkFee({
-    data: { protocol, chainId, toAddress },
+    data: { protocol, chainId, toAddress, asset },
   }: NetworkFeeMessage): Promise<NetworkFeeResponse> {
     try {
       const networks = store.getState().app.networks.map((item) => ({
@@ -1090,7 +1090,11 @@ class InternalCommunicationController {
         errorsPreferredNetwork,
         options:
           protocol === SupportedProtocols.Ethereum
-            ? { to: toAddress, protocol }
+            ? {
+                to: toAddress,
+                protocol,
+                asset: { ...asset, chainID: asset.chainId },
+              }
             : undefined,
       });
 

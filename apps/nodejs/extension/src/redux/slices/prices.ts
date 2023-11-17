@@ -8,7 +8,23 @@ export const pricesApi = createApi({
     getPrices: builder.query({
       query: (ids: string) => `simple/price?ids=${ids}&vs_currencies=usd`,
     }),
+    getAssetPrices: builder.query({
+      query: ({
+        platformId,
+        contractAddresses,
+      }: {
+        platformId: string;
+        contractAddresses: string;
+      }) =>
+        `simple/token_price/${platformId}?contract_addresses=${contractAddresses}&vs_currencies=usd`,
+      keepUnusedDataFor: 60 * 3,
+    }),
   }),
 });
 
-export const { useGetPricesQuery, useLazyGetPricesQuery } = pricesApi;
+export const {
+  useGetPricesQuery,
+  useLazyGetPricesQuery,
+  useGetAssetPricesQuery,
+  useLazyGetAssetPricesQuery,
+} = pricesApi;

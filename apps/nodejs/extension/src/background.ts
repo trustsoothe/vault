@@ -8,6 +8,8 @@ import {
   loadSelectedNetworkAndAccount,
 } from "./redux/slices/app";
 import {
+  loadAssetsFromCdn,
+  loadAssetsFromStorage,
   loadNetworksFromCdn,
   loadNetworksFromStorage,
 } from "./redux/slices/app/network";
@@ -91,12 +93,21 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
 
 // todo:
 (async () => {
-  await store.dispatch(loadNetworksFromStorage());
-  await store.dispatch(loadNetworksFromCdn());
+  await Promise.all([
+    store.dispatch(loadNetworksFromStorage()),
+    store.dispatch(loadAssetsFromStorage()),
+  ]);
+  await Promise.all([
+    store.dispatch(loadNetworksFromCdn()),
+    store.dispatch(loadAssetsFromCdn()),
+  ]);
   await store.dispatch(loadSelectedNetworkAndAccount());
 
   setInterval(async () => {
-    await store.dispatch(loadNetworksFromCdn());
+    await Promise.all([
+      store.dispatch(loadNetworksFromCdn()),
+      store.dispatch(loadAssetsFromCdn()),
+    ]);
     await store.dispatch(loadSelectedNetworkAndAccount());
   }, 1000 * 60 * 20);
 })();

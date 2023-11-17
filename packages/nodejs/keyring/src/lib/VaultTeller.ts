@@ -38,6 +38,7 @@ import { INetwork } from "./core/common/protocols/INetwork";
 import { IProtocolTransactionResult } from "./core/common/protocols/ProtocolTransaction";
 import { PocketNetworkTransactionTypes } from "./core/common/protocols/PocketNetwork/PocketNetworkTransactionTypes";
 import { EthereumNetworkTransactionTypes } from "./core/common/protocols/EthereumNetwork/EthereumNetworkTransactionTypes";
+import { IAsset } from "./core/common/protocols/IAsset";
 
 export type AllowedProtocols = keyof typeof SupportedProtocols;
 
@@ -64,6 +65,7 @@ export interface TransferOptions {
     fee?: number;
     memo?: string;
   };
+  asset?: IAsset;
 }
 
 export class VaultTeller {
@@ -433,17 +435,21 @@ export class VaultTeller {
       case SupportedProtocols.Ethereum:
         return await new EthereumNetworkProtocolService(
           this.encryptionService
-        ).sendTransaction(options.network, {
-          protocol: SupportedProtocols.Ethereum,
-          transactionType: EthereumNetworkTransactionTypes.Transfer,
-          from: account.address,
-          to: options.to.value,
-          amount: options.amount.toString(),
-          privateKey,
-          maxPriorityFeePerGas:
-            options.transactionParams.maxPriorityFeePerGas || 0,
-          maxFeePerGas: options.transactionParams.maxFeePerGas || 0,
-        });
+        ).sendTransaction(
+          options.network,
+          {
+            protocol: SupportedProtocols.Ethereum,
+            transactionType: EthereumNetworkTransactionTypes.Transfer,
+            from: account.address,
+            to: options.to.value,
+            amount: options.amount.toString(),
+            privateKey,
+            maxPriorityFeePerGas:
+              options.transactionParams.maxPriorityFeePerGas || 0,
+            maxFeePerGas: options.transactionParams.maxFeePerGas || 0,
+          },
+          options.asset
+        );
       default:
         throw new Error(`Protocol ${options.network.protocol} not supported`);
     }

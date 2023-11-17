@@ -10,6 +10,8 @@ import RowSpaceBetween from "../../common/RowSpaceBetween";
 import { returnNumWithTwoDecimals } from "../../../utils/ui";
 import { useAppSelector } from "../../../hooks/redux";
 import useGetPrices from "../../../hooks/useGetPrices";
+import useGetAssetPrices from "../../../hooks/useGetAssetPrices";
+import useDidMountEffect from "../../../hooks/useDidMountEffect";
 
 interface SummaryProps {
   compact?: boolean;
@@ -20,7 +22,7 @@ const Summary: React.FC<SummaryProps> = ({ compact = false, networkFee }) => {
   const theme = useTheme();
   const { watch } = useFormContext<FormValues>();
   const values = watch();
-  const { protocol, chainId } = values;
+  const { protocol, chainId, asset } = values;
 
   const accounts = useAppSelector(
     (state) => state.vault.entities.accounts.list
@@ -34,8 +36,21 @@ const Summary: React.FC<SummaryProps> = ({ compact = false, networkFee }) => {
     );
   });
 
+  const {
+    data: priceByContractAddress,
+    isError: isAssetsPriceError,
+    isLoading: isLoadingAssetsPrice,
+    refetch: refetchAssetsPrice,
+  } = useGetAssetPrices(false);
   const { data: pricesByProtocolAndChain } = useGetPrices();
 
+  useDidMountEffect(() => {
+    if (asset) {
+      setTimeout(refetchAssetsPrice, 0);
+    }
+  }, [asset]);
+
+  const assetUsdPrice = priceByContractAddress[asset?.contractAddress] || 0;
   const selectedNetworkPrice: number =
     pricesByProtocolAndChain?.[protocol]?.[chainId] || 0;
   const isEth = values.protocol === SupportedProtocols.Ethereum;
@@ -68,15 +83,20 @@ const Summary: React.FC<SummaryProps> = ({ compact = false, networkFee }) => {
       },
       {
         label: "Amount",
-        value: `${transferAmount} ${symbol} / $${returnNumWithTwoDecimals(
-          transferAmount * selectedNetworkPrice,
+        value: `${transferAmount} ${
+          values.asset ? values.asset.symbol : symbol
+        } / $${returnNumWithTwoDecimals(
+          transferAmount *
+            (values.asset ? assetUsdPrice : selectedNetworkPrice),
           "0"
         )} USD`,
       },
       {
-        label: isEth ? "Max Total" : "Total",
-        value: `${total} ${symbol} / $${returnNumWithTwoDecimals(
-          total * selectedNetworkPrice,
+        label: isEth ? (values.asset ? "Max Fee" : "Max Total") : "Total",
+        value: `${
+          values.asset ? fee : total
+        } ${symbol} / $${returnNumWithTwoDecimals(
+          (values.asset ? fee : total) * selectedNetworkPrice,
           "0"
         )} USD`,
       },

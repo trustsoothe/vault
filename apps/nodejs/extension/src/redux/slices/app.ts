@@ -65,8 +65,21 @@ export interface Network {
   iconUrl: string;
   rpcUrl: string;
   explorerAccountUrl: string;
+  explorerAccountWithAssetUrl?: string;
   explorerTransactionUrl: string;
   transferMinValue: string;
+  assetPlatformId?: string;
+}
+
+export interface IAsset {
+  id: string;
+  label?: string;
+  symbol: string;
+  protocol: SupportedProtocols;
+  chainId: string;
+  contractAddress: string;
+  decimals: 6;
+  iconUrl: string;
 }
 
 export interface NetworkCanBeSelectedMap {
@@ -87,6 +100,7 @@ export interface GeneralAppSlice {
   selectedAccountByNetwork: Partial<Record<SupportedProtocols, string>>;
   accountBalances: IAccountBalances;
   networks: Network[];
+  assets: IAsset[];
   errorsPreferredNetwork: ErrorsPreferredNetwork;
   activeTab?: {
     id?: number;
@@ -94,6 +108,7 @@ export interface GeneralAppSlice {
     favIconUrl?: string;
   };
   networksCanBeSelected: NetworkCanBeSelectedMap;
+  assetsIdByAccountId: Record<string, string[]>;
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -101,6 +116,7 @@ const SELECTED_ACCOUNTS_KEY = "SELECTED_ACCOUNTS_KEY";
 const SELECTED_CHAINS_KEY = "SELECTED_CHAINS_KEY";
 const SHOW_TEST_NETWORKS_KEY = "SHOW_TEST_NETWORKS";
 const NETWORKS_CAN_BE_SELECTED_KEY = "NETWORKS_CAN_BE_SELECTED";
+const ASSETS_SELECTED_BY_ACCOUNTS_KEY = "ASSETS_SELECTED_BY_ACCOUNTS";
 
 export const loadSelectedNetworkAndAccount = createAsyncThunk(
   "app/loadSelectedNetworkAndAccount",
@@ -113,6 +129,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       SELECTED_CHAINS_KEY,
       SHOW_TEST_NETWORKS_KEY,
       NETWORKS_CAN_BE_SELECTED_KEY,
+      ASSETS_SELECTED_BY_ACCOUNTS_KEY,
     ]);
 
     const selectedNetwork =
@@ -120,6 +137,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
     const selectedAccountByNetwork = {
       ...(response[SELECTED_ACCOUNTS_KEY] || {}),
     };
+    const assetsIdByAccountId = response[ASSETS_SELECTED_BY_ACCOUNTS_KEY] || {};
     const showTestNetworks = response[SHOW_TEST_NETWORKS_KEY] || false;
     const networksCanBeSelected =
       response[NETWORKS_CAN_BE_SELECTED_KEY] ||
@@ -148,6 +166,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       selectedAccountByNetwork,
       showTestNetworks,
       networksCanBeSelected,
+      assetsIdByAccountId,
     };
   }
 );
@@ -255,6 +274,33 @@ export const toggleNetworkCanBeSelected = createAsyncThunk<
   return networksCanBeSelected;
 });
 
+export const toggleAssetOfAccount = createAsyncThunk<
+  Record<string, string[]>,
+  { accountId: string; assetId: string }
+>("app/toggleAssetOfAccount", async ({ accountId, assetId }, context) => {
+  const assetsIdByAccountId = (context.getState() as RootState).app
+    .assetsIdByAccountId;
+
+  const assetInAccount = assetsIdByAccountId[accountId]?.includes(assetId);
+
+  if (assetInAccount) {
+    assetsIdByAccountId[accountId] = assetsIdByAccountId[accountId].filter(
+      (asset) => assetId !== asset
+    );
+  } else {
+    assetsIdByAccountId[accountId] = [
+      ...(assetsIdByAccountId[accountId] || []),
+      assetId,
+    ];
+  }
+
+  await browser.storage.local.set({
+    [ASSETS_SELECTED_BY_ACCOUNTS_KEY]: assetsIdByAccountId,
+  });
+
+  return assetsIdByAccountId;
+});
+
 export const changeSelectedAccountOfNetwork = createAsyncThunk(
   "app/changeSelectedAccountOfNetwork",
   async (
@@ -344,6 +390,7 @@ const initialState: GeneralAppSlice = {
     list: [],
   },
   networks: [],
+  assets: [],
   selectedAccountByNetwork: {
     [SupportedProtocols.Pocket]: "",
   },
@@ -377,6 +424,7 @@ const initialState: GeneralAppSlice = {
     [SupportedProtocols.Ethereum]: [],
     [SupportedProtocols.Pocket]: [],
   },
+  assetsIdByAccountId: {},
 };
 
 const generalAppSlice = createSlice({
@@ -441,6 +489,7 @@ const generalAppSlice = createSlice({
           selectedAccountByNetwork,
           showTestNetworks,
           networksCanBeSelected,
+          assetsIdByAccountId,
         } = action.payload;
 
         state.selectedNetwork = selectedNetwork;
@@ -448,6 +497,7 @@ const generalAppSlice = createSlice({
         state.selectedAccountByNetwork = selectedAccountByNetwork;
         state.showTestNetworks = showTestNetworks;
         state.networksCanBeSelected = networksCanBeSelected;
+        state.assetsIdByAccountId = assetsIdByAccountId;
       }
     );
     builder.addCase(changeSelectedNetwork.fulfilled, (state, action) => {
@@ -474,6 +524,10 @@ const generalAppSlice = createSlice({
 
     builder.addCase(toggleNetworkCanBeSelected.fulfilled, (state, action) => {
       state.networksCanBeSelected = action.payload;
+    });
+
+    builder.addCase(toggleAssetOfAccount.fulfilled, (state, action) => {
+      state.assetsIdByAccountId = action.payload;
     });
   },
 });

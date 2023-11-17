@@ -1,10 +1,11 @@
-import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 import type { RootState } from "../../store";
 import {
   ActionReducerMapBuilder,
   createAsyncThunk,
   PayloadAction,
 } from "@reduxjs/toolkit";
+import set from "lodash/set";
+import get from "lodash/get";
 import browser from "webextension-polyfill";
 import { SupportedProtocols } from "@poktscan/keyring";
 import {
@@ -15,8 +16,11 @@ import { wait } from "../../../utils";
 import { getAccountBalance as getBalance } from "../../../utils/networkOperations";
 
 const NETWORKS_STORAGE_KEY = "networks";
-const NETWORKS_URL =
+const ASSETS_STORAGE_KEY = "assets";
+const NETWORKS_CDN_URL =
   "https://poktscan-v1.nyc3.cdn.digitaloceanspaces.com/networks.json";
+const ASSETS_CDN_URL =
+  "https://poktscan-v1.nyc3.cdn.digitaloceanspaces.com/assets.json";
 
 export const loadNetworksFromStorage = createAsyncThunk(
   "app/loadNetworksFromStorage",
@@ -36,7 +40,7 @@ export const loadNetworksFromStorage = createAsyncThunk(
 export const loadNetworksFromCdn = createAsyncThunk(
   "app/loadNetworksFromCdn",
   async () => {
-    const result = await fetch(NETWORKS_URL).then((res) => res.json());
+    const result = await fetch(NETWORKS_CDN_URL).then((res) => res.json());
 
     const resultProcessed = result.filter((item) =>
       [SupportedProtocols.Ethereum, SupportedProtocols.Pocket].includes(
@@ -52,11 +56,45 @@ export const loadNetworksFromCdn = createAsyncThunk(
   }
 );
 
-interface GetAccountBalanceParam {
+export const loadAssetsFromStorage = createAsyncThunk(
+  "app/loadAssetsFromStorage",
+  async () => {
+    const result = await browser.storage.local.get({
+      [ASSETS_STORAGE_KEY]: [],
+    });
+
+    return (result[ASSETS_STORAGE_KEY] || []).filter((item) =>
+      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket].includes(
+        item.protocol
+      )
+    );
+  }
+);
+
+export const loadAssetsFromCdn = createAsyncThunk(
+  "app/loadAssetsFromCdn",
+  async () => {
+    const result = await fetch(ASSETS_CDN_URL).then((res) => res.json());
+
+    const resultProcessed = result.filter((item) =>
+      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket].includes(
+        item.protocol
+      )
+    );
+
+    await browser.storage.local.set({
+      [ASSETS_STORAGE_KEY]: resultProcessed,
+    });
+
+    return resultProcessed;
+  }
+);
+
+export interface GetAccountBalanceParam {
   address: string;
   protocol: SupportedProtocols;
-  chainId: ChainID<SupportedProtocols>;
-  token?: string;
+  chainId: string;
+  asset?: { contractAddress: string; decimals: number };
 }
 
 interface GetAccountBalanceResult {
@@ -71,11 +109,19 @@ export const getAccountBalance = createAsyncThunk<
   GetAccountBalanceParam
 >(
   "vault/getAccountBalance",
-  async ({ address, protocol, chainId }, { getState, dispatch }) => {
+  async ({ address, protocol, chainId, asset }, { getState, dispatch }) => {
+    const path = ["app", "accountBalances", protocol, chainId];
+
+    if (asset) {
+      path.push(asset.contractAddress);
+    }
+
+    path.push(address);
+
     while (true) {
       const state = getState() as RootState;
-      const accountBalancesMap = state.app.accountBalances[protocol][chainId];
-      const isLoading = accountBalancesMap[address]?.loading;
+
+      const isLoading = get(state, [...path, "loading"], false);
 
       if (isLoading) {
         await wait(50);
@@ -84,18 +130,17 @@ export const getAccountBalance = createAsyncThunk<
       }
     }
 
-    dispatch(setGetAccountPendingFromApp({ address, protocol, chainId }));
+    dispatch(
+      setGetAccountPendingFromApp({ address, protocol, chainId, asset })
+    );
 
     const state = getState() as RootState;
-    const accountBalancesMap = state.app.accountBalances[protocol][chainId];
     const networks = state.app.networks.map((item) => ({
       ...item,
       chainID: item.chainId,
     }));
-    // todo: change vault with app
-    const assets = state.vault.entities.assets.list;
     const errorsPreferredNetwork = state.app.errorsPreferredNetwork;
-    const value = accountBalancesMap[address];
+    const value = get(state, path);
 
     if (
       value &&
@@ -115,8 +160,8 @@ export const getAccountBalance = createAsyncThunk<
       protocol,
       chainId,
       networks,
-      assets,
       errorsPreferredNetwork,
+      asset,
     });
 
     return {
@@ -134,90 +179,78 @@ export const setGetAccountPending = (
   state: GeneralAppSlice,
   action: PayloadAction<GetAccountBalanceParam>
 ) => {
-  const { address, protocol, chainId, token } = action.payload;
+  const { address, protocol, chainId, asset } = action.payload;
 
-  const balanceMap =
-    protocol === SupportedProtocols.Pocket
-      ? state.accountBalances[SupportedProtocols.Pocket][chainId]
-      : token
-      ? state.accountBalances[SupportedProtocols.Ethereum][chainId][token]
-      : state.accountBalances[SupportedProtocols.Ethereum][chainId];
+  const paths = ["accountBalances", protocol, chainId];
 
-  if (balanceMap[address]) {
-    balanceMap[address] = {
-      ...balanceMap[address],
-      error: false,
-      loading: true,
-    };
-  } else {
-    balanceMap[address] = {
-      error: false,
+  if (asset && protocol === SupportedProtocols.Ethereum) {
+    paths.push(asset.contractAddress);
+  }
+
+  paths.push(address);
+
+  set(state, paths, {
+    ...get(state, paths, {
       amount: 0,
       lastUpdatedAt: Date.UTC(1970, 0, 1),
-      loading: true,
-    };
-  }
+    }),
+    error: false,
+    loading: true,
+  });
 };
 
 const addAccountBalanceToBuilder = (builder: Builder) => {
   builder.addCase(getAccountBalance.fulfilled, (state, action) => {
     const { amount, networksWithErrors, update } = action.payload;
-    const { address, protocol, chainId, token } = action.meta.arg;
+    const { address, protocol, chainId, asset } = action.meta.arg;
 
-    const balanceMap =
-      protocol === SupportedProtocols.Pocket
-        ? state.accountBalances[SupportedProtocols.Pocket][chainId]
-        : token
-        ? state.accountBalances[SupportedProtocols.Ethereum][chainId][token]
-        : state.accountBalances[SupportedProtocols.Ethereum][chainId];
+    const paths = ["accountBalances", protocol, chainId];
 
-    balanceMap[address] = {
+    if (asset && protocol === SupportedProtocols.Ethereum) {
+      paths.push(asset.contractAddress);
+    }
+
+    paths.push(address);
+
+    set(state, paths, {
       lastUpdatedAt: update
         ? new Date().getTime()
-        : balanceMap[address].lastUpdatedAt,
+        : get(state, [...paths, "lastUpdatedAt"], Date.UTC(1970, 0, 1)),
       amount,
       error: false,
       loading: false,
-    };
+    });
 
     if (networksWithErrors.length) {
       const { protocol, chainId } = action.meta.arg;
 
       for (const networkId of networksWithErrors) {
-        if (state.errorsPreferredNetwork[protocol][chainId][networkId]) {
-          state.errorsPreferredNetwork[protocol][chainId][networkId]++;
-        } else {
-          state.errorsPreferredNetwork[protocol][chainId][networkId] = 1;
-        }
+        const path = ["errorsPreferredNetwork", protocol, chainId, networkId];
+        set(state, path, get(state, path, 0) + 1);
       }
     }
   });
 
   builder.addCase(getAccountBalance.rejected, (state, action) => {
     console.log("GET BALANCE ERR:", action.error);
-    const { address, protocol, chainId, token } = action.meta.arg;
+    const { address, protocol, chainId, asset } = action.meta.arg;
 
-    const balanceMap =
-      protocol === SupportedProtocols.Pocket
-        ? state.accountBalances[SupportedProtocols.Pocket][chainId]
-        : token
-        ? state.accountBalances[SupportedProtocols.Ethereum][chainId][token]
-        : state.accountBalances[SupportedProtocols.Ethereum][chainId];
+    const paths = ["accountBalances", protocol, chainId];
 
-    if (balanceMap[address]) {
-      balanceMap[address] = {
-        ...balanceMap[address],
-        error: true,
-        loading: false,
-      };
-    } else {
-      balanceMap[address] = {
-        error: true,
+    if (asset && protocol === SupportedProtocols.Ethereum) {
+      paths.push(asset.contractAddress);
+    }
+
+    paths.push(address);
+
+    set(state, paths, {
+      ...get(state, paths, {
         amount: 0,
         lastUpdatedAt: Date.UTC(1970, 0, 1),
-        loading: false,
-      };
-    }
+      }),
+      error: true,
+      loading: false,
+    });
   });
 };
 
@@ -231,7 +264,18 @@ const addLoadNetworksToBuilder = (builder: Builder) => {
   });
 };
 
+const addLoadAssetsToBuilder = (builder: Builder) => {
+  builder.addCase(loadAssetsFromStorage.fulfilled, (state, action) => {
+    state.assets = action.payload;
+  });
+
+  builder.addCase(loadAssetsFromCdn.fulfilled, (state, action) => {
+    state.assets = action.payload;
+  });
+};
+
 export const addNetworksExtraReducers = (builder: Builder) => {
   addAccountBalanceToBuilder(builder);
   addLoadNetworksToBuilder(builder);
+  addLoadAssetsToBuilder(builder);
 };

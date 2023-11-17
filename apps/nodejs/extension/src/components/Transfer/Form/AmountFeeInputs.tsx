@@ -19,6 +19,8 @@ import { isValidAddress } from "../../../utils/networkOperations";
 import { AccountBalanceInfo } from "../../../redux/slices/app";
 import { returnNumWithTwoDecimals } from "../../../utils/ui";
 import useGetPrices from "../../../hooks/useGetPrices";
+import useGetAssetPrices from "../../../hooks/useGetAssetPrices";
+import useDidMountEffect from "../../../hooks/useDidMountEffect";
 
 export type AmountStatus = "not-fetched" | "loading" | "error" | "fetched";
 
@@ -38,9 +40,30 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
   const theme = useTheme();
   const { control, getValues, setValue, clearErrors, watch } =
     useFormContext<FormValues>();
+  const {
+    data: priceByContractAddress,
+    isError: isAssetsPriceError,
+    isLoading: isLoadingAssetsPrice,
+    refetch: refetchAssetsPrice,
+  } = useGetAssetPrices(false);
 
-  const [amountFromForm, toAddress, feeSpeed, protocol, chainId, fromAddress] =
-    watch(["amount", "toAddress", "feeSpeed", "protocol", "chainId", "from"]);
+  const [
+    amountFromForm,
+    toAddress,
+    feeSpeed,
+    protocol,
+    chainId,
+    fromAddress,
+    asset,
+  ] = watch([
+    "amount",
+    "toAddress",
+    "feeSpeed",
+    "protocol",
+    "chainId",
+    "from",
+    "asset",
+  ]);
 
   const {
     data: pricesByProtocolAndChain,
@@ -48,9 +71,19 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
     isUninitialized,
   } = useGetPrices();
 
-  const loadingPrice = isLoading || isUninitialized;
+  const loadingNetworkPrice = isLoading || isUninitialized;
   const selectedNetworkPrice: number =
     pricesByProtocolAndChain?.[protocol]?.[chainId] || 0;
+
+  const assetUsdPrice = asset
+    ? priceByContractAddress?.[asset.contractAddress] || 0
+    : 0;
+
+  useDidMountEffect(() => {
+    if (asset) {
+      setTimeout(refetchAssetsPrice, 0);
+    }
+  }, [asset]);
 
   const accountBalances = useAppSelector((state) => state.app.accountBalances);
   const transferMinAmount = useAppSelector(
@@ -61,9 +94,18 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
       )?.transferMinValue
   );
 
-  const { amount, error, loading }: AccountBalanceInfo = useMemo(() => {
-    // todo: handle asset (token: i.e. usdc)
+  const nativeBalance: AccountBalanceInfo = useMemo(() => {
     return accountBalances[protocol][chainId][fromAddress] || {};
+  }, [accountBalances, protocol, chainId, fromAddress]);
+
+  const assetBalance: AccountBalanceInfo = useMemo(() => {
+    if (asset) {
+      return (
+        accountBalances[protocol]?.[chainId]?.[asset.contractAddress]?.[
+          fromAddress
+        ] || {}
+      );
+    }
   }, [accountBalances, protocol, chainId, fromAddress]);
 
   const symbol = useAppSelector((state) => {
@@ -74,15 +116,24 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
     );
   });
 
+  const amount = asset ? assetBalance?.amount : nativeBalance?.amount;
+  const loadingBalances = nativeBalance?.loading || assetBalance?.loading;
+  const errorBalances = nativeBalance?.error || assetBalance?.error;
+  const loadingAmountUsdPrice = asset
+    ? isLoadingAssetsPrice
+    : loadingNetworkPrice;
+
   const onClickAll = useCallback(() => {
     const feeFromForm = getValues("fee");
-    const transferFromBalance = (amount || 0) - (Number(feeFromForm) || 0);
+    const transferFromBalance = asset
+      ? amount || 0
+      : (amount || 0) - (Number(feeFromForm) || 0);
 
     if (transferFromBalance) {
       setValue("amount", (transferFromBalance || "").toString());
       clearErrors("amount");
     }
-  }, [amount, setValue, clearErrors, getValues]);
+  }, [amount, setValue, clearErrors, getValues, asset]);
 
   const isEth = SupportedProtocols.Ethereum === protocol;
 
@@ -126,11 +177,11 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
                 return "Invalid amount";
               }
 
-              if (loading || error || feeStatus !== "fetched") {
+              if (loadingBalances || errorBalances || feeStatus !== "fetched") {
                 return "";
               }
 
-              const total = amountFromInput + fee;
+              const total = amountFromInput + (asset ? 0 : fee);
 
               // todo: improve this. will require decimals on network and assets (token)
               const min = Number(transferMinAmount);
@@ -143,7 +194,7 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
           }}
           render={({ field, fieldState: { error } }) => (
             <TextField
-              label={symbol ? `Amount (${symbol})` : "Amount"}
+              label={symbol ? `Amount (${asset?.symbol || symbol})` : "Amount"}
               size={"small"}
               type={"number"}
               disabled={disableAmountInput}
@@ -216,7 +267,7 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
                       >
                         USD
                       </Typography>
-                      {loadingPrice ? (
+                      {loadingAmountUsdPrice ? (
                         <Skeleton
                           height={15}
                           width={30}
@@ -236,11 +287,12 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
                           whiteSpace={"nowrap"}
                           maxWidth={150}
                         >
-                          $
-                          {returnNumWithTwoDecimals(
-                            Number(amountFromForm) * selectedNetworkPrice,
-                            "0"
-                          )}
+                          {"$" +
+                            returnNumWithTwoDecimals(
+                              Number(amountFromForm) *
+                                (asset ? assetUsdPrice : selectedNetworkPrice),
+                              "0"
+                            )}
                         </Typography>
                       )}
                     </Stack>
@@ -280,7 +332,7 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
               left={2}
               paddingX={0.6}
             >
-              Fee (POKT)
+              Fee ({symbol})
             </Typography>
             {feeStatus === "loading" ? (
               <Skeleton variant={"rectangular"} width={40} height={20} />
@@ -428,7 +480,7 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
               left={2}
               paddingX={0.6}
             >
-              Fee (ETH / USD)
+              Fee ({symbol} / USD)
             </Typography>
             {!toAddress ? (
               <Typography fontSize={14} color={theme.customColors.red100}>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Grow from "@mui/material/Grow";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
@@ -23,7 +23,7 @@ import TransferIcon from "../../assets/img/transfer_icon.svg";
 import ExploreIcon from "../../assets/img/explore_icon.svg";
 import CopyIcon from "../../assets/img/thin_copy_icon.svg";
 import KeyIcon from "../../assets/img/key_icon.svg";
-import { roundAndSeparate } from "../../utils/ui";
+import { returnNumWithTwoDecimals, roundAndSeparate } from "../../utils/ui";
 import {
   ACCOUNT_PK_PAGE,
   CREATE_ACCOUNT_PAGE,
@@ -35,24 +35,39 @@ import RenameModal from "./RenameModal";
 import useIsPopup from "../../hooks/useIsPopup";
 import CoinSvg from "../../assets/img/coin.svg";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
-import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
+import { changeSelectedAccountOfNetwork, IAsset } from "../../redux/slices/app";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import PocketIcon from "../../assets/img/networks/pocket.svg";
 import EthereumIcon from "../../assets/img/networks/ethereum.svg";
 import RemoveModal from "./RemoveModal";
 import useGetPrices from "../../hooks/useGetPrices";
+import EditAssetsSelectionModal from "../Asset/EditAssetsSelectionModal";
+import useDidMountEffect from "../../hooks/useDidMountEffect";
+import useGetAssetPrices, {
+  UseGetAssetPricesResult,
+} from "../../hooks/useGetAssetPrices";
 
 interface AccountComponentProps {
   account: SerializedAccountReference;
   compact?: boolean;
+  asset?: IAsset;
+  onGoBackFromAsset?: () => void;
 }
 
 export const AccountComponent: React.FC<AccountComponentProps> = ({
   account,
   compact = false,
+  asset,
+  onGoBackFromAsset,
 }) => {
   const theme = useTheme();
   const isPopup = useIsPopup();
+  const {
+    data: priceByContractAddress,
+    isError: isAssetsPriceError,
+    isLoading: isLoadingAssetsPrice,
+    refetch: refetchAssetsPrice,
+  } = useGetAssetPrices(false);
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   // todo: create selectors file?
   const tabHasConnection = useAppSelector((state) => {
@@ -92,8 +107,16 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
     const selectedNetwork = state.app.selectedNetwork;
     const selectedChain = state.app.selectedChainByNetwork[selectedNetwork];
 
-    return state.app.accountBalances[selectedNetwork][selectedChain];
+    const chainBalanceMap =
+      state.app.accountBalances[selectedNetwork][selectedChain];
+
+    if (asset && selectedNetwork === SupportedProtocols.Ethereum) {
+      return chainBalanceMap[asset.contractAddress];
+    }
+
+    return chainBalanceMap;
   });
+
   const selectedNetwork = useAppSelector((state) => state.app.selectedNetwork);
   const selectedChain = useAppSelector((state) => {
     const selectedNetwork = state.app.selectedNetwork;
@@ -110,18 +133,26 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
 
   const {
     data: pricesByProtocolAndChain,
-    isError: errorPrice,
-    isLoading,
-    refetch: refetchPrices,
+    isError: isNetworkPriceError,
+    isLoading: isLoadingNetworkPrices,
+    refetch: refetchNetworkPrices,
     isUninitialized,
   } = useGetPrices({
     pollingInterval: 60000,
   });
 
+  const usdPrice: number =
+    (asset
+      ? priceByContractAddress[asset.contractAddress]
+      : pricesByProtocolAndChain?.[selectedNetwork]?.[selectedChain]) || 0;
+  const loadingPrice = asset
+    ? isLoadingAssetsPrice
+    : isLoadingNetworkPrices || isUninitialized;
+  const errorPrice = asset ? isAssetsPriceError : isNetworkPriceError;
+  const priceRefetch = asset ? refetchAssetsPrice : refetchNetworkPrices;
+
   const { address } = account || {};
-  const loadingPrice = isLoading || isUninitialized;
-  const selectedNetworkPrice: number =
-    pricesByProtocolAndChain?.[selectedNetwork]?.[selectedChain] || 0;
+
   const balance = (balanceMap[address]?.amount as number) || 0;
   const errorBalance = balanceMap[address]?.error || false;
   const loadingBalance = balanceMap[address]?.loading || false;
@@ -133,13 +164,31 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
     if (address) {
       AppToBackground.getAccountBalance({
         address: address,
-        chainId: selectedChain as any,
+        chainId: selectedChain,
         protocol: selectedNetwork,
+        asset: asset
+          ? {
+              contractAddress: asset.contractAddress,
+              decimals: asset.decimals,
+            }
+          : undefined,
       }).catch();
     }
-  }, [selectedNetwork, selectedChain, address]);
+  }, [
+    selectedNetwork,
+    selectedChain,
+    address,
+    asset?.contractAddress,
+    asset?.decimals,
+  ]);
 
-  useEffect(() => {
+  useDidMountEffect(() => {
+    if (asset) {
+      setTimeout(refetchAssetsPrice, 0);
+    }
+  }, [asset]);
+
+  useDidMountEffect(() => {
     getAccountBalance();
     const interval = setInterval(getAccountBalance, 6e4);
 
@@ -171,8 +220,16 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
           direction={"row"}
           marginLeft={-0.5}
           alignItems={"center"}
-          justifyContent={isPopup ? "space-between" : "flex-end"}
+          justifyContent={isPopup || !!asset ? "space-between" : "flex-end"}
         >
+          {asset && onGoBackFromAsset && (
+            <Button
+              sx={{ fontSize: 12, height: 24 }}
+              onClick={onGoBackFromAsset}
+            >
+              Go back
+            </Button>
+          )}
           <Tooltip title={"Copied"} open={showCopyTooltip}>
             <Stack
               height={26}
@@ -198,7 +255,7 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
               <CopyIcon />
             </Stack>
           </Tooltip>
-          {isPopup && (
+          {isPopup && !asset && (
             <Stack direction={"row"} spacing={0.8}>
               <Typography
                 color={
@@ -301,7 +358,7 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
               fontWeight={500}
               textAlign={"left"}
             >
-              {roundAndSeparate(balance, 2, "0")}{" "}
+              {roundAndSeparate(balance, asset?.decimals || 4, "0")}{" "}
               <span
                 style={
                   compact
@@ -309,7 +366,7 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
                     : { color: theme.customColors.dark25, marginLeft: 5 }
                 }
               >
-                {symbol}
+                {asset?.symbol || symbol}
               </span>
             </Typography>
           )}
@@ -369,7 +426,7 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
                   },
                 }}
                 variant={"text"}
-                onClick={refetchPrices}
+                onClick={priceRefetch}
               >
                 Retry
               </Button>
@@ -381,7 +438,7 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
               fontWeight={compact ? 400 : 500}
               lineHeight={compact ? "24px" : "30px"}
             >
-              ${roundAndSeparate(balance * selectedNetworkPrice, 2, "0")} USD
+              ${returnNumWithTwoDecimals(balance * usdPrice, "0")} USD
             </Typography>
           )}
         </Stack>
@@ -449,13 +506,218 @@ const ButtonAction: React.FC<ButtonActionProps> = ({
   );
 };
 
+interface AssetItemProps {
+  asset: IAsset;
+  assetsPriceResult: UseGetAssetPricesResult;
+  onClickAsset: (asset: IAsset) => void;
+}
+
+const AssetItem: React.FC<AssetItemProps> = ({
+  asset,
+  assetsPriceResult,
+  onClickAsset,
+}) => {
+  const { data, isError, isLoading, canFetch, refetch } = assetsPriceResult;
+  const theme = useTheme();
+
+  const selectedNetwork = useAppSelector((state) => state.app.selectedNetwork);
+  const selectedChain = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    return state.app.selectedChainByNetwork[selectedNetwork];
+  });
+
+  const selectedAccountAddress = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    const selectedAccountId =
+      state.app.selectedAccountByNetwork[selectedNetwork];
+
+    return state.vault.entities.accounts.list.find(
+      (account) => account.id === selectedAccountId
+    )?.address;
+  });
+
+  const balanceMap = useAppSelector((state) => {
+    const selectedNetwork = state.app.selectedNetwork;
+    const selectedChain = state.app.selectedChainByNetwork[selectedNetwork];
+
+    return state.app.accountBalances[selectedNetwork][selectedChain]?.[
+      asset.contractAddress
+    ];
+  });
+
+  const getAccountBalance = useCallback(() => {
+    if (selectedAccountAddress) {
+      AppToBackground.getAccountBalance({
+        address: selectedAccountAddress,
+        chainId: selectedChain as any,
+        protocol: selectedNetwork,
+        asset: {
+          contractAddress: asset.contractAddress,
+          decimals: asset.decimals,
+        },
+      })
+        .then((res) => console.log("asset result:", res))
+        .catch(console.log);
+    }
+  }, [
+    selectedNetwork,
+    selectedChain,
+    selectedAccountAddress,
+    asset?.contractAddress,
+    asset?.decimals,
+  ]);
+
+  useDidMountEffect(() => {
+    getAccountBalance();
+    const interval = setInterval(getAccountBalance, 6e4);
+
+    return () => clearInterval(interval);
+  }, [getAccountBalance]);
+
+  // todo: create hook to get balance
+  const balance = (balanceMap?.[selectedAccountAddress]?.amount as number) || 0;
+  const errorBalance = balanceMap?.[selectedAccountAddress]?.error || false;
+  const loadingBalance = balanceMap?.[selectedAccountAddress]?.loading || false;
+
+  const assetUsdPrice = data[asset.contractAddress] || 0;
+
+  return (
+    <Stack
+      height={36}
+      minHeight={36}
+      marginTop={0.2}
+      paddingX={1}
+      direction={"row"}
+      borderBottom={`1px solid ${theme.customColors.dark15}`}
+      sx={{
+        cursor: "pointer",
+      }}
+      onClick={() => onClickAsset(asset)}
+    >
+      <Stack direction={"row"} alignItems={"center"} spacing={0.5} width={80}>
+        <img
+          src={asset.iconUrl}
+          alt={`${asset.protocol}-${asset.chainId}-img`}
+          width={20}
+          height={20}
+        />
+        <Typography fontSize={14} letterSpacing={"0.5px"} lineHeight={"20px"}>
+          {asset.symbol}
+        </Typography>
+      </Stack>
+      {errorBalance ? (
+        <Stack
+          direction={"row"}
+          alignItems={"center"}
+          spacing={1}
+          width={"calc(100% - 80px)"}
+          justifyContent={"flex-end"}
+        >
+          <Typography fontSize={12} lineHeight={"20px"}>
+            Balance error.
+            <Button
+              sx={{
+                minWidth: 0,
+                paddingX: 1,
+                marginRight: -1,
+                fontSize: 16,
+                color: theme.customColors.primary500,
+                textDecoration: "underline",
+                "&:hover": {
+                  textDecoration: "underline",
+                },
+              }}
+              variant={"text"}
+              onClick={getAccountBalance}
+            >
+              Retry
+            </Button>
+          </Typography>
+        </Stack>
+      ) : (
+        <>
+          <Stack
+            direction={"row"}
+            alignItems={"center"}
+            spacing={1}
+            width={canFetch ? "calc((100% - 80px) / 2)" : "calc(100% - 80px)"}
+            justifyContent={"flex-end"}
+          >
+            {loadingBalance ? (
+              <Skeleton variant={"rectangular"} height={16} width={100} />
+            ) : (
+              <Typography
+                fontSize={14}
+                fontWeight={700}
+                letterSpacing={"0.5px"}
+                lineHeight={"20px"}
+              >
+                {roundAndSeparate(balance, asset.decimals, "0")}{" "}
+                <span style={{ color: theme.customColors.dark50 }}>
+                  {asset.symbol}
+                </span>
+              </Typography>
+            )}
+          </Stack>
+          {canFetch && (
+            <Stack
+              direction={"row"}
+              alignItems={"center"}
+              spacing={1}
+              width={"calc((100% - 80px) / 2)"}
+              justifyContent={"flex-end"}
+            >
+              {isLoading || loadingBalance ? (
+                <Skeleton variant={"rectangular"} height={16} width={100} />
+              ) : isError ? (
+                <Typography fontSize={12} lineHeight={"20px"}>
+                  Prices error.
+                  <Button
+                    sx={{
+                      minWidth: 0,
+                      paddingX: 1,
+                      marginRight: -1,
+                      fontSize: 16,
+                      color: theme.customColors.primary500,
+                      textDecoration: "underline",
+                      "&:hover": {
+                        textDecoration: "underline",
+                      },
+                    }}
+                    variant={"text"}
+                    onClick={refetch}
+                  >
+                    Retry
+                  </Button>
+                </Typography>
+              ) : (
+                <Typography
+                  fontSize={12}
+                  letterSpacing={"0.5px"}
+                  lineHeight={"20px"}
+                >
+                  {`$${returnNumWithTwoDecimals(
+                    balance * assetUsdPrice,
+                    "0"
+                  )} USD`}
+                </Typography>
+              )}
+            </Stack>
+          )}
+        </>
+      )}
+    </Stack>
+  );
+};
+
 const SelectedAccount: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [modalToShow, setModalToShow] = useState<"none" | "rename" | "remove">(
-    "none"
-  );
+  const [modalToShow, setModalToShow] = useState<
+    "none" | "rename" | "remove" | "assets"
+  >("none");
+  const [selectedAsset, setSelectedAsset] = useState<IAsset | null>(null);
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const accounts = useAppSelector(
     (state) => state.vault.entities.accounts.list
@@ -476,6 +738,28 @@ const SelectedAccount: React.FC = () => {
     );
   }, shallowEqual);
 
+  const explorerAccountUrl = useAppSelector(
+    (state) =>
+      state.app.networks.find(
+        (network) =>
+          network.protocol === selectedNetwork &&
+          network.chainId === selectedChain
+      )?.[selectedAsset ? "explorerAccountWithAssetUrl" : "explorerAccountUrl"]
+  );
+
+  const assets = useAppSelector((state) => state.app.assets);
+  const assetsIdOfAccount = useAppSelector(
+    (state) => state.app.assetsIdByAccountId[selectedAccount?.id]
+  );
+  const assetsOfAccount = useMemo(() => {
+    return assets.filter(
+      (asset) =>
+        (assetsIdOfAccount || []).includes(asset.id) &&
+        asset.protocol === selectedNetwork &&
+        asset.chainId === selectedChain
+    );
+  }, [assets, assetsIdOfAccount, selectedNetwork, selectedChain]);
+
   useEffect(() => {
     if (!selectedAccount) {
       const accountOfNetwork = accounts.find(
@@ -491,28 +775,13 @@ const SelectedAccount: React.FC = () => {
       }
     }
 
+    setSelectedAsset(null);
     setModalToShow("none");
   }, [selectedAccount]);
 
-  const getAccountBalance = useCallback(() => {
-    if (selectedAccount?.address) {
-      AppToBackground.getAccountBalance({
-        address: selectedAccount.address,
-        chainId: selectedChain as any,
-        protocol: selectedNetwork,
-      }).catch();
-    }
-  }, [selectedNetwork, selectedChain, selectedAccount?.address]);
-
-  useEffect(() => {
-    getAccountBalance();
-    const interval = setInterval(getAccountBalance, 6e4);
-
-    return () => clearInterval(interval);
-  }, [getAccountBalance]);
-
   const showRenameModal = useCallback(() => setModalToShow("rename"), []);
   const showRemoveModal = useCallback(() => setModalToShow("remove"), []);
+  const showAssetsModal = useCallback(() => setModalToShow("assets"), []);
   const closeModel = useCallback(() => setModalToShow("none"), []);
 
   const onOpenMoreMenu = useCallback(
@@ -528,11 +797,15 @@ const SelectedAccount: React.FC = () => {
 
   const onClickTransfer = useCallback(() => {
     if (selectedAccount) {
-      navigate(
-        `${TRANSFER_PAGE}?fromAddress=${selectedAccount.address}&protocol=${selectedNetwork}&chainID=${selectedChain}`
-      );
+      navigate(TRANSFER_PAGE, { state: { asset: selectedAsset } });
     }
-  }, [navigate, selectedAccount, selectedChain, selectedNetwork]);
+  }, [
+    navigate,
+    selectedAccount,
+    selectedChain,
+    selectedNetwork,
+    selectedAsset,
+  ]);
 
   const onClickPk = useCallback(() => {
     if (selectedAccount) {
@@ -547,19 +820,18 @@ const SelectedAccount: React.FC = () => {
   }, [selectedAccount, navigate]);
 
   const onClickExplorer = useCallback(() => {
-    let link: string;
-    if (selectedAccount) {
-      if (selectedNetwork === SupportedProtocols.Pocket) {
-        link = `https://poktscan.com${
-          selectedChain === "testnet" ? "/testnet" : ""
-        }/account/${selectedAccount.address}`;
-      }
-    }
+    if (explorerAccountUrl && selectedAccount?.address) {
+      let link = explorerAccountUrl.replace(
+        ":address",
+        selectedAccount.address
+      );
 
-    if (link) {
+      if (selectedAsset) {
+        link = link.replace(":contractAddress", selectedAsset.contractAddress);
+      }
       window.open(link, "_blank");
     }
-  }, [selectedAccount, selectedChain, selectedNetwork]);
+  }, [selectedAccount?.address, explorerAccountUrl, selectedAsset]);
 
   const onClickImport = useCallback(() => {
     navigate(IMPORT_ACCOUNT_PAGE);
@@ -568,6 +840,91 @@ const SelectedAccount: React.FC = () => {
   const onClickNew = useCallback(() => {
     navigate(CREATE_ACCOUNT_PAGE);
   }, [navigate]);
+
+  const assetsPriceResult = useGetAssetPrices();
+
+  const onClickAsset = useCallback(
+    (asset: IAsset) => setSelectedAsset(asset),
+    []
+  );
+  const onGoBackFromAsset = useCallback(() => setSelectedAsset(null), []);
+
+  const assetsComponent = useMemo(() => {
+    if (selectedNetwork !== SupportedProtocols.Ethereum || !!selectedAsset)
+      return null;
+
+    return (
+      <Stack width={1} height={200} marginTop={3}>
+        <Stack
+          direction={"row"}
+          alignItems={"center"}
+          justifyContent={"space-between"}
+          height={30}
+          borderBottom={`1px solid ${theme.customColors.dark25}`}
+          paddingX={1}
+        >
+          <Typography fontSize={12} fontWeight={500}>
+            Account Assets
+          </Typography>
+          <Button
+            sx={{
+              fontSize: 11,
+              padding: 0,
+              color: theme.customColors.primary500,
+              fontWeight: 500,
+              width: 60,
+              minWidth: 60,
+              height: 20,
+              textDecoration: "underline",
+              "&:hover": { textDecoration: "underline" },
+            }}
+            onClick={showAssetsModal}
+          >
+            {!assetsOfAccount.length ? "Add Asset" : "Edit Assets"}
+          </Button>
+        </Stack>
+        <Stack
+          flexGrow={1}
+          bgcolor={theme.customColors.dark2}
+          paddingX={0.5}
+          overflow={"auto"}
+        >
+          {!assetsOfAccount.length ? (
+            <Typography
+              sx={{ userSelect: "none" }}
+              textAlign={"center"}
+              lineHeight={"169px"}
+              fontSize={12}
+              fontWeight={500}
+              letterSpacing={"0.5px"}
+              color={theme.customColors.primary250}
+            >
+              NO ASSETS
+            </Typography>
+          ) : (
+            assetsOfAccount.map((asset) => (
+              <AssetItem
+                key={asset.id}
+                asset={asset}
+                onClickAsset={onClickAsset}
+                assetsPriceResult={assetsPriceResult}
+              />
+            ))
+          )}
+        </Stack>
+      </Stack>
+    );
+  }, [
+    assets,
+    selectedAsset,
+    assetsPriceResult,
+    assetsIdOfAccount,
+    selectedNetwork,
+    selectedChain,
+    assetsOfAccount,
+    onClickAsset,
+    onGoBackFromAsset,
+  ]);
 
   if (!selectedAccount) {
     return (
@@ -618,7 +975,13 @@ const SelectedAccount: React.FC = () => {
   return (
     <>
       <Stack paddingTop={1}>
-        {selectedAccount && <AccountComponent account={selectedAccount} />}
+        {selectedAccount && (
+          <AccountComponent
+            account={selectedAccount}
+            asset={selectedAsset}
+            onGoBackFromAsset={onGoBackFromAsset}
+          />
+        )}
         <Stack direction={"row"} spacing={4} marginTop={1.5}>
           <ButtonAction
             label={"Transfer"}
@@ -739,6 +1102,7 @@ const SelectedAccount: React.FC = () => {
             )}
           </Popper>
         </Stack>
+        {assetsComponent}
       </Stack>
 
       <RenameModal
@@ -749,6 +1113,12 @@ const SelectedAccount: React.FC = () => {
         onClose={closeModel}
         account={modalToShow === "remove" ? selectedAccount : null}
       />
+      {selectedNetwork === SupportedProtocols.Ethereum && (
+        <EditAssetsSelectionModal
+          open={modalToShow === "assets"}
+          onClose={closeModel}
+        />
+      )}
     </>
   );
 };

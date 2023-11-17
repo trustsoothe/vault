@@ -8,12 +8,12 @@ import { AccountReference, SupportedProtocols } from "../../values";
 import Eth from "web3-eth";
 import {
   create,
+  FeeMarketEIP1559Transaction,
   parseAndValidatePrivateKey,
   privateKeyToAccount,
   privateKeyToAddress,
   privateKeyToPublicKey,
   signTransaction,
-  FeeMarketEIP1559Transaction,
 } from "web3-eth-accounts";
 import { Contract } from "web3-eth-contract";
 import { HttpProvider } from "web3-providers-http";
@@ -36,10 +36,7 @@ import {
 import { EthereumNetworkFeeRequestOptions } from "./EthereumNetworkFeeRequestOptions";
 import { SUGGESTED_GAS_FEES_URL } from "../../../../constants";
 import ERC20Abi from "./contracts/ERC20Detailed";
-import {
-  IProtocolTransactionResult,
-  ProtocolTransaction,
-} from "../ProtocolTransaction";
+import { IProtocolTransactionResult } from "../ProtocolTransaction";
 import { Buffer } from "buffer";
 import { EthereumNetworkProtocolTransaction } from "./EthereumNetworkProtocolTransaction";
 import { EthereumNetworkTransactionTypes } from "./EthereumNetworkTransactionTypes";
@@ -167,6 +164,13 @@ export class EthereumNetworkProtocolService
     const url = SUGGESTED_GAS_FEES_URL.replace(":chainid", network.chainID);
 
     const ethClient = this.getEthClient(network);
+
+    if (options.asset) {
+      const ethContract = this.getEthContractClient(network, options.asset);
+      options.data = ethContract.methods
+        .transfer(options.to, options.value || "0x0")
+        .encodeABI();
+    }
 
     let estimatedGas = 0;
     let suggestions: SuggestedFees;

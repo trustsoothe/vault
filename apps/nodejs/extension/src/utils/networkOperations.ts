@@ -7,11 +7,11 @@ import { decrypt, encrypt, keyStoreSchema } from "web3-eth-accounts";
 import {
   AccountReference,
   EthereumNetworkFeeRequestOptions,
+  IAsset,
   INetwork,
   INetworkOptions,
   Network,
   ProtocolServiceFactory,
-  SerializedAsset,
   SupportedProtocols,
 } from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
@@ -97,8 +97,7 @@ export const getFee = async ({
   }
 
   const networkSerialized = networks.find(
-    (item) =>
-      item.chainID === chainId && item.protocol === protocol && item.isDefault
+    (item) => item.chainID === chainId && item.protocol === protocol
   );
 
   const fee = await ProtocolService.getFee(
@@ -111,14 +110,14 @@ export const getFee = async ({
 interface GetAccountBalanceParam {
   address: string;
   protocol: SupportedProtocols;
-  chainId: ChainID<SupportedProtocols>;
+  chainId: string;
   networks: (INetwork & {
     isPreferred?: boolean;
     isDefault: boolean;
     id: string;
   })[];
-  assets: SerializedAsset[];
   errorsPreferredNetwork?: ErrorsPreferredNetwork;
+  asset?: { contractAddress: string; decimals: number };
 }
 
 export const getAccountBalance = async ({
@@ -127,8 +126,17 @@ export const getAccountBalance = async ({
   chainId,
   networks,
   errorsPreferredNetwork,
+  asset: partialAsset,
 }: GetAccountBalanceParam) => {
   const acc = new AccountReference("", "", address, protocol);
+  const asset: IAsset =
+    protocol === SupportedProtocols.Ethereum && partialAsset
+      ? {
+          ...partialAsset,
+          protocol,
+          chainID: chainId,
+        }
+      : undefined;
 
   const ProtocolService = ProtocolServiceFactory.getProtocolService(
     protocol,
@@ -154,12 +162,18 @@ export const getAccountBalance = async ({
         try {
           const balance = await ProtocolService.getBalance(
             acc,
-            preferredNetwork
+            preferredNetwork,
+            asset
           );
 
           return {
             balance: balance
-              ? balance / (protocol === SupportedProtocols.Pocket ? 1e6 : 1e18)
+              ? balance /
+                (protocol === SupportedProtocols.Pocket
+                  ? 1e6
+                  : asset
+                  ? 1
+                  : 1e18)
               : 0,
             networksWithErrors,
           };
@@ -171,19 +185,23 @@ export const getAccountBalance = async ({
   }
 
   const networkSerialized = networks.find(
-    (item) =>
-      item.chainID === chainId && item.protocol === protocol && item.isDefault
+    (item) => item.chainID === chainId && item.protocol === protocol
   );
 
   if (!networkSerialized) {
     throw new Error("there is not a default network for this protocol");
   }
 
-  const balance = await ProtocolService.getBalance(acc, networkSerialized);
+  const balance = await ProtocolService.getBalance(
+    acc,
+    networkSerialized,
+    asset
+  );
 
   return {
     balance: balance
-      ? balance / (protocol === SupportedProtocols.Pocket ? 1e6 : 1e18)
+      ? balance /
+        (protocol === SupportedProtocols.Pocket ? 1e6 : asset ? 1 : 1e18)
       : 0,
     networksWithErrors,
   };
