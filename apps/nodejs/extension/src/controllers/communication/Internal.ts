@@ -1093,7 +1093,7 @@ class InternalCommunicationController {
             ? {
                 to: toAddress,
                 protocol,
-                asset: { ...asset, chainID: asset.chainId },
+                asset: asset ? { ...asset, chainID: asset.chainId } : undefined,
               }
             : undefined,
       });

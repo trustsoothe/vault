@@ -3,9 +3,8 @@ import ProtocolServiceSpecFactory from '../IProtocolService.specFactory';
 import {
   AccountReference,
   ArgumentError,
-  Asset, IAsset,
-  IEncryptionService, INetwork,
-  Network,
+  IEncryptionService,
+  INetwork,
   NetworkRequestError,
   PocketNetworkProtocolService,
   SupportedProtocols
@@ -16,15 +15,9 @@ import {WebEncryptionService} from '@poktscan/keyring-encryption-web'
 import {MockServerFactory} from "../../../../../mocks/mock-server-factory";
 
 describe.skip('PocketNetworkProtocolService', () => {
-  const asset: IAsset = {
-    protocol: SupportedProtocols.Pocket,
-    chainID: "testnet",
-    contractAddress: "0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465",
-  };
-
   const network : INetwork = {
     rpcUrl: "http://localhost:8080",
-    protocol: asset.protocol,
+    protocol: SupportedProtocols.Pocket,
     chainID: "testnet",
   };
 
@@ -49,7 +42,7 @@ describe.skip('PocketNetworkProtocolService', () => {
 
   ProtocolServiceSpecFactory<SupportedProtocols.Pocket>(
     () => protocolService,
-    { asset, network, account, accountImport }
+    { network, account, accountImport }
   )
 
   describe('getFee', () => {

@@ -152,7 +152,7 @@ const Transfer: React.FC = () => {
         (item) => item.protocol === protocol && 1 === 0 //&& item.isPreferred
       );
       const networkToSelect = networks.find(
-        (item) => item.protocol === protocol && item.isDefault
+        (item) => item.protocol === protocol && item.chainId === chainId
       );
 
       if (networkToSelect) {

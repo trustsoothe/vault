@@ -153,9 +153,9 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
 
   const { address } = account || {};
 
-  const balance = (balanceMap[address]?.amount as number) || 0;
-  const errorBalance = balanceMap[address]?.error || false;
-  const loadingBalance = balanceMap[address]?.loading || false;
+  const balance = (balanceMap?.[address]?.amount as number) || 0;
+  const errorBalance = balanceMap?.[address]?.error || false;
+  const loadingBalance = balanceMap?.[address]?.loading || false;
 
   const addressFirstCharacters = address?.substring(0, 4);
   const addressLastCharacters = address?.substring(address?.length - 4);

@@ -7,7 +7,7 @@ export const EthereumProtocolNetworkSchema = z.object({
   rpcUrl: z.string().url(),
 });
 
-export const EthereumProtocolFeeRequestSchema = z.object({
+export const EthereumProtocolFeeRequestSchema= z.object({
   protocol: z.literal(ETHEREUM_PROTOCOL),
   to: z.string(),
   from: z.string().optional(),

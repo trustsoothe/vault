@@ -437,7 +437,7 @@ export class EthereumNetworkProtocolService
     // @ts-ignore
     const balance = await ethContract.methods.balanceOf(account.address).call();
 
-    const calculatedBalance = Number(balance) / 10 ** (asset.decimals || 18);
+    const calculatedBalance = Number(balance) / (10 ** asset.decimals);
     return Number(calculatedBalance.toFixed(5));
   }
 
@@ -556,7 +556,7 @@ export class EthereumNetworkProtocolService
       from: transactionParams.from,
       to: transactionParams.to,
       value:
-        "0x" + Number(toWei(transactionParams.amount, "ether")).toString(16),
+        "0x" + BigInt(toWei(transactionParams.amount, "ether")).toString(16),
       gasLimit: BigInt(21000),
       chainId: Number(network.chainID),
       nonce,
@@ -573,7 +573,7 @@ export class EthereumNetworkProtocolService
     asset: IAsset
   ): Promise<IProtocolTransactionResult<SupportedProtocols.Ethereum>> {
     const amount =
-      Number(transactionParams.amount) * 10 ** (asset.decimals || 18);
+      Number(transactionParams.amount) * (10 ** asset.decimals);
     const ethContractClient = this.getEthContractClient(network, asset);
     const transferFn = ethContractClient.methods.transfer(
       transactionParams.to,
@@ -600,7 +600,7 @@ export class EthereumNetworkProtocolService
 
     const txParams = {
       from: transactionParams.from,
-      to: transactionParams.to,
+      to: asset.contractAddress!,
       value: "0x0",
       gasLimit,
       chainId: Number(network.chainID),
