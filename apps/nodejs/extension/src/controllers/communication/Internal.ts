@@ -297,6 +297,8 @@ export interface NetworkFeeMessage {
     asset?: IAsset;
     protocol: SupportedProtocols;
     chainId: string;
+    data?: string;
+    from?: string;
   };
 }
 
@@ -1074,7 +1076,7 @@ class InternalCommunicationController {
   }
 
   private async _getNetworkFee({
-    data: { protocol, chainId, toAddress, asset },
+    data: { protocol, chainId, toAddress, asset, data, from },
   }: NetworkFeeMessage): Promise<NetworkFeeResponse> {
     try {
       const networks = store.getState().app.networks.map((item) => ({
@@ -1094,6 +1096,8 @@ class InternalCommunicationController {
                 to: toAddress,
                 protocol,
                 asset: asset ? { ...asset, chainID: asset.chainId } : undefined,
+                data,
+                from,
               }
             : undefined,
       });

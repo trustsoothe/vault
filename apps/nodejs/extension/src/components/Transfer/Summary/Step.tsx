@@ -1,4 +1,3 @@
-import type { EthereumNetworkFee, PocketNetworkFee } from "@poktscan/keyring";
 import React from "react";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
@@ -9,23 +8,21 @@ import Summary from "./Component";
 interface SummaryStepProps {
   wrongPassword?: boolean;
   compact?: boolean;
-  networkFee: PocketNetworkFee | EthereumNetworkFee;
 }
 
 const SummaryStep: React.FC<SummaryStepProps> = ({
   wrongPassword,
   compact = false,
-  networkFee,
 }) => {
   const theme = useTheme();
 
   return (
-    <Stack flexGrow={1} justifyContent={"space-between"} maxHeight={255}>
-      <Summary compact={compact} networkFee={networkFee} />
+    <Stack flexGrow={1} justifyContent={"space-between"} maxHeight={260}>
+      <Summary compact={compact} />
 
       <Stack
         spacing={compact ? 0.2 : 0.2}
-        marginTop={`${compact ? 12 : 5}px!important`}
+        marginTop={`${compact ? 12 : 0}px!important`}
       >
         <Typography
           fontSize={13}

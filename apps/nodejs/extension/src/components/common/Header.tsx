@@ -9,7 +9,7 @@ import { connect } from "react-redux";
 import { useTheme } from "@mui/material";
 import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
-import ReplyIcon from "@mui/icons-material/Reply";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
@@ -236,19 +236,16 @@ const Header: React.FC<HeaderProps> = ({
           marginLeft={1}
           flexGrow={1}
           height={34}
-          width={280}
         >
-          <Stack direction={"row"} alignItems={"center"}>
-            <Typography
-              variant={"h6"}
-              fontSize={16}
-              fontWeight={700}
-              color={"white"}
-              marginRight={1}
-            >
-              {getTitle(location.pathname, location.search)}
-            </Typography>
-          </Stack>
+          <Typography
+            variant={"h6"}
+            fontSize={16}
+            fontWeight={700}
+            color={"white"}
+            marginRight={1}
+          >
+            {getTitle(location.pathname, location.search)}
+          </Typography>
           <IconButton
             sx={{
               padding: 0,
@@ -256,17 +253,16 @@ const Header: React.FC<HeaderProps> = ({
             }}
             onClick={goBack}
           >
-            <ReplyIcon
-              sx={{ fontSize: 25, color: theme.customColors.primary250 }}
+            <ArrowBackIcon
+              sx={{
+                fontSize: 25,
+                color: theme.customColors.primary250,
+                marginTop: 0.5,
+              }}
             />
           </IconButton>
         </Stack>
-        <Stack
-          direction={"row"}
-          alignItems={"center"}
-          marginLeft={4.5}
-          width={35}
-        >
+        <Stack direction={"row"} alignItems={"center"} width={35}>
           <IconButton
             sx={{ padding: 0, width: 20, height: 25, marginLeft: 0.6 }}
             onClick={openMenu}

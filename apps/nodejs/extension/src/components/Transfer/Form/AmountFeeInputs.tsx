@@ -21,23 +21,14 @@ import { returnNumWithTwoDecimals } from "../../../utils/ui";
 import useGetPrices from "../../../hooks/useGetPrices";
 import useGetAssetPrices from "../../../hooks/useGetAssetPrices";
 import useDidMountEffect from "../../../hooks/useDidMountEffect";
+import { useTransferContext } from "../../../contexts/TransferContext";
 
 export type AmountStatus = "not-fetched" | "loading" | "error" | "fetched";
 
-interface AmountFeeInputsProps {
-  feeStatus: AmountStatus;
-  networkFee: PocketNetworkFee | EthereumNetworkFee;
-  requestAmount?: number;
-  getFee: () => void;
-}
-
-const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
-  feeStatus,
-  networkFee,
-  getFee,
-  requestAmount,
-}) => {
+const AmountFeeInputs: React.FC = () => {
   const theme = useTheme();
+  const { networkFee, getNetworkFee, feeFetchStatus, disableInputs } =
+    useTransferContext();
   const { control, getValues, setValue, clearErrors, watch } =
     useFormContext<FormValues>();
   const {
@@ -138,10 +129,11 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
   const isEth = SupportedProtocols.Ethereum === protocol;
 
   const disableAmountInput =
-    !!requestAmount ||
+    !!disableInputs ||
     !amount ||
     (isEth && !isValidAddress(toAddress, protocol)) ||
-    feeStatus !== "fetched";
+    feeFetchStatus !== "fetched";
+
   const feeSelected =
     protocol === SupportedProtocols.Ethereum
       ? (networkFee as EthereumNetworkFee)?.[feeSpeed]?.amount
@@ -169,24 +161,30 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
           name={"amount"}
           rules={{
             required: "Required",
-            validate: (value, formValues: FormValues) => {
+            validate: (value) => {
               const amountFromInput = Number(value);
-              const fee = Number(formValues.fee);
+              const fee = Number(feeSelected);
 
               if (isNaN(amountFromInput) || isNaN(fee)) {
                 return "Invalid amount";
               }
 
-              if (loadingBalances || errorBalances || feeStatus !== "fetched") {
+              if (
+                loadingBalances ||
+                errorBalances ||
+                feeFetchStatus !== "fetched"
+              ) {
                 return "";
               }
 
               const total = amountFromInput + (asset ? 0 : fee);
 
-              // todo: improve this. will require decimals on network and assets (token)
-              const min = Number(transferMinAmount);
+              const minString = asset
+                ? "0." + "0".repeat(asset.decimals - 1) + "1"
+                : transferMinAmount;
+              const min = Number(minString);
               if (amountFromInput < min) {
-                return `Min is ${transferMinAmount}`;
+                return `Min is ${minString}`;
               }
 
               return total > amount ? `Insufficient balance` : true;
@@ -334,16 +332,16 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
             >
               Fee ({symbol})
             </Typography>
-            {feeStatus === "loading" ? (
+            {feeFetchStatus === "loading" ? (
               <Skeleton variant={"rectangular"} width={40} height={20} />
-            ) : feeStatus === "error" ? (
+            ) : feeFetchStatus === "error" ? (
               <Button
                 sx={{
                   color: theme.customColors.red100,
                   fontSize: 12,
                   paddingLeft: 0,
                 }}
-                onClick={getFee}
+                onClick={getNetworkFee}
               >
                 Error. Retry
               </Button>
@@ -429,7 +427,7 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
                 select
                 size={"small"}
                 label={"Tx Speed"}
-                disabled={!networkFee || feeStatus !== "fetched"}
+                disabled={!networkFee || feeFetchStatus !== "fetched"}
                 SelectProps={{
                   MenuProps: {
                     sx: {
@@ -486,7 +484,7 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
               <Typography fontSize={14} color={theme.customColors.red100}>
                 Select recipient first
               </Typography>
-            ) : feeStatus === "loading" ? (
+            ) : feeFetchStatus === "loading" ? (
               <>
                 <Skeleton variant={"rectangular"} width={80} height={20} />
                 <Divider
@@ -496,11 +494,11 @@ const AmountFeeInputs: React.FC<AmountFeeInputsProps> = ({
                 />
                 <Skeleton variant={"rectangular"} width={80} height={20} />
               </>
-            ) : feeStatus === "error" ? (
+            ) : feeFetchStatus === "error" ? (
               <Typography fontSize={14} color={theme.customColors.red100}>
                 Error getting fee.{" "}
                 <span
-                  onClick={getFee}
+                  onClick={getNetworkFee}
                   style={{ textDecoration: "underline", cursor: "pointer" }}
                 >
                   Retry

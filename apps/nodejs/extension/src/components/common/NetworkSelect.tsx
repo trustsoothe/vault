@@ -6,6 +6,7 @@ import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import Popper from "@mui/material/Popper";
 import Checkbox from "@mui/material/Checkbox";
+import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -19,6 +20,8 @@ import {
 } from "../../redux/slices/app";
 import ExpandIcon from "../../assets/img/drop_down_icon.svg";
 import CloseIcon from "../../assets/img/close_icon.svg";
+import useShowAccountSelect from "../../hooks/useShowAccountSelect";
+import { NETWORKS_PAGE } from "../../constants/routes";
 
 interface NetworkSelectProps {
   toggleShowBackdrop: () => void;
@@ -34,7 +37,9 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
   toggleShowBackdrop,
 }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const isShowingAccountSelect = useShowAccountSelect();
   const selectedNetwork = useAppSelector((state) => state.app.selectedNetwork);
   const selectedChainByNetwork = useAppSelector(
     (state) => state.app.selectedChainByNetwork
@@ -80,6 +85,11 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
     setAnchorEl(null);
     toggleShowBackdrop();
   }, [toggleShowBackdrop]);
+
+  const onClickAddNetwork = useCallback(() => {
+    onCloseSelector();
+    navigate(`${NETWORKS_PAGE}?adding=true`);
+  }, [navigate, onCloseSelector]);
 
   const handleChangeNetwork = useCallback(
     (option: { protocol: SupportedProtocols; chainId: string }) => {
@@ -193,7 +203,7 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
                 boxSizing: "border-box",
                 bgcolor: theme.customColors.white,
                 boxShadow: "0px 0px 6px 0px #1C2D4A26",
-                width: 180,
+                width: isShowingAccountSelect ? 180 : 370,
                 maxHeight: 250,
                 border: `1px solid ${theme.customColors.dark15}`,
                 borderTop: `none!important`,
@@ -306,6 +316,7 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
                     borderRadius: "4px",
                     backgroundColor: theme.customColors.primary500,
                   }}
+                  onClick={onClickAddNetwork}
                 >
                   Add Network
                 </Button>

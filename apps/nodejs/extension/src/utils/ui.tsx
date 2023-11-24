@@ -201,3 +201,10 @@ export const returnNumWithTwoDecimals = (
 
   return roundAndSeparate(value, decimals + 1, defaultValue);
 };
+
+export const getTruncatedText = (text: string, charactersPerSide = 4) => {
+  const firstCharacters = text?.substring(0, charactersPerSide);
+  const lastCharacters = text?.substring(text?.length - charactersPerSide);
+
+  return `${firstCharacters}...${lastCharacters}`;
+};

@@ -3,6 +3,7 @@ import type {
   AutocompleteRenderOptionState,
   FilterOptionsState,
   PaperProps,
+  SxProps,
   Theme,
 } from "@mui/material";
 import type { SerializedAccountReference } from "@poktscan/keyring";
@@ -19,15 +20,24 @@ import React, { useCallback, useMemo, useState } from "react";
 import { SupportedProtocols } from "@poktscan/keyring";
 import { isValidAddress } from "../../../utils/networkOperations";
 import { useAppSelector } from "../../../hooks/redux";
+import { getTruncatedText } from "../../../utils/ui";
 
 interface ToAddressAutocompleteProps {
   disabled?: boolean;
+  nameSize?: number;
+  addressSize?: number;
+  truncatedAddressSize?: number;
+  textFieldSxProps?: SxProps;
+  autocompleteSxProps?: SxProps;
 }
 
 const renderAutocompleteOption = (
   props: React.HTMLAttributes<HTMLLIElement>,
   account: AccountWithBalance,
-  theme: Theme
+  theme: Theme,
+  nameSize = 12,
+  addressSize = 12,
+  truncatedAddressSize = 0
 ) => {
   return (
     <Stack
@@ -37,7 +47,6 @@ const renderAutocompleteOption = (
         paddingX: "10px!important",
         paddingY: "5px!important",
         "& p": {
-          fontSize: 12,
           lineHeight: "20px",
         },
         "& span": {
@@ -47,10 +56,18 @@ const renderAutocompleteOption = (
       alignItems={"flex-start!important"}
       borderTop={`1px solid ${theme.customColors.dark15}`}
     >
-      <Typography fontWeight={500} color={theme.customColors.dark100}>
+      <Typography
+        fontWeight={500}
+        color={theme.customColors.dark100}
+        fontSize={nameSize}
+      >
         {account.name}
       </Typography>
-      <Typography>{account.address}</Typography>
+      <Typography sx={{ fontSize: `${addressSize}px!important` }}>
+        {truncatedAddressSize
+          ? getTruncatedText(account.address, truncatedAddressSize)
+          : account.address}
+      </Typography>
     </Stack>
   );
 };
@@ -82,6 +99,11 @@ const StyledPaper = styled(Paper)<PaperProps>(() => ({
 
 const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
   disabled,
+  nameSize,
+  addressSize,
+  truncatedAddressSize,
+  textFieldSxProps,
+  autocompleteSxProps,
 }) => {
   const theme = useTheme();
   const { control, watch } = useFormContext<FormValues>();
@@ -92,13 +114,9 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
     (state) => state.vault.entities.accounts.list
   );
   const accountsWithBalance = useMemo(() => {
-    return accounts
-      .filter(
-        (item) => protocol === item.protocol && item.address !== fromAddress
-      )
-      .map((item) => ({
-        ...item,
-      }));
+    return accounts.filter(
+      (item) => protocol === item.protocol && item.address !== fromAddress
+    );
   }, [accounts, protocol, fromAddress]);
 
   const accountsMap: Record<string, SerializedAccountReference> =
@@ -155,14 +173,21 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
         );
       }
 
-      const itemComponent = renderAutocompleteOption(props, account, theme);
+      const itemComponent = renderAutocompleteOption(
+        props,
+        account,
+        theme,
+        nameSize,
+        addressSize,
+        truncatedAddressSize
+      );
 
       if (state.index === 0) {
         return (
           <>
             <Typography
               color={theme.customColors.dark75}
-              fontSize={12}
+              fontSize={addressSize || 12}
               paddingLeft={1}
               paddingBottom={0.5}
             >
@@ -174,7 +199,7 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
       }
       return itemComponent;
     },
-    [accountsMap, theme]
+    [accountsMap, theme, nameSize, addressSize, truncatedAddressSize]
   );
 
   const getOptionLabel = useCallback(
@@ -253,6 +278,7 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
               top: 6,
               right: "5px!important",
             },
+            ...autocompleteSxProps,
           }}
           ListboxProps={{
             sx: {
@@ -274,6 +300,7 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
                 "& input": {
                   fontSize: "12px!important",
                 },
+                ...textFieldSxProps,
               }}
             />
           )}

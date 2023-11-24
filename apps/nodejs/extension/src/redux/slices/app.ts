@@ -80,6 +80,8 @@ export interface IAsset {
   contractAddress: string;
   decimals: 6;
   iconUrl: string;
+  /**only presented in wPOKT assets at the moment*/
+  vaultAddress?: string;
 }
 
 export interface NetworkCanBeSelectedMap {

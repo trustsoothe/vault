@@ -1,38 +1,19 @@
 import type { FormValues } from "../index";
-import type { ExternalTransferRequest } from "../../../types/communication";
 import React from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import TextField from "@mui/material/TextField";
-import {
-  type EthereumNetworkFee,
-  type PocketNetworkFee,
-  SupportedProtocols,
-} from "@poktscan/keyring";
 import ToAddressAutocomplete from "./ToAddressAutocomplete";
-import AmountFeeInputs, { type AmountStatus } from "./AmountFeeInputs";
+import AmountFeeInputs from "./AmountFeeInputs";
+import { useTransferContext } from "../../../contexts/TransferContext";
 
 const showRpcSelector = false;
 
-interface TransferFormProps {
-  request?: ExternalTransferRequest;
-  getFee?: () => void;
-  networkFee: PocketNetworkFee | EthereumNetworkFee;
-  feeStatus?: AmountStatus;
-}
-
-const TransferForm: React.FC<TransferFormProps> = ({
-  request,
-  networkFee,
-  feeStatus,
-  getFee,
-}) => {
+const TransferForm: React.FC = () => {
   const theme = useTheme();
-  const { control, watch } = useFormContext<FormValues>();
-  const protocol = watch("protocol");
-
-  const isEth = SupportedProtocols.Ethereum === protocol;
+  const { control } = useFormContext<FormValues>();
+  const { disableInputs, isPokt } = useTransferContext();
 
   return (
     <Stack width={1} overflow={"hidden"}>
@@ -43,20 +24,15 @@ const TransferForm: React.FC<TransferFormProps> = ({
         boxSizing={"border-box"}
         bgcolor={theme.customColors.dark2}
         marginTop={showRpcSelector ? 0.5 : 2}
-        paddingTop={!showRpcSelector ? (isEth ? 2.5 : 2) : 1.5}
+        paddingTop={!showRpcSelector ? (!isPokt ? 2.5 : 2) : 1.5}
         paddingBottom={!showRpcSelector ? 2.5 : 1.2}
         border={`1px solid ${theme.customColors.dark15}`}
         spacing={2}
       >
-        <AmountFeeInputs
-          networkFee={networkFee}
-          getFee={getFee}
-          feeStatus={feeStatus}
-          requestAmount={request?.amount}
-        />
+        <AmountFeeInputs />
         {/*{(showRpcSelector || true) && <NetworkAutocomplete />}*/}
-        <ToAddressAutocomplete disabled={!!request?.toAddress} />
-        {protocol === SupportedProtocols.Pocket && (
+        <ToAddressAutocomplete disabled={disableInputs} />
+        {isPokt && (
           <Controller
             control={control}
             name={"memo"}
@@ -66,7 +42,7 @@ const TransferForm: React.FC<TransferFormProps> = ({
                 fullWidth
                 autoComplete={"off"}
                 size={"small"}
-                disabled={!!request?.memo}
+                disabled={disableInputs}
                 {...field}
                 sx={{
                   order: 8,

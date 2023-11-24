@@ -5,6 +5,7 @@ import {
   SupportedProtocols,
   SupportedTransferDestinations,
   SupportedTransferOrigins,
+  WPOKTBridge,
 } from "@poktscan/keyring";
 import type { AmountStatus } from "./Form/AmountFeeInputs";
 import type { ExternalTransferRequest } from "../../types/communication";
@@ -24,7 +25,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import TransferSubmittedStep from "./TransferSubmitted";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../../hooks/redux";
 import SummaryStep from "./Summary/Step";
 import TransferForm from "./Form/index";
 import {
@@ -36,8 +37,32 @@ import { IAsset } from "../../redux/slices/app";
 import { AccountComponent } from "../Account/SelectedAccount";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
+import TransferContextProvider, {
+  ExternalTransferData,
+  TransferType,
+} from "../../contexts/TransferContext";
+import { SendTransferParam } from "../../redux/slices/vault";
 
 export type FeeSpeed = "n/a" | "low" | "medium" | "high";
+
+export interface AssetLocationState {
+  asset: IAsset;
+}
+
+export interface ExternalTransferState {
+  asset?: IAsset;
+  transferType?: TransferType;
+  transferData: ExternalTransferData;
+  requestInfo?: {
+    origin: string;
+    tabId: number;
+    sessionId: string;
+    chainId: string;
+    protocol: SupportedProtocols;
+  };
+}
+
+type LocationState = AssetLocationState | ExternalTransferState;
 
 export interface FormValues {
   from: string;
@@ -63,13 +88,8 @@ type Status =
 
 const Transfer: React.FC = () => {
   const theme = useTheme();
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const requesterInfo: ExternalTransferRequest = useMemo(() => {
-    if (location.state.amount) return location.state;
-  }, [location.state]);
 
   const networks = useAppSelector((state) => state.app.networks);
   const selectedProtocolOnApp = useAppSelector(
@@ -85,24 +105,40 @@ const Transfer: React.FC = () => {
     (state) => state.vault.entities.accounts.list
   );
 
+  const externalTransferState: LocationState = location.state || {};
+  const externalTransferData =
+    "transferData" in externalTransferState
+      ? externalTransferState.transferData
+      : undefined;
+  const externalRequestInfo =
+    "requestInfo" in externalTransferState
+      ? externalTransferState?.requestInfo
+      : undefined;
+
+  const transferType: TransferType =
+    "transferType" in externalTransferState
+      ? externalTransferState?.transferType
+      : TransferType.normal;
+
   const methods = useForm<FormValues>({
     mode: "onChange",
     defaultValues: {
       rpcUrl: null,
-      memo: "",
-      from: "",
-      toAddress: "",
-      amount: "",
+      memo: externalTransferData?.memo || "",
+      from: externalTransferData?.fromAddress || "",
+      toAddress: externalTransferData?.toAddress || "",
+      amount: externalTransferData?.amount || "",
       fee: "",
       accountPassword: "",
       feeSpeed:
-        (requesterInfo?.protocol || selectedProtocolOnApp) ===
+        (externalRequestInfo?.protocol || selectedProtocolOnApp) ===
         SupportedProtocols.Pocket
           ? "n/a"
           : "low",
-      protocol: requesterInfo?.protocol || selectedProtocolOnApp,
-      chainId: requesterInfo?.chainId || selectedChainOnApp,
-      asset: location.state?.asset || null,
+      protocol: externalRequestInfo?.protocol || selectedProtocolOnApp,
+      chainId: externalRequestInfo?.chainId || selectedChainOnApp,
+      asset:
+        "asset" in externalTransferState ? externalTransferState.asset : null,
     },
   });
   const {
@@ -148,9 +184,11 @@ const Transfer: React.FC = () => {
     if (protocol) {
       const preferred = networks.find(
         // todo: fix when rpcs are enabled
-        // @ts-ignore
-        (item) => item.protocol === protocol && 1 === 0 //&& item.isPreferred
+        (item) =>
+          // @ts-ignore
+          item.protocol === protocol && item.chainId === chainId && 1 === 0 //&& item.isPreferred
       );
+      // todo: add to networks that come from CDN a flag indicating it, to difference it from RPCs saved by user
       const networkToSelect = networks.find(
         (item) => item.protocol === protocol && item.chainId === chainId
       );
@@ -164,25 +202,31 @@ const Transfer: React.FC = () => {
     }
   }, [protocol, networks]);
 
-  useEffect(() => {
-    if (!requesterInfo) {
-      setValue("protocol", selectedProtocolOnApp);
-      setValue("chainId", selectedChainOnApp);
-    }
-  }, [selectedProtocolOnApp, selectedChainOnApp]);
+  useDidMountEffect(() => {
+    setValue(
+      "protocol",
+      externalRequestInfo?.protocol || selectedProtocolOnApp
+    );
+    setValue("chainId", externalRequestInfo?.chainId || selectedChainOnApp);
+  }, [selectedProtocolOnApp, selectedChainOnApp, externalRequestInfo]);
 
   const selectedAccount = useMemo(() => {
     let callback: (account: SerializedAccountReference) => boolean;
-    if (requesterInfo) {
+    if (externalRequestInfo?.protocol && externalTransferData?.fromAddress) {
       callback = (account) =>
-        account.protocol === requesterInfo.protocol &&
-        account.address === requesterInfo.fromAddress;
+        account.protocol === externalRequestInfo.protocol &&
+        account.address === externalTransferData?.fromAddress;
     } else {
       callback = (account) => account.id === idOfSelectedAccountOnApp;
     }
 
     return accounts.find(callback);
-  }, [accounts, requesterInfo, idOfSelectedAccountOnApp]);
+  }, [
+    accounts,
+    externalRequestInfo?.protocol,
+    externalTransferData?.fromAddress,
+    idOfSelectedAccountOnApp,
+  ]);
 
   useDidMountEffect(() => {
     if (previousProtocolRef.current === protocol) return;
@@ -197,12 +241,12 @@ const Transfer: React.FC = () => {
       fee: "",
       accountPassword: "",
       feeSpeed:
-        (requesterInfo?.protocol || selectedProtocolOnApp) ===
+        (externalRequestInfo?.protocol || selectedProtocolOnApp) ===
         SupportedProtocols.Pocket
           ? "n/a"
           : "low",
-      protocol: requesterInfo?.protocol || selectedProtocolOnApp,
-      chainId: requesterInfo?.chainId || selectedChainOnApp,
+      protocol: externalRequestInfo?.protocol || selectedProtocolOnApp,
+      chainId: externalRequestInfo?.chainId || selectedChainOnApp,
     });
     setStatus("form");
     setNetworkFee(null);
@@ -216,26 +260,53 @@ const Transfer: React.FC = () => {
     }
   }, [selectedAccount]);
 
-  const errorsPreferredNetwork = useAppSelector(
-    (state) => state.vault.errorsPreferredNetwork
-  );
-
   const getNetworkFee = useCallback(() => {
     const isPokt = protocol === SupportedProtocols.Pocket;
     if (
       protocol &&
       chainId &&
       previousChain.current !== chainId &&
-      (isPokt || isValidAddress(toAddress, protocol))
+      (isPokt ||
+        (isValidAddress(toAddress, protocol) && transferType === "normal") ||
+        transferType === "mint" ||
+        transferType === "burn")
     ) {
       previousChain.current = chainId;
       setFeeStatus("loading");
 
+      let data: string;
+
+      if (transferType === "burn") {
+        data = WPOKTBridge.createBurnTransaction({
+          amount: getValues("amount"),
+          from: getValues("from"),
+          to: toAddress,
+          contractAddress: asset.contractAddress,
+        }).data;
+      } else if (transferType === "mint") {
+        data = WPOKTBridge.createMintTransaction({
+          contractAddress: asset.contractAddress,
+          signatures: externalTransferData?.signatures,
+          mintInfo: externalTransferData?.mintInfo,
+        }).data;
+      }
+
       AppToBackground.getNetworkFee({
         protocol,
         chainId,
-        toAddress,
-        asset,
+        toAddress:
+          transferType === "burn" || transferType === "mint"
+            ? asset?.contractAddress
+            : toAddress,
+        asset:
+          transferType === "burn" || transferType === "mint"
+            ? undefined
+            : asset,
+        data,
+        from:
+          transferType === "burn" || transferType === "mint"
+            ? getValues("from")
+            : undefined,
       }).then((response) => {
         if (response.data) {
           const fee = response.data.networkFee;
@@ -249,6 +320,7 @@ const Transfer: React.FC = () => {
           );
           setFeeStatus("fetched");
         } else {
+          previousChain.current = null;
           setFeeStatus("error");
         }
       });
@@ -260,12 +332,12 @@ const Transfer: React.FC = () => {
   }, [
     protocol,
     networks,
-    errorsPreferredNetwork,
-    dispatch,
     chainId,
     toAddress,
     getValues,
     asset,
+    transferType,
+    externalTransferData,
   ]);
 
   useEffect(() => {
@@ -290,17 +362,34 @@ const Transfer: React.FC = () => {
     protocol === SupportedProtocols.Ethereum ? toAddress : undefined,
   ]);
 
-  useEffect(() => {
-    if (requesterInfo?.amount) {
-      setValue("amount", requesterInfo.amount.toString());
-      setValue("toAddress", requesterInfo.toAddress);
-      if (requesterInfo.memo) {
-        setValue("memo", requesterInfo.memo);
-      }
-      setValue("protocol", requesterInfo.protocol);
-      setValue("chainId", requesterInfo.chainId);
+  useDidMountEffect(() => {
+    if (transferType !== "normal") {
+      setTimeout(() => setStatus("summary"), 0);
     }
-  }, [requesterInfo]);
+  }, [transferType]);
+
+  useEffect(() => {
+    if (externalTransferData) {
+      setValue("amount", externalTransferData.amount.toString());
+      setValue("toAddress", externalTransferData.toAddress);
+      if (transferType === "bridge" || externalTransferData.memo) {
+        let memo;
+
+        if (transferType === "bridge") {
+          memo = WPOKTBridge.createBridgeTransaction({
+            amount: externalTransferData.amount,
+            chainID: chainId,
+            from: fromAddress,
+            vaultAddress: externalTransferData.vaultAddress,
+            ethereumAddress: externalTransferData.toAddress,
+          });
+        } else {
+          memo = externalTransferData.memo;
+        }
+        setValue("memo", memo);
+      }
+    }
+  }, [externalTransferData]);
 
   useEffect(() => {
     if (protocol === SupportedProtocols.Ethereum) {
@@ -318,9 +407,11 @@ const Transfer: React.FC = () => {
     }
   }, [chainId]);
 
-  useEffect(() => {
-    setValue("amount", "");
-    clearErrors("amount");
+  useDidMountEffect(() => {
+    if (!externalTransferData) {
+      setValue("amount", "");
+      clearErrors("amount");
+    }
   }, [chainId]);
 
   const accountBalances = useAppSelector((state) => state.app.accountBalances);
@@ -370,6 +461,40 @@ const Transfer: React.FC = () => {
         (item) => item.address === data.from && item.protocol === data.protocol
       )?.id;
 
+      let dataTransactionParam: string,
+        bridgeParams: {
+          to: string;
+          memo: string;
+        };
+
+      if (transferType === "bridge") {
+        const result = WPOKTBridge.createBridgeTransaction({
+          amount: data.amount,
+          chainID: data.chainId,
+          from: data.from,
+          vaultAddress: "",
+          ethereumAddress: data.toAddress,
+        });
+
+        bridgeParams = {
+          to: result.to,
+          memo: result.memo,
+        };
+      } else if (transferType === "burn") {
+        dataTransactionParam = WPOKTBridge.createBurnTransaction({
+          from: data.from,
+          amount: (Number(data.amount) * 10 ** data.asset.decimals).toString(),
+          to: data.toAddress,
+          contractAddress: data.asset.contractAddress,
+        }).data;
+      } else if (transferType === "mint") {
+        dataTransactionParam = WPOKTBridge.createMintTransaction({
+          contractAddress: data.asset.contractAddress,
+          signatures: externalTransferData.signatures,
+          mintInfo: externalTransferData.mintInfo,
+        }).data;
+      }
+
       const response = await AppToBackground.sendRequestToAnswerTransfer({
         rejected: false,
         transferData: {
@@ -380,18 +505,25 @@ const Transfer: React.FC = () => {
           },
           to: {
             type: SupportedTransferDestinations.RawAddress,
-            value: data.toAddress,
+            value:
+              transferType === "burn" || transferType === "mint"
+                ? data.asset.contractAddress
+                : bridgeParams?.to || data.toAddress,
           },
-          amount: Number(data.amount),
+          amount:
+            transferType === "burn" || transferType === "mint"
+              ? 0
+              : Number(data.amount),
           network,
-          asset: data.asset
-            ? {
-                protocol: data.protocol,
-                chainID: data.chainId,
-                contractAddress: asset.contractAddress,
-                decimals: asset.decimals,
-              }
-            : undefined,
+          asset:
+            data.asset && !dataTransactionParam
+              ? {
+                  protocol: data.protocol,
+                  chainID: data.chainId,
+                  contractAddress: asset.contractAddress,
+                  decimals: asset.decimals,
+                }
+              : undefined,
           transactionParams: {
             maxFeePerGas:
               data.protocol === SupportedProtocols.Ethereum
@@ -407,10 +539,12 @@ const Transfer: React.FC = () => {
               data.protocol === SupportedProtocols.Ethereum
                 ? undefined
                 : Number(data.fee),
-            memo: data.memo,
+            memo: bridgeParams?.memo || data.memo,
+            data: dataTransactionParam,
           },
         },
-        request: requesterInfo,
+        // todo: pass this when present
+        request: undefined,
       });
 
       if (response.error) {
@@ -430,7 +564,15 @@ const Transfer: React.FC = () => {
       }
       setSendingStatus(null);
     },
-    [requesterInfo, status, feeStatus, accounts, amount, nativeBalance]
+    [
+      status,
+      feeStatus,
+      accounts,
+      amount,
+      nativeBalance,
+      transferType,
+      externalTransferData,
+    ]
   );
 
   const onClickOk = useCallback(() => {
@@ -445,16 +587,17 @@ const Transfer: React.FC = () => {
       return;
     }
 
-    if (requesterInfo) {
+    if (externalRequestInfo) {
       await AppToBackground.sendRequestToAnswerTransfer({
         rejected: true,
         transferData: null,
-        request: requesterInfo,
+        // todo: pass this when present
+        request: undefined,
       });
     } else {
       navigate(ACCOUNTS_PAGE);
     }
-  }, [requesterInfo, status, navigate]);
+  }, [externalRequestInfo, status, navigate]);
 
   const content = useMemo(() => {
     const isSubmitted = status === "submitted";
@@ -467,9 +610,7 @@ const Transfer: React.FC = () => {
       primaryBtnText: string;
 
     if (isSubmitted) {
-      component = (
-        <TransferSubmittedStep hash={transferHash} networkFee={networkFee} />
-      );
+      component = <TransferSubmittedStep hash={transferHash} />;
       onClickPrimary = () => navigate(ACCOUNTS_PAGE);
       primaryBtnText = "Done";
     } else if (isLoading) {
@@ -504,22 +645,14 @@ const Transfer: React.FC = () => {
       secondaryBtnText = "Cancel";
       primaryBtnText = "Ok";
     } else if (settingAccount) {
-      component = (
-        <TransferForm
-          networkFee={networkFee}
-          request={requesterInfo}
-          getFee={getNetworkFee}
-          feeStatus={feeStatus}
-        />
-      );
+      component = <TransferForm />;
       secondaryBtnText = "Cancel";
       primaryBtnText = "Continue";
     } else {
       component = (
         <SummaryStep
           wrongPassword={wrongPassword}
-          compact={!!requesterInfo}
-          networkFee={networkFee}
+          compact={!!externalRequestInfo}
         />
       );
       secondaryBtnText = "Back";
@@ -528,7 +661,7 @@ const Transfer: React.FC = () => {
 
     return (
       <>
-        {requesterInfo && (
+        {externalRequestInfo && (
           <>
             <Typography
               color={theme.customColors.primary999}
@@ -540,7 +673,9 @@ const Transfer: React.FC = () => {
               Transfer Request from:
             </Typography>
             <Requester
-              request={requesterInfo}
+              // todo: fix this
+              //@ts-ignore
+              request={externalRequestInfo}
               hideBlock={true}
               containerProps={{
                 marginTop: "5px!important",
@@ -590,7 +725,7 @@ const Transfer: React.FC = () => {
               }}
               variant={"contained"}
               fullWidth
-              disabled={feeStatus === "error" || !amount}
+              disabled={feeStatus !== "fetched" || !amount}
               type={onClickPrimary ? "button" : "submit"}
               onClick={onClickPrimary}
             >
@@ -606,34 +741,39 @@ const Transfer: React.FC = () => {
     onClickOk,
     status,
     onClickCancel,
-    requesterInfo,
-    networkFee,
     navigate,
     feeStatus,
-    getNetworkFee,
     transferHash,
     sendingStatus,
   ]);
 
   return (
     <FormProvider {...methods}>
-      <Stack
-        width={1}
-        height={1}
-        maxWidth={1}
-        paddingX={requesterInfo ? 2 : 0}
-        boxSizing={"border-box"}
-        component={"form"}
-        justifyContent={"flex-start"}
-        onSubmit={handleSubmit(onSubmit)}
-        alignItems={"center"}
-        marginTop={1}
+      <TransferContextProvider
+        transferType={transferType}
+        networkFee={networkFee}
+        getNetworkFee={getNetworkFee}
+        externalTransferData={externalTransferData}
+        feeFetchStatus={feeStatus}
       >
-        {selectedAccount && (
-          <AccountComponent account={selectedAccount} asset={asset} />
-        )}
-        {content}
-      </Stack>
+        <Stack
+          width={1}
+          height={1}
+          maxWidth={1}
+          paddingX={externalRequestInfo ? 2 : 0}
+          boxSizing={"border-box"}
+          component={"form"}
+          justifyContent={"flex-start"}
+          onSubmit={handleSubmit(onSubmit)}
+          alignItems={"center"}
+          marginTop={1}
+        >
+          {selectedAccount && (
+            <AccountComponent account={selectedAccount} asset={asset} />
+          )}
+          {content}
+        </Stack>
+      </TransferContextProvider>
     </FormProvider>
   );
 };

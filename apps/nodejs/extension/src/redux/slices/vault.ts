@@ -193,7 +193,7 @@ export const sendTransfer = createAsyncThunk<string, SendTransferParam>(
       ...transferOptions,
       transactionParams: {
         from: "",
-        to: transferOptions.to.value,
+        to: "",
         amount: "",
         ...transferOptions.transactionParams,
       },

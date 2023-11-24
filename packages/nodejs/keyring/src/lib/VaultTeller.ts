@@ -447,6 +447,7 @@ export class VaultTeller {
             maxPriorityFeePerGas:
               options.transactionParams.maxPriorityFeePerGas || 0,
             maxFeePerGas: options.transactionParams.maxFeePerGas || 0,
+            data: options.transactionParams.data,
           },
           options.asset
         );

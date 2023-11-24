@@ -1,47 +1,32 @@
 import type { FormValues } from "./index";
-import React, { useCallback, useState } from "react";
 import Stack from "@mui/material/Stack";
-import TaskAltIcon from "@mui/icons-material/TaskAlt";
-import Typography from "@mui/material/Typography";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
 import { useTheme } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import Tooltip from "@mui/material/Tooltip";
 import { useFormContext } from "react-hook-form";
-import {
-  EthereumNetworkFee,
-  PocketNetworkFee,
-  SupportedProtocols,
-} from "@poktscan/keyring";
+import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+import React, { useCallback, useState } from "react";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import Summary from "./Summary/Component";
+import { useAppSelector } from "../../hooks/redux";
 
 interface SummaryStepProps {
   hash: string;
-  networkFee: PocketNetworkFee | EthereumNetworkFee;
 }
 
-const getTransactionLink = (
-  protocol: SupportedProtocols,
-  chainId: string,
-  hash: string
-) => {
-  if (protocol === SupportedProtocols.Pocket) {
-    return `https://poktscan.com/${
-      chainId === "testnet" ? "testnet/" : ""
-    }tx/${hash}`;
-  }
-
-  return "";
-};
-
-const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
-  hash,
-  networkFee,
-}) => {
+const TransferSubmittedStep: React.FC<SummaryStepProps> = ({ hash }) => {
   const theme = useTheme();
   const { watch } = useFormContext<FormValues>();
   const [protocol, chainId] = watch(["protocol", "chainId"]);
+
+  const explorerTransactionUrl = useAppSelector(
+    (state) =>
+      state.app.networks.find(
+        (network) =>
+          network.protocol === protocol && network.chainId === chainId
+      )?.explorerTransactionUrl
+  );
 
   const [showCopyHashTooltip, setShowCopyHashTooltip] = useState(false);
   const handleCopyHash = useCallback(() => {
@@ -53,12 +38,12 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({
     }
   }, [hash]);
 
-  const link = getTransactionLink(protocol, chainId, hash);
+  const link = explorerTransactionUrl?.replace(":hash", hash);
 
   return (
     <Stack flexGrow={1} justifyContent={"space-between"}>
       <Stack>
-        <Summary networkFee={networkFee} />
+        <Summary />
         <Stack
           direction={"row"}
           alignItems={"center"}

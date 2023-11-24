@@ -1,7 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Grow from "@mui/material/Grow";
 import Stack from "@mui/material/Stack";
-import { useTheme } from "@mui/material";
 import Popper from "@mui/material/Popper";
 import Button from "@mui/material/Button";
 import { shallowEqual } from "react-redux";
@@ -11,6 +16,8 @@ import Skeleton from "@mui/material/Skeleton";
 import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
+import { type SxProps, useTheme } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
 import {
   SerializedAccountReference,
@@ -22,7 +29,7 @@ import ConnectedIcon from "../../assets/img/connected_icon.svg";
 import TransferIcon from "../../assets/img/transfer_icon.svg";
 import ExploreIcon from "../../assets/img/explore_icon.svg";
 import CopyIcon from "../../assets/img/thin_copy_icon.svg";
-import KeyIcon from "../../assets/img/key_icon.svg";
+import WPoktIcon from "../../assets/img/wpokt_icon.svg";
 import { returnNumWithTwoDecimals, roundAndSeparate } from "../../utils/ui";
 import {
   ACCOUNT_PK_PAGE,
@@ -46,6 +53,9 @@ import useDidMountEffect from "../../hooks/useDidMountEffect";
 import useGetAssetPrices, {
   UseGetAssetPricesResult,
 } from "../../hooks/useGetAssetPrices";
+import WrappedPoktTxs from "./WrappedPoktTxs";
+import { AssetLocationState } from "../Transfer";
+import TooltipOverflow from "../common/TooltipOverflow";
 
 interface AccountComponentProps {
   account: SerializedAccountReference;
@@ -153,9 +163,9 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
 
   const { address } = account || {};
 
-  const balance = (balanceMap?.[address]?.amount as number) || 0;
-  const errorBalance = balanceMap?.[address]?.error || false;
-  const loadingBalance = balanceMap?.[address]?.loading || false;
+  const balance = (balanceMap[address]?.amount as number) || 0;
+  const errorBalance = balanceMap[address]?.error || false;
+  const loadingBalance = balanceMap[address]?.loading || false;
 
   const addressFirstCharacters = address?.substring(0, 4);
   const addressLastCharacters = address?.substring(address?.length - 4);
@@ -222,14 +232,20 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
           alignItems={"center"}
           justifyContent={isPopup || !!asset ? "space-between" : "flex-end"}
         >
-          {asset && onGoBackFromAsset && (
-            <Button
-              sx={{ fontSize: 12, height: 24 }}
-              onClick={onGoBackFromAsset}
-            >
-              Go back
-            </Button>
-          )}
+          {asset ? (
+            <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
+              {onGoBackFromAsset && (
+                <IconButton onClick={onGoBackFromAsset}>
+                  <ArrowBackIcon
+                    sx={{ fontSize: 18, color: theme.customColors.primary250 }}
+                  />
+                </IconButton>
+              )}
+              <Typography fontSize={12}>
+                {account.name} / {asset.symbol}
+              </Typography>
+            </Stack>
+          ) : null}
           <Tooltip title={"Copied"} open={showCopyTooltip}>
             <Stack
               height={26}
@@ -295,7 +311,8 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
       >
         <Stack
           width={1}
-          height={60}
+          height={50}
+          marginBottom={1}
           paddingY={0.5}
           alignItems={"flex-end"}
           boxSizing={"border-box"}
@@ -351,12 +368,24 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
               </Button>
             </Typography>
           ) : loadingBalance ? (
-            <Skeleton variant={"rectangular"} width={200} height={50} />
+            <Skeleton variant={"rectangular"} width={200} height={40} />
           ) : (
-            <Typography
-              fontSize={compact ? 18 : 32}
-              fontWeight={500}
-              textAlign={"left"}
+            <TooltipOverflow
+              text={`${roundAndSeparate(balance, asset?.decimals || 4, "0")} ${
+                asset?.symbol || symbol
+              }`}
+              tooltipSxProps={{
+                maxWidth: 315,
+              }}
+              containerProps={{
+                maxWidth: 315,
+              }}
+              textProps={{ maxWidth: 315 }}
+              linkProps={{
+                fontSize: compact ? 18 : 24,
+                fontWeight: 500,
+                textAlign: "right",
+              }}
             >
               {roundAndSeparate(balance, asset?.decimals || 4, "0")}{" "}
               <span
@@ -368,7 +397,7 @@ export const AccountComponent: React.FC<AccountComponentProps> = ({
               >
                 {asset?.symbol || symbol}
               </span>
-            </Typography>
+            </TooltipOverflow>
           )}
         </Stack>
         <Stack
@@ -453,6 +482,7 @@ interface ButtonActionProps {
   onClick?: (event?: React.MouseEvent) => void;
   addHoverStyle?: boolean;
   pathIsStroke?: boolean;
+  customSvgHoverSxProps?: SxProps;
 }
 
 const ButtonAction: React.FC<ButtonActionProps> = ({
@@ -461,6 +491,7 @@ const ButtonAction: React.FC<ButtonActionProps> = ({
   onClick,
   addHoverStyle = true,
   pathIsStroke = false,
+  customSvgHoverSxProps,
 }) => {
   const theme = useTheme();
   return (
@@ -488,6 +519,7 @@ const ButtonAction: React.FC<ButtonActionProps> = ({
               [pathIsStroke ? "stroke" : "fill"]:
                 theme.customColors.primary999 + "!important",
             },
+            ...customSvgHoverSxProps,
           },
         }),
       }}
@@ -555,9 +587,7 @@ const AssetItem: React.FC<AssetItemProps> = ({
           contractAddress: asset.contractAddress,
           decimals: asset.decimals,
         },
-      })
-        .then((res) => console.log("asset result:", res))
-        .catch(console.log);
+      }).catch();
     }
   }, [
     selectedNetwork,
@@ -719,6 +749,7 @@ const SelectedAccount: React.FC = () => {
   >("none");
   const [selectedAsset, setSelectedAsset] = useState<IAsset | null>(null);
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
+  const [wPoktVisible, setWPoktVisible] = useState(false);
   const accounts = useAppSelector(
     (state) => state.vault.entities.accounts.list
   );
@@ -777,7 +808,14 @@ const SelectedAccount: React.FC = () => {
 
     setSelectedAsset(null);
     setModalToShow("none");
+    setWPoktVisible(false);
   }, [selectedAccount]);
+
+  useEffect(() => {
+    if (selectedAsset?.symbol !== "wPOKT") {
+      setWPoktVisible(false);
+    }
+  }, [selectedAsset]);
 
   const showRenameModal = useCallback(() => setModalToShow("rename"), []);
   const showRemoveModal = useCallback(() => setModalToShow("remove"), []);
@@ -797,7 +835,12 @@ const SelectedAccount: React.FC = () => {
 
   const onClickTransfer = useCallback(() => {
     if (selectedAccount) {
-      navigate(TRANSFER_PAGE, { state: { asset: selectedAsset } });
+      navigate(
+        TRANSFER_PAGE,
+        selectedAsset
+          ? { state: { asset: selectedAsset } as AssetLocationState }
+          : undefined
+      );
     }
   }, [
     navigate,
@@ -841,6 +884,11 @@ const SelectedAccount: React.FC = () => {
     navigate(CREATE_ACCOUNT_PAGE);
   }, [navigate]);
 
+  const toggleWPoktVisible = useCallback(
+    () => setWPoktVisible((prevState) => !prevState),
+    []
+  );
+
   const assetsPriceResult = useGetAssetPrices();
 
   const onClickAsset = useCallback(
@@ -849,9 +897,40 @@ const SelectedAccount: React.FC = () => {
   );
   const onGoBackFromAsset = useCallback(() => setSelectedAsset(null), []);
 
+  const wrappedPoktComponent = useMemo(() => {
+    if (
+      selectedNetwork === SupportedProtocols.Ethereum &&
+      selectedAsset?.symbol === "wPOKT"
+    ) {
+      return (
+        <WrappedPoktTxs
+          action={"mints"}
+          address={selectedAccount?.address}
+          showForm={wPoktVisible}
+          onCloseForm={toggleWPoktVisible}
+        />
+      );
+    } else if (selectedNetwork === SupportedProtocols.Pocket && wPoktVisible) {
+      return (
+        <WrappedPoktTxs
+          action={"burns"}
+          address={selectedAccount?.address}
+          onCloseForm={toggleWPoktVisible}
+        />
+      );
+    }
+  }, [
+    wPoktVisible,
+    selectedNetwork,
+    selectedAsset?.symbol,
+    selectedAccount?.address,
+    toggleWPoktVisible,
+  ]);
+
   const assetsComponent = useMemo(() => {
-    if (selectedNetwork !== SupportedProtocols.Ethereum || !!selectedAsset)
+    if (selectedNetwork !== SupportedProtocols.Ethereum || !!selectedAsset) {
       return null;
+    }
 
     return (
       <Stack width={1} height={200} marginTop={3}>
@@ -982,127 +1061,172 @@ const SelectedAccount: React.FC = () => {
             onGoBackFromAsset={onGoBackFromAsset}
           />
         )}
-        <Stack direction={"row"} spacing={4} marginTop={1.5}>
-          <ButtonAction
-            label={"Transfer"}
-            pathIsStroke={true}
-            icon={TransferIcon}
-            onClick={onClickTransfer}
-          />
-          <ButtonAction
-            label={"Explore"}
-            icon={ExploreIcon}
-            onClick={onClickExplorer}
-          />
-          <ButtonAction
-            label={"Private Key"}
-            icon={KeyIcon}
-            onClick={onClickPk}
-          />
-          <ButtonAction
-            label={"More"}
-            icon={MoreIcon}
-            onClick={onOpenMoreMenu}
-          />
-          <Popper
-            transition
-            open={!!anchorEl}
-            anchorEl={anchorEl}
-            placement={"bottom-end"}
+        {!wPoktVisible && (
+          <Stack
+            direction={"row"}
+            justifyContent={"space-between"}
+            marginTop={1.5}
           >
-            {({ TransitionProps }) => (
-              <ClickAwayListener onClickAway={onCloseMoreMenu}>
-                <Grow {...TransitionProps}>
-                  <Stack
-                    width={140}
-                    height={148}
-                    padding={0.5}
-                    borderRadius={"8px"}
-                    boxSizing={"border-box"}
-                    bgcolor={theme.customColors.white}
-                    border={`1px solid ${theme.customColors.dark15}`}
-                    sx={{
-                      top: -42,
-                      left: -166,
-                      position: "absolute",
-                      boxShadow: "0px 0px 6px 0px #1C2D4A26",
-                      borderTopRightRadius: "0px!important",
-                    }}
-                  >
-                    {[
-                      { label: "Private Key", onClick: onClickPk },
-                      { label: "Reimport Account", onClick: onClickReimport },
-                      {
-                        label: "Rename Account",
-                        onClick: showRenameModal,
-                      },
-                      {
-                        type: "divider",
-                      },
-                      {
-                        label: "Remove Account",
-                        onClick: showRemoveModal,
-                        customProps: {
-                          color: theme.customColors.red100,
-                          sx: {
-                            "&:hover": {
-                              color: theme.customColors.white,
-                              backgroundColor: theme.customColors.red100,
-                              fontWeight: 700,
-                            },
-                          },
-                        },
-                      },
-                    ].map(({ type, label, onClick, customProps }) => {
-                      if (type === "divider") {
-                        return (
-                          <Divider
-                            sx={{
-                              marginY: 0.7,
-                              borderColor: theme.customColors.dark15,
-                            }}
-                          />
-                        );
-                      } else {
-                        return (
-                          <Typography
-                            width={1}
-                            height={30}
-                            fontSize={11}
-                            paddingX={0.5}
-                            lineHeight={"30px"}
-                            letterSpacing={"0.5px"}
-                            boxSizing={"border-box"}
-                            {...customProps}
-                            onClick={() => {
-                              if (onClick) {
-                                onClick();
-                              }
-                              onCloseMoreMenu();
-                            }}
-                            sx={{
-                              cursor: "pointer",
-                              userSelect: "none",
-                              "&:hover": {
-                                backgroundColor: theme.customColors.primary500,
-                                color: theme.customColors.white,
-                                fontWeight: 700,
-                              },
-                              ...customProps?.sx,
-                            }}
-                          >
-                            {label}
-                          </Typography>
-                        );
-                      }
-                    })}
-                  </Stack>
-                </Grow>
-              </ClickAwayListener>
+            <ButtonAction
+              label={"Transfer"}
+              pathIsStroke={true}
+              icon={TransferIcon}
+              onClick={onClickTransfer}
+            />
+            <ButtonAction
+              label={"Explore"}
+              icon={ExploreIcon}
+              onClick={onClickExplorer}
+            />
+            {(selectedNetwork === SupportedProtocols.Pocket ||
+              selectedAsset?.symbol === "wPOKT") && (
+              <ButtonAction
+                label={
+                  selectedNetwork === SupportedProtocols.Ethereum
+                    ? "Unwrap"
+                    : "wPOKT"
+                }
+                icon={WPoktIcon}
+                pathIsStroke={true}
+                onClick={toggleWPoktVisible}
+                customSvgHoverSxProps={{
+                  "& path": {
+                    stroke: theme.customColors.white,
+                    "&[fill]": {
+                      fill: theme.customColors.white,
+                    },
+                  },
+                }}
+              />
             )}
-          </Popper>
-        </Stack>
+            <ButtonAction
+              label={"More"}
+              icon={MoreIcon}
+              onClick={onOpenMoreMenu}
+            />
+            <Popper
+              transition
+              open={!!anchorEl}
+              anchorEl={anchorEl}
+              placement={"bottom-end"}
+            >
+              {({ TransitionProps }) => (
+                <ClickAwayListener onClickAway={onCloseMoreMenu}>
+                  <Grow {...TransitionProps}>
+                    <Stack
+                      width={140}
+                      height={selectedAsset ? 41 : 148}
+                      padding={0.5}
+                      borderRadius={"8px"}
+                      boxSizing={"border-box"}
+                      bgcolor={theme.customColors.white}
+                      border={`1px solid ${theme.customColors.dark15}`}
+                      sx={{
+                        top: -42,
+                        left: -166,
+                        position: "absolute",
+                        boxShadow: "0px 0px 6px 0px #1C2D4A26",
+                        borderTopRightRadius: "0px!important",
+                      }}
+                    >
+                      {(selectedAsset
+                        ? [
+                            {
+                              label: "Remove Asset",
+                              onClick: showRemoveModal,
+                              customProps: {
+                                color: theme.customColors.red100,
+                                sx: {
+                                  "&:hover": {
+                                    color: theme.customColors.white,
+                                    backgroundColor: theme.customColors.red100,
+                                    fontWeight: 700,
+                                  },
+                                },
+                              },
+                            },
+                          ]
+                        : [
+                            { label: "Private Key", onClick: onClickPk },
+                            {
+                              label: "Reimport Account",
+                              onClick: onClickReimport,
+                            },
+                            {
+                              label: "Rename Account",
+                              onClick: showRenameModal,
+                            },
+                            {
+                              type: "divider",
+                            },
+                            {
+                              label: "Remove Account",
+                              onClick: showRemoveModal,
+                              customProps: {
+                                color: theme.customColors.red100,
+                                sx: {
+                                  "&:hover": {
+                                    color: theme.customColors.white,
+                                    backgroundColor: theme.customColors.red100,
+                                    fontWeight: 700,
+                                  },
+                                },
+                              },
+                            },
+                          ]
+                      ).map(({ type, label, onClick, customProps }) => {
+                        if (type === "divider") {
+                          return (
+                            <Divider
+                              sx={{
+                                marginY: 0.7,
+                                borderColor: theme.customColors.dark15,
+                              }}
+                            />
+                          );
+                        } else {
+                          return (
+                            <Typography
+                              width={1}
+                              height={30}
+                              fontSize={11}
+                              paddingX={0.5}
+                              lineHeight={"30px"}
+                              letterSpacing={"0.5px"}
+                              boxSizing={"border-box"}
+                              {...customProps}
+                              onClick={() => {
+                                if (onClick) {
+                                  onClick();
+                                }
+                                onCloseMoreMenu();
+                              }}
+                              sx={{
+                                cursor: "pointer",
+                                userSelect: "none",
+                                "&:hover": {
+                                  backgroundColor:
+                                    theme.customColors.primary500,
+                                  color: theme.customColors.white,
+                                  fontWeight: 700,
+                                },
+                                ...customProps?.sx,
+                              }}
+                            >
+                              {label}
+                            </Typography>
+                          );
+                        }
+                      })}
+                    </Stack>
+                  </Grow>
+                </ClickAwayListener>
+              )}
+            </Popper>
+          </Stack>
+        )}
         {assetsComponent}
+        {wrappedPoktComponent}
       </Stack>
 
       <RenameModal
