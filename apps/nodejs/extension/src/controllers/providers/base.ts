@@ -50,7 +50,6 @@ export default class BaseProvider extends EventEmitter {
   chainId: string;
   readonly network: SupportedProtocols;
   readonly isSoothe = true;
-  selectedAddress: string;
 
   constructor(protocol: SupportedProtocols) {
     super();

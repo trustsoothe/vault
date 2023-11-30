@@ -2,6 +2,7 @@ import React from "react";
 import Stack, { type StackProps } from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Typography, { type TypographyProps } from "@mui/material/Typography";
+import TooltipOverflow from "./TooltipOverflow";
 
 interface RowProps {
   label: string;
@@ -35,19 +36,16 @@ const RowSpaceBetween: React.FC<RowProps> = ({
         {label}
       </Typography>
       {typeof value === "string" || !value ? (
-        <Typography
-          fontSize={12}
-          fontWeight={500}
-          overflow={"hidden"}
-          whiteSpace={"nowrap"}
-          letterSpacing={"0.5px"}
-          textOverflow={"ellipsis"}
-          flexGrow={1}
-          textAlign={"right"}
-          color={theme.customColors.dark100}
-        >
-          {value}
-        </Typography>
+        <TooltipOverflow
+          text={value as string}
+          linkProps={{
+            fontSize: "11px!important",
+            fontWeight: "400!important",
+            flexGrow: 1,
+            textAlign: "right",
+            color: theme.customColors.dark100 + "!important",
+          }}
+        />
       ) : (
         value
       )}

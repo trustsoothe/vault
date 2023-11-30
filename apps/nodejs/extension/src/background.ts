@@ -1,6 +1,6 @@
 import browser from "webextension-polyfill";
 import { wrapStore } from "webext-redux";
-import store from "./redux/store";
+import store, { RootState } from "./redux/store";
 import InternalCommunicationController from "./controllers/communication/Internal";
 import ExternalCommunicationController from "./controllers/communication/External";
 import {
@@ -13,6 +13,8 @@ import {
   loadNetworksFromCdn,
   loadNetworksFromStorage,
 } from "./redux/slices/app/network";
+import { getVault } from "./utils";
+import { lockVault } from "./redux/slices/vault";
 
 wrapStore(store);
 
@@ -55,7 +57,7 @@ browser.tabs.onUpdated.addListener((activeInfo) => {
   browser.tabs.get(activeInfo).then((tab) => {
     const activeTab = store.getState().app.activeTab;
 
-    if (activeTab.id && activeTab.id === tab.id) {
+    if (activeTab && activeTab.id === tab.id) {
       store.dispatch(
         changeActiveTab({
           id: tab.id,
@@ -110,4 +112,19 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
     ]);
     await store.dispatch(loadSelectedNetworkAndAccount());
   }, 1000 * 60 * 20);
+
+  setInterval(async () => {
+    const state = store.getState() as RootState;
+
+    const sessionId = state?.vault?.vaultSession?.id;
+
+    if (sessionId) {
+      const vault = getVault();
+      const isSessionValid = await vault.isSessionValid(sessionId);
+
+      if (!isSessionValid) {
+        store.dispatch(lockVault());
+      }
+    }
+  }, 5 * 1000);
 })();

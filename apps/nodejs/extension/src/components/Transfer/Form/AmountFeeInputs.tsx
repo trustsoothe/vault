@@ -7,7 +7,7 @@ import Skeleton from "@mui/material/Skeleton";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   EthereumNetworkFee,
@@ -20,8 +20,12 @@ import { AccountBalanceInfo } from "../../../redux/slices/app";
 import { returnNumWithTwoDecimals } from "../../../utils/ui";
 import useGetPrices from "../../../hooks/useGetPrices";
 import useGetAssetPrices from "../../../hooks/useGetAssetPrices";
-import useDidMountEffect from "../../../hooks/useDidMountEffect";
 import { useTransferContext } from "../../../contexts/TransferContext";
+import {
+  symbolOfNetworkSelector,
+  transferMinAmountOfNetworkSelector,
+} from "../../../redux/selectors/network";
+import { accountBalancesSelector } from "../../../redux/selectors/account";
 
 export type AmountStatus = "not-fetched" | "loading" | "error" | "fetched";
 
@@ -70,19 +74,16 @@ const AmountFeeInputs: React.FC = () => {
     ? priceByContractAddress?.[asset.contractAddress] || 0
     : 0;
 
-  useDidMountEffect(() => {
+  useEffect(() => {
     if (asset) {
       setTimeout(refetchAssetsPrice, 0);
     }
   }, [asset]);
 
-  const accountBalances = useAppSelector((state) => state.app.accountBalances);
+  const accountBalances = useAppSelector(accountBalancesSelector);
+  const symbol = useAppSelector(symbolOfNetworkSelector(protocol, chainId));
   const transferMinAmount = useAppSelector(
-    (state) =>
-      state.app.networks.find(
-        (network) =>
-          network.protocol === protocol && network.chainId === chainId
-      )?.transferMinValue
+    transferMinAmountOfNetworkSelector(protocol, chainId)
   );
 
   const nativeBalance: AccountBalanceInfo = useMemo(() => {
@@ -97,15 +98,7 @@ const AmountFeeInputs: React.FC = () => {
         ] || {}
       );
     }
-  }, [accountBalances, protocol, chainId, fromAddress]);
-
-  const symbol = useAppSelector((state) => {
-    return (
-      state.vault.entities.assets.list.find(
-        (asset) => asset.protocol === protocol
-      )?.symbol || ""
-    );
-  });
+  }, [accountBalances, protocol, chainId, fromAddress, asset]);
 
   const amount = asset ? assetBalance?.amount : nativeBalance?.amount;
   const loadingBalances = nativeBalance?.loading || assetBalance?.loading;
@@ -115,16 +108,24 @@ const AmountFeeInputs: React.FC = () => {
     : loadingNetworkPrice;
 
   const onClickAll = useCallback(() => {
-    const feeFromForm = getValues("fee");
-    const transferFromBalance = asset
-      ? amount || 0
-      : (amount || 0) - (Number(feeFromForm) || 0);
+    const feeSpeed = getValues("feeSpeed");
+    const protocol = getValues("protocol");
+
+    let fee: number;
+
+    if (protocol === SupportedProtocols.Ethereum) {
+      fee = Number((networkFee as EthereumNetworkFee)?.[feeSpeed]?.amount || 0);
+    } else {
+      fee = (networkFee as PocketNetworkFee)?.value || 0;
+    }
+
+    const transferFromBalance = asset ? amount || 0 : (amount || 0) - fee;
 
     if (transferFromBalance) {
       setValue("amount", (transferFromBalance || "").toString());
       clearErrors("amount");
     }
-  }, [amount, setValue, clearErrors, getValues, asset]);
+  }, [amount, setValue, clearErrors, getValues, asset, networkFee]);
 
   const isEth = SupportedProtocols.Ethereum === protocol;
 
@@ -192,7 +193,7 @@ const AmountFeeInputs: React.FC = () => {
           }}
           render={({ field, fieldState: { error } }) => (
             <TextField
-              label={symbol ? `Amount (${asset?.symbol || symbol})` : "Amount"}
+              label={`Amount (${asset?.symbol || symbol})`}
               size={"small"}
               type={"number"}
               disabled={disableAmountInput}
@@ -299,7 +300,7 @@ const AmountFeeInputs: React.FC = () => {
               }}
               error={amount === 0 || !!error?.message}
               helperText={
-                amount === 0
+                amount === 0 && !errorBalances && !loadingBalances
                   ? "This account doesn't have balance."
                   : error?.message
               }
@@ -332,7 +333,7 @@ const AmountFeeInputs: React.FC = () => {
             >
               Fee ({symbol})
             </Typography>
-            {feeFetchStatus === "loading" ? (
+            {feeFetchStatus === "loading" && !networkFee ? (
               <Skeleton variant={"rectangular"} width={40} height={20} />
             ) : feeFetchStatus === "error" ? (
               <Button
@@ -364,65 +365,6 @@ const AmountFeeInputs: React.FC = () => {
             control={control}
             name={"feeSpeed"}
             render={({ field }) => (
-              // <Stack
-              //   position={"relative"}
-              //   borderRadius={"2px"}
-              //   border={`1px solid ${theme.customColors.dark25}`}
-              //   height={40}
-              //   alignItems={"center"}
-              //   boxSizing={"border-box"}
-              //   direction={"row"}
-              //   width={170}
-              //   minWidth={170}
-              //   maxWidth={170}
-              // >
-              //   <Typography
-              //     fontSize={10}
-              //     color={theme.customColors.dark50}
-              //     position={"absolute"}
-              //     bgcolor={theme.customColors.dark2}
-              //     whiteSpace={"nowrap"}
-              //     top={-10}
-              //     left={2}
-              //     paddingX={0.6}
-              //     zIndex={2}
-              //   >
-              //     Transfer Speed
-              //   </Typography>
-              //   {(["low", "medium", "high"] as const).map((speed, index) => {
-              //     const isSelected = speed === field.value;
-              //     const borderLeft =
-              //       index !== 0
-              //         ? `1px solid ${theme.customColors.dark15}`
-              //         : undefined;
-              //     return (
-              //       <Button
-              //         sx={{
-              //           textTransform: "capitalize",
-              //           borderLeft,
-              //           minWidth: 50,
-              //           paddingX: 1,
-              //           fontSize: 12,
-              //           fontWeight: isSelected ? 700 : undefined,
-              //           color: isSelected
-              //             ? `${theme.customColors.primary500}!important`
-              //             : theme.customColors.dark75,
-              //           borderRadius: 0,
-              //           height: 40,
-              //           pointerEvents: isSelected ? "none" : undefined,
-              //         }}
-              //         disabled={isSelected || feeStatus !== "fetched"}
-              //         onClick={() => {
-              //           if (!isSelected) {
-              //             field.onChange(speed);
-              //           }
-              //         }}
-              //       >
-              //         {speed}
-              //       </Button>
-              //     );
-              //   })}
-              // </Stack>
               <TextField
                 select
                 size={"small"}
@@ -432,7 +374,8 @@ const AmountFeeInputs: React.FC = () => {
                   MenuProps: {
                     sx: {
                       "& .MuiMenuItem-root": {
-                        // fontSize: 12,
+                        height: 35,
+                        minHeight: 35,
                       },
                     },
                   },
@@ -440,13 +383,9 @@ const AmountFeeInputs: React.FC = () => {
                 sx={{
                   width: 90,
                   "& .MuiSelect-icon": { top: 5, right: -2 },
-                  // backgroundColor: theme.customColors.dark2,
                   "& .MuiSelect-select": {
                     paddingRight: "27px!important",
                   },
-                  // "& .MuiInputBase-root": {
-                  //   paddingTop: 0.3,
-                  // },
                 }}
                 {...field}
               >
@@ -484,7 +423,7 @@ const AmountFeeInputs: React.FC = () => {
               <Typography fontSize={14} color={theme.customColors.red100}>
                 Select recipient first
               </Typography>
-            ) : feeFetchStatus === "loading" ? (
+            ) : feeFetchStatus === "loading" && !networkFee ? (
               <>
                 <Skeleton variant={"rectangular"} width={80} height={20} />
                 <Divider

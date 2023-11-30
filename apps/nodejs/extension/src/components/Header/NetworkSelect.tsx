@@ -1,4 +1,3 @@
-import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 import Grow from "@mui/material/Grow";
 import orderBy from "lodash/orderBy";
 import Stack from "@mui/material/Stack";
@@ -22,6 +21,10 @@ import ExpandIcon from "../../assets/img/drop_down_icon.svg";
 import CloseIcon from "../../assets/img/close_icon.svg";
 import useShowAccountSelect from "../../hooks/useShowAccountSelect";
 import { NETWORKS_PAGE } from "../../constants/routes";
+import {
+  selectedChainSelector,
+  selectedProtocolSelector,
+} from "../../redux/selectors/network";
 
 interface NetworkSelectProps {
   toggleShowBackdrop: () => void;
@@ -29,7 +32,7 @@ interface NetworkSelectProps {
 
 type Option<T extends SupportedProtocols = SupportedProtocols> = {
   network: T;
-  chainId: ChainID<T>;
+  chainId: string;
   isTest?: true;
 };
 
@@ -40,10 +43,8 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const isShowingAccountSelect = useShowAccountSelect();
-  const selectedNetwork = useAppSelector((state) => state.app.selectedNetwork);
-  const selectedChainByNetwork = useAppSelector(
-    (state) => state.app.selectedChainByNetwork
-  );
+  const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const selectedChain = useAppSelector(selectedChainSelector);
   const networks = useAppSelector((state) => state.app.networks);
   const networksCanBeSelected = useAppSelector(
     (state) => state.app.networksCanBeSelected
@@ -51,12 +52,11 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
 
   const selectedOption: Option = useMemo(() => {
     return {
-      network: selectedNetwork,
-      chainId: selectedChainByNetwork[
-        selectedNetwork
-      ] as ChainID<SupportedProtocols>,
+      network: selectedProtocol,
+      chainId: selectedChain,
     };
-  }, [selectedNetwork, selectedChainByNetwork]);
+  }, [selectedProtocol, selectedChain]);
+
   const selectedOptionIconUrl = networks.find(
     (network) =>
       network.protocol === selectedOption.network &&
@@ -209,6 +209,7 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
                 borderTop: `none!important`,
                 borderBottomLeftRadius: "12px",
                 borderBottomRightRadius: "12px",
+                marginLeft: isShowingAccountSelect ? 0.1 : 0,
               }}
             >
               <Stack

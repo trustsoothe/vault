@@ -30,7 +30,7 @@ const TransferForm: React.FC = () => {
         spacing={2}
       >
         <AmountFeeInputs />
-        {/*{(showRpcSelector || true) && <NetworkAutocomplete />}*/}
+        {/*<NetworkAutocomplete />*/}
         <ToAddressAutocomplete disabled={disableInputs} />
         {isPokt && (
           <Controller

@@ -7,11 +7,19 @@ import Popover from "@mui/material/Popover";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import { Controller, useFormContext } from "react-hook-form";
-import React, { useCallback, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import DropDownIcon from "../../../assets/img/drop_down_icon.svg";
 import { returnNumWithTwoDecimals } from "../../../utils/ui";
 import { useAppSelector } from "../../../hooks/redux";
 import { useTransferContext } from "../../../contexts/TransferContext";
+import { symbolOfNetworkSelector } from "../../../redux/selectors/network";
+import { accountBalancesSelector } from "../../../redux/selectors/account";
 
 interface Option {
   speed: FeeSpeed;
@@ -25,7 +33,8 @@ interface MaxFeeSelectorProps {
 const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
   const theme: Theme = useTheme();
   const { watch, control } = useFormContext();
-  const { networkFee, feeFetchStatus, getNetworkFee } = useTransferContext();
+  const { networkFee, feeFetchStatus, getNetworkFee, status } =
+    useTransferContext();
   const [protocol, chainId, asset, fromAddress] = watch([
     "protocol",
     "chainId",
@@ -34,18 +43,31 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
   ]);
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [popoverWidth, setPopoverWidth] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const accountBalances = useAppSelector(accountBalancesSelector);
+  const symbol = useAppSelector(symbolOfNetworkSelector(protocol, chainId));
+
+  useEffect(() => {
+    if (containerRef.current) {
+      setPopoverWidth(containerRef.current.getBoundingClientRect().width);
+    }
+  }, [networkFee, feeFetchStatus]);
 
   const measuredRef = useCallback((node: HTMLDivElement) => {
     if (node) {
+      containerRef.current = node;
       setPopoverWidth(node.getBoundingClientRect().width);
     }
   }, []);
 
   const onOpenPopover = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      setAnchorEl(event.currentTarget);
+      if (status === "summary") {
+        setAnchorEl(event.currentTarget);
+      }
     },
-    []
+    [status]
   );
 
   const onClosePopover = useCallback(() => {
@@ -71,19 +93,8 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
     ];
   }, [ethFee]);
 
-  const symbol = useAppSelector((state) => {
-    return (
-      state.app.networks.find(
-        (network) =>
-          network.protocol === protocol && network.chainId === chainId
-      )?.currencySymbol || ""
-    );
-  });
-
-  const nativeBalance = useAppSelector((state) => {
-    return state.app.accountBalances?.[protocol]?.[chainId]?.[fromAddress]
-      ?.amount;
-  });
+  const nativeBalance =
+    accountBalances?.[protocol]?.[chainId]?.[fromAddress]?.amount;
 
   return (
     <Controller
@@ -98,22 +109,27 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
           },
         }),
       }}
-      render={({ field: { value, onChange }, fieldState: { error } }) => (
-        <>
-          <Stack alignItems={"flex-end"}>
-            {feeFetchStatus === "loading" ? (
-              <Skeleton variant={"rectangular"} width={150} height={14} />
-            ) : feeFetchStatus === "error" ? (
-              <Typography fontSize={11} color={theme.customColors.red100}>
-                Error getting max fee.{" "}
-                <span
-                  style={{ cursor: "pointer", textDecoration: "underline" }}
-                  onClick={getNetworkFee}
-                >
-                  Retry
-                </span>
-              </Typography>
-            ) : (
+      render={({ field: { value, onChange }, fieldState: { error } }) => {
+        if (feeFetchStatus === "loading" && !networkFee) {
+          return <Skeleton variant={"rectangular"} width={150} height={14} />;
+        }
+
+        if (feeFetchStatus === "error") {
+          return (
+            <Typography fontSize={11} color={theme.customColors.red100}>
+              Error getting max fee.{" "}
+              <span
+                style={{ cursor: "pointer", textDecoration: "underline" }}
+                onClick={getNetworkFee}
+              >
+                Retry
+              </span>
+            </Typography>
+          );
+        }
+        return (
+          <>
+            <Stack alignItems={"flex-end"} maxWidth={280}>
               <Stack
                 ref={measuredRef}
                 direction={"row"}
@@ -139,13 +155,16 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
                 }}
                 justifyContent={"space-between"}
                 onClick={onOpenPopover}
-                marginRight={"-10px!important"}
+                marginRight={
+                  status === "summary" ? "-10px!important" : undefined
+                }
               >
                 <Typography
-                  fontSize={12}
-                  letterSpacing={"0.5px"}
+                  fontSize={11}
                   whiteSpace={"nowrap"}
-                  fontWeight={500}
+                  textOverflow={"ellipsis"}
+                  overflow={"hidden"}
+                  maxWidth={270}
                 >
                   {ethFee?.[value]?.amount} {symbol} / $
                   {returnNumWithTwoDecimals(
@@ -154,91 +173,92 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
                   )}{" "}
                   USD
                 </Typography>
-                <DropDownIcon />
+                {status === "summary" && <DropDownIcon />}
               </Stack>
-            )}
-            {error && feeFetchStatus === "fetched" && (
-              <Typography
-                fontSize={10}
-                color={theme.customColors.red100}
-                textAlign={"right"}
-                className={"error"}
-              >
-                {error.message}
-              </Typography>
-            )}
-          </Stack>
-          <Popover
-            open={!!anchorEl && feeFetchStatus === "fetched"}
-            anchorEl={anchorEl}
-            onClose={onClosePopover}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: 0,
-            }}
-            transitionDuration={200}
-            transformOrigin={{ vertical: "top", horizontal: 1 }}
-            PaperProps={{
-              sx: {
-                maxHeight: 105,
-                height: 105,
-                paddingX: 0,
-                marginLeft: -1,
-                width: popoverWidth ? popoverWidth + 10 : 100,
-                boxShadow:
-                  "0px 5px 5px -10px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.01), 0px 3px 14px -5px rgba(0,0,0,0.12)",
-                borderBottomLeftRadius: "4px",
-                borderBottomRightRadius: "4px",
-                borderTop: "none!important",
-              },
-            }}
-          >
-            {options.map((option) => (
-              <Stack
-                key={option.speed}
-                justifyContent={"center"}
-                sx={{
-                  cursor: "pointer",
-                  paddingLeft: 1,
-                  paddingRight: 0.5,
-                  minHeight: `33px !important`,
-                  backgroundColor:
-                    value === option.speed
-                      ? `${theme.customColors.primary100}!important`
-                      : undefined,
-                  ":hover": {
-                    backgroundColor: `${theme.customColors.dark5}`,
-                  },
-                  ":focus": {
-                    backgroundColor: "transparent !important",
-                  },
-                }}
-                onClick={() => {
-                  onChange(option.speed);
-                  onClosePopover();
-                }}
-              >
+              {error && feeFetchStatus === "fetched" && (
                 <Typography
+                  fontSize={10}
+                  color={theme.customColors.red100}
+                  textAlign={"right"}
+                  className={"error"}
+                >
+                  {error.message}
+                </Typography>
+              )}
+            </Stack>
+            <Popover
+              open={!!anchorEl && feeFetchStatus === "fetched"}
+              anchorEl={anchorEl}
+              onClose={onClosePopover}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: 0,
+              }}
+              transitionDuration={200}
+              transformOrigin={{ vertical: "top", horizontal: 1 }}
+              PaperProps={{
+                sx: {
+                  maxHeight: 105,
+                  height: 105,
+                  paddingX: 0,
+                  marginLeft: -1,
+                  width: popoverWidth ? popoverWidth + 10 : 100,
+                  boxShadow:
+                    "0px 5px 5px -10px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.01), 0px 3px 14px -5px rgba(0,0,0,0.12)",
+                  borderBottomLeftRadius: "4px",
+                  borderBottomRightRadius: "4px",
+                  borderTop: "none!important",
+                },
+              }}
+            >
+              {options.map((option) => (
+                <Stack
+                  key={option.speed}
+                  justifyContent={"center"}
                   sx={{
-                    fontSize: 12,
-                    color: theme.customColors.dark75,
-                    fontWeight: 400,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
+                    cursor: "pointer",
+                    paddingLeft: 1,
+                    paddingRight: 0.5,
+                    minHeight: `33px !important`,
+                    backgroundColor:
+                      value === option.speed
+                        ? `${theme.customColors.primary100}!important`
+                        : undefined,
+                    ":hover": {
+                      backgroundColor: `${theme.customColors.dark5}`,
+                    },
+                    ":focus": {
+                      backgroundColor: "transparent !important",
+                    },
+                  }}
+                  onClick={() => {
+                    onChange(option.speed);
+                    onClosePopover();
                   }}
                 >
-                  {option.maxFee} {symbol} / $
-                  {returnNumWithTwoDecimals(
-                    Number(option.maxFee || 0) * networkPrice
-                  )}{" "}
-                  USD
-                </Typography>
-              </Stack>
-            ))}
-          </Popover>
-        </>
-      )}
+                  <Typography
+                    sx={{
+                      fontSize: 11,
+                      color: theme.customColors.dark75,
+                      fontWeight: 400,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {option.maxFee} {symbol} / $
+                    {returnNumWithTwoDecimals(
+                      Number(option.maxFee || 0) * networkPrice,
+                      "0"
+                    )}{" "}
+                    USD
+                  </Typography>
+                </Stack>
+              ))}
+            </Popover>
+          </>
+        );
+      }}
     />
   );
 };

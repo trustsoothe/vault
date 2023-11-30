@@ -5,9 +5,14 @@ import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
-import useDidMountEffect from "../../hooks/useDidMountEffect";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { IAsset, toggleAssetOfAccount } from "../../redux/slices/app";
+import { selectedAccountIdSelector } from "../../redux/selectors/account";
+import { assetAlreadyIncludedSelector } from "../../redux/selectors/asset";
+import {
+  selectedChainSelector,
+  selectedProtocolSelector,
+} from "../../redux/selectors/network";
 
 interface AssetItemProps {
   asset: IAsset;
@@ -16,11 +21,9 @@ interface AssetItemProps {
 const AssetItem: React.FC<AssetItemProps> = ({ asset }) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const selectedAccountId = useAppSelector(
-    (state) => state.app.selectedAccountByNetwork[state.app.selectedNetwork]
-  );
-  const assetAlreadyIncluded = useAppSelector((state) =>
-    state.app.assetsIdByAccountId[selectedAccountId]?.includes(asset?.id)
+  const selectedAccountId = useAppSelector(selectedAccountIdSelector);
+  const assetAlreadyIncluded = useAppSelector(
+    assetAlreadyIncludedSelector(asset)
   );
 
   const toggleAssetIncluded = useCallback(() => {
@@ -36,7 +39,7 @@ const AssetItem: React.FC<AssetItemProps> = ({ asset }) => {
 
   return (
     <Stack
-      height={30}
+      height={35}
       paddingX={1}
       borderRadius={"4px"}
       boxSizing={"border-box"}
@@ -61,7 +64,7 @@ const AssetItem: React.FC<AssetItemProps> = ({ asset }) => {
           letterSpacing={"0.5px"}
           lineHeight={"30px"}
         >
-          {asset.label || asset.symbol}
+          {asset.symbol}
         </Typography>
       </Stack>
       <Button
@@ -92,13 +95,9 @@ const EditAssetsSelectionModal: React.FC<EditAssetsSelectionModalProps> = ({
 }) => {
   const theme = useTheme();
   const [stillShowModal, setStillShowModal] = useState(false);
-  const selectedProtocol = useAppSelector((state) => state.app.selectedNetwork);
-  const selectedChain = useAppSelector(
-    (state) => state.app.selectedChainByNetwork[selectedProtocol]
-  );
-  const selectedAccountId = useAppSelector(
-    (state) => state.app.selectedAccountByNetwork[selectedProtocol]
-  );
+  const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const selectedChain = useAppSelector(selectedChainSelector);
+  const selectedAccountId = useAppSelector(selectedAccountIdSelector);
   const assets = useAppSelector((state) => state.app.assets);
 
   const assetsOfNetwork = useMemo(() => {
@@ -108,7 +107,7 @@ const EditAssetsSelectionModal: React.FC<EditAssetsSelectionModalProps> = ({
     );
   }, [assets, selectedProtocol, selectedChain]);
 
-  useDidMountEffect(() => {
+  useEffect(() => {
     onClose();
   }, [selectedAccountId]);
 
@@ -159,7 +158,7 @@ const EditAssetsSelectionModal: React.FC<EditAssetsSelectionModalProps> = ({
         >
           <Stack spacing={1}>
             {title}
-            <Stack spacing={1} overflow={"auto"} maxHeight={400}>
+            <Stack spacing={1.3} overflow={"auto"} maxHeight={400}>
               {!assetsOfNetwork.length ? (
                 <Stack
                   flexGrow={1}

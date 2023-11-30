@@ -1,7 +1,5 @@
 import type { SerializedSession } from "@poktscan/keyring";
-import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
@@ -11,16 +9,16 @@ import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import { SITES_PAGE } from "../../constants/routes";
 import { enqueueSnackbar } from "../../utils/ui";
+import { useAppSelector } from "../../hooks/redux";
+import { sessionsSelector } from "../../redux/selectors/session";
 
-interface DisconnectSiteProps {
-  sessions: SerializedSession[];
-}
-
-const DisconnectSite: React.FC<DisconnectSiteProps> = ({ sessions }) => {
+const DisconnectSite: React.FC = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   const [session, setSession] = useState<SerializedSession>(null);
+
+  const sessions = useAppSelector(sessionsSelector);
 
   const onCancel = useCallback(() => {
     if (location.key !== "default") {
@@ -111,8 +109,4 @@ const DisconnectSite: React.FC<DisconnectSiteProps> = ({ sessions }) => {
   }, [status, disconnect, session, onCancel]);
 };
 
-const mapStateToProps = (state: RootState) => ({
-  sessions: state.vault.entities.sessions.list,
-});
-
-export default connect(mapStateToProps)(DisconnectSite);
+export default DisconnectSite;

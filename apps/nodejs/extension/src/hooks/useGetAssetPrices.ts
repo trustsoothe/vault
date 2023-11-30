@@ -1,7 +1,14 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useAppSelector } from "./redux";
-import useDidMountEffect from "./useDidMountEffect";
 import { useLazyGetAssetPricesQuery } from "../redux/slices/prices";
+import {
+  selectedChainSelector,
+  selectedProtocolSelector,
+} from "../redux/selectors/network";
+import {
+  assetsIdByAccountIdSelector,
+  assetsSelector,
+} from "../redux/selectors/asset";
 
 export interface UseGetAssetPricesResult {
   data: Record<string, number>;
@@ -14,14 +21,10 @@ export interface UseGetAssetPricesResult {
 const useGetAssetPrices = (
   fetchAutomatically = true
 ): UseGetAssetPricesResult => {
-  const selectedProtocol = useAppSelector((state) => state.app.selectedNetwork);
-  const selectedChain = useAppSelector(
-    (state) => state.app.selectedChainByNetwork[selectedProtocol]
-  );
-  const assets = useAppSelector((state) => state.app.assets);
-  const assetsIdByAccountId = useAppSelector(
-    (state) => state.app.assetsIdByAccountId
-  );
+  const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const selectedChain = useAppSelector(selectedChainSelector);
+  const assets = useAppSelector(assetsSelector);
+  const assetsIdByAccountId = useAppSelector(assetsIdByAccountIdSelector);
 
   const currentPlatform = useAppSelector(
     (state) =>
@@ -66,7 +69,7 @@ const useGetAssetPrices = (
     }
   }, [currentPlatform, contractAddressToFetch]);
 
-  useDidMountEffect(() => {
+  useEffect(() => {
     if (!fetchAutomatically) return;
 
     const unsubscribe = fetchAssetPricesMemoized()?.unsubscribe;

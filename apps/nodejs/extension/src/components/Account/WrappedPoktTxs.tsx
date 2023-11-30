@@ -1,5 +1,6 @@
 import type { ExternalTransferState } from "../Transfer";
 import type { AmountStatus } from "../Transfer/Form/AmountFeeInputs";
+import orderBy from "lodash/orderBy";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Skeleton from "@mui/material/Skeleton";
@@ -10,16 +11,34 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import { type SxProps, useTheme } from "@mui/material";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { type PocketNetworkFee, SupportedProtocols } from "@poktscan/keyring";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import ToAddressAutocomplete from "../Transfer/Form/ToAddressAutocomplete";
 import { getTruncatedText, roundAndSeparate } from "../../utils/ui";
 import { TransferType } from "../../contexts/TransferContext";
-import useDidMountEffect from "../../hooks/useDidMountEffect";
 import OperationFailed from "../common/OperationFailed";
 import { useAppSelector } from "../../hooks/redux";
 import { TRANSFER_PAGE } from "../../constants/routes";
+import TooltipOverflow from "../common/TooltipOverflow";
+import {
+  explorerAccountUrlForWpoktSelector,
+  explorerTransactionUrlSelector,
+  selectedChainSelector,
+  selectedProtocolSelector,
+} from "../../redux/selectors/network";
+import {
+  wPoktAssetSelector,
+  wPoktBaseUrlSelector,
+  wPoktVaultAddressSelector,
+} from "../../redux/selectors/asset";
+import { wPoktBalanceSelector } from "../../redux/selectors/account";
 
 export enum Status {
   PENDING = "pending",
@@ -99,7 +118,7 @@ const formatDate = (date: Date) => {
   const hour = addZeroIfOnlyOneDigit(date.getHours());
   const minutes = addZeroIfOnlyOneDigit(date.getMinutes());
 
-  return `${year}/${month}/${day} ${hour}:${minutes}`;
+  return `${month}/${day}/${year} ${hour}:${minutes}`;
 };
 
 const TransactionItemContainer: React.FC<{ children: React.ReactNode }> = ({
@@ -121,6 +140,11 @@ const TransactionItemContainer: React.FC<{ children: React.ReactNode }> = ({
           textAlign: "center",
           letterSpacing: "0.5px",
         },
+        "& .MuiBox-root": {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        },
       }}
       boxSizing={"border-box"}
       borderBottom={`1px solid ${theme.customColors.dark15}`}
@@ -130,86 +154,28 @@ const TransactionItemContainer: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-const TransactionItem: React.FC<{ tx: Transaction; action: Action }> = ({
+interface TransactionItemProps {
+  tx: Transaction;
+  action: Action;
+  txAllowedToMint?: string;
+}
+
+const TransactionItem: React.FC<TransactionItemProps> = ({
   tx,
   action,
+  txAllowedToMint,
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const explorerTransactionUrl = useAppSelector((state) => {
-    const selectedNetwork = state.app.selectedNetwork;
-    const selectedChain = state.app.selectedChainByNetwork[selectedNetwork];
-
-    const expectedProtocol: SupportedProtocols =
-      selectedNetwork === SupportedProtocols.Ethereum
-        ? SupportedProtocols.Pocket
-        : SupportedProtocols.Ethereum;
-    const expectedChain =
-      selectedNetwork === SupportedProtocols.Ethereum
-        ? selectedChain === "1"
-          ? "mainnet"
-          : "testnet"
-        : selectedChain === "mainnet"
-        ? "1"
-        : "5";
-
-    return state.app.networks.find(
-      (network) =>
-        network.protocol === expectedProtocol &&
-        network.chainId === expectedChain
-    )?.explorerTransactionUrl;
-  });
-  const explorerAccountUrl = useAppSelector((state) => {
-    const selectedNetwork = state.app.selectedNetwork;
-    const selectedChain = state.app.selectedChainByNetwork[selectedNetwork];
-
-    if (selectedNetwork === SupportedProtocols.Pocket) {
-      const assetChain = selectedChain === "mainnet" ? "1" : "5";
-
-      const asset = state.app.assets.find(
-        (item) =>
-          item.protocol === SupportedProtocols.Ethereum &&
-          item.chainId === assetChain &&
-          item.symbol === "wPOKT"
-      );
-
-      return state.app.networks
-        .find(
-          (network) =>
-            network.protocol === SupportedProtocols.Ethereum &&
-            network.chainId === assetChain
-        )
-        ?.explorerAccountWithAssetUrl?.replace(
-          ":contractAddress",
-          asset?.contractAddress
-        );
-    }
-
-    const expectedChain = selectedChain === "1" ? "mainnet" : "testnet";
-
-    return state.app.networks.find(
-      (network) =>
-        network.protocol === SupportedProtocols.Pocket &&
-        network.chainId === expectedChain
-    )?.explorerAccountUrl;
-  });
-
-  const wPoktAsset = useAppSelector((state) =>
-    state.app.assets.find(
-      (asset) =>
-        asset.symbol === "wPOKT" &&
-        asset.protocol === state.app.selectedNetwork &&
-        asset.chainId ===
-          state.app.selectedChainByNetwork[state.app.selectedNetwork]
-    )
-  );
+  const explorerTransactionUrl = useAppSelector(explorerTransactionUrlSelector);
+  const explorerAccountUrl = useAppSelector(explorerAccountUrlForWpoktSelector);
+  const wPoktAsset = useAppSelector(wPoktAssetSelector);
 
   const onClickMint = useCallback(() => {
     const state: ExternalTransferState = {
       asset: wPoktAsset,
       transferType: TransferType.mint,
       transferData: {
-        fromAddress: address,
         amount: "",
         toAddress: "",
         signatures: (tx as MintTransaction).signatures,
@@ -222,8 +188,7 @@ const TransactionItem: React.FC<{ tx: Transaction; action: Action }> = ({
   const dateCreated = new Date(tx.created_at);
   const createdAt = formatDate(dateCreated);
 
-  const address = tx.recipient_address;
-  const accountUrl = explorerAccountUrl?.replace(":address", address);
+  const accountUrl = explorerAccountUrl?.replace(":address", tx.sender_address);
 
   const transactionHash =
     action === "burns"
@@ -236,30 +201,57 @@ const TransactionItem: React.FC<{ tx: Transaction; action: Action }> = ({
   );
   return (
     <TransactionItemContainer>
-      <Typography
-        width={77}
-        sx={{ textAlign: "left!important", whiteSpace: "nowrap" }}
-      >
-        {createdAt}
-      </Typography>
-      <Typography
-        width={50}
-        sx={{
-          color: theme.customColors.primary500,
-          fontWeight: 500,
+      <TooltipOverflow
+        text={createdAt}
+        containerProps={{
+          width: 77,
+          minWidth: 77,
         }}
-        component={"a"}
-        href={accountUrl}
-        target={"_blank"}
-      >
-        {getTruncatedText(address, 3)}
-      </Typography>
-      <Typography width={65}>
-        {roundAndSeparate(Number(tx.amount) / 1e6, 2, "0")}
-      </Typography>
-      <Typography width={40} sx={{ textTransform: "capitalize" }}>
-        {action === "burns" ? tx.status : (tx as MintTransaction).nonce}
-      </Typography>
+        textProps={{
+          sx: {
+            textAlign: "left!important",
+          },
+        }}
+      />
+      <TooltipOverflow
+        text={getTruncatedText(tx.sender_address, 3)}
+        containerProps={{
+          width: 50,
+          minWidth: 50,
+        }}
+        textProps={{
+          sx: {
+            color: theme.customColors.primary500,
+            fontWeight: 500,
+            textAlign: "left!important",
+          },
+        }}
+        linkProps={{
+          href: accountUrl,
+          target: "_blank",
+          sx: {
+            textDecoration: "underline",
+            cursor: "pointer",
+          },
+        }}
+      />
+      <TooltipOverflow
+        text={roundAndSeparate(Number(tx.amount) / 1e6, 2, "0")}
+        containerProps={{
+          width: 65,
+          minWidth: 65,
+        }}
+      />
+      <TooltipOverflow
+        text={action === "burns" ? tx.status : (tx as MintTransaction).nonce}
+        textProps={{
+          textTransform: "capitalize",
+        }}
+        containerProps={{
+          width: 40,
+          minWidth: 40,
+        }}
+      />
       {tx.status === Status.SIGNED && action === "mints" ? (
         <Button
           variant={"contained"}
@@ -273,29 +265,42 @@ const TransactionItem: React.FC<{ tx: Transaction; action: Action }> = ({
             fontWeight: 500,
             textTransform: "capitalize",
           }}
+          disabled={tx._id !== txAllowedToMint}
           onClick={onClickMint}
         >
           {action.replace("s", "")}
         </Button>
       ) : (
-        <Typography
-          width={60}
-          maxWidth={60}
-          minWidth={60}
-          {...(tx.status === Status.SUCCESS && {
-            sx: {
-              color: theme.customColors.primary500,
-              fontWeight: 500,
-            },
-            component: "a",
-            href: transactionLink,
-            target: "_blank",
-          })}
-        >
-          {tx.status === Status.SUCCESS
-            ? getTruncatedText(transactionHash).toLowerCase()
-            : "-"}
-        </Typography>
+        <TooltipOverflow
+          text={
+            tx.status === Status.SUCCESS
+              ? getTruncatedText(transactionHash, 3).toLowerCase()
+              : "-"
+          }
+          containerProps={{
+            width: 60,
+            minWidth: 60,
+          }}
+          textProps={{
+            ...(tx.status === Status.SUCCESS && {
+              sx: {
+                color: theme.customColors.primary500,
+                fontWeight: 500,
+              },
+            }),
+          }}
+          linkProps={{
+            ...(tx.status === Status.SUCCESS && {
+              component: "a",
+              href: transactionLink,
+              target: "_blank",
+              sx: {
+                textDecoration: "underline",
+                cursor: "pointer",
+              },
+            }),
+          }}
+        />
       )}
     </TransactionItemContainer>
   );
@@ -357,26 +362,11 @@ const TransferForm: React.FC<TransferFormProps> = ({
   const [poktFeeStatus, setPoktFeeStatus] =
     useState<AmountStatus>("not-fetched");
 
-  const selectedProtocol = useAppSelector((state) => state.app.selectedNetwork);
-  const selectedChain = useAppSelector(
-    (state) => state.app.selectedChainByNetwork[selectedProtocol]
-  );
-  const wPoktAsset = useAppSelector((state) =>
-    state.app.assets.find(
-      (asset) =>
-        asset.symbol === "wPOKT" &&
-        asset.protocol === selectedProtocol &&
-        asset.chainId === selectedChain
-    )
-  );
-  const wPoktVaultAddress = useAppSelector((state) => {
-    return state.app.assets.find(
-      (asset) =>
-        asset.symbol === "wPOKT" &&
-        asset.protocol === SupportedProtocols.Ethereum &&
-        asset.chainId === (selectedChain === "mainnet" ? "1" : "5")
-    )?.vaultAddress;
-  });
+  const selectedChain = useAppSelector(selectedChainSelector);
+  const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const wPoktAsset = useAppSelector(wPoktAssetSelector);
+
+  const wPoktVaultAddress = useAppSelector(wPoktVaultAddressSelector);
 
   const methods = useForm<FormValues>({
     defaultValues: {
@@ -391,7 +381,7 @@ const TransferForm: React.FC<TransferFormProps> = ({
   });
   const { setValue, clearErrors, handleSubmit } = methods;
 
-  useDidMountEffect(() => {
+  useEffect(() => {
     if (selectedProtocol === SupportedProtocols.Pocket) {
       setPoktFeeStatus("loading");
       AppToBackground.getNetworkFee({
@@ -430,31 +420,7 @@ const TransferForm: React.FC<TransferFormProps> = ({
     [address, action, wPoktAsset, wPoktVaultAddress]
   );
 
-  const balance: number = useAppSelector((state) => {
-    const selectedAccountId =
-      state.app.selectedAccountByNetwork[selectedProtocol];
-    const selectedChain = state.app.selectedChainByNetwork[selectedProtocol];
-
-    const chainBalanceMap =
-      state.app.accountBalances?.[selectedProtocol]?.[selectedChain];
-    const accountAddress = state.vault.entities.accounts.list.find(
-      (account) => account.id === selectedAccountId
-    )?.address;
-
-    if (selectedProtocol === SupportedProtocols.Pocket) {
-      return chainBalanceMap?.[accountAddress]?.amount || 0;
-    } else {
-      const assetContractAddress = state.app.assets.find(
-        (asset) =>
-          asset.symbol === "wPOKT" &&
-          asset.protocol === selectedProtocol &&
-          asset.chainId === selectedChain
-      )?.contractAddress;
-      return (
-        chainBalanceMap?.[assetContractAddress]?.[accountAddress]?.amount || 0
-      );
-    }
-  });
+  const balance: number = useAppSelector(wPoktBalanceSelector);
 
   const minAmount = useAppSelector((state) => {
     if (selectedProtocol === SupportedProtocols.Pocket) {
@@ -489,7 +455,7 @@ const TransferForm: React.FC<TransferFormProps> = ({
       setValue("amount", (transferFromBalance || "").toString());
       clearErrors("amount");
     }
-  }, [balance, setValue, clearErrors]);
+  }, [balance, setValue, clearErrors, poktFee]);
 
   return (
     <Stack
@@ -656,7 +622,6 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
   const theme = useTheme();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<
     "loading" | "normal" | "error"
   >("loading");
@@ -666,33 +631,16 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
     setPage(1);
   }, [action, address]);
 
-  const baseUrl = useAppSelector((state) => {
-    const selectedChain =
-      state.app.selectedChainByNetwork[state.app.selectedNetwork];
-    if (action === "burns") {
-      return selectedChain === "1"
-        ? MAINNET_BASE_API_URL
-        : TESTNET_BASE_API_URL;
-    } else {
-      return selectedChain === "mainnet"
-        ? MAINNET_BASE_API_URL
-        : TESTNET_BASE_API_URL;
-    }
-  });
+  const baseUrl = useAppSelector(wPoktBaseUrlSelector(action));
 
   const abortControllerRef = useRef<AbortController>(null);
 
   const fetchTransactions = useCallback(() => {
     abortControllerRef.current = new AbortController();
     setFetchStatus("loading");
-    fetch(
-      `${baseUrl}/${action}/all?page=${page}&${
-        action === "burns" ? "sender" : "recipient"
-      }=${address}`,
-      {
-        signal: abortControllerRef.current.signal,
-      }
-    )
+    fetch(`${baseUrl}/${action}/all?page=${page}&recipient=${address}`, {
+      signal: abortControllerRef.current.signal,
+    })
       .then((res) => res.json())
       .then((json: Response) => {
         let items: Transaction[];
@@ -703,18 +651,15 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
         }
 
         setTransactions((prevState) => [...prevState, ...items]);
-        const hasNextPage = json.totalPages > page;
-        setHasNextPage(hasNextPage);
         setFetchStatus("normal");
       })
-      .catch((e) => {
-        console.log(e);
+      .catch(() => {
         setFetchStatus("error");
       })
       .finally(() => (abortControllerRef.current = null));
   }, [action, page, address]);
 
-  useDidMountEffect(() => {
+  useEffect(() => {
     fetchTransactions();
     return () => {
       if (abortControllerRef.current) {
@@ -722,6 +667,23 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
       }
     };
   }, [fetchTransactions]);
+
+  const txAllowedToMint = useMemo(() => {
+    if (action === "burns") return null;
+
+    return (
+      orderBy(
+        transactions
+          .filter((tx) => tx.status === Status.SIGNED)
+          .map((tx: MintTransaction) => ({
+            ...tx,
+            nonce: Number(tx.nonce),
+          })),
+        ["nonce"],
+        ["asc"]
+      )[0]?._id || null
+    );
+  }, [action, transactions]);
 
   return (
     <Stack spacing={1} marginX={-0.5} marginTop={showForm ? 1.5 : 2.2}>
@@ -766,19 +728,33 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
           bgcolor={theme.customColors.dark2}
           borderBottom={`1px solid ${theme.customColors.dark15}`}
         >
-          <Typography width={77} sx={{ textAlign: "left!important" }}>
+          <Typography
+            width={77}
+            minWidth={77}
+            sx={{ textAlign: "left!important" }}
+          >
             Created at
           </Typography>
-          <Typography width={50}>Recipient</Typography>
-          <Typography width={65}>Amount</Typography>
-          <Typography width={40}>
+          <Typography width={50} minWidth={50}>
+            Sender
+          </Typography>
+          <Typography width={65} minWidth={65}>
+            Amount
+          </Typography>
+          <Typography width={40} minWidth={40}>
             {action === "burns" ? "Status" : "Nonce"}
           </Typography>
-          <Typography width={60} textAlign={"right"}>
-            Return TX
+          <Typography width={60} minWidth={60} textAlign={"right"}>
+            {action === "burns" ? "Return TX" : "Mint TX"}
           </Typography>
         </Stack>
-        <Stack overflow={"auto"} width={370}>
+        <Stack
+          width={370}
+          sx={{
+            overflowY: fetchStatus === "loading" ? "hidden" : "auto",
+            overflowX: "hidden",
+          }}
+        >
           {fetchStatus === "error" ? (
             <OperationFailed
               text={"Transactions load failed."}
@@ -799,28 +775,19 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
           ) : (
             <>
               {transactions.map((item) => (
-                <TransactionItem tx={item} key={item._id} action={action} />
+                <TransactionItem
+                  tx={item}
+                  key={item._id}
+                  action={action}
+                  txAllowedToMint={txAllowedToMint}
+                />
               ))}
-              {fetchStatus === "loading" ? (
+              {fetchStatus === "loading" &&
                 new Array(5)
                   .fill(null)
                   .map((_, index) => (
                     <TransactionSkeleton action={action} key={index} />
-                  ))
-              ) : (
-                <Stack
-                  alignItems={"center"}
-                  justifyContent={"center"}
-                  display={hasNextPage ? "flex" : "none"}
-                >
-                  <Button
-                    onClick={() => setPage((prevState) => prevState + 1)}
-                    sx={{ fontSize: 12, width: 80 }}
-                  >
-                    Load More
-                  </Button>
-                </Stack>
-              )}
+                  ))}
             </>
           )}
         </Stack>

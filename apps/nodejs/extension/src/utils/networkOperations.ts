@@ -9,13 +9,10 @@ import {
   EthereumNetworkFeeRequestOptions,
   IAsset,
   INetwork,
-  INetworkOptions,
-  Network,
   ProtocolServiceFactory,
   SupportedProtocols,
 } from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
-import { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 
 const isPocketAddress = (address: string) => {
   return address.match(/^[0-9a-fA-F]+$/g) && new Blob([address]).size === 40;
@@ -42,12 +39,8 @@ export const isValidPrivateKey = (
 
 interface GetFeeParam<T extends SupportedProtocols = SupportedProtocols> {
   protocol: T;
-  chainId: ChainID<T>;
-  networks: (INetwork & {
-    isPreferred?: boolean;
-    isDefault: boolean;
-    id: string;
-  })[];
+  chainId: string;
+  networks: NetworkForOperations[];
   errorsPreferredNetwork?: ErrorsPreferredNetwork;
   options: T extends SupportedProtocols.Ethereum
     ? EthereumNetworkFeeRequestOptions
@@ -107,15 +100,17 @@ export const getFee = async ({
   return { fee, networksWithErrors };
 };
 
+export interface NetworkForOperations extends INetwork {
+  isPreferred?: boolean;
+  isDefault: boolean;
+  id: string;
+}
+
 interface GetAccountBalanceParam {
   address: string;
   protocol: SupportedProtocols;
   chainId: string;
-  networks: (INetwork & {
-    isPreferred?: boolean;
-    isDefault: boolean;
-    id: string;
-  })[];
+  networks: NetworkForOperations[];
   errorsPreferredNetwork?: ErrorsPreferredNetwork;
   asset?: { contractAddress: string; decimals: number };
 }
@@ -207,12 +202,8 @@ export const getAccountBalance = async ({
   };
 };
 
-export const isNetworkUrlHealthy = async (
-  networkOpts: INetworkOptions<SupportedProtocols>
-) => {
+export const isNetworkUrlHealthy = async (network: INetwork) => {
   try {
-    const network = new Network(networkOpts);
-
     const ProtocolService = ProtocolServiceFactory.getProtocolService(
       network.protocol,
       new WebEncryptionService()

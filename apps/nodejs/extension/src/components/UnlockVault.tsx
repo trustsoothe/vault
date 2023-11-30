@@ -1,11 +1,8 @@
-import type { RootState } from "../redux/store";
-import type { RequestsType } from "../redux/slices/app";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import { connect } from "react-redux";
 import { useTheme } from "@mui/material";
 import AppToBackground from "../controllers/communication/AppToBackground";
 import CircularLoading from "./common/CircularLoading";
@@ -15,20 +12,15 @@ import SootheLogoHeader from "./common/SootheLogoHeader";
 import RememberPasswordCheckbox from "./common/RememberPassword";
 import { OperationRejected } from "../errors/communication";
 import { removeRequestWithRes } from "../utils/ui";
-import { useAppDispatch } from "../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import Requester from "./common/Requester";
+import {
+  currentExternalRequest,
+  externalRequestsLengthSelector,
+  vaultLockedForWrongPasswordsSelector,
+} from "../redux/selectors/session";
 
-interface UnlockVaultProps {
-  currentRequest?: RequestsType;
-  lockedForWrongPasswords: boolean;
-  externalRequestsLength: number;
-}
-
-const UnlockVault: React.FC<UnlockVaultProps> = ({
-  currentRequest,
-  lockedForWrongPasswords,
-  externalRequestsLength,
-}) => {
+const UnlockVault: React.FC = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
@@ -44,6 +36,12 @@ const UnlockVault: React.FC<UnlockVaultProps> = ({
   const [rememberPass, setRememberPass] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [wrongPassword, setWrongPassword] = useState(false);
+
+  const currentRequest = useAppSelector(currentExternalRequest);
+  const externalRequestsLength = useAppSelector(externalRequestsLengthSelector);
+  const lockedForWrongPasswords = useAppSelector(
+    vaultLockedForWrongPasswordsSelector
+  );
 
   useEffect(() => {
     setIsRequesting(window.location.search.includes("view=request"));
@@ -266,17 +264,4 @@ const UnlockVault: React.FC<UnlockVaultProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => {
-  const requests = state.app.externalRequests;
-  const currentRequest = requests.length ? requests[0] : null;
-  const lockedForWrongPasswords =
-    state.vault.isUnlockedStatus === "locked_due_wrong_password";
-
-  return {
-    currentRequest,
-    lockedForWrongPasswords,
-    externalRequestsLength: requests.length,
-  };
-};
-
-export default connect(mapStateToProps)(UnlockVault);
+export default UnlockVault;

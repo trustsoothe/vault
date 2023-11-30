@@ -1,5 +1,4 @@
-import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
-import type { RootState } from "../../redux/store";
+import type { CustomRPC } from "../../redux/slices/app";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -10,34 +9,29 @@ import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
-import { connect } from "react-redux";
-import { SupportedProtocols, SerializedNetwork } from "@poktscan/keyring";
-import { useAppDispatch } from "../../hooks/redux";
-import { NETWORKS_PAGE } from "../../constants/routes";
-import CircularLoading from "../common/CircularLoading";
-import { saveNetwork } from "../../redux/slices/vault";
-import {
-  chainIDsByProtocol,
-  labelByChainID,
-  labelByProtocolMap,
-} from "../../constants/protocols";
+import { SupportedProtocols } from "@poktscan/keyring";
 import { enqueueSnackbar } from "../../utils/ui";
+import { RPC_ALREADY_EXISTS } from "../../errors/rpc";
+import { NETWORKS_PAGE } from "../../constants/routes";
 import OperationFailed from "../common/OperationFailed";
+import CircularLoading from "../common/CircularLoading";
+import { labelByProtocolMap } from "../../constants/protocols";
+import { saveCustomRpc } from "../../redux/slices/app/network";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { isNetworkUrlHealthy } from "../../utils/networkOperations";
+import { customRpcsSelector } from "../../redux/selectors/network";
 
 interface FormValues {
-  name: string;
-  rpcUrl: string;
+  url: string;
   protocol: SupportedProtocols;
-  chainID: ChainID<SupportedProtocols>;
+  chainId: string;
   isPreferred: boolean;
 }
 
 const defaultFormValues: FormValues = {
-  name: "",
-  rpcUrl: "",
+  url: "",
   protocol: SupportedProtocols.Pocket,
-  chainID: "mainnet",
+  chainId: "mainnet",
   isPreferred: false,
 };
 
@@ -47,37 +41,25 @@ const protocols: { protocol: SupportedProtocols; label: string }[] =
     label: labelByProtocolMap[protocol],
   }));
 
-interface AddUpdateNetworkProps {
-  networks: SerializedNetwork[];
-}
-
-const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
+const AddUpdateNetwork: React.FC = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [networkToUpdate, setNetworkToUpdate] =
-    useState<SerializedNetwork>(null);
+  const [rpcToUpdate, setRpcToUpdate] = useState<CustomRPC>(null);
   const [status, setStatus] = useState<
-    "normal" | "loading" | "error" | "invalid_url"
+    "normal" | "loading" | "error" | "invalid_url" | "already_exists"
   >("normal");
-  const {
-    register,
-    handleSubmit,
-    formState,
-    control,
-    reset,
-    watch,
-    setValue,
-    setFocus,
-  } = useForm<FormValues>({
-    defaultValues: { ...defaultFormValues },
-  });
+  const { register, handleSubmit, control, reset, watch, setValue, setFocus } =
+    useForm<FormValues>({
+      defaultValues: { ...defaultFormValues },
+    });
 
   const selectedProtocol = watch("protocol");
+  const customRpcs = useAppSelector(customRpcsSelector);
 
   useEffect(() => {
-    setValue("chainID", null);
+    setValue("chainId", null);
   }, [selectedProtocol]);
 
   const onCancel = useCallback(() => {
@@ -86,39 +68,38 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
 
   useEffect(() => {
     const id = searchParams.get("id");
-    const networkFromStore = networks.find(
-      (item) => item.id === id && !item.isDefault
-    );
-    if (networkFromStore && networkToUpdate?.id !== id) {
-      setNetworkToUpdate(networkFromStore);
+    const rpcFromStore = customRpcs.find((item) => item.id === id);
+    if (rpcFromStore && rpcToUpdate?.id !== id) {
+      setRpcToUpdate(rpcFromStore);
       return;
     }
 
-    if (!networkFromStore) {
-      setNetworkToUpdate(null);
+    if (!rpcFromStore) {
+      setRpcToUpdate(null);
     }
-  }, [searchParams, networks]);
+  }, [searchParams, customRpcs]);
 
   useEffect(() => {
-    if (networkToUpdate) {
+    if (rpcToUpdate) {
       reset({
-        name: networkToUpdate.name,
-        rpcUrl: networkToUpdate.rpcUrl,
-        protocol: networkToUpdate.protocol,
-        isPreferred: networkToUpdate.isPreferred || false,
+        url: rpcToUpdate.url,
+        protocol: rpcToUpdate.protocol,
+        chainId: rpcToUpdate.chainId,
+        isPreferred: rpcToUpdate.isPreferred || false,
       });
     }
-  }, [networkToUpdate]);
+  }, [rpcToUpdate]);
 
   const onSubmit = useCallback(
     async (data: FormValues) => {
       setStatus("loading");
 
-      if (
-        !networkToUpdate ||
-        (networkToUpdate && networkToUpdate.rpcUrl !== data.rpcUrl)
-      ) {
-        const isHealthy = await isNetworkUrlHealthy(data);
+      if (!rpcToUpdate || (rpcToUpdate && rpcToUpdate.url !== data.url)) {
+        const isHealthy = await isNetworkUrlHealthy({
+          protocol: data.protocol,
+          chainID: data.chainId as any,
+          rpcUrl: data.url,
+        });
 
         if (!isHealthy) {
           setStatus("invalid_url");
@@ -126,42 +107,51 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
         }
       }
 
-      let id: string;
-
-      if (networkToUpdate) {
-        id = networkToUpdate.id;
-      }
-
       dispatch(
-        saveNetwork({
-          id,
-          options: data,
+        saveCustomRpc({
+          idToReplace: rpcToUpdate?.id,
+          rpc: {
+            protocol: data.protocol,
+            chainId: data.chainId,
+            url: data.url,
+            isPreferred: data.isPreferred,
+          },
         })
       )
         .unwrap()
         .then(() => {
           enqueueSnackbar({
             message: `Network ${
-              networkToUpdate ? "updated" : "added"
+              rpcToUpdate ? "updated" : "added"
             } successfully.`,
             variant: "success",
           });
 
           navigate(`${NETWORKS_PAGE}?tab=customs`);
         })
-        .catch(() => setStatus("error"));
+        .catch((error) => {
+          if (error?.name === RPC_ALREADY_EXISTS.name) {
+            setStatus("already_exists");
+          } else {
+            setStatus("error");
+          }
+        });
     },
-    [networkToUpdate, navigate]
+    [rpcToUpdate, navigate]
   );
 
   const onClickOk = useCallback(() => {
     setStatus("normal");
-    setTimeout(() => setFocus("rpcUrl", { shouldSelect: true }), 25);
+    setTimeout(() => setFocus("url", { shouldSelect: true }), 25);
   }, [setFocus]);
 
-  const chainIDs: string[] = useMemo(() => {
-    return chainIDsByProtocol[selectedProtocol] || [];
-  }, [selectedProtocol]);
+  const allNetworks = useAppSelector((state) => state.app.networks);
+
+  const networksOfProtocol = useMemo(() => {
+    return allNetworks.filter(
+      (network) => network.protocol === selectedProtocol
+    );
+  }, [selectedProtocol, allNetworks]);
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -177,12 +167,15 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
       );
     }
 
-    if (status === "invalid_url") {
+    if (status === "invalid_url" || status === "already_exists") {
+      const text =
+        status === "invalid_url"
+          ? "The provided RPC Url is not valid. Please introduce a valid one."
+          : "The provided RPC already exists. Please introduce another one.";
+
       return (
         <OperationFailed
-          text={
-            "The provided RPC Url is not valid. Please introduce a valid one."
-          }
+          text={text}
           onCancel={onCancel}
           retryBtnText={"Ok"}
           retryBtnProps={{
@@ -192,8 +185,6 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
         />
       );
     }
-
-    const { errors } = formState;
 
     return (
       <Stack
@@ -205,15 +196,6 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
         paddingTop={2}
       >
         <Stack spacing={1.5}>
-          <TextField
-            autoFocus
-            size={"small"}
-            autoComplete={"off"}
-            label={"Name"}
-            {...register("name", { required: "Required" })}
-            error={!!errors?.name}
-            helperText={errors?.name?.message}
-          />
           <Controller
             name={"protocol"}
             control={control}
@@ -242,7 +224,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
             )}
           />
           <Controller
-            name={"chainID"}
+            name={"chainId"}
             control={control}
             rules={{ required: "Required" }}
             render={({ field, fieldState: { error } }) => (
@@ -250,7 +232,7 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
                 size={"small"}
                 autoComplete={"off"}
                 label={"ChainID"}
-                disabled={!selectedProtocol || !chainIDs?.length}
+                disabled={!selectedProtocol || !networksOfProtocol?.length}
                 select
                 {...field}
                 error={!!error}
@@ -261,21 +243,31 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
                   },
                 }}
               >
-                {chainIDs.map((chainID) => (
-                  <MenuItem key={chainID} value={chainID}>
-                    {labelByChainID[chainID] || chainID}
+                {networksOfProtocol.map((network) => (
+                  <MenuItem key={network.chainId} value={network.chainId}>
+                    {network.chainIdLabel}
                   </MenuItem>
                 ))}
               </TextField>
             )}
           />
-          <TextField
-            size={"small"}
-            autoComplete={"off"}
-            label={"RPC Url"}
-            {...register("rpcUrl", { required: "Required" })}
-            error={!!errors?.rpcUrl}
-            helperText={errors?.rpcUrl?.message}
+          <Controller
+            name={"url"}
+            control={control}
+            rules={{ required: "Required" }}
+            render={({ field, fieldState: { error } }) => (
+              <TextField
+                size={"small"}
+                autoComplete={"off"}
+                label={"RPC Url"}
+                error={!!error}
+                helperText={error?.message}
+                InputLabelProps={{
+                  shrink: !!field.value,
+                }}
+                {...field}
+              />
+            )}
           />
           <Controller
             control={control}
@@ -342,14 +334,15 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
     );
   }, [
     status,
+    theme,
     register,
     handleSubmit,
     onSubmit,
-    formState,
     onCancel,
     selectedProtocol,
-    chainIDs,
+    networksOfProtocol,
     onClickOk,
+    control,
   ]);
 
   return (
@@ -359,8 +352,4 @@ const AddUpdateNetwork: React.FC<AddUpdateNetworkProps> = ({ networks }) => {
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  networks: state.vault.entities.networks.list,
-});
-
-export default connect(mapStateToProps)(AddUpdateNetwork);
+export default AddUpdateNetwork;

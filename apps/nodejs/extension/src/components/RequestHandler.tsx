@@ -1,5 +1,3 @@
-import type { RootState } from "../redux/store";
-import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import { Outlet, useNavigate } from "react-router-dom";
 import React, { useEffect, useMemo } from "react";
@@ -15,16 +13,13 @@ import {
   TRANSFER_PAGE,
 } from "../constants/routes";
 import SootheLogoHeader from "./common/SootheLogoHeader";
+import { useAppSelector } from "../hooks/redux";
+import { externalRequestsSelector } from "../redux/selectors/session";
 
-interface RequestHandlerProps {
-  externalRequests: RootState["app"]["externalRequests"];
-  isUnlocked: Boolean;
-}
-
-const RequestHandler: React.FC<RequestHandlerProps> = ({
-  externalRequests,
-}) => {
+const RequestHandler: React.FC = () => {
   const navigate = useNavigate();
+
+  const externalRequests = useAppSelector(externalRequestsSelector);
 
   useEffect(() => {
     if (!externalRequests.length) {
@@ -69,11 +64,4 @@ const RequestHandler: React.FC<RequestHandlerProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => {
-  return {
-    externalRequests: state.app.externalRequests,
-    isUnlocked: state.vault.isUnlockedStatus === "yes",
-  };
-};
-
-export default connect(mapStateToProps)(RequestHandler);
+export default RequestHandler;

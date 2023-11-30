@@ -4,14 +4,19 @@ import {
   IMPORT_ACCOUNT_PAGE,
   REIMPORT_SEARCH_PARAM,
 } from "../constants/routes";
+import { useAppSelector } from "./redux";
+import { existsAccountsOfSelectedProtocolSelector } from "../redux/selectors/account";
 
-const ROUTES_TO_HIDE_ACCOUNT_SELECT = [
+export const ROUTES_TO_HIDE_ACCOUNT_SELECT = [
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
 ];
 
 const useShowAccountSelect = () => {
   const location = useLocation();
+  const existsAccountsOfSelectedProtocol = useAppSelector(
+    existsAccountsOfSelectedProtocolSelector
+  );
 
   const path = location.pathname;
 
@@ -19,7 +24,10 @@ const useShowAccountSelect = () => {
     return location.search === REIMPORT_SEARCH_PARAM;
   }
 
-  return !ROUTES_TO_HIDE_ACCOUNT_SELECT.includes(path);
+  return (
+    !ROUTES_TO_HIDE_ACCOUNT_SELECT.includes(path) &&
+    existsAccountsOfSelectedProtocol
+  );
 };
 
 export default useShowAccountSelect;

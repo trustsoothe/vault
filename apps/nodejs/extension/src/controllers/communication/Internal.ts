@@ -62,28 +62,28 @@ import {
   RequestsType,
   resetRequestsState,
 } from "../../redux/slices/app";
+import { initVault, lockVault, unlockVault } from "../../redux/slices/vault";
 import {
   addNewAccount,
-  authorizeExternalSession,
+  updateAccount,
   getPrivateKeyOfAccount,
   importAccount,
   ImportAccountParam,
-  initVault,
-  lockVault,
   removeAccount,
-  revokeAllExternalSessions,
-  revokeSession,
   sendTransfer,
   SendTransferParam,
-  unlockVault,
-  updateAccount,
-} from "../../redux/slices/vault";
+} from "../../redux/slices/vault/account";
+import {
+  authorizeExternalSession,
+  revokeAllExternalSessions,
+  revokeSession,
+} from "../../redux/slices/vault/session";
 import { UnknownError } from "../../errors/communication";
 import {
   getAccountBalance,
   GetAccountBalanceParam,
 } from "../../redux/slices/app/network";
-import { getFee } from "../../utils/networkOperations";
+import { getFee, NetworkForOperations } from "../../utils/networkOperations";
 
 type MessageSender = Runtime.MessageSender;
 type UnknownErrorType = typeof UnknownError;
@@ -612,7 +612,7 @@ class InternalCommunicationController {
         ]);
 
         if (session) {
-          const accounts = store.getState().vault.entities.accounts.list;
+          const accounts = store.getState().vault.accounts;
           const addresses = accounts
             .filter((account) => selectedAccounts.includes(account.id))
             .map((account) => account.address);
@@ -1079,10 +1079,7 @@ class InternalCommunicationController {
     data: { protocol, chainId, toAddress, asset, data, from },
   }: NetworkFeeMessage): Promise<NetworkFeeResponse> {
     try {
-      const networks = store.getState().app.networks.map((item) => ({
-        ...item,
-        chainID: item.chainId,
-      }));
+      const networks = this._getNetworks();
       const errorsPreferredNetwork =
         store.getState().app.errorsPreferredNetwork;
       const result = await getFee({
@@ -1119,6 +1116,37 @@ class InternalCommunicationController {
         error: UnknownError,
       };
     }
+  }
+
+  private _getNetworks(): NetworkForOperations[] {
+    const {
+      app: { networks, customRpcs },
+    } = store.getState();
+
+    return [
+      ...networks.map(
+        (network) =>
+          ({
+            protocol: network.protocol,
+            id: network.id,
+            chainID: network.chainId,
+            isDefault: true,
+            isPreferred: false,
+            rpcUrl: network.rpcUrl,
+          } as NetworkForOperations)
+      ),
+      ...customRpcs.map(
+        (rpc) =>
+          ({
+            protocol: rpc.protocol,
+            id: rpc.id,
+            chainID: rpc.chainId,
+            isDefault: false,
+            isPreferred: rpc.isPreferred,
+            rpcUrl: rpc.url,
+          } as NetworkForOperations)
+      ),
+    ];
   }
 
   private async _updateBadgeText() {

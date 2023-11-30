@@ -10,6 +10,7 @@ import { styled, useTheme } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Divider from "@mui/material/Divider";
+import { shallowEqual } from "react-redux";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import CircularLoading from "../common/CircularLoading";
@@ -27,6 +28,12 @@ import {
 import { enqueueSnackbar } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
+import { selectedProtocolSelector } from "../../redux/selectors/network";
+import { passwordRememberedSelector } from "../../redux/selectors/session";
+import {
+  accountsSelector,
+  selectedAccountSelector,
+} from "../../redux/selectors/account";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -79,22 +86,10 @@ type FormStatus = "normal" | "loading" | "error" | "account_exists";
 const ImportAccount: React.FC = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const selectedProtocol = useAppSelector((state) => state.app.selectedNetwork);
-  const passwordRemembered = useAppSelector(
-    (state) => state.vault.passwordRemembered
-  );
-  const accounts = useAppSelector(
-    (state) => state.vault.entities.accounts.list
-  );
-  const selectedAccount = useAppSelector((state) => {
-    const selectedNetwork = state.app.selectedNetwork;
-    const selectedAccountId =
-      state.app.selectedAccountByNetwork[selectedNetwork];
-
-    return state.vault.entities.accounts.list.find(
-      (account) => account.id === selectedAccountId
-    );
-  });
+  const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const passwordRemembered = useAppSelector(passwordRememberedSelector);
+  const accounts = useAppSelector(accountsSelector);
+  const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

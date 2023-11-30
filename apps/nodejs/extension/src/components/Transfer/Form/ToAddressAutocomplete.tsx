@@ -21,6 +21,8 @@ import { SupportedProtocols } from "@poktscan/keyring";
 import { isValidAddress } from "../../../utils/networkOperations";
 import { useAppSelector } from "../../../hooks/redux";
 import { getTruncatedText } from "../../../utils/ui";
+import { accountsSelector } from "../../../redux/selectors/account";
+import { contactsSelector } from "../../../redux/selectors/contact";
 
 interface ToAddressAutocompleteProps {
   disabled?: boolean;
@@ -110,14 +112,13 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
   const [inputValue, setInputValue] = useState("");
 
   const [protocol, fromAddress] = watch(["protocol", "from"]);
-  const accounts = useAppSelector(
-    (state) => state.vault.entities.accounts.list
-  );
+  const accounts = useAppSelector(accountsSelector);
+  const contacts = useAppSelector(contactsSelector);
   const accountsWithBalance = useMemo(() => {
-    return accounts.filter(
+    return [...accounts, ...contacts].filter(
       (item) => protocol === item.protocol && item.address !== fromAddress
     );
-  }, [accounts, protocol, fromAddress]);
+  }, [accounts, protocol, fromAddress, contacts]);
 
   const accountsMap: Record<string, SerializedAccountReference> =
     useMemo(() => {
@@ -191,7 +192,7 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
               paddingLeft={1}
               paddingBottom={0.5}
             >
-              Paste the address or select an internal account.
+              Paste the address or select an internal account/contact.
             </Typography>
             {itemComponent}
           </>
@@ -228,6 +229,11 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
           if (value && value === formValues.from) {
             return "Should be different than From account";
           }
+
+          if (!isValidAddress(value, formValues.protocol)) {
+            return "Invalid address";
+          }
+
           return true;
         },
       }}

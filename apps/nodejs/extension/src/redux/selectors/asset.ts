@@ -1,0 +1,91 @@
+import type { RootState } from "../store";
+import type { IAsset } from "../slices/app";
+import { createSelector } from "@reduxjs/toolkit";
+import { SupportedProtocols } from "@poktscan/keyring";
+import { selectedAccountIdSelector } from "./account";
+import { selectedChainSelector, selectedProtocolSelector } from "./network";
+
+export const assetsSelector = createSelector(
+  (state: RootState) => state.app,
+  (app) => app.assets
+);
+
+export const assetsIdByAccountIdSelector = (state: RootState) =>
+  state.app.assetsIdByAccountId;
+
+export const assetsIdOfSelectedAccountSelector = (state: RootState) => {
+  const selectedAccountId = selectedAccountIdSelector(state);
+
+  return state.app.assetsIdByAccountId[selectedAccountId];
+};
+
+export const existsAssetsForSelectedNetworkSelector = (state: RootState) => {
+  const selectedProtocol = state.app.selectedProtocol;
+  const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];
+
+  return state.app.assets.some(
+    (asset) =>
+      asset.protocol === selectedProtocol && asset.chainId === selectedChain
+  );
+};
+
+export const assetsOfSelectedAccountSelector = createSelector(
+  selectedProtocolSelector,
+  selectedChainSelector,
+  assetsIdOfSelectedAccountSelector,
+  assetsSelector,
+  (protocol, chain, assetsOfAccount, assets) => {
+    return assets.filter(
+      (asset) =>
+        (assetsOfAccount || []).includes(asset.id) &&
+        asset.protocol === protocol &&
+        asset.chainId === chain
+    );
+  }
+);
+
+export const wPoktAssetSelector = createSelector(
+  selectedProtocolSelector,
+  selectedChainSelector,
+  assetsSelector,
+  (protocol, chainId, assets) =>
+    assets.find(
+      (asset) =>
+        asset.symbol === "wPOKT" &&
+        asset.protocol === protocol &&
+        asset.chainId === chainId
+    )
+);
+
+export const wPoktVaultAddressSelector = (state: RootState) => {
+  const selectedProtocol = state.app.selectedProtocol;
+  const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];
+
+  return state.app.assets.find(
+    (asset) =>
+      asset.symbol === "wPOKT" &&
+      asset.protocol === SupportedProtocols.Ethereum &&
+      asset.chainId === (selectedChain === "mainnet" ? "1" : "5")
+  )?.vaultAddress;
+};
+
+const MAINNET_BASE_API_URL = "https://wpokt-monitor.vercel.app/api";
+const TESTNET_BASE_API_URL = "https://testnet-wpokt-monitor.vercel.app/api";
+
+export const wPoktBaseUrlSelector = (action: string) => (state: RootState) => {
+  const selectedChain =
+    state.app.selectedChainByProtocol[state.app.selectedProtocol];
+  if (action === "mints") {
+    return selectedChain === "1" ? MAINNET_BASE_API_URL : TESTNET_BASE_API_URL;
+  } else {
+    return selectedChain === "mainnet"
+      ? MAINNET_BASE_API_URL
+      : TESTNET_BASE_API_URL;
+  }
+};
+
+export const assetAlreadyIncludedSelector = (asset?: IAsset) => (state) => {
+  const selectedAccountId = selectedAccountIdSelector(state);
+
+  return state.app.assetsIdByAccountId[selectedAccountId]?.includes(asset?.id);
+};

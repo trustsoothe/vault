@@ -16,6 +16,8 @@ import { ACCOUNTS_PAGE } from "../../constants/routes";
 import AccountAndVaultPasswords from "../common/AccountAndVaultPasswords";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
+import { selectedProtocolSelector } from "../../redux/selectors/network";
+import { passwordRememberedSelector } from "../../redux/selectors/session";
 
 interface FormValues {
   account_name: string;
@@ -44,10 +46,8 @@ type FormStatus = "normal" | "loading" | "error";
 const CreateNewAccount: React.FC = () => {
   const theme = useTheme();
 
-  const protocol = useAppSelector((state) => state.app.selectedNetwork);
-  const passwordRemembered = useAppSelector(
-    (state) => state.vault.passwordRemembered
-  );
+  const protocol = useAppSelector(selectedProtocolSelector);
+  const passwordRemembered = useAppSelector(passwordRememberedSelector);
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();

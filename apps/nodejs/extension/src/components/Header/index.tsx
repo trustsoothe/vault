@@ -1,11 +1,9 @@
-import type { RootState } from "../../redux/store";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import browser from "webextension-polyfill";
 import Stack from "@mui/material/Stack";
 import Menu from "@mui/material/Menu";
-import { connect } from "react-redux";
 import { useTheme } from "@mui/material";
 import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
@@ -20,13 +18,15 @@ import {
   ACCOUNT_PK_PAGE,
   ACCOUNTS_PAGE,
   ADD_NETWORK_PAGE,
-  ASSETS_PAGE,
   BLOCK_SITE_PAGE,
   BLOCKED_SITES_PAGE,
+  CONTACTS_PAGE,
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
+  REMOVE_CONTACT_PAGE,
   REMOVE_NETWORK_PAGE,
+  SAVE_CONTACT_PAGE,
   SITES_PAGE,
   TRANSFER_PAGE,
   UNBLOCK_SITE_PAGE,
@@ -42,32 +42,38 @@ import ImportIcon from "../../assets/img/import_icon.svg";
 import TransferIcon from "../../assets/img/transfer_menu_icon.svg";
 import SitesIcon from "../../assets/img/sites_icon.svg";
 import NetworkIcon from "../../assets/img/network_icon.svg";
-import AssetIcon from "../../assets/img/asset_icon.svg";
 import LockIcon from "../../assets/img/lock_icon.svg";
-import useShowAccountSelect from "../../hooks/useShowAccountSelect";
+import useShowAccountSelect, {
+  ROUTES_TO_HIDE_ACCOUNT_SELECT,
+} from "../../hooks/useShowAccountSelect";
+import { useAppSelector } from "../../hooks/redux";
+import { existsAccountsOfSelectedProtocolSelector } from "../../redux/selectors/account";
 
 const titleMap = {
   [ACCOUNTS_PAGE]: "Account Details",
   [ACCOUNT_PK_PAGE]: "View Private Key",
-  [ASSETS_PAGE]: "Assets",
   [CREATE_ACCOUNT_PAGE]: "Create Account",
   [IMPORT_ACCOUNT_PAGE]: "Import Account",
   [NETWORKS_PAGE]: "Networks",
-  [ADD_NETWORK_PAGE]: "New Network",
-  [UPDATE_NETWORK_PAGE]: "Edit Network",
-  [REMOVE_NETWORK_PAGE]: "Remove Network",
+  [ADD_NETWORK_PAGE]: "New RPC",
+  [UPDATE_NETWORK_PAGE]: "Edit RPC",
+  [REMOVE_NETWORK_PAGE]: "Remove RPC",
   [SITES_PAGE]: "Sites",
   [BLOCKED_SITES_PAGE]: "Blocked Sites",
   [UNBLOCK_SITE_PAGE]: "Unblock Site",
   [BLOCK_SITE_PAGE]: "Block Site",
   [TRANSFER_PAGE]: "New Transfer",
+  [CONTACTS_PAGE]: "Contacts",
+  [SAVE_CONTACT_PAGE]: "Add Contact",
+  [REMOVE_CONTACT_PAGE]: "Remove Contact",
 };
 
 const getTitle = (path: string, search: string) => {
-  if (path === IMPORT_ACCOUNT_PAGE && search.startsWith("?reimport=")) {
-    return "Reimport Account";
+  if (path === SAVE_CONTACT_PAGE) {
+    if (search.startsWith("?operation=updating")) {
+      return "Update Contact";
+    }
   }
-
   return titleMap[path] || "Soothe Wallet";
 };
 
@@ -80,19 +86,17 @@ const ROUTES_WHERE_HIDE_SELECTORS = [
   UNBLOCK_SITE_PAGE,
   BLOCK_SITE_PAGE,
   REMOVE_NETWORK_PAGE,
+  CONTACTS_PAGE,
+  REMOVE_CONTACT_PAGE,
+  SAVE_CONTACT_PAGE,
 ];
 
-interface HeaderProps {
-  accountsLength: number;
-  networksLength: number;
-  assetsLength: number;
-}
+const routesWhereAccountNotNeeded = [
+  ...ROUTES_TO_HIDE_ACCOUNT_SELECT,
+  ...ROUTES_WHERE_HIDE_SELECTORS,
+];
 
-const Header: React.FC<HeaderProps> = ({
-  accountsLength,
-  networksLength,
-  assetsLength,
-}) => {
+const Header = () => {
   const theme = useTheme();
   const isPopup = useIsPopup();
   const location = useLocation();
@@ -101,6 +105,22 @@ const Header: React.FC<HeaderProps> = ({
   const [showBackdrop, setShowBackdrop] = useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = !!anchorEl;
+  const showSelectors = !ROUTES_WHERE_HIDE_SELECTORS.includes(
+    location.pathname
+  );
+
+  const existsAccountsOfSelectedProtocol = useAppSelector(
+    existsAccountsOfSelectedProtocolSelector
+  );
+
+  useEffect(() => {
+    if (
+      !routesWhereAccountNotNeeded.includes(location.pathname) &&
+      !existsAccountsOfSelectedProtocol
+    ) {
+      navigate(ACCOUNTS_PAGE);
+    }
+  }, [location.pathname, existsAccountsOfSelectedProtocol]);
 
   const toggleShowBackdrop = useCallback(() => {
     setShowBackdrop((prevState) => !prevState);
@@ -140,58 +160,6 @@ const Header: React.FC<HeaderProps> = ({
     });
   }, [location]);
 
-  const complementaryComponent = useMemo(() => {
-    let items = 0;
-    switch (location.pathname) {
-      case ACCOUNTS_PAGE: {
-        items = accountsLength;
-        break;
-      }
-      case NETWORKS_PAGE: {
-        items = networksLength;
-        break;
-      }
-      case ASSETS_PAGE: {
-        items = assetsLength;
-        break;
-      }
-    }
-
-    if (items) {
-      return (
-        <Stack
-          justifyContent={"center"}
-          alignItems={"center"}
-          height={20}
-          width={20}
-          paddingX={0.3}
-          borderRadius={"50%"}
-          border={`1px solid ${theme.customColors.dark50}`}
-          boxSizing={"border-box"}
-        >
-          <Typography
-            fontSize={10}
-            fontWeight={700}
-            color={theme.customColors.white}
-            letterSpacing={"0.5px"}
-          >
-            {items}
-          </Typography>
-        </Stack>
-      );
-    }
-  }, [
-    navigate,
-    location.pathname,
-    accountsLength,
-    networksLength,
-    assetsLength,
-    theme,
-  ]);
-
-  const showSelectors = !ROUTES_WHERE_HIDE_SELECTORS.includes(
-    location.pathname
-  );
   const headerHeight = 60;
   const selectorsContainerHeight = showSelectors ? 60 : 0;
 
@@ -307,42 +275,51 @@ const Header: React.FC<HeaderProps> = ({
         >
           {[
             {
+              key: "new_account_item",
               label: "New Account",
               route: CREATE_ACCOUNT_PAGE,
               icon: NewIcon,
             },
             {
+              key: "import_account_item",
               label: "Import Account",
               route: IMPORT_ACCOUNT_PAGE,
               icon: ImportIcon,
             },
             {
+              key: "transfer_item",
               label: "Transfer",
               route: TRANSFER_PAGE,
               icon: TransferIcon,
             },
             {
+              key: "divider_1_item",
               type: "divider",
             },
             {
+              key: "sites_item",
               label: "Sites Connection",
               route: SITES_PAGE,
               icon: SitesIcon,
             },
             {
+              key: "contacts_item",
+              label: "Contacts",
+              route: CONTACTS_PAGE,
+              icon: SitesIcon,
+            },
+            {
+              key: "networks_item",
               label: "Networks",
               route: NETWORKS_PAGE,
               icon: NetworkIcon,
             },
             {
-              label: "Assets",
-              route: ASSETS_PAGE,
-              icon: AssetIcon,
-            },
-            {
+              key: "divider_2_item",
               type: "divider",
             },
             {
+              key: "expand_item",
               label: "Expand",
               onClick: onClickExpand,
               icon: () => (
@@ -357,6 +334,7 @@ const Header: React.FC<HeaderProps> = ({
               hide: !isPopup,
             },
             {
+              key: "lock_item",
               label: "Lock Vault",
               onClick: onClickLock,
               icon: LockIcon,
@@ -364,13 +342,19 @@ const Header: React.FC<HeaderProps> = ({
             },
           ].map((item) => {
             if (item.type === "divider") {
-              return <Divider sx={{ marginY: "7px!important", marginX: 1 }} />;
+              return (
+                <Divider
+                  key={item.key}
+                  sx={{ marginY: "7px!important", marginX: 1 }}
+                />
+              );
             } else {
               if (item.hide) return null;
 
               const { icon: Icon, route, label, onClick, isLock } = item;
               return (
                 <MenuItem
+                  key={item.key}
                   onClick={onClick || closeMenu}
                   sx={{
                     minHeight: 30,
@@ -417,7 +401,23 @@ const Header: React.FC<HeaderProps> = ({
                     <Icon />
                   </ListItemIcon>
                   <ListItemText>
-                    {route ? <Link to={route}>{label}</Link> : label}
+                    {route ? (
+                      <Link
+                        to={route}
+                        onClick={(event) => {
+                          if (
+                            !routesWhereAccountNotNeeded.includes(route) &&
+                            !existsAccountsOfSelectedProtocol
+                          ) {
+                            event.preventDefault();
+                          }
+                        }}
+                      >
+                        {label}
+                      </Link>
+                    ) : (
+                      label
+                    )}
                   </ListItemText>
                 </MenuItem>
               );
@@ -452,12 +452,4 @@ const Header: React.FC<HeaderProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => {
-  return {
-    accountsLength: state.vault.entities.accounts.list.length,
-    networksLength: state.app.networks.length,
-    assetsLength: state.vault.entities.assets.list.length,
-  };
-};
-
-export default connect(mapStateToProps)(Header);
+export default Header;

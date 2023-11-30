@@ -1,19 +1,23 @@
 import type { RootState } from "../../store";
-import {
-  ActionReducerMapBuilder,
-  createAsyncThunk,
-  PayloadAction,
-} from "@reduxjs/toolkit";
+import type { AppSliceBuilder } from "../../../types";
+import { createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { v4 } from "uuid";
 import set from "lodash/set";
 import get from "lodash/get";
 import browser from "webextension-polyfill";
 import { SupportedProtocols } from "@poktscan/keyring";
 import {
+  CUSTOM_RPCS_KEY,
+  CustomRPC,
   type GeneralAppSlice,
   setGetAccountPending as setGetAccountPendingFromApp,
-} from "../app";
+} from "./index";
 import { wait } from "../../../utils";
-import { getAccountBalance as getBalance } from "../../../utils/networkOperations";
+import {
+  getAccountBalance as getBalance,
+  NetworkForOperations,
+} from "../../../utils/networkOperations";
+import { RPC_ALREADY_EXISTS } from "../../../errors/rpc";
 
 const NETWORKS_STORAGE_KEY = "networks";
 const ASSETS_STORAGE_KEY = "assets";
@@ -90,6 +94,70 @@ export const loadAssetsFromCdn = createAsyncThunk(
   }
 );
 
+interface SaveCustomRpcParam {
+  rpc: Omit<CustomRPC, "id">;
+  /** id of the RPC to replace */
+  idToReplace?: string;
+}
+
+export const saveCustomRpc = createAsyncThunk(
+  "app/saveCustomRpc",
+  async ({ rpc, idToReplace }: SaveCustomRpcParam) => {
+    const alreadySavedRpcsRes = await browser.storage.local.get(
+      CUSTOM_RPCS_KEY
+    );
+    const alreadySavedRpcs: CustomRPC[] =
+      alreadySavedRpcsRes[CUSTOM_RPCS_KEY] || [];
+
+    const rpcAlreadyExists = alreadySavedRpcs.some(
+      (item) =>
+        rpc.url === item.url &&
+        item.protocol === rpc.protocol &&
+        item.chainId === rpc.chainId
+    );
+
+    if (rpcAlreadyExists && !idToReplace) {
+      throw RPC_ALREADY_EXISTS;
+    }
+
+    const rpcToSave: CustomRPC = {
+      id: idToReplace || v4(),
+      ...rpc,
+    };
+
+    const newRpcList = idToReplace
+      ? alreadySavedRpcs.map((item) =>
+          item.id === idToReplace ? rpcToSave : item
+        )
+      : [...alreadySavedRpcs, rpcToSave];
+
+    await browser.storage.local.set({
+      [CUSTOM_RPCS_KEY]: newRpcList,
+    });
+
+    return newRpcList;
+  }
+);
+
+export const removeCustomRpc = createAsyncThunk(
+  "app/removeCustomRpc",
+  async (idRpc: string) => {
+    const alreadySavedRpcsRes = await browser.storage.local.get(
+      CUSTOM_RPCS_KEY
+    );
+    const alreadySavedRpcs: CustomRPC[] =
+      alreadySavedRpcsRes[CUSTOM_RPCS_KEY] || [];
+
+    const newRpcList = alreadySavedRpcs.filter((item) => item.id !== idRpc);
+
+    await browser.storage.local.set({
+      [CUSTOM_RPCS_KEY]: newRpcList,
+    });
+
+    return newRpcList;
+  }
+);
+
 export interface GetAccountBalanceParam {
   address: string;
   protocol: SupportedProtocols;
@@ -135,17 +203,42 @@ export const getAccountBalance = createAsyncThunk<
     );
 
     const state = getState() as RootState;
-    const networks = state.app.networks.map((item) => ({
-      ...item,
-      chainID: item.chainId,
-    }));
     const errorsPreferredNetwork = state.app.errorsPreferredNetwork;
     const value = get(state, path);
+
+    const {
+      app: { networks: defaultNetworks, customRpcs },
+    } = state;
+
+    const allNetworks = [
+      ...defaultNetworks.map(
+        (network) =>
+          ({
+            protocol: network.protocol,
+            id: network.id,
+            chainID: network.chainId,
+            isDefault: true,
+            isPreferred: false,
+            rpcUrl: network.rpcUrl,
+          } as NetworkForOperations)
+      ),
+      ...customRpcs.map(
+        (rpc) =>
+          ({
+            protocol: rpc.protocol,
+            id: rpc.id,
+            chainID: rpc.chainId,
+            isDefault: false,
+            isPreferred: rpc.isPreferred,
+            rpcUrl: rpc.url,
+          } as NetworkForOperations)
+      ),
+    ];
 
     if (
       value &&
       !value.error &&
-      value.lastUpdatedAt > new Date().getTime() - 120000
+      value.lastUpdatedAt > new Date().getTime() - 30 * 1000
     ) {
       return {
         address,
@@ -159,7 +252,7 @@ export const getAccountBalance = createAsyncThunk<
       address,
       protocol,
       chainId,
-      networks,
+      networks: allNetworks,
       errorsPreferredNetwork,
       asset,
     });
@@ -172,8 +265,6 @@ export const getAccountBalance = createAsyncThunk<
     };
   }
 );
-
-type Builder = ActionReducerMapBuilder<GeneralAppSlice>;
 
 export const setGetAccountPending = (
   state: GeneralAppSlice,
@@ -199,7 +290,7 @@ export const setGetAccountPending = (
   });
 };
 
-const addAccountBalanceToBuilder = (builder: Builder) => {
+const addAccountBalanceToBuilder = (builder: AppSliceBuilder) => {
   builder.addCase(getAccountBalance.fulfilled, (state, action) => {
     const { amount, networksWithErrors, update } = action.payload;
     const { address, protocol, chainId, asset } = action.meta.arg;
@@ -254,7 +345,7 @@ const addAccountBalanceToBuilder = (builder: Builder) => {
   });
 };
 
-const addLoadNetworksToBuilder = (builder: Builder) => {
+const addLoadNetworksToBuilder = (builder: AppSliceBuilder) => {
   builder.addCase(loadNetworksFromStorage.fulfilled, (state, action) => {
     state.networks = action.payload;
   });
@@ -264,7 +355,7 @@ const addLoadNetworksToBuilder = (builder: Builder) => {
   });
 };
 
-const addLoadAssetsToBuilder = (builder: Builder) => {
+const addLoadAssetsToBuilder = (builder: AppSliceBuilder) => {
   builder.addCase(loadAssetsFromStorage.fulfilled, (state, action) => {
     state.assets = action.payload;
   });
@@ -274,8 +365,16 @@ const addLoadAssetsToBuilder = (builder: Builder) => {
   });
 };
 
-export const addNetworksExtraReducers = (builder: Builder) => {
+export const addNetworksExtraReducers = (builder: AppSliceBuilder) => {
   addAccountBalanceToBuilder(builder);
   addLoadNetworksToBuilder(builder);
   addLoadAssetsToBuilder(builder);
+
+  builder.addCase(saveCustomRpc.fulfilled, (state, action) => {
+    state.customRpcs = action.payload;
+  });
+
+  builder.addCase(removeCustomRpc.fulfilled, (state, action) => {
+    state.customRpcs = action.payload;
+  });
 };

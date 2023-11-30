@@ -1,34 +1,30 @@
-import type { SerializedNetwork } from "@poktscan/keyring";
-import type { RootState } from "../../redux/store";
+import type { CustomRPC } from "../../redux/slices/app";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTheme } from "@mui/material";
-import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import CircularLoading from "../common/CircularLoading";
-import { useAppDispatch } from "../../hooks/redux";
-import { removeNetwork as removeNetworkThunk } from "../../redux/slices/vault";
 import OperationFailed from "../common/OperationFailed";
 import { NETWORKS_PAGE } from "../../constants/routes";
 import { enqueueSnackbar } from "../../utils/ui";
-import { NetworkItem } from "./List";
+import { removeCustomRpc } from "../../redux/slices/app/network";
+import { customRpcsSelector } from "../../redux/selectors/network";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { ItemRPC } from "./ListRPCs";
 
-interface RemoveNetworkProps {
-  networks: SerializedNetwork[];
-}
-
-const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
+const RemoveRpc: React.FC = () => {
   const theme = useTheme();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const [network, setNetwork] = useState<SerializedNetwork>(null);
+  const [rpc, setRpc] = useState<CustomRPC>(null);
   const dispatch = useAppDispatch();
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
   );
+  const customRpcs = useAppSelector(customRpcsSelector);
 
   const onCancel = useCallback(() => {
     navigate(`${NETWORKS_PAGE}?tab=customs`);
@@ -36,25 +32,25 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
 
   useEffect(() => {
     const id = searchParams.get("id");
-    const networkFromStore = networks.find((item) => item.id === id);
-    if (networkFromStore && network?.id !== id) {
-      setNetwork(networkFromStore);
+    const rpcFromStore = customRpcs.find((item) => item.id === id);
+    if (rpcFromStore && rpc?.id !== id) {
+      setRpc(rpcFromStore);
       return;
     }
 
-    if (!networkFromStore) {
+    if (!rpcFromStore) {
       onCancel();
     }
-  }, [searchParams, networks]);
+  }, [searchParams, customRpcs]);
 
-  const removeNetwork = useCallback(() => {
-    if (network) {
+  const removeRpc = useCallback(() => {
+    if (rpc) {
       setStatus("loading");
-      dispatch(removeNetworkThunk(network.id))
+      dispatch(removeCustomRpc(rpc.id))
         .unwrap()
         .then(() => {
           enqueueSnackbar({
-            message: `Network removed successfully.`,
+            message: `RPC removed successfully.`,
             variant: "success",
           });
           navigate(`${NETWORKS_PAGE}?tab=customs`);
@@ -63,7 +59,7 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
           setStatus("error");
         });
     }
-  }, [network, dispatch]);
+  }, [rpc, dispatch]);
 
   return useMemo(() => {
     if (status === "loading") {
@@ -73,9 +69,9 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
     if (status === "error") {
       return (
         <OperationFailed
-          text={"There was an error removing the network."}
+          text={"There was an error removing the RPC."}
           onCancel={onCancel}
-          onRetry={removeNetwork}
+          onRetry={removeRpc}
         />
       );
     }
@@ -92,9 +88,9 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
             lineHeight={"28px"}
             color={theme.customColors.primary999}
           >
-            Are you sure you want to remove the following network?
+            Are you sure you want to remove the following RPC?
           </Typography>
-          {/*{network && <NetworkItem network={network} />}*/}
+          {rpc && <ItemRPC rpc={rpc} />}
         </Stack>
         <Stack direction={"row"} width={1} spacing={2}>
           <Button
@@ -119,7 +115,7 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
               height: 36,
               fontSize: 16,
             }}
-            onClick={removeNetwork}
+            onClick={removeRpc}
             fullWidth
           >
             Yes
@@ -127,11 +123,7 @@ const RemoveNetwork: React.FC<RemoveNetworkProps> = ({ networks }) => {
         </Stack>
       </Stack>
     );
-  }, [status, removeNetwork, network, onCancel]);
+  }, [status, removeRpc, rpc, onCancel]);
 };
 
-const mapStateToProps = (state: RootState) => ({
-  networks: state.vault.entities.networks.list,
-});
-
-export default connect(mapStateToProps)(RemoveNetwork);
+export default RemoveRpc;

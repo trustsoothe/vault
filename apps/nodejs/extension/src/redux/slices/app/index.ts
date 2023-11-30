@@ -3,16 +3,20 @@ import type {
   ExternalConnectionRequest,
   ExternalNewAccountRequest,
   ExternalTransferRequest,
-} from "../../types/communication";
-import type { RootState } from "../store";
+} from "../../../types/communication";
+import type { RootState } from "../../store";
 import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { SupportedProtocols } from "@poktscan/keyring";
-import { SELECTED_CHAIN_CHANGED } from "../../constants/communication";
+import {
+  SerializedAccountReference,
+  SupportedProtocols,
+} from "@poktscan/keyring";
+import { SELECTED_CHAIN_CHANGED } from "../../../constants/communication";
 import {
   addNetworksExtraReducers,
   setGetAccountPending as setGetAccountPendingFromNetwork,
-} from "./app/network";
+} from "./network";
+import { addContactThunksToBuilder } from "./contact";
 
 export type RequestsType = (
   | ExternalConnectionRequest
@@ -41,14 +45,8 @@ interface IAccountBalances {
 export type ErrorsByNetwork = Record<string, number>;
 
 export interface ErrorsPreferredNetwork {
-  [SupportedProtocols.Pocket]: Record<
-    ChainID<SupportedProtocols.Pocket>,
-    ErrorsByNetwork
-  >;
-  [SupportedProtocols.Ethereum]: Record<
-    ChainID<SupportedProtocols.Ethereum>,
-    ErrorsByNetwork
-  >;
+  [SupportedProtocols.Pocket]: Record<string, ErrorsByNetwork>;
+  [SupportedProtocols.Ethereum]: Record<string, ErrorsByNetwork>;
 }
 
 export interface Network {
@@ -84,6 +82,14 @@ export interface IAsset {
   vaultAddress?: string;
 }
 
+export interface CustomRPC {
+  id: string;
+  protocol: SupportedProtocols;
+  chainId: string;
+  url: string;
+  isPreferred?: boolean;
+}
+
 export interface NetworkCanBeSelectedMap {
   [SupportedProtocols.Pocket]: string[];
   [SupportedProtocols.Ethereum]: string[];
@@ -97,9 +103,9 @@ export interface GeneralAppSlice {
     list: string[];
   };
   showTestNetworks: boolean;
-  selectedNetwork: SupportedProtocols;
-  selectedChainByNetwork: Partial<Record<SupportedProtocols, string>>;
-  selectedAccountByNetwork: Partial<Record<SupportedProtocols, string>>;
+  selectedProtocol: SupportedProtocols;
+  selectedChainByProtocol: Partial<Record<SupportedProtocols, string>>;
+  selectedAccountByProtocol: Partial<Record<SupportedProtocols, string>>;
   accountBalances: IAccountBalances;
   networks: Network[];
   assets: IAsset[];
@@ -111,6 +117,8 @@ export interface GeneralAppSlice {
   };
   networksCanBeSelected: NetworkCanBeSelectedMap;
   assetsIdByAccountId: Record<string, string[]>;
+  customRpcs: CustomRPC[];
+  contacts: SerializedAccountReference[];
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -119,6 +127,8 @@ const SELECTED_CHAINS_KEY = "SELECTED_CHAINS_KEY";
 const SHOW_TEST_NETWORKS_KEY = "SHOW_TEST_NETWORKS";
 const NETWORKS_CAN_BE_SELECTED_KEY = "NETWORKS_CAN_BE_SELECTED";
 const ASSETS_SELECTED_BY_ACCOUNTS_KEY = "ASSETS_SELECTED_BY_ACCOUNTS";
+export const CUSTOM_RPCS_KEY = "CUSTOM_RPCS";
+export const CONTACTS_KEY = "CONTACTS";
 
 export const loadSelectedNetworkAndAccount = createAsyncThunk(
   "app/loadSelectedNetworkAndAccount",
@@ -132,11 +142,13 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       SHOW_TEST_NETWORKS_KEY,
       NETWORKS_CAN_BE_SELECTED_KEY,
       ASSETS_SELECTED_BY_ACCOUNTS_KEY,
+      CUSTOM_RPCS_KEY,
+      CONTACTS_KEY,
     ]);
 
-    const selectedNetwork =
+    const selectedProtocol =
       response[SELECTED_NETWORK_KEY] || SupportedProtocols.Pocket;
-    const selectedAccountByNetwork = {
+    const selectedAccountByProtocol = {
       ...(response[SELECTED_ACCOUNTS_KEY] || {}),
     };
     const assetsIdByAccountId = response[ASSETS_SELECTED_BY_ACCOUNTS_KEY] || {};
@@ -144,8 +156,10 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
     const networksCanBeSelected =
       response[NETWORKS_CAN_BE_SELECTED_KEY] ||
       initialState.networksCanBeSelected;
+    const customRpcs = response[CUSTOM_RPCS_KEY] || [];
+    const contacts = response[CONTACTS_KEY] || [];
 
-    const selectedChainByNetwork = {
+    const selectedChainByProtocol = {
       [SupportedProtocols.Pocket]: "mainnet",
       [SupportedProtocols.Ethereum]: "1",
     };
@@ -158,17 +172,19 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       );
 
       if (networkExists) {
-        selectedChainByNetwork[protocol] = chainId;
+        selectedChainByProtocol[protocol] = chainId;
       }
     }
 
     return {
-      selectedNetwork,
-      selectedChainByNetwork,
-      selectedAccountByNetwork,
+      selectedProtocol,
+      selectedChainByProtocol,
+      selectedAccountByProtocol,
       showTestNetworks,
       networksCanBeSelected,
       assetsIdByAccountId,
+      customRpcs,
+      contacts,
     };
   }
 );
@@ -181,40 +197,40 @@ export const changeSelectedNetwork = createAsyncThunk(
   ) => {
     const state = context.getState() as RootState;
     const {
-      selectedChainByNetwork,
-      selectedNetwork,
-      selectedAccountByNetwork,
+      selectedChainByProtocol,
+      selectedProtocol,
+      selectedAccountByProtocol,
     } = state.app;
 
-    const newSelectedAccountByNetwork = selectedAccountByNetwork;
+    const newSelectedAccountByProtocol = selectedAccountByProtocol;
 
-    if (network !== selectedNetwork) {
-      if (!selectedAccountByNetwork[network]) {
-        const accounts = state.vault.entities.accounts.list;
+    if (network !== selectedProtocol) {
+      if (!newSelectedAccountByProtocol[network]) {
+        const accounts = state.vault.accounts;
         const accountOfNetwork = accounts.find(
-          (item) => item.protocol === selectedNetwork
+          (item) => item.protocol === selectedProtocol
         );
 
         if (accountOfNetwork) {
-          newSelectedAccountByNetwork[selectedNetwork] = accountOfNetwork.id;
+          newSelectedAccountByProtocol[selectedProtocol] = accountOfNetwork.id;
         }
       }
     }
 
-    const newSelectedChainByNetwork = {
-      ...selectedChainByNetwork,
+    const newSelectedChainByProtocol = {
+      ...selectedChainByProtocol,
       [network]: chainId,
     };
 
     const promises: Promise<any>[] = [
       browser.storage.local.set({
         [SELECTED_NETWORK_KEY]: network,
-        [SELECTED_CHAINS_KEY]: newSelectedChainByNetwork,
-        [SELECTED_ACCOUNTS_KEY]: newSelectedAccountByNetwork,
+        [SELECTED_CHAINS_KEY]: newSelectedChainByProtocol,
+        [SELECTED_ACCOUNTS_KEY]: newSelectedAccountByProtocol,
       }),
     ];
 
-    if (selectedChainByNetwork[network] !== chainId) {
+    if (newSelectedAccountByProtocol[network] !== chainId) {
       const message = {
         type: SELECTED_CHAIN_CHANGED,
         network,
@@ -229,9 +245,9 @@ export const changeSelectedNetwork = createAsyncThunk(
     await Promise.all(promises);
 
     return {
-      selectedNetwork: network,
-      selectedChainByNetwork: newSelectedChainByNetwork,
-      selectedAccountByNetwork: newSelectedAccountByNetwork,
+      selectedProtocol: network,
+      selectedChainByProtocol: newSelectedChainByProtocol,
+      selectedAccountByProtocol: newSelectedAccountByProtocol,
     };
   }
 );
@@ -316,10 +332,10 @@ export const changeSelectedAccountOfNetwork = createAsyncThunk(
     context
   ) => {
     const state = context.getState() as RootState;
-    const { selectedAccountByNetwork } = state.app;
+    const { selectedAccountByProtocol } = state.app;
 
     const newSelectedAccount = {
-      ...selectedAccountByNetwork,
+      ...selectedAccountByProtocol,
       [network]: accountId,
     };
 
@@ -393,13 +409,15 @@ const initialState: GeneralAppSlice = {
   },
   networks: [],
   assets: [],
-  selectedAccountByNetwork: {
+  selectedAccountByProtocol: {
     [SupportedProtocols.Pocket]: "",
+    [SupportedProtocols.Ethereum]: "",
   },
-  selectedChainByNetwork: {
+  selectedChainByProtocol: {
     [SupportedProtocols.Pocket]: "mainnet",
+    [SupportedProtocols.Ethereum]: "1",
   },
-  selectedNetwork: SupportedProtocols.Pocket,
+  selectedProtocol: SupportedProtocols.Pocket,
   accountBalances: {
     [SupportedProtocols.Pocket]: {
       mainnet: {},
@@ -427,6 +445,8 @@ const initialState: GeneralAppSlice = {
     [SupportedProtocols.Pocket]: [],
   },
   assetsIdByAccountId: {},
+  customRpcs: [],
+  contacts: [],
 };
 
 const generalAppSlice = createSlice({
@@ -467,6 +487,7 @@ const generalAppSlice = createSlice({
   },
   extraReducers: (builder) => {
     addNetworksExtraReducers(builder);
+    addContactThunksToBuilder(builder);
 
     builder.addCase(getBlockedSites.fulfilled, (state, action) => {
       state.blockedSites.list = action.payload;
@@ -486,37 +507,41 @@ const generalAppSlice = createSlice({
       loadSelectedNetworkAndAccount.fulfilled,
       (state, action) => {
         const {
-          selectedNetwork,
-          selectedChainByNetwork,
-          selectedAccountByNetwork,
+          selectedProtocol,
+          selectedChainByProtocol,
+          selectedAccountByProtocol,
           showTestNetworks,
           networksCanBeSelected,
           assetsIdByAccountId,
+          customRpcs,
+          contacts,
         } = action.payload;
 
-        state.selectedNetwork = selectedNetwork;
-        state.selectedChainByNetwork = selectedChainByNetwork;
-        state.selectedAccountByNetwork = selectedAccountByNetwork;
+        state.selectedProtocol = selectedProtocol;
+        state.selectedChainByProtocol = selectedChainByProtocol;
+        state.selectedAccountByProtocol = selectedAccountByProtocol;
         state.showTestNetworks = showTestNetworks;
         state.networksCanBeSelected = networksCanBeSelected;
         state.assetsIdByAccountId = assetsIdByAccountId;
+        state.customRpcs = customRpcs;
+        state.contacts = contacts;
       }
     );
     builder.addCase(changeSelectedNetwork.fulfilled, (state, action) => {
       const {
-        selectedNetwork,
-        selectedChainByNetwork,
-        selectedAccountByNetwork,
+        selectedProtocol,
+        selectedChainByProtocol,
+        selectedAccountByProtocol,
       } = action.payload;
 
-      state.selectedNetwork = selectedNetwork;
-      state.selectedChainByNetwork = selectedChainByNetwork;
-      state.selectedAccountByNetwork = selectedAccountByNetwork;
+      state.selectedProtocol = selectedProtocol;
+      state.selectedChainByProtocol = selectedChainByProtocol;
+      state.selectedAccountByProtocol = selectedAccountByProtocol;
     });
     builder.addCase(
       changeSelectedAccountOfNetwork.fulfilled,
       (state, action) => {
-        state.selectedAccountByNetwork = action.payload;
+        state.selectedAccountByProtocol = action.payload;
       }
     );
 

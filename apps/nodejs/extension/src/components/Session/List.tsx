@@ -1,6 +1,4 @@
-import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -14,10 +12,8 @@ import OperationFailed from "../common/OperationFailed";
 import { enqueueSnackbar } from "../../utils/ui";
 import ExpandIcon from "../../assets/img/expand_icon.svg";
 import { useAppSelector } from "../../hooks/redux";
-
-interface ListSessionsProps {
-  sessionList: RootState["vault"]["entities"]["sessions"]["list"];
-}
+import { sessionsSelector } from "../../redux/selectors/session";
+import { accountsSelector } from "../../redux/selectors/account";
 
 interface ListItemProps {
   session: Session;
@@ -55,9 +51,7 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
   const navigate = useNavigate();
   const [secsToExpire, setSecsToExpire] = useState(0);
   const [accountsExpanded, setAccountsExpanded] = useState(false);
-  const accounts = useAppSelector(
-    (state) => state.vault.entities.accounts.list
-  );
+  const accounts = useAppSelector(accountsSelector);
 
   useEffect(() => {
     const sessionSerialized = session.serialize();
@@ -212,11 +206,13 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
   );
 };
 
-const ListSessions: React.FC<ListSessionsProps> = ({ sessionList }) => {
+const ListSessions: React.FC = () => {
   const theme = useTheme();
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
   );
+
+  const sessionList = useAppSelector(sessionsSelector);
 
   const sessions: Session[] = useMemo(() => {
     return sessionList
@@ -303,10 +299,4 @@ const ListSessions: React.FC<ListSessionsProps> = ({ sessionList }) => {
   return <>{content}</>;
 };
 
-const mapStateToProps = (state: RootState) => {
-  return {
-    sessionList: state.vault.entities.sessions.list,
-  };
-};
-
-export default connect(mapStateToProps)(ListSessions);
+export default ListSessions;

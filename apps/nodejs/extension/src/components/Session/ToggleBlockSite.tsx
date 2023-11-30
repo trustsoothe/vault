@@ -1,37 +1,26 @@
-import type { RootState } from "../../redux/store";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import { enqueueSnackbar } from "../../utils/ui";
-import { useAppDispatch } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import CircularLoading from "../common/CircularLoading";
 import { toggleBlockWebsite } from "../../redux/slices/app";
-import { revokeSession } from "../../redux/slices/vault";
+import { revokeSession } from "../../redux/slices/vault/session";
 import OperationFailed from "../common/OperationFailed";
 import { SITES_PAGE } from "../../constants/routes";
+import {
+  blockedListSelector,
+  sessionsSelector,
+} from "../../redux/selectors/session";
 
-interface ToggleBlockSiteProps {
-  site: string;
-  sessionId?: string;
-  onClose: () => void;
-  onBlocked?: () => void;
-  blockedList: RootState["app"]["blockedSites"]["list"];
-  onSuccessfulToggle?: () => void;
-}
-
-interface ToggleBlockSiteFromRouterProps {
-  sessionList: RootState["vault"]["entities"]["sessions"]["list"];
-}
-
-const ToggleBlockSiteFromRouterFC: React.FC<ToggleBlockSiteFromRouterProps> = ({
-  sessionList,
-}) => {
+export const ToggleBlockSiteFromRouter: React.FC = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   const [site, setSite] = useState<string>(null);
   const [sessionId, setSessionId] = useState<string>(null);
+
+  const sessionList = useAppSelector(sessionsSelector);
 
   const onCancel = useCallback(() => {
     if (location.key !== "default") {
@@ -77,18 +66,17 @@ const ToggleBlockSiteFromRouterFC: React.FC<ToggleBlockSiteFromRouterProps> = ({
   }
 };
 
-const mapStateToPropsRouter = (state: RootState) => ({
-  sessionList: state.vault.entities.sessions.list,
-});
+interface ToggleBlockSiteProps {
+  site: string;
+  sessionId?: string;
+  onClose: () => void;
+  onBlocked?: () => void;
+  onSuccessfulToggle?: () => void;
+}
 
-export const ToggleBlockSiteFromRouter = connect(mapStateToPropsRouter)(
-  ToggleBlockSiteFromRouterFC
-);
-
-const ToggleBlockSiteComponent: React.FC<ToggleBlockSiteProps> = ({
+const ToggleBlockSite: React.FC<ToggleBlockSiteProps> = ({
   site,
   onClose,
-  blockedList,
   sessionId,
   onBlocked,
   onSuccessfulToggle,
@@ -97,6 +85,8 @@ const ToggleBlockSiteComponent: React.FC<ToggleBlockSiteProps> = ({
   const [status, setStatus] = useState<
     "loading" | "block" | "unblock" | "error"
   >("loading");
+
+  const blockedList = useAppSelector(blockedListSelector);
 
   useEffect(() => {
     if (site) {
@@ -174,13 +164,5 @@ const ToggleBlockSiteComponent: React.FC<ToggleBlockSiteProps> = ({
     </Stack>
   );
 };
-
-const mapStateToProps = (state: RootState) => {
-  return {
-    blockedList: state.app.blockedSites.list,
-  };
-};
-
-const ToggleBlockSite = connect(mapStateToProps)(ToggleBlockSiteComponent);
 
 export default ToggleBlockSite;

@@ -359,7 +359,8 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
                 >
                   <PasswordStrengthBar
                     password={field.value as string}
-                    shortScoreWord={"too weak"}
+                    shortScoreWord={field.value ? "too short" : ""}
+                    minLength={8}
                     scoreWordStyle={{
                       fontSize: 14,
                       fontFamily: `DM Sans, "san serif"`,

@@ -13,7 +13,7 @@ import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import { enqueueSnackbar } from "../../utils/ui";
 import Password from "../common/Password";
-import { AccountComponent } from "./SelectedAccount";
+import AccountInfo from "./AccountInfo";
 
 interface RenameModalProps {
   account?: SerializedAccountReference;
@@ -150,7 +150,7 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
             >
               Are you sure you want to remove the following account?
             </Typography>
-            {account && <AccountComponent account={account} compact={true} />}
+            {account && <AccountInfo account={account} compact={true} />}
             <>
               <Divider
                 sx={{

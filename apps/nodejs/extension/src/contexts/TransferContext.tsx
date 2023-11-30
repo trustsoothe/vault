@@ -1,22 +1,18 @@
 import type { FormValues } from "../components/Transfer";
 import type { EthereumNetworkFee, PocketNetworkFee } from "@poktscan/keyring";
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { createContext, useContext } from "react";
 import { useFormContext } from "react-hook-form";
-import {
-  SerializedAccountReference,
-  SupportedProtocols,
-} from "@poktscan/keyring";
-import { isValidAddress } from "../utils/networkOperations";
-import AppToBackground from "../controllers/communication/AppToBackground";
+import { SupportedProtocols } from "@poktscan/keyring";
 
 export type FetchStatus = "not-fetched" | "loading" | "error" | "fetched";
+
+export type Status =
+  | "loading"
+  | "error"
+  | "form"
+  | "summary"
+  | "submitted"
+  | "invalid_network";
 
 export interface ExternalTransferData {
   amount: string;
@@ -55,6 +51,7 @@ interface TransferContextProviderProps {
   getNetworkFee: () => void;
   externalTransferData?: ExternalTransferData;
   transferType: TransferType;
+  status: Status;
 }
 
 const TransferContextProvider: React.FC<TransferContextProviderProps> = ({

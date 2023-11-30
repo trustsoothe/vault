@@ -8,7 +8,6 @@ import {
   WPOKTBridge,
 } from "@poktscan/keyring";
 import type { AmountStatus } from "./Form/AmountFeeInputs";
-import type { ExternalTransferRequest } from "../../types/communication";
 import React, {
   useCallback,
   useEffect,
@@ -16,6 +15,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import merge from "lodash/merge";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -34,14 +34,26 @@ import {
 } from "../../utils/networkOperations";
 import Requester from "../common/Requester";
 import { IAsset } from "../../redux/slices/app";
-import { AccountComponent } from "../Account/SelectedAccount";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
 import TransferContextProvider, {
   ExternalTransferData,
+  Status,
   TransferType,
 } from "../../contexts/TransferContext";
-import { SendTransferParam } from "../../redux/slices/vault";
+import AccountInfo from "../Account/AccountInfo";
+import {
+  customRpcsSelector,
+  networksSelector,
+  selectedChainSelector,
+  selectedProtocolSelector,
+} from "../../redux/selectors/network";
+import {
+  accountBalancesSelector,
+  accountsSelector,
+  selectedAccountIdSelector,
+} from "../../redux/selectors/account";
+import { assetsIdByAccountIdSelector } from "../../redux/selectors/asset";
 
 export type FeeSpeed = "n/a" | "low" | "medium" | "high";
 
@@ -78,32 +90,25 @@ export interface FormValues {
   asset?: IAsset;
 }
 
-type Status =
-  | "loading"
-  | "error"
-  | "form"
-  | "summary"
-  | "submitted"
-  | "invalid_network";
+type NetworkFeeParam = Parameters<typeof AppToBackground.getNetworkFee>[0];
+type SendTransferParam = Parameters<
+  typeof AppToBackground.sendRequestToAnswerTransfer
+>[0]["transferData"];
 
 const Transfer: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const networks = useAppSelector((state) => state.app.networks);
-  const selectedProtocolOnApp = useAppSelector(
-    (state) => state.app.selectedNetwork
-  );
-  const selectedChainOnApp = useAppSelector(
-    (state) => state.app.selectedChainByNetwork[state.app.selectedNetwork]
-  );
-  const idOfSelectedAccountOnApp = useAppSelector(
-    (state) => state.app.selectedAccountByNetwork[state.app.selectedNetwork]
-  );
-  const accounts = useAppSelector(
-    (state) => state.vault.entities.accounts.list
-  );
+  const networks = useAppSelector(networksSelector);
+  const customRpcs = useAppSelector(customRpcsSelector);
+
+  const accounts = useAppSelector(accountsSelector);
+  const accountBalances = useAppSelector(accountBalancesSelector);
+  const selectedChainOnApp = useAppSelector(selectedChainSelector);
+  const selectedProtocolOnApp = useAppSelector(selectedProtocolSelector);
+  const assetsIdByAccountId = useAppSelector(assetsIdByAccountIdSelector);
+  const idOfSelectedAccountOnApp = useAppSelector(selectedAccountIdSelector);
 
   const externalTransferState: LocationState = location.state || {};
   const externalTransferData =
@@ -121,7 +126,6 @@ const Transfer: React.FC = () => {
       : TransferType.normal;
 
   const methods = useForm<FormValues>({
-    mode: "onChange",
     defaultValues: {
       rpcUrl: null,
       memo: externalTransferData?.memo || "",
@@ -180,27 +184,32 @@ const Transfer: React.FC = () => {
     }
   }, [accountPassword]);
 
+  const checkedNetwork = useRef(false);
+
   useEffect(() => {
     if (protocol) {
-      const preferred = networks.find(
-        // todo: fix when rpcs are enabled
+      const preferredRpc = customRpcs.find(
         (item) =>
-          // @ts-ignore
-          item.protocol === protocol && item.chainId === chainId && 1 === 0 //&& item.isPreferred
+          item.protocol === protocol &&
+          item.chainId === chainId &&
+          item.isPreferred
       );
-      // todo: add to networks that come from CDN a flag indicating it, to difference it from RPCs saved by user
-      const networkToSelect = networks.find(
+
+      const defaultNetwork = networks.find(
         (item) => item.protocol === protocol && item.chainId === chainId
       );
 
-      if (networkToSelect) {
-        setTimeout(() => {
-          setValue("rpcUrl", preferred?.rpcUrl || networkToSelect.rpcUrl);
-          clearErrors("rpcUrl");
-        }, 0);
+      setTimeout(() => {
+        setValue("rpcUrl", preferredRpc?.url || defaultNetwork?.rpcUrl);
+        clearErrors("rpcUrl");
+      }, 0);
+
+      if (transferType !== "normal" && checkedNetwork.current) {
+        navigate(ACCOUNTS_PAGE);
       }
+      checkedNetwork.current = true;
     }
-  }, [protocol, networks]);
+  }, [protocol, chainId]);
 
   useDidMountEffect(() => {
     setValue(
@@ -227,6 +236,15 @@ const Transfer: React.FC = () => {
     externalTransferData?.fromAddress,
     idOfSelectedAccountOnApp,
   ]);
+
+  useDidMountEffect(() => {
+    if (
+      asset &&
+      !(assetsIdByAccountId[selectedAccount?.id] || []).includes(asset.id)
+    ) {
+      navigate(ACCOUNTS_PAGE);
+    }
+  }, [selectedAccount, assetsIdByAccountId]);
 
   useDidMountEffect(() => {
     if (previousProtocolRef.current === protocol) return;
@@ -272,42 +290,55 @@ const Transfer: React.FC = () => {
         transferType === "burn")
     ) {
       previousChain.current = chainId;
-      setFeeStatus("loading");
+      // to prevent possibles race conditions
+      setTimeout(() => setFeeStatus("loading"), 0);
 
-      let data: string;
+      const baseParam = {
+        protocol,
+        chainId,
+      };
+
+      let networkFeeParam: NetworkFeeParam;
 
       if (transferType === "burn") {
-        data = WPOKTBridge.createBurnTransaction({
-          amount: getValues("amount"),
+        const burnTx = WPOKTBridge.createBurnTransaction({
+          amount: (
+            Number(getValues("amount")) *
+            10 ** asset.decimals
+          ).toString(),
           from: getValues("from"),
           to: toAddress,
           contractAddress: asset.contractAddress,
-        }).data;
+        });
+
+        networkFeeParam = {
+          ...baseParam,
+          toAddress: asset.contractAddress,
+          data: burnTx.data,
+          from: burnTx.from,
+        };
       } else if (transferType === "mint") {
-        data = WPOKTBridge.createMintTransaction({
+        const mintTx = WPOKTBridge.createMintTransaction({
           contractAddress: asset.contractAddress,
           signatures: externalTransferData?.signatures,
           mintInfo: externalTransferData?.mintInfo,
-        }).data;
+        });
+
+        networkFeeParam = {
+          ...baseParam,
+          toAddress: asset.contractAddress,
+          data: mintTx.data,
+          from: getValues("from"),
+        };
+      } else {
+        networkFeeParam = {
+          ...baseParam,
+          toAddress,
+          asset,
+        };
       }
 
-      AppToBackground.getNetworkFee({
-        protocol,
-        chainId,
-        toAddress:
-          transferType === "burn" || transferType === "mint"
-            ? asset?.contractAddress
-            : toAddress,
-        asset:
-          transferType === "burn" || transferType === "mint"
-            ? undefined
-            : asset,
-        data,
-        from:
-          transferType === "burn" || transferType === "mint"
-            ? getValues("from")
-            : undefined,
-      }).then((response) => {
+      AppToBackground.getNetworkFee(networkFeeParam).then((response) => {
         if (response.data) {
           const fee = response.data.networkFee;
           setNetworkFee(fee);
@@ -331,24 +362,27 @@ const Transfer: React.FC = () => {
     }
   }, [
     protocol,
-    networks,
     chainId,
     toAddress,
     getValues,
+    setValue,
     asset,
     transferType,
     externalTransferData,
   ]);
 
   useEffect(() => {
-    getNetworkFee();
-
     let interval;
-    if (protocol === SupportedProtocols.Ethereum) {
-      interval = setInterval(() => {
-        previousChain.current = null;
-        getNetworkFee();
-      }, 30000);
+
+    if (status === "form" || status === "summary") {
+      getNetworkFee();
+
+      if (protocol === SupportedProtocols.Ethereum) {
+        interval = setInterval(() => {
+          previousChain.current = null;
+          getNetworkFee();
+        }, 30000);
+      }
     }
 
     return () => {
@@ -359,10 +393,11 @@ const Transfer: React.FC = () => {
   }, [
     chainId,
     protocol,
+    status,
     protocol === SupportedProtocols.Ethereum ? toAddress : undefined,
   ]);
 
-  useDidMountEffect(() => {
+  useEffect(() => {
     if (transferType !== "normal") {
       setTimeout(() => setStatus("summary"), 0);
     }
@@ -382,7 +417,7 @@ const Transfer: React.FC = () => {
             from: fromAddress,
             vaultAddress: externalTransferData.vaultAddress,
             ethereumAddress: externalTransferData.toAddress,
-          });
+          }).memo;
         } else {
           memo = externalTransferData.memo;
         }
@@ -391,7 +426,7 @@ const Transfer: React.FC = () => {
     }
   }, [externalTransferData]);
 
-  useEffect(() => {
+  useDidMountEffect(() => {
     if (protocol === SupportedProtocols.Ethereum) {
       setFeeStatus("not-fetched");
       setNetworkFee(null);
@@ -405,16 +440,12 @@ const Transfer: React.FC = () => {
         setValue("asset", null);
       }
     }
-  }, [chainId]);
 
-  useDidMountEffect(() => {
     if (!externalTransferData) {
       setValue("amount", "");
       clearErrors("amount");
     }
   }, [chainId]);
-
-  const accountBalances = useAppSelector((state) => state.app.accountBalances);
 
   const nativeBalance = useMemo(() => {
     return accountBalances[protocol][chainId][fromAddress]?.amount || 0;
@@ -461,88 +492,116 @@ const Transfer: React.FC = () => {
         (item) => item.address === data.from && item.protocol === data.protocol
       )?.id;
 
-      let dataTransactionParam: string,
-        bridgeParams: {
-          to: string;
-          memo: string;
-        };
+      const baseTransferParam = {
+        from: {
+          type: SupportedTransferOrigins.VaultAccountId,
+          passphrase: data.accountPassword,
+          value: accountId,
+        },
+        network,
+      };
 
-      if (transferType === "bridge") {
-        const result = WPOKTBridge.createBridgeTransaction({
-          amount: data.amount,
-          chainID: data.chainId,
-          from: data.from,
-          vaultAddress: "",
-          ethereumAddress: data.toAddress,
-        });
+      let transferParam: SendTransferParam;
 
-        bridgeParams = {
-          to: result.to,
-          memo: result.memo,
-        };
-      } else if (transferType === "burn") {
-        dataTransactionParam = WPOKTBridge.createBurnTransaction({
-          from: data.from,
-          amount: (Number(data.amount) * 10 ** data.asset.decimals).toString(),
-          to: data.toAddress,
-          contractAddress: data.asset.contractAddress,
-        }).data;
-      } else if (transferType === "mint") {
-        dataTransactionParam = WPOKTBridge.createMintTransaction({
-          contractAddress: data.asset.contractAddress,
-          signatures: externalTransferData.signatures,
-          mintInfo: externalTransferData.mintInfo,
-        }).data;
-      }
+      if (data.protocol === SupportedProtocols.Pocket) {
+        let bridgeResult: ReturnType<
+          typeof WPOKTBridge.createBridgeTransaction
+        >;
+        if (transferType === "bridge") {
+          bridgeResult = WPOKTBridge.createBridgeTransaction({
+            from: data.from,
+            amount: data.amount,
+            chainID: data.chainId,
+            ethereumAddress: data.toAddress,
+            vaultAddress: externalTransferData.vaultAddress,
+          });
+        }
 
-      const response = await AppToBackground.sendRequestToAnswerTransfer({
-        rejected: false,
-        transferData: {
-          from: {
-            type: SupportedTransferOrigins.VaultAccountId,
-            passphrase: data.accountPassword,
-            value: accountId,
-          },
+        transferParam = {
+          ...baseTransferParam,
           to: {
             type: SupportedTransferDestinations.RawAddress,
-            value:
-              transferType === "burn" || transferType === "mint"
-                ? data.asset.contractAddress
-                : bridgeParams?.to || data.toAddress,
+            value: bridgeResult?.to || data.toAddress,
           },
-          amount:
-            transferType === "burn" || transferType === "mint"
-              ? 0
-              : Number(data.amount),
-          network,
-          asset:
-            data.asset && !dataTransactionParam
-              ? {
-                  protocol: data.protocol,
-                  chainID: data.chainId,
-                  contractAddress: asset.contractAddress,
-                  decimals: asset.decimals,
-                }
-              : undefined,
+          amount: Number(data.amount),
           transactionParams: {
-            maxFeePerGas:
-              data.protocol === SupportedProtocols.Ethereum
-                ? (networkFee as EthereumNetworkFee)[data.feeSpeed]
-                    .suggestedMaxFeePerGas
-                : undefined,
-            maxPriorityFeePerGas:
-              data.protocol === SupportedProtocols.Ethereum
-                ? (networkFee as EthereumNetworkFee)[data.feeSpeed]
-                    .suggestedMaxPriorityFeePerGas
-                : undefined,
-            fee:
-              data.protocol === SupportedProtocols.Ethereum
-                ? undefined
-                : Number(data.fee),
-            memo: bridgeParams?.memo || data.memo,
-            data: dataTransactionParam,
+            fee: Number(data.fee),
+            memo: bridgeResult?.memo || data.memo,
           },
-        },
+        };
+      } else {
+        const assetParam = data.asset
+          ? {
+              protocol: data.protocol,
+              chainID: data.chainId,
+              contractAddress: data.asset.contractAddress,
+              decimals: data.asset.decimals,
+            }
+          : undefined;
+
+        const feeInfo = (networkFee as EthereumNetworkFee)?.[data.feeSpeed];
+
+        const networkBaseTransferParam = {
+          ...baseTransferParam,
+          to: {
+            type: SupportedTransferDestinations.RawAddress,
+            value: data.toAddress,
+          },
+          asset: assetParam,
+          amount: Number(data.amount),
+          transactionParams: {
+            maxFeePerGas: feeInfo?.suggestedMaxFeePerGas,
+            maxPriorityFeePerGas: feeInfo?.suggestedMaxPriorityFeePerGas,
+          },
+        };
+
+        if (transferType === "burn") {
+          const burnTx = WPOKTBridge.createBurnTransaction({
+            from: data.from,
+            amount: (
+              Number(data.amount) *
+              10 ** data.asset.decimals
+            ).toString(),
+            to: data.toAddress,
+            contractAddress: data.asset.contractAddress,
+          });
+
+          transferParam = merge(networkBaseTransferParam, {
+            to: {
+              value: data.asset.contractAddress,
+            },
+            asset: null,
+            amount: 0,
+            transactionParams: {
+              data: burnTx.data,
+            },
+          });
+        } else if (transferType === "mint") {
+          const mintTx = WPOKTBridge.createMintTransaction({
+            contractAddress: data.asset.contractAddress,
+            signatures: externalTransferData.signatures,
+            mintInfo: externalTransferData.mintInfo,
+          });
+
+          transferParam = merge(networkBaseTransferParam, {
+            to: {
+              value: data.asset.contractAddress,
+            },
+            amount: 0,
+            asset: null,
+            transactionParams: {
+              data: mintTx.data,
+            },
+          });
+        } else {
+          transferParam = networkBaseTransferParam;
+        }
+      }
+
+      debugger;
+      const response = await AppToBackground.sendRequestToAnswerTransfer({
+        rejected: false,
+        transferData: transferParam,
         // todo: pass this when present
         request: undefined,
       });
@@ -582,6 +641,10 @@ const Transfer: React.FC = () => {
   }, [setFocus, setValue]);
 
   const onClickCancel = useCallback(async () => {
+    if (transferType !== "normal") {
+      return navigate(`${ACCOUNTS_PAGE}${asset ? `?asset=${asset.id}` : ""}`);
+    }
+
     if (status === "summary") {
       setStatus("form");
       return;
@@ -595,9 +658,9 @@ const Transfer: React.FC = () => {
         request: undefined,
       });
     } else {
-      navigate(ACCOUNTS_PAGE);
+      navigate(`${ACCOUNTS_PAGE}${asset ? `?asset=${asset.id}` : ""}`);
     }
-  }, [externalRequestInfo, status, navigate]);
+  }, [externalRequestInfo, status, navigate, asset, transferType]);
 
   const content = useMemo(() => {
     const isSubmitted = status === "submitted";
@@ -655,7 +718,7 @@ const Transfer: React.FC = () => {
           compact={!!externalRequestInfo}
         />
       );
-      secondaryBtnText = "Back";
+      secondaryBtnText = transferType === "normal" ? "Back" : "Cancel";
       primaryBtnText = "Send";
     }
 
@@ -725,7 +788,7 @@ const Transfer: React.FC = () => {
               }}
               variant={"contained"}
               fullWidth
-              disabled={feeStatus !== "fetched" || !amount}
+              disabled={(!networkFee && feeStatus !== "fetched") || !amount}
               type={onClickPrimary ? "button" : "submit"}
               onClick={onClickPrimary}
             >
@@ -745,6 +808,8 @@ const Transfer: React.FC = () => {
     feeStatus,
     transferHash,
     sendingStatus,
+    networkFee,
+    amount,
   ]);
 
   return (
@@ -755,6 +820,7 @@ const Transfer: React.FC = () => {
         getNetworkFee={getNetworkFee}
         externalTransferData={externalTransferData}
         feeFetchStatus={feeStatus}
+        status={status}
       >
         <Stack
           width={1}
@@ -769,7 +835,7 @@ const Transfer: React.FC = () => {
           marginTop={1}
         >
           {selectedAccount && (
-            <AccountComponent account={selectedAccount} asset={asset} />
+            <AccountInfo account={selectedAccount} asset={asset} />
           )}
           {content}
         </Stack>

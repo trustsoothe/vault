@@ -10,6 +10,7 @@ import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import Summary from "./Summary/Component";
 import { useAppSelector } from "../../hooks/redux";
+import { explorerTransactionUrlOfNetworkSelector } from "../../redux/selectors/network";
 
 interface SummaryStepProps {
   hash: string;
@@ -21,11 +22,7 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({ hash }) => {
   const [protocol, chainId] = watch(["protocol", "chainId"]);
 
   const explorerTransactionUrl = useAppSelector(
-    (state) =>
-      state.app.networks.find(
-        (network) =>
-          network.protocol === protocol && network.chainId === chainId
-      )?.explorerTransactionUrl
+    explorerTransactionUrlOfNetworkSelector(protocol, chainId)
   );
 
   const [showCopyHashTooltip, setShowCopyHashTooltip] = useState(false);

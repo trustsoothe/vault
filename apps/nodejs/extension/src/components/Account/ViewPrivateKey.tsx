@@ -17,8 +17,9 @@ import OperationFailed from "../common/OperationFailed";
 import DownloadIcon from "../../assets/img/download_icon.svg";
 import { getPortableWalletContent } from "../../utils/networkOperations";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { AccountComponent } from "./SelectedAccount";
 import { useAppSelector } from "../../hooks/redux";
+import AccountInfo from "./AccountInfo";
+import { selectedAccountSelector } from "../../redux/selectors/account";
 
 interface PrivateKeyFormValues {
   account_password: string;
@@ -28,15 +29,7 @@ interface PrivateKeyFormValues {
 const ViewPrivateKey: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const account = useAppSelector((state) => {
-    const selectedNetwork = state.app.selectedNetwork;
-    const selectedAccountId =
-      state.app.selectedAccountByNetwork[selectedNetwork];
-
-    return state.vault.entities.accounts.list.find(
-      (account) => account.id === selectedAccountId
-    );
-  }, shallowEqual);
+  const account = useAppSelector(selectedAccountSelector, shallowEqual);
 
   const methods = useForm<PrivateKeyFormValues>({
     defaultValues: {
@@ -324,7 +317,7 @@ const ViewPrivateKey: React.FC = () => {
       onSubmit={handleSubmit(loadPrivateKey)}
     >
       <Stack spacing={3.5} flexGrow={1}>
-        {account && <AccountComponent account={account} />}
+        {account && <AccountInfo account={account} />}
         {privateKeyComponent}
       </Stack>
       <Stack direction={"row"} spacing={2} width={1} marginTop={2.5}>

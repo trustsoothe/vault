@@ -1,3 +1,4 @@
+import type { ActionReducerMapBuilder } from "@reduxjs/toolkit";
 import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { Storage as OriginalStorage } from "webextension-polyfill/namespaces/storage";
 import type {
@@ -13,7 +14,12 @@ import type {
   ProxyTransferRequest,
   ProxyTransferRes,
 } from "./communication";
-import { ArgsOrCallback, Method, MethodOrPayload } from "./provider";
+import type { ArgsOrCallback, Method, MethodOrPayload } from "./provider";
+import type { GeneralAppSlice } from "../redux/slices/app";
+import type { VaultSlice } from "../redux/slices/vault";
+
+export type AppSliceBuilder = ActionReducerMapBuilder<GeneralAppSlice>;
+export type VaultSliceBuilder = ActionReducerMapBuilder<VaultSlice>;
 
 interface SessionStorage extends OriginalStorage.StorageArea {
   /**

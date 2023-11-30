@@ -1,18 +1,26 @@
 import type { FormValues } from "../index";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import Typography from "@mui/material/Typography";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { SupportedProtocols } from "@poktscan/keyring";
 import RowSpaceBetween from "../../common/RowSpaceBetween";
-import { returnNumWithTwoDecimals } from "../../../utils/ui";
+import { getTruncatedText, returnNumWithTwoDecimals } from "../../../utils/ui";
 import { useAppSelector } from "../../../hooks/redux";
 import useGetPrices from "../../../hooks/useGetPrices";
 import useGetAssetPrices from "../../../hooks/useGetAssetPrices";
-import useDidMountEffect from "../../../hooks/useDidMountEffect";
 import MaxFeeSelector from "./MaxFeeSelector";
 import { useTransferContext } from "../../../contexts/TransferContext";
+import TooltipOverflow from "../../common/TooltipOverflow";
+import {
+  symbolOfNetworkSelector,
+  transferMinAmountOfNetworkSelector,
+} from "../../../redux/selectors/network";
+import {
+  accountBalancesSelector,
+  accountsSelector,
+} from "../../../redux/selectors/account";
 
 interface SummaryProps {
   compact?: boolean;
@@ -28,7 +36,7 @@ const AmountValidationWrapper: React.FC<AmountWrapperProps> = ({
   const theme = useTheme();
   const { watch, control } = useFormContext();
   const { feeSelected } = useTransferContext();
-  const [protocol, chainId, asset, fromAddress, feeSpeed] = watch([
+  const [protocol, chainId, asset, fromAddress] = watch([
     "protocol",
     "chainId",
     "asset",
@@ -36,22 +44,19 @@ const AmountValidationWrapper: React.FC<AmountWrapperProps> = ({
     "feeSpeed",
   ]);
 
+  const accountBalances = useAppSelector(accountBalancesSelector);
   const transferMinAmount = useAppSelector(
-    (state) =>
-      state.app.networks.find(
-        (network) =>
-          network.protocol === protocol && network.chainId === chainId
-      )?.transferMinValue
+    transferMinAmountOfNetworkSelector(protocol, chainId)
   );
 
-  const amount = useAppSelector((state) => {
-    const chainBalanceMap = state.app.accountBalances?.[protocol]?.[chainId];
+  const amount = useMemo(() => {
+    const chainBalanceMap = accountBalances?.[protocol]?.[chainId];
 
     if (asset) {
       return chainBalanceMap?.[asset.contractAddress]?.[fromAddress]?.amount;
     }
     return chainBalanceMap?.[fromAddress]?.amount;
-  });
+  }, [accountBalances, protocol, chainId, asset, fromAddress]);
 
   return (
     <Controller
@@ -88,22 +93,24 @@ const AmountValidationWrapper: React.FC<AmountWrapperProps> = ({
           alignItems={"flex-end"}
           borderRadius={"4px"}
         >
-          <Typography
-            fontSize={12}
-            letterSpacing={"0.5px"}
-            whiteSpace={"nowrap"}
-            fontWeight={500}
-          >
-            {children}
-          </Typography>
-          {error && (
+          <TooltipOverflow
+            text={children?.toString()}
+            linkProps={{
+              fontSize: "11px!important",
+              fontWeight: "400!important",
+              flexGrow: 1,
+              textAlign: "right",
+              color: theme.customColors.dark100 + "!important",
+            }}
+          />
+          {(error || amount === 0) && (
             <Typography
               fontSize={10}
               color={theme.customColors.red100}
               textAlign={"right"}
               className={"error"}
             >
-              {error.message}
+              {amount === 0 ? `Insufficient balance` : error.message}
             </Typography>
           )}
         </Stack>
@@ -134,18 +141,9 @@ const Summary: React.FC<SummaryProps> = ({ compact = false }) => {
   const values = watch();
   const { protocol, chainId, asset } = values;
   const { feeSelected, isPokt, transferType } = useTransferContext();
-  const accounts = useAppSelector(
-    (state) => state.vault.entities.accounts.list
-  );
+  const accounts = useAppSelector(accountsSelector);
 
-  const symbol = useAppSelector((state) => {
-    return (
-      state.app.networks.find(
-        (network) =>
-          network.protocol === protocol && network.chainId === chainId
-      )?.currencySymbol || ""
-    );
-  });
+  const symbol = useAppSelector(symbolOfNetworkSelector(protocol, chainId));
 
   const {
     data: priceByContractAddress,
@@ -155,7 +153,7 @@ const Summary: React.FC<SummaryProps> = ({ compact = false }) => {
   } = useGetAssetPrices(false);
   const { data: pricesByProtocolAndChain } = useGetPrices();
 
-  useDidMountEffect(() => {
+  useEffect(() => {
     if (asset) {
       setTimeout(refetchAssetsPrice, 0);
     }
@@ -186,9 +184,7 @@ const Summary: React.FC<SummaryProps> = ({ compact = false }) => {
 
     if (toAccount) {
       const { name, address } = toAccount;
-      toAddress = `${name} (${address.substring(0, 4)}...${address.substring(
-        address.length - 4
-      )})`;
+      toAddress = `${name} (${getTruncatedText(address)})`;
     }
 
     const amountText = `${transferAmount} ${
@@ -292,6 +288,7 @@ const Summary: React.FC<SummaryProps> = ({ compact = false }) => {
             value={value}
             labelProps={{ color: theme.customColors.dark75 }}
             containerProps={{
+              width: 338,
               alignItems: "center",
               spacing: 0.5,
               ...containerProps,

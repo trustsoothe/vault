@@ -1,10 +1,8 @@
-import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
-import type { RootState } from "../../redux/store";
-import { connect } from "react-redux";
 import Grow from "@mui/material/Grow";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Popper from "@mui/material/Popper";
+import { shallowEqual } from "react-redux";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
@@ -20,42 +18,49 @@ import CloseIcon from "../../assets/img/close_icon.svg";
 import ExpandIcon from "../../assets/img/drop_down_icon.svg";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import {
+  networkSymbolSelector,
+  selectedChainSelector,
+  selectedProtocolSelector,
+} from "../../redux/selectors/network";
+import {
+  accountsSelector,
+  balanceMapConsideringAsset,
+  selectedAccountIdSelector,
+  selectedAccountSelector,
+} from "../../redux/selectors/account";
 
 interface AccountItemProps {
   account: SerializedAccountReference & { symbol: string };
   showBorderTop?: boolean;
   closeSelector: () => void;
-  balanceMap: RootState["app"]["accountBalances"][SupportedProtocols.Ethereum]["1"];
-  selectedNetwork: RootState["app"]["selectedNetwork"];
-  selectedChain: ChainID<RootState["app"]["selectedNetwork"]>;
-  selectedAccountId: string;
 }
 
-const AccountItemComponent: React.FC<AccountItemProps> = ({
+const AccountItem: React.FC<AccountItemProps> = ({
   account,
   showBorderTop,
   closeSelector,
-  balanceMap,
-  selectedNetwork,
-  selectedChain,
-  selectedAccountId,
 }) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
+  const selectedChain = useAppSelector(selectedChainSelector);
+  const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const selectedAccountId = useAppSelector(selectedAccountIdSelector);
+  const balanceMap = useAppSelector(balanceMapConsideringAsset(undefined));
 
   useEffect(() => {
     AppToBackground.getAccountBalance({
       address: account.address,
       chainId: selectedChain,
-      protocol: selectedNetwork,
+      protocol: selectedProtocol,
     }).catch();
   }, []);
 
   const { address, name, id } = account;
 
-  const balance = (balanceMap[address]?.amount as number) || 0;
-  const errorBalance = balanceMap[address]?.error || false;
-  const loadingBalance = balanceMap[address]?.loading || false;
+  const balance = (balanceMap?.[address]?.amount as number) || 0;
+  const errorBalance = balanceMap?.[address]?.error || false;
+  const loadingBalance = (balanceMap?.[address]?.loading && !balance) || false;
 
   const addressFirstCharacters = address.substring(0, 4);
   const addressLastCharacters = address.substring(address.length - 4);
@@ -70,11 +75,11 @@ const AccountItemComponent: React.FC<AccountItemProps> = ({
 
     dispatch(
       changeSelectedAccountOfNetwork({
-        network: selectedNetwork,
+        network: selectedProtocol,
         accountId: id,
       })
     ).then(() => closeSelector());
-  }, [isSelected, closeSelector, selectedNetwork, id, dispatch]);
+  }, [isSelected, closeSelector, selectedProtocol, id, dispatch]);
 
   return (
     <Stack
@@ -84,7 +89,9 @@ const AccountItemComponent: React.FC<AccountItemProps> = ({
       paddingX={0.5}
       boxSizing={"border-box"}
       bgcolor={
-        isSelected ? theme.customColors.primary100 : theme.customColors.white
+        isSelected
+          ? `${theme.customColors.primary100}!important`
+          : theme.customColors.white
       }
       borderTop={
         showBorderTop ? `1px solid ${theme.customColors.dark15}` : undefined
@@ -92,6 +99,9 @@ const AccountItemComponent: React.FC<AccountItemProps> = ({
       sx={{
         cursor: "pointer",
         userSelect: "none",
+        "&:hover": {
+          backgroundColor: theme.customColors.dark5,
+        },
       }}
       onClick={onClickItem}
     >
@@ -138,68 +148,63 @@ const AccountItemComponent: React.FC<AccountItemProps> = ({
         ) : loadingBalance ? (
           <Skeleton variant={"rectangular"} width={100} height={20} />
         ) : (
-          <Typography fontSize={18} fontWeight={500} textAlign={"left"}>
-            {roundAndSeparate(balance, 2, "0")}
-            <span style={{ color: theme.customColors.dark50, marginLeft: 5 }}>
+          <Stack
+            direction={"row"}
+            alignItems={"center"}
+            spacing={0.5}
+            justifyContent={"flex-end"}
+            width={158}
+          >
+            <Typography
+              fontSize={16}
+              fontWeight={500}
+              textAlign={"left"}
+              textOverflow={"ellipsis"}
+              whiteSpace={"nowrap"}
+              overflow={"hidden"}
+            >
+              {roundAndSeparate(
+                balance,
+                selectedProtocol === SupportedProtocols.Ethereum ? 18 : 6,
+                "0"
+              )}
+            </Typography>
+            <Typography
+              color={theme.customColors.dark50}
+              fontSize={16}
+              fontWeight={500}
+            >
               {account.symbol}
-            </span>
-          </Typography>
+            </Typography>
+          </Stack>
         )}
       </Stack>
     </Stack>
   );
 };
 
-const mapStateToPropsItem = (state: RootState) => {
-  const selectedNetwork = state.app.selectedNetwork;
-  const selectedChain = state.app.selectedChainByNetwork[selectedNetwork];
-
-  return {
-    selectedNetwork,
-    selectedChain,
-    balanceMap: state.app.accountBalances[selectedNetwork][selectedChain],
-    selectedAccountId: state.app.selectedAccountByNetwork[selectedNetwork],
-  };
-};
-
-const AccountItemWrapper = connect(mapStateToPropsItem)(AccountItemComponent);
-
 interface AccountSelectProps {
-  accounts: RootState["vault"]["entities"]["accounts"]["list"];
-  selectedNetwork: RootState["app"]["selectedNetwork"];
-  selectedAccountByNetwork: RootState["app"]["selectedAccountByNetwork"];
   toggleShowBackdrop: () => void;
 }
 
 const AccountSelect: React.FC<AccountSelectProps> = ({
-  accounts,
-  selectedAccountByNetwork,
-  selectedNetwork,
   toggleShowBackdrop,
 }) => {
   const theme = useTheme();
+  const accounts = useAppSelector(accountsSelector);
+  const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const networkSymbol = useAppSelector(networkSymbolSelector);
 
-  const assets = useAppSelector((state) => state.vault.entities.assets.list);
-  const symbolByProtocol = useMemo(() => {
-    return assets.reduce(
-      (acc, asset) => ({
-        ...acc,
-        [asset.protocol]: [asset.symbol],
-      }),
-      {}
-    );
-  }, [assets]);
+  const accountsOfNetwork = useMemo(() => {
+    return accounts
+      .filter((account) => account.protocol === selectedProtocol)
+      .map((account) => ({
+        ...account,
+        symbol: networkSymbol || "",
+      }));
+  }, [accounts, networkSymbol]);
 
-  const accountsOfNetwork = accounts
-    .filter((account) => account.protocol === selectedNetwork)
-    .map((account) => ({
-      ...account,
-      symbol: symbolByProtocol[account.protocol] || "",
-    }));
-
-  const selectedAccount = accountsOfNetwork.find(
-    (account) => account.id === selectedAccountByNetwork[selectedNetwork]
-  );
+  const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
 
@@ -288,6 +293,7 @@ const AccountSelect: React.FC<AccountSelectProps> = ({
                 borderTop: `none!important`,
                 borderBottomLeftRadius: "12px",
                 borderBottomRightRadius: "12px",
+                marginLeft: 0.1,
               }}
             >
               <Stack
@@ -298,7 +304,7 @@ const AccountSelect: React.FC<AccountSelectProps> = ({
                 boxSizing={"border-box"}
               >
                 {accountsOfNetwork.map((account, index) => (
-                  <AccountItemWrapper
+                  <AccountItem
                     key={account.id}
                     account={account}
                     showBorderTop={index !== 0}
@@ -314,10 +320,4 @@ const AccountSelect: React.FC<AccountSelectProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  accounts: state.vault.entities.accounts.list,
-  selectedNetwork: state.app.selectedNetwork,
-  selectedAccountByNetwork: state.app.selectedAccountByNetwork,
-});
-
-export default connect(mapStateToProps)(AccountSelect);
+export default AccountSelect;

@@ -112,7 +112,6 @@ const TooltipOverflow: React.FC<BaseTextRowProps> = (props) => {
 
   useEffect(() => {
     if (textRef.current) {
-      console.log(textRef.current.scrollWidth, textRef.current.clientWidth);
       setIsTextOverflowed(
         textRef.current.scrollWidth > textRef.current.clientWidth
       );

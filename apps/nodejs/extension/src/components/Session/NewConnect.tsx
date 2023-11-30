@@ -1,6 +1,5 @@
 import type { ExternalConnectionRequest } from "../../types/communication";
 import type { AccountBalanceInfo } from "../../redux/slices/app";
-import type { RootState } from "../../redux/store";
 import React, {
   useCallback,
   useEffect,
@@ -9,7 +8,6 @@ import React, {
   useState,
 } from "react";
 import orderBy from "lodash/orderBy";
-import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -22,13 +20,21 @@ import {
   SupportedProtocols,
 } from "@poktscan/keyring";
 import Requester from "../common/Requester";
-import { roundAndSeparate } from "../../utils/ui";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { getTruncatedText, roundAndSeparate } from "../../utils/ui";
+import { useAppSelector } from "../../hooks/redux";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import CheckIcon from "../../assets/img/check_icon.svg";
 import CheckedIcon from "../../assets/img/checked_icon.svg";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import {
+  networksSelector,
+  selectedChainByProtocolSelector,
+} from "../../redux/selectors/network";
+import {
+  accountBalancesSelector,
+  accountsSelector,
+} from "../../redux/selectors/account";
 
 type AccountWithBalanceInfo = SerializedAccountReference & {
   balanceInfo: AccountBalanceInfo;
@@ -68,9 +74,6 @@ const AccountItem: React.FC<AccountItemProps> = ({
   const errorBalance = balanceInfo?.error || false;
   const loadingBalance = balanceInfo?.loading || false;
 
-  const firstCharacters = address.substring(0, 4);
-  const lastCharacters = address.substring(address.length - 4);
-
   return (
     <Stack
       spacing={1.4}
@@ -107,7 +110,7 @@ const AccountItem: React.FC<AccountItemProps> = ({
           letterSpacing={"0.5px"}
           lineHeight={"22px"}
         >
-          {account.name} ({firstCharacters}...{lastCharacters})
+          {account.name} ({getTruncatedText(address)})
         </Typography>
         {loadingBalance ? (
           <Skeleton variant={"rectangular"} width={75} height={14} />
@@ -126,20 +129,8 @@ const AccountItem: React.FC<AccountItemProps> = ({
   );
 };
 
-interface NewConnectProps {
-  accounts: RootState["vault"]["entities"]["accounts"]["list"];
-  accountBalances: RootState["app"]["accountBalances"];
-  selectedChainByNetwork: RootState["app"]["selectedChainByNetwork"];
-}
-
-const NewConnect: React.FC<NewConnectProps> = ({
-  accounts,
-  accountBalances,
-  selectedChainByNetwork,
-}) => {
+const NewConnect: React.FC = () => {
   const theme = useTheme();
-  const dispatch = useAppDispatch();
-  const loadingBalanceRef = useRef(false);
   // todo: this should come with the request
   const [protocol, setProtocol] = useState(SupportedProtocols.Pocket);
   const currentRequest: ExternalConnectionRequest = useLocation()?.state;
@@ -149,15 +140,13 @@ const NewConnect: React.FC<NewConnectProps> = ({
   const lastAcceptedRef = useRef<boolean>(null);
 
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
-  const isAllSelected = selectedAccounts.length === accounts.length;
   const isSomethingSelected = !!selectedAccounts.length;
-  const assets = useAppSelector((state) => state.vault.entities.assets.list);
-
-  useEffect(() => {
-    if (loadingBalanceRef.current) return;
-    loadingBalanceRef.current = true;
-    // dispatch(getAllBalances());
-  }, []);
+  const networks = useAppSelector(networksSelector);
+  const accounts = useAppSelector(accountsSelector);
+  const accountBalances = useAppSelector(accountBalancesSelector);
+  const selectedChainByProtocol = useAppSelector(
+    selectedChainByProtocolSelector
+  );
 
   const toggleSelectAccount = useCallback((id: string) => {
     setSelectedAccounts((prevState) => {
@@ -167,10 +156,6 @@ const NewConnect: React.FC<NewConnectProps> = ({
         : prevState.filter((item) => item !== id);
     });
   }, []);
-
-  const toggleSelectAll = useCallback(() => {
-    setSelectedAccounts(isAllSelected ? [] : accounts.map((item) => item.id));
-  }, [isAllSelected, accounts]);
 
   const sendResponse = useCallback(
     async (accepted: boolean) => {
@@ -194,12 +179,15 @@ const NewConnect: React.FC<NewConnectProps> = ({
     [currentRequest, selectedAccounts]
   );
 
-  const selectedChainId = selectedChainByNetwork[protocol];
+  const selectedChain = selectedChainByProtocol[protocol];
 
   const accountsWithBalance: AccountWithBalanceInfo[] = useMemo(() => {
-    const balancesById = accountBalances[protocol][selectedChainId];
-    const symbolByProtocol = assets.reduce(
-      (acc, asset) => ({ ...acc, [asset.protocol]: asset.symbol }),
+    const balancesById = accountBalances?.[protocol]?.[selectedChain];
+    const symbolByProtocol = networks.reduce(
+      (acc, network) => ({
+        ...acc,
+        [network.protocol]: network.currencySymbol,
+      }),
       {}
     );
 
@@ -208,13 +196,21 @@ const NewConnect: React.FC<NewConnectProps> = ({
         .filter((item) => item.protocol === protocol)
         .map((item) => ({
           ...item,
-          balanceInfo: balancesById[item.address],
+          balanceInfo: balancesById?.[item.address],
           symbol: symbolByProtocol[item.protocol] || "",
         })),
       ["balanceInfo.amount"],
       ["desc"]
     );
-  }, [accounts, accountBalances, selectedChainId, protocol, assets]);
+  }, [accounts, accountBalances, selectedChain, protocol, networks]);
+
+  const isAllSelected = selectedAccounts.length === accountsWithBalance.length;
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedAccounts(
+      isAllSelected ? [] : accountsWithBalance.map((item) => item.id)
+    );
+  }, [isAllSelected, accountsWithBalance]);
 
   if (!currentRequest) {
     return null;
@@ -300,7 +296,7 @@ const NewConnect: React.FC<NewConnectProps> = ({
               account={account}
               showBorderBottom={index !== accounts.length - 1}
               protocol={protocol}
-              chainId={selectedChainId}
+              chainId={selectedChain}
             />
           ))}
         </Stack>
@@ -361,15 +357,4 @@ const NewConnect: React.FC<NewConnectProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => {
-  const selectedNetwork = state.app.selectedNetwork;
-  const selectedChain = state.app.selectedChainByNetwork[selectedNetwork];
-
-  return {
-    accounts: state.vault.entities.accounts.list,
-    selectedChainByNetwork: state.app.selectedChainByNetwork,
-    accountBalances: state.app.accountBalances,
-  };
-};
-
-export default connect(mapStateToProps)(NewConnect);
+export default NewConnect;

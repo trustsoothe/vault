@@ -17,8 +17,6 @@ import type {
 } from "../../types/communication";
 import browser, { type Runtime } from "webextension-polyfill";
 import {
-  AmountHigherThanBalance,
-  FeeLowerThanMinFee,
   OriginBlocked,
   OriginNotPresented,
   RequestConnectionExists,
@@ -53,7 +51,7 @@ import {
 import { getVault, NetworkStorage, returnExtensionErr } from "../../utils";
 import { getAccountBalance } from "../../redux/slices/app/network";
 import { getFee } from "../../utils/networkOperations";
-import { revokeSession } from "../../redux/slices/vault";
+import { revokeSession } from "../../redux/slices/vault/session";
 import { HEIGHT, WIDTH } from "../../constants/ui";
 
 type MessageSender = Runtime.MessageSender;

@@ -1,12 +1,10 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
-import type { RootState } from "../../redux/store";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
-import { connect } from "react-redux";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
@@ -17,9 +15,10 @@ import OperationFailed from "../common/OperationFailed";
 import { enqueueSnackbar } from "../../utils/ui";
 import Password from "../common/Password";
 import { nameRules } from "./CreateNew";
+import { useAppSelector } from "../../hooks/redux";
+import { passwordRememberedSelector } from "../../redux/selectors/session";
 
 interface RenameModalProps {
-  passwordRemembered: boolean;
   account?: SerializedAccountReference;
   onClose: () => void;
 }
@@ -29,17 +28,15 @@ interface FormValues {
   vault_password?: string;
 }
 
-const RenameModal: React.FC<RenameModalProps> = ({
-  passwordRemembered,
-  account,
-  onClose,
-}) => {
+const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   const theme = useTheme();
   const [wrongPassword, setWrongPassword] = useState(false);
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
   );
   const [stillShowModal, setStillShowModal] = useState(false);
+
+  const passwordRemembered = useAppSelector(passwordRememberedSelector);
 
   const methods = useForm<FormValues>({
     defaultValues: {
@@ -93,7 +90,6 @@ const RenameModal: React.FC<RenameModalProps> = ({
 
         if (result.data?.isPasswordWrong) {
           setWrongPassword(true);
-          setStatus("normal");
         } else {
           enqueueSnackbar({
             message: `Account name updated successfully.`,
@@ -101,6 +97,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
           });
           onClose();
         }
+        setStatus("normal");
       });
     },
     [account, passwordRemembered, onClose]
@@ -293,8 +290,4 @@ const RenameModal: React.FC<RenameModalProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  passwordRemembered: state.vault.passwordRemembered,
-});
-
-export default connect(mapStateToProps)(RenameModal);
+export default RenameModal;

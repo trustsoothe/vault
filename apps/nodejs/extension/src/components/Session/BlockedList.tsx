@@ -1,5 +1,3 @@
-import type { RootState } from "../../redux/store";
-import { connect } from "react-redux";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -10,21 +8,23 @@ import { getBlockedSites, unblockAllWebsites } from "../../redux/slices/app";
 import { UNBLOCK_SITE_PAGE } from "../../constants/routes";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import { useAppDispatch } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { enqueueSnackbar } from "../../utils/ui";
+import {
+  blockedListLoadedSelector,
+  blockedListSelector,
+} from "../../redux/selectors/session";
 
-interface BlockedListProps {
-  blockedList: RootState["app"]["blockedSites"]["list"];
-  loaded: RootState["app"]["blockedSites"]["loaded"];
-}
-
-const BlockedList: React.FC<BlockedListProps> = ({ blockedList, loaded }) => {
+const BlockedList: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
   );
+
+  const blockedList = useAppSelector(blockedListSelector);
+  const loaded = useAppSelector(blockedListLoadedSelector);
 
   useEffect(() => {
     if (!loaded) {
@@ -150,11 +150,4 @@ const BlockedList: React.FC<BlockedListProps> = ({ blockedList, loaded }) => {
   );
 };
 
-const mapStateToProps = (state: RootState) => {
-  return {
-    blockedList: state.app.blockedSites.list,
-    loaded: state.app.blockedSites.loaded,
-  };
-};
-
-export default connect(mapStateToProps)(BlockedList);
+export default BlockedList;

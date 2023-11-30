@@ -1,6 +1,4 @@
-import type { RootState } from "../../redux/store";
 import type { RequestsType } from "../../redux/slices/app";
-import { connect } from "react-redux";
 import { useTheme } from "@mui/material";
 import Typography from "@mui/material/Typography";
 import React, { useCallback, useEffect, useState } from "react";
@@ -8,15 +6,17 @@ import Stack, { StackProps } from "@mui/material/Stack";
 import { OriginBlocked } from "../../errors/communication";
 import ToggleBlockSite from "../Session/ToggleBlockSite";
 import { removeRequestWithRes } from "../../utils/ui";
-import { useAppDispatch } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { HEIGHT, WIDTH } from "../../constants/ui";
+import {
+  externalRequestsLengthSelector,
+  isUnlockedSelector,
+} from "../../redux/selectors/session";
 
 interface RequesterProps {
   request: RequestsType;
   text?: string;
   containerProps?: StackProps;
-  externalRequestsLength: number;
-  isUnlocked: boolean;
   hideBlock?: boolean;
 }
 
@@ -24,13 +24,14 @@ const Requester: React.FC<RequesterProps> = ({
   request,
   text,
   containerProps,
-  externalRequestsLength,
-  isUnlocked,
   hideBlock = false,
 }) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const [blockOriginRequest, setBlockOriginRequest] = useState(false);
+
+  const isUnlocked = useAppSelector(isUnlockedSelector);
+  const externalRequestsLength = useAppSelector(externalRequestsLengthSelector);
 
   useEffect(() => {
     setBlockOriginRequest(false);
@@ -131,9 +132,4 @@ const Requester: React.FC<RequesterProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  externalRequestsLength: state.app.externalRequests.length,
-  isUnlocked: state.vault.isUnlockedStatus === "yes",
-});
-
-export default connect(mapStateToProps)(Requester);
+export default Requester;

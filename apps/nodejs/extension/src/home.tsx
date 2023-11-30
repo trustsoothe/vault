@@ -1,6 +1,6 @@
-import { createHashRouter, RouterProvider } from "react-router-dom";
 import React, { useEffect, useMemo, useState } from "react";
 import GlobalStyles from "@mui/material/GlobalStyles";
+import { RouterProvider } from "react-router-dom";
 import { createRoot } from "react-dom/client";
 import browser from "webextension-polyfill";
 import { useTheme } from "@mui/material";
@@ -10,52 +10,25 @@ import Stack from "@mui/material/Stack";
 import InitializeVault from "./components/InitializeVault";
 import UnlockVault from "./components/UnlockVault";
 import { Store, applyMiddleware } from "webext-redux";
-import { Provider, connect } from "react-redux";
-import { RootState } from "./redux/store";
-import Header from "./components/common/Header";
+import { Provider } from "react-redux";
 import thunkMiddleware from "redux-thunk";
 import CircularLoading from "./components/common/CircularLoading";
-import NetworkList from "./components/Network/List";
-import AssetList from "./components/Asset/List";
-import {
-  ACCOUNT_PK_PAGE,
-  ACCOUNTS_PAGE,
-  ADD_NETWORK_PAGE,
-  ASSETS_PAGE,
-  BLOCK_SITE_PAGE,
-  CREATE_ACCOUNT_PAGE,
-  DISCONNECT_SITE_PAGE,
-  IMPORT_ACCOUNT_PAGE,
-  NETWORKS_PAGE,
-  REMOVE_NETWORK_PAGE,
-  REQUEST_CONNECTION_PAGE,
-  SITES_PAGE,
-  TRANSFER_PAGE,
-  UNBLOCK_SITE_PAGE,
-  UPDATE_NETWORK_PAGE,
-} from "./constants/routes";
-import CreateNewAccount from "./components/Account/CreateNew";
-import ImportAccount from "./components/Account/Import";
-import RequestHandler from "./components/RequestHandler";
-import Transfer from "./components/Transfer";
 import ThemeProvider from "./theme";
 import { SnackbarProvider } from "notistack";
-import AddUpdateNetwork from "./components/Network/AddUpdate";
-import RemoveNetwork from "./components/Network/Remove";
-import DisconnectSite from "./components/Session/DisconnectSite";
-import ViewPrivateKey from "./components/Account/ViewPrivateKey";
 import { closeCurrentWindow, removeRequestWithRes } from "./utils/ui";
-import { ToggleBlockSiteFromRouter } from "./components/Session/ToggleBlockSite";
 import { MINUTES_ALLOWED_FOR_REQ } from "./constants/communication";
 import { RequestTimeout } from "./errors/communication";
-import { useAppDispatch } from "./hooks/redux";
+import { useAppDispatch, useAppSelector } from "./hooks/redux";
 import useIsPopup from "./hooks/useIsPopup";
-import Sites from "./components/Session";
 import { HEIGHT, WIDTH } from "./constants/ui";
 import SuccessIcon from "./assets/img/success_icon.svg";
-import NewConnect from "./components/Session/NewConnect";
-import SelectedAccount from "./components/Account/SelectedAccount";
 import { pricesApi } from "./redux/slices/prices";
+import { requestRouter, router } from "./constants/routers";
+import {
+  externalRequestsSelector,
+  initializeStatusSelector,
+  vaultSessionExistsSelector,
+} from "./redux/selectors/session";
 
 const store = new Store();
 const storeWithMiddleware = applyMiddleware(
@@ -69,111 +42,7 @@ Object.assign(storeWithMiddleware, {
   subscribe: storeWithMiddleware.subscribe.bind(storeWithMiddleware),
 });
 
-const router = createHashRouter([
-  {
-    path: "",
-    element: <Header />,
-    children: [
-      {
-        path: ACCOUNTS_PAGE,
-        element: <SelectedAccount />,
-      },
-      {
-        path: ACCOUNT_PK_PAGE,
-        element: <ViewPrivateKey />,
-      },
-      {
-        path: SITES_PAGE,
-        element: <Sites />,
-      },
-      {
-        path: DISCONNECT_SITE_PAGE,
-        element: <DisconnectSite />,
-      },
-      {
-        path: BLOCK_SITE_PAGE,
-        element: <ToggleBlockSiteFromRouter />,
-      },
-      {
-        path: UNBLOCK_SITE_PAGE,
-        element: <ToggleBlockSiteFromRouter />,
-      },
-      {
-        path: NETWORKS_PAGE,
-        element: <NetworkList />,
-      },
-      {
-        path: ADD_NETWORK_PAGE,
-        element: <AddUpdateNetwork />,
-      },
-      {
-        path: UPDATE_NETWORK_PAGE,
-        element: <AddUpdateNetwork />,
-      },
-      {
-        path: REMOVE_NETWORK_PAGE,
-        element: <RemoveNetwork />,
-      },
-      {
-        path: ASSETS_PAGE,
-        element: <AssetList />,
-      },
-      {
-        path: CREATE_ACCOUNT_PAGE,
-        element: <CreateNewAccount />,
-      },
-      {
-        path: IMPORT_ACCOUNT_PAGE,
-        element: <ImportAccount />,
-      },
-      {
-        path: TRANSFER_PAGE,
-        element: <Transfer />,
-      },
-    ],
-  },
-]);
-
-const requestRouter = createHashRouter([
-  {
-    path: "",
-    element: <RequestHandler />,
-    children: [
-      {
-        path: "",
-        element: <CircularLoading />,
-      },
-      {
-        path: REQUEST_CONNECTION_PAGE,
-        element: <NewConnect />,
-      },
-      {
-        path: CREATE_ACCOUNT_PAGE,
-        element: <CreateNewAccount />,
-      },
-      {
-        path: IMPORT_ACCOUNT_PAGE,
-        element: <ImportAccount />,
-      },
-      {
-        path: TRANSFER_PAGE,
-        element: <Transfer />,
-      },
-    ],
-  },
-]);
-
-interface HomeProps {
-  initializeStatus: RootState["vault"]["initializeStatus"];
-  vaultSession: RootState["vault"]["vaultSession"];
-  externalRequests: RootState["app"]["externalRequests"];
-}
-
-const Home: React.FC<HomeProps> = ({
-  initializeStatus,
-  vaultSession,
-  externalRequests,
-}) => {
+const Home: React.FC = () => {
   const dispatch = useAppDispatch();
   const theme = useTheme();
   const [view, setView] = useState("loading");
@@ -185,11 +54,9 @@ const Home: React.FC<HomeProps> = ({
     setView(isSessionRequest ? "session-request" : "normal");
   }, []);
 
-  useEffect(() => {
-    if (vaultSession) {
-      //todo: close vault if session is invalid
-    }
-  }, []);
+  const externalRequests = useAppSelector(externalRequestsSelector);
+  const initializeStatus = useAppSelector(initializeStatusSelector);
+  const vaultSessionExists = useAppSelector(vaultSessionExistsSelector);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -231,23 +98,18 @@ const Home: React.FC<HomeProps> = ({
       return <InitializeVault />;
     }
 
-    if (vaultSession) {
-      if (view === "session-request") {
-        return (
-          <Stack flexGrow={1}>
-            <RouterProvider router={requestRouter} />
-          </Stack>
-        );
-      }
+    if (vaultSessionExists) {
       return (
         <Stack flexGrow={1}>
-          <RouterProvider router={router} />
+          <RouterProvider
+            router={view === "session-request" ? requestRouter : router}
+          />
         </Stack>
       );
     }
 
     return <UnlockVault />;
-  }, [initializeStatus, vaultSession, view]);
+  }, [initializeStatus, vaultSessionExists, view]);
 
   return (
     <>
@@ -351,27 +213,17 @@ const Home: React.FC<HomeProps> = ({
   );
 };
 
-const mapStateToProps = (state: RootState) => ({
-  vaultSession: state.vault.vaultSession,
-  initializeStatus: state.vault.initializeStatus,
-  externalRequests: state.app.externalRequests,
-});
-
-const ConnectedHome = connect(mapStateToProps)(Home);
-
 // to only display the UI when the servicer worker is activated and avoid blank UI
 browser.runtime.sendMessage({ type: "WAIT_BACKGROUND" }).then(() => {
   storeWithMiddleware.ready().then(() => {
     const root = createRoot(document.getElementById("root")!);
 
     root.render(
-      <React.StrictMode>
-        <Provider store={storeWithMiddleware}>
-          <ThemeProvider>
-            <ConnectedHome />
-          </ThemeProvider>
-        </Provider>
-      </React.StrictMode>
+      <Provider store={storeWithMiddleware}>
+        <ThemeProvider>
+          <Home />
+        </ThemeProvider>
+      </Provider>
     );
   });
 });

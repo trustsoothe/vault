@@ -3,7 +3,7 @@ import type {
   FilterOptionsState,
 } from "@mui/material";
 import type { FormValues } from "../index";
-import type { Network } from "../../../redux/slices/app";
+import type { NetworkForOperations } from "../../../utils/networkOperations";
 import { useTheme } from "@mui/material";
 import orderBy from "lodash/orderBy";
 import Stack from "@mui/material/Stack";
@@ -13,46 +13,78 @@ import React, { useCallback, useMemo } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Controller, useFormContext } from "react-hook-form";
 import { useAppSelector } from "../../../hooks/redux";
+import {
+  customRpcsSelector,
+  networksSelector,
+} from "../../../redux/selectors/network";
 
 const NetworkAutocomplete: React.FC = () => {
   const theme = useTheme();
   const { control, watch } = useFormContext<FormValues>();
 
   const [protocol, chainId, rpcUrl] = watch(["protocol", "chainId", "rpcUrl"]);
-  const networks = useAppSelector((state) => state.app.networks);
-  const allowedNetworks: Network[] = useMemo(() => {
+  const networks = useAppSelector(networksSelector);
+  const customRpcs = useAppSelector(customRpcsSelector);
+
+  const allowedNetworks = useMemo(() => {
+    const allRpcs = [
+      ...networks.map(
+        (network) =>
+          ({
+            protocol: network.protocol,
+            id: network.id,
+            chainID: network.chainId,
+            isDefault: true,
+            isPreferred: false,
+            rpcUrl: network.rpcUrl,
+          } as NetworkForOperations)
+      ),
+      ...customRpcs.map(
+        (rpc) =>
+          ({
+            protocol: rpc.protocol,
+            id: rpc.id,
+            chainID: rpc.chainId,
+            isDefault: false,
+            isPreferred: rpc.isPreferred,
+            rpcUrl: rpc.url,
+          } as NetworkForOperations)
+      ),
+    ];
+
     return orderBy(
-      networks
+      allRpcs
         .filter(
-          (item) => item.protocol === protocol && item.chainId === chainId
+          (item) => item.protocol === protocol && item.chainID === chainId
         )
         .map((item) => ({
           ...item,
-          // todo: add rpcs and consider is preferred
-          rank: /*item.isPreferred ? 1 :*/ item.isDefault ? 2 : 3,
+          rank: item.isPreferred ? 1 : item.isDefault ? 2 : 3,
         })),
       ["rank"],
       ["asc"]
     );
-  }, [networks, protocol, chainId]);
+  }, [networks, protocol, chainId, customRpcs]);
+
   const selectedNetwork = useMemo(() => {
     return allowedNetworks.find(
       (item) =>
         item.rpcUrl === rpcUrl &&
-        item.chainId === chainId &&
+        item.chainID === chainId &&
         item.protocol === protocol
     );
-  }, [allowedNetworks]);
+  }, [allowedNetworks, rpcUrl, chainId, protocol]);
 
   const filterOptions = useCallback(
-    (options: Network[], state: FilterOptionsState<Network>) => {
+    (
+      options: NetworkForOperations[],
+      state: FilterOptionsState<NetworkForOperations>
+    ) => {
       const value = state.inputValue.toLowerCase().trim();
-
-      if (!value) return options.slice(0, 25);
 
       return options
         .filter((item) => {
-          if (item.label.toLowerCase().includes(value)) {
+          if ((value && item.rpcUrl.toLowerCase().includes(value)) || !value) {
             return true;
           }
         })
@@ -64,20 +96,18 @@ const NetworkAutocomplete: React.FC = () => {
   const renderOption = useCallback(
     (
       props: React.HTMLAttributes<unknown>,
-      option: Network,
+      option: NetworkForOperations,
       state: AutocompleteRenderOptionState
     ) => {
       return (
         <Stack
           {...props}
           sx={{
-            paddingY: "5px!important",
             paddingX: "10px!important",
             borderTop:
               state.index !== 0
                 ? `1px solid ${theme.customColors.dark15}`
                 : undefined,
-            py: "5px",
             alignItems: "flex-start!important",
             "& p": {
               fontSize: "12px!important",
@@ -86,14 +116,20 @@ const NetworkAutocomplete: React.FC = () => {
           direction={"row"}
           spacing={"5px"}
         >
-          <Typography fontWeight={500}>{option.rpcUrl}</Typography>
+          <Typography
+            fontWeight={500}
+            textOverflow={"ellipsis"}
+            whiteSpace={"nowrap"}
+            overflow={"hidden"}
+          >
+            {option.rpcUrl}
+          </Typography>
           <Typography color={theme.customColors.dark90}>
             {option.isDefault
               ? "(Default)"
-              : // todo: when rpcs are enabled
-                // : option.isPreferred
-                // ? "(Preferred)"
-                ""}
+              : option.isPreferred
+              ? "(Preferred)"
+              : ""}
           </Typography>
         </Stack>
       );
@@ -101,12 +137,12 @@ const NetworkAutocomplete: React.FC = () => {
     [theme]
   );
 
-  const getOptionLabel = useCallback((option: Network) => {
+  const getOptionLabel = useCallback((option: NetworkForOperations) => {
     return option ? option.rpcUrl : "";
   }, []);
 
   const isOptionEqualToValue = useCallback(
-    (option: Network, value: Network) => {
+    (option: NetworkForOperations, value: NetworkForOperations) => {
       return option.id === value.id;
     },
     []
@@ -130,11 +166,7 @@ const NetworkAutocomplete: React.FC = () => {
           getOptionLabel={getOptionLabel}
           onChange={(_, newValue) => onChange(newValue.rpcUrl)}
           isOptionEqualToValue={isOptionEqualToValue}
-          value={
-            allowedNetworks.find(
-              (item) => item.protocol === protocol && selectedNetwork
-            ) || null
-          }
+          value={selectedNetwork || null}
           clearIcon={null}
           {...otherProps}
           sx={{
