@@ -7,5 +7,6 @@ export interface EthereumNetworkProtocolTransaction extends IAbstractProtocolTra
   transactionType: EthereumNetworkTransactionTypes;
   maxFeePerGas: number;
   maxPriorityFeePerGas: number;
+  gasLimit?: number;
   data?: string;
 }

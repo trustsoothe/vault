@@ -76,6 +76,7 @@ export interface IAsset {
   protocol: SupportedProtocols;
   chainId: string;
   contractAddress: string;
+  mintContractAddress?: string;
   decimals: 6;
   iconUrl: string;
   /**only presented in wPOKT assets at the moment*/

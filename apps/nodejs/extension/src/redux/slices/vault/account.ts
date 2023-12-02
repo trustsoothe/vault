@@ -227,7 +227,7 @@ export const getPrivateKeyOfAccount = createAsyncThunk<
   );
 });
 
-export interface SendTransferParam
+export interface SendTransactionParams
   extends Omit<TransferOptions, "transactionParams"> {
   transactionParams: {
     maxFeePerGas?: number;
@@ -235,16 +235,37 @@ export interface SendTransferParam
     data?: string;
     fee?: number;
     memo?: string;
+    gasLimit?: number;
   };
 }
 
-export const sendTransfer = createAsyncThunk<string, SendTransferParam>(
+export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
   "vault/sendTransfer",
   async (transferOptions, context) => {
     const state = context.getState() as RootState;
     const sessionId = state.vault.vaultSession.id;
 
     const result = await ExtensionVaultInstance.transferFunds(sessionId, {
+      ...transferOptions,
+      transactionParams: {
+        from: "",
+        to: "",
+        amount: "",
+        ...transferOptions.transactionParams,
+      },
+    });
+
+    return result.transactionHash;
+  }
+);
+
+export const sendRawTransaction = createAsyncThunk<string, SendTransactionParams>(
+  "vault/sendRawTransaction",
+  async (transferOptions, context) => {
+    const state = context.getState() as RootState;
+    const sessionId = state.vault.vaultSession.id;
+
+    const result = await ExtensionVaultInstance.sendRawTransaction(sessionId, {
       ...transferOptions,
       transactionParams: {
         from: "",

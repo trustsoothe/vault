@@ -54,6 +54,7 @@ import {
   selectedAccountIdSelector,
 } from "../../redux/selectors/account";
 import { assetsIdByAccountIdSelector } from "../../redux/selectors/asset";
+import {AnswerTransferResponse} from "../../controllers/communication/Internal";
 
 export type FeeSpeed = "n/a" | "low" | "medium" | "high";
 
@@ -319,14 +320,14 @@ const Transfer: React.FC = () => {
         };
       } else if (transferType === "mint") {
         const mintTx = WPOKTBridge.createMintTransaction({
-          contractAddress: asset.contractAddress,
+          contractAddress: asset.mintContractAddress,
           signatures: externalTransferData?.signatures,
           mintInfo: externalTransferData?.mintInfo,
         });
 
         networkFeeParam = {
           ...baseParam,
-          toAddress: asset.contractAddress,
+          toAddress: asset.mintContractAddress,
           data: mintTx.data,
           from: getValues("from"),
         };
@@ -552,6 +553,7 @@ const Transfer: React.FC = () => {
           transactionParams: {
             maxFeePerGas: feeInfo?.suggestedMaxFeePerGas,
             maxPriorityFeePerGas: feeInfo?.suggestedMaxPriorityFeePerGas,
+            gasLimit: (networkFee as EthereumNetworkFee)?.estimatedGas,
           },
         };
 
@@ -578,14 +580,14 @@ const Transfer: React.FC = () => {
           });
         } else if (transferType === "mint") {
           const mintTx = WPOKTBridge.createMintTransaction({
-            contractAddress: data.asset.contractAddress,
+            contractAddress: data.asset.mintContractAddress,
             signatures: externalTransferData.signatures,
             mintInfo: externalTransferData.mintInfo,
           });
 
           transferParam = merge(networkBaseTransferParam, {
             to: {
-              value: data.asset.contractAddress,
+              value: data.asset.mintContractAddress,
             },
             amount: 0,
             asset: null,
@@ -598,13 +600,25 @@ const Transfer: React.FC = () => {
         }
       }
 
-      debugger;
-      const response = await AppToBackground.sendRequestToAnswerTransfer({
-        rejected: false,
-        transferData: transferParam,
-        // todo: pass this when present
-        request: undefined,
-      });
+      let response: AnswerTransferResponse;
+
+      console.log('transferParam', transferParam);
+
+      if (['mint', 'burn'].includes(transferType)) {
+        response = await AppToBackground.sendRequestToAnswerTransaction({
+          rejected: false,
+          transferData: transferParam,
+          // todo: pass this when present
+          request: undefined,
+        });
+      } else {
+        response = await AppToBackground.sendRequestToAnswerTransfer({
+          rejected: false,
+          transferData: transferParam,
+          // todo: pass this when present
+          request: undefined,
+        });
+      }
 
       if (response.error) {
         setStatus("error");
