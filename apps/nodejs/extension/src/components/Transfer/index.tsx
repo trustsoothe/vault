@@ -602,8 +602,6 @@ const Transfer: React.FC = () => {
 
       let response: AnswerTransferResponse;
 
-      console.log('transferParam', transferParam);
-
       if (['mint', 'burn'].includes(transferType)) {
         response = await AppToBackground.sendRequestToAnswerTransaction({
           rejected: false,
