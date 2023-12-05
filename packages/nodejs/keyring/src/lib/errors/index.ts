@@ -156,3 +156,12 @@ export class PrivateKeyRestoreError extends KeyringError {
     });
   }
 }
+
+export class InvalidChainIDError extends KeyringError {
+  constructor(message?: string) {
+    super({
+      name: 'InvalidChainIDError',
+      message: message || 'Invalid Chain ID',
+    });
+  }
+}
