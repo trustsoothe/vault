@@ -6,6 +6,12 @@ import { EthereumNetworkTransactionTypes } from "../EthereumNetwork/EthereumNetw
 import { Contract } from "web3-eth-contract";
 import mintControllerABI from "../EthereumNetwork/contracts/WPOKTMintController";
 import WPoktABI from "../EthereumNetwork/contracts/WPOKT";
+import {InvalidChainIDError} from "../../../../errors";
+
+const WPoktChainsMap: Record<string, string> = {
+  'mainnet': '1',
+  'testnet': '5',
+}
 
 export interface WPOKTBridgeOptions {
   from: string;
@@ -36,6 +42,10 @@ export class WPOKTBridge {
   static createBridgeTransaction(
     options: WPOKTBridgeOptions
   ): Omit<PocketNetworkProtocolTransaction, "privateKey" | "fee"> {
+    if (!WPoktChainsMap[options.chainID]) {
+      throw new InvalidChainIDError(`Unsupported chain id ${options.chainID}`);
+    }
+
     return {
       protocol: SupportedProtocols.Pocket,
       transactionType: PocketNetworkTransactionTypes.Send,
@@ -44,7 +54,7 @@ export class WPOKTBridge {
       amount: options.amount,
       memo: JSON.stringify({
         address: options.ethereumAddress,
-        chain_id: options.chainID,
+        chain_id: WPoktChainsMap[options.chainID],
       }),
     };
   }

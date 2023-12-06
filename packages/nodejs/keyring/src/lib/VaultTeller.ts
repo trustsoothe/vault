@@ -61,6 +61,7 @@ export interface TransferOptions {
     amount: string;
     maxFeePerGas?: number;
     maxPriorityFeePerGas?: number;
+    gasLimit?: number;
     data?: string;
     fee?: number;
     memo?: string;
@@ -414,6 +415,77 @@ export class VaultTeller {
     }
   }
 
+  async sendRawTransaction(
+    sessionId: string,
+    options: TransferOptions,
+  ): Promise<IProtocolTransactionResult<AllowedProtocols>> {
+    await this.validateSessionForPermissions(sessionId, "transaction", "send");
+
+    let account: Account | null = null;
+    let privateKey: string | null = null;
+
+    if (options.from.type === SupportedTransferOrigins.RawPrivateKey) {
+      account = await this.deriveAccountFromPrivateKey({
+        protocol: options.network.protocol,
+        privateKey: options.from.value,
+        skipEncryption: true,
+      });
+      privateKey = options.from.value;
+    }
+
+    if (options.from.type === SupportedTransferOrigins.VaultAccountId) {
+      const {account: vaultAccount, privateKey: vaultPrivateKey} = await this.getVaultAccountAndPrivateKey(options);
+      account = vaultAccount;
+      privateKey = vaultPrivateKey;
+    }
+
+    if (!account) {
+      throw new Error(`Transfer origin "${options.from.type}" not supported. No account was found.`);
+    }
+
+    if (!privateKey) {
+      throw new Error(`Transfer origin "${options.from.type}" not supported. No private key was found.`);
+    }
+
+    switch (options.network.protocol) {
+      case SupportedProtocols.Pocket:
+        // TODO: Needs to be updated once support for other transaction types is added in this protocol
+        return await new PocketNetworkProtocolService(
+          this.encryptionService
+        ).sendTransaction(options.network, {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.Send,
+          from: account.address,
+          to: options.to.value,
+          amount: options.amount.toString(),
+          fee: options.transactionParams.fee,
+          privateKey,
+        });
+      case SupportedProtocols.Ethereum:
+        return await new EthereumNetworkProtocolService(
+          this.encryptionService
+        ).sendTransaction(
+          options.network,
+          {
+            protocol: SupportedProtocols.Ethereum,
+            transactionType: EthereumNetworkTransactionTypes.Raw,
+            from: account.address,
+            to: options.to.value,
+            amount: options.amount.toString(),
+            privateKey,
+            maxPriorityFeePerGas:
+              options.transactionParams.maxPriorityFeePerGas || 0,
+            maxFeePerGas: options.transactionParams.maxFeePerGas || 0,
+            gasLimit: options.transactionParams.gasLimit || 0,
+            data: options.transactionParams.data,
+          },
+          options.asset
+        );
+        default:
+          throw new Error(`Transfer origin "${options.from.type}" not supported`);
+    }
+  }
+
   private async sendTransaction(
     account: Account,
     privateKey: string,
@@ -459,6 +531,11 @@ export class VaultTeller {
   private async transferWithVaultAccount(
     options: TransferOptions
   ): Promise<IProtocolTransactionResult<AllowedProtocols>> {
+    let {account, privateKey} = await this.getVaultAccountAndPrivateKey(options);
+    return await this.sendTransaction(account, privateKey, options);
+  }
+
+  private async getVaultAccountAndPrivateKey(options: TransferOptions) {
     if (!this.isUnlocked) {
       throw new VaultIsLockedError();
     }
@@ -489,38 +566,13 @@ export class VaultTeller {
     } catch (e) {
       throw new PrivateKeyRestoreError();
     }
-
-    return await this.sendTransaction(account, privateKey, options);
+    return {account, privateKey};
   }
 
   private async transferWithPrivateKey(
     options: TransferOptions
   ): Promise<IProtocolTransactionResult<AllowedProtocols>> {
-    const protocolService = ProtocolServiceFactory.getProtocolService(
-      options.network.protocol,
-      this.encryptionService
-    );
-
-    const isValidPrivateKey = protocolService.isValidPrivateKey(
-      options.from.value
-    );
-
-    if (!isValidPrivateKey) {
-      throw new InvalidPrivateKeyError();
-    }
-
-    if (!options.from.asset) {
-      throw new ArgumentError("from.asset", "from.asset is required");
-    }
-
-    if (options.from.asset.protocol !== options.network.protocol) {
-      throw new ArgumentError(
-        "from.asset.protocol",
-        "from.asset.protocol must match network.protocol"
-      );
-    }
-
-    const account = await protocolService.createAccountFromPrivateKey({
+    const account = await this.deriveAccountFromPrivateKey({
       protocol: options.network.protocol,
       privateKey: options.from.value,
       skipEncryption: true,

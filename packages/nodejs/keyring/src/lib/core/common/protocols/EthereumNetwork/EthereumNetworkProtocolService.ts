@@ -272,6 +272,8 @@ export class EthereumNetworkProtocolService
           transaction,
           asset
         );
+      case EthereumNetworkTransactionTypes.Raw:
+        return await this.executeRawTransaction(network, transaction);
       default:
         throw new ProtocolTransactionError(
           "Unsupported transaction type. Not implemented."
@@ -608,6 +610,29 @@ export class EthereumNetworkProtocolService
       maxFeePerGas: toHex(transactionParams.maxFeePerGas),
       maxPriorityFeePerGas: toHex(transactionParams.maxPriorityFeePerGas),
       data,
+    };
+
+    return this.signAndSendTransaction(txParams, transactionParams, network);
+  }
+
+  private async executeRawTransaction(
+    network: INetwork,
+    transactionParams: EthereumNetworkProtocolTransaction
+  ): Promise<IProtocolTransactionResult<SupportedProtocols.Ethereum>> {
+    const ethClient = this.getEthClient(network);
+
+    const nonce = await ethClient.getTransactionCount(transactionParams.from);
+
+    const txParams = {
+      from: transactionParams.from,
+      to: transactionParams.to,
+      value: (transactionParams.amount && `0x${BigInt(transactionParams.amount).toString(16)}`) || '0x0',
+      gasLimit: BigInt(Math.round(transactionParams.gasLimit || 21000)),
+      chainId: Number(network.chainID),
+      nonce,
+      maxFeePerGas: toHex(transactionParams.maxFeePerGas),
+      maxPriorityFeePerGas: toHex(transactionParams.maxPriorityFeePerGas),
+      data: transactionParams.data,
     };
 
     return this.signAndSendTransaction(txParams, transactionParams, network);
