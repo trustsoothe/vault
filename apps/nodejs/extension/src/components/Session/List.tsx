@@ -9,7 +9,7 @@ import { DISCONNECT_SITE_PAGE } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import { enqueueSnackbar } from "../../utils/ui";
+import { enqueueSnackbar, getTruncatedText } from "../../utils/ui";
 import ExpandIcon from "../../assets/img/expand_icon.svg";
 import { useAppSelector } from "../../hooks/redux";
 import { sessionsSelector } from "../../redux/selectors/session";
@@ -94,11 +94,8 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
       );
 
     return accounts
-      .filter((account) => idMap.includes(account.id))
+      .filter((account) => idMap.includes(account.address))
       .map(({ address, name }) => {
-        const addressFirstCharacters = address?.substring(0, 4);
-        const addressLastCharacters = address?.substring(address?.length - 4);
-
         return (
           <Typography
             marginLeft={2}
@@ -106,7 +103,7 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
             fontSize={11}
             letterSpacing={"0.5px"}
           >
-            {name} ({addressFirstCharacters}...{addressLastCharacters})
+            {name} ({getTruncatedText(address)})
           </Typography>
         );
       });

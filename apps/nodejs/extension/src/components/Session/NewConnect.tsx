@@ -131,9 +131,8 @@ const AccountItem: React.FC<AccountItemProps> = ({
 
 const NewConnect: React.FC = () => {
   const theme = useTheme();
-  // todo: this should come with the request
-  const [protocol, setProtocol] = useState(SupportedProtocols.Pocket);
   const currentRequest: ExternalConnectionRequest = useLocation()?.state;
+  const protocol = currentRequest?.protocol;
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
   );
@@ -148,12 +147,12 @@ const NewConnect: React.FC = () => {
     selectedChainByProtocolSelector
   );
 
-  const toggleSelectAccount = useCallback((id: string) => {
+  const toggleSelectAccount = useCallback((address: string) => {
     setSelectedAccounts((prevState) => {
-      const alreadySelected = prevState.includes(id);
+      const alreadySelected = prevState.includes(address);
       return !alreadySelected
-        ? [...prevState, id]
-        : prevState.filter((item) => item !== id);
+        ? [...prevState, address]
+        : prevState.filter((item) => item !== address);
     });
   }, []);
 
@@ -167,6 +166,7 @@ const NewConnect: React.FC = () => {
           accepted: accepted && !!selectedAccounts.length,
           request: currentRequest,
           selectedAccounts,
+          protocol: currentRequest.protocol,
         });
         const isError = !!result.error;
         setStatus(isError ? "error" : "normal");
@@ -208,7 +208,7 @@ const NewConnect: React.FC = () => {
 
   const toggleSelectAll = useCallback(() => {
     setSelectedAccounts(
-      isAllSelected ? [] : accountsWithBalance.map((item) => item.id)
+      isAllSelected ? [] : accountsWithBalance.map((item) => item.address)
     );
   }, [isAllSelected, accountsWithBalance]);
 
@@ -291,8 +291,8 @@ const NewConnect: React.FC = () => {
         >
           {accountsWithBalance.map((account, index) => (
             <AccountItem
-              onClickCheckbox={() => toggleSelectAccount(account.id)}
-              isChecked={selectedAccounts.includes(account.id)}
+              onClickCheckbox={() => toggleSelectAccount(account.address)}
+              isChecked={selectedAccounts.includes(account.address)}
               account={account}
               showBorderBottom={index !== accounts.length - 1}
               protocol={protocol}

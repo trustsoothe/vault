@@ -2,17 +2,24 @@ import type { ActionReducerMapBuilder } from "@reduxjs/toolkit";
 import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { Storage as OriginalStorage } from "webextension-polyfill/namespaces/storage";
 import type {
+  ProxyBalanceRes,
   ProxyCheckConnectionRequest,
   ProxyConnectionRequest,
   ProxyConnectionRes,
   ProxyDisconnectRequest,
   ProxyDisconnectRes,
+  ProxyGetPoktTxRes,
   ProxyListAccountsRequest,
   ProxyListAccountsRes,
   ProxyNewAccountRequest,
   ProxyNewAccountRes,
+  ProxySwitchChainRes,
   ProxyTransferRequest,
   ProxyTransferRes,
+  ProxyBalanceRequest,
+  ProxyGetPoktTxRequest,
+  ProxySelectedChainRequest,
+  ProxySwitchChainRequest,
 } from "./communication";
 import type { ArgsOrCallback, Method, MethodOrPayload } from "./provider";
 import type { GeneralAppSlice } from "../redux/slices/app";
@@ -72,11 +79,18 @@ export type BrowserRequest =
   | ProxyNewAccountRequest
   | ProxyTransferRequest
   | ProxyDisconnectRequest
-  | ProxyListAccountsRequest;
+  | ProxyListAccountsRequest
+  | ProxySelectedChainRequest
+  | ProxyBalanceRequest
+  | ProxyGetPoktTxRequest
+  | ProxySwitchChainRequest;
 
 export type BrowserResponse =
   | ProxyConnectionRes
   | ProxyListAccountsRes
   | ProxyDisconnectRes
   | ProxyNewAccountRes
-  | ProxyTransferRes;
+  | ProxyTransferRes
+  | ProxyBalanceRes
+  | ProxyGetPoktTxRes
+  | ProxySwitchChainRes;

@@ -1,11 +1,10 @@
-import type { RequestsType } from "../../redux/slices/app";
 import { useTheme } from "@mui/material";
 import Typography from "@mui/material/Typography";
 import React, { useCallback, useEffect, useState } from "react";
 import Stack, { StackProps } from "@mui/material/Stack";
 import { OriginBlocked } from "../../errors/communication";
 import ToggleBlockSite from "../Session/ToggleBlockSite";
-import { removeRequestWithRes } from "../../utils/ui";
+import { PartialRequest, removeRequestWithRes } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { HEIGHT, WIDTH } from "../../constants/ui";
 import {
@@ -14,7 +13,7 @@ import {
 } from "../../redux/selectors/session";
 
 interface RequesterProps {
-  request: RequestsType;
+  request: PartialRequest;
   text?: string;
   containerProps?: StackProps;
   hideBlock?: boolean;

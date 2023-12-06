@@ -89,23 +89,8 @@ interface BurnTransaction extends BaseTransaction {
   return_tx_hash: string;
 }
 
-interface BaseResponse {
-  page: number;
-  totalPages: number;
-}
-
-interface MintResponse extends BaseResponse {
-  mints: MintTransaction[];
-  totalMints: number;
-}
-
-interface BurnResponse extends BaseResponse {
-  burns: BurnTransaction[];
-  totalBurns: number;
-}
-
 type Transaction = BurnTransaction | MintTransaction;
-type Response = BurnResponse | MintResponse;
+type Response = BurnTransaction[] | MintTransaction[];
 
 const addZeroIfOnlyOneDigit = (value: number) => {
   return value < 10 ? `0${value}` : value.toString();
@@ -521,7 +506,7 @@ const TransferForm: React.FC<TransferFormProps> = ({
               }
 
               const total = amountFromInput + fee;
-              return /*total > balance ? `Insufficient balance` :*/ true;
+              return total > balance ? `Insufficient balance` : true;
             },
           }}
           render={({ field, fieldState: { error } }) => (
@@ -586,11 +571,11 @@ const TransferForm: React.FC<TransferFormProps> = ({
             order: 9,
           }}
           type={"submit"}
-          // disabled={
-          //   !balance ||
-          //   (poktFeeStatus === "not-fetched" &&
-          //     selectedProtocol === SupportedProtocols.Pocket)
-          // }
+          disabled={
+            !balance ||
+            (poktFeeStatus === "not-fetched" &&
+              selectedProtocol === SupportedProtocols.Pocket)
+          }
         >
           {action === "burns" ? "Wrap" : "Unwrap"}
         </Button>
@@ -598,9 +583,6 @@ const TransferForm: React.FC<TransferFormProps> = ({
     </Stack>
   );
 };
-
-const MAINNET_BASE_API_URL = "https://wpokt-monitor.vercel.app/api";
-const TESTNET_BASE_API_URL = "https://testnet-wpokt-monitor.vercel.app/api";
 
 type Action = "burns" | "mints";
 
@@ -611,8 +593,6 @@ interface WrappedPoktTxsProps {
   onCloseForm?: () => void;
 }
 
-// const itemsLimit = 10;
-
 const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
   address,
   action,
@@ -621,14 +601,12 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
 }) => {
   const theme = useTheme();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [page, setPage] = useState(1);
   const [fetchStatus, setFetchStatus] = useState<
     "loading" | "normal" | "error"
   >("loading");
 
   useEffect(() => {
     setTransactions([]);
-    setPage(1);
   }, [action, address]);
 
   const baseUrl = useAppSelector(wPoktBaseUrlSelector(action));
@@ -638,26 +616,19 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
   const fetchTransactions = useCallback(() => {
     abortControllerRef.current = new AbortController();
     setFetchStatus("loading");
-    fetch(`${baseUrl}/${action}/all?page=${page}&recipient=${address}`, {
+    fetch(`${baseUrl}/${action}/active?recipient=${address}`, {
       signal: abortControllerRef.current.signal,
     })
       .then((res) => res.json())
-      .then((json: Response) => {
-        let items: Transaction[];
-        if (action === "burns") {
-          items = (json as BurnResponse).burns;
-        } else {
-          items = (json as MintResponse).mints;
-        }
-
-        setTransactions((prevState) => [...prevState, ...items]);
+      .then((items: Response) => {
+        setTransactions(items);
         setFetchStatus("normal");
       })
       .catch(() => {
         setFetchStatus("error");
       })
       .finally(() => (abortControllerRef.current = null));
-  }, [action, page, address]);
+  }, [action, address]);
 
   useEffect(() => {
     fetchTransactions();
@@ -750,6 +721,7 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
         </Stack>
         <Stack
           width={370}
+          flexGrow={1}
           sx={{
             overflowY: fetchStatus === "loading" ? "hidden" : "auto",
             overflowX: "hidden",
@@ -762,7 +734,7 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
               cancelBtnProps={{ sx: { display: "none" } }}
             />
           ) : !transactions.length && fetchStatus === "normal" ? (
-            <Stack alignItems={"center"} justifyContent={"center"} flexGrow={1}>
+            <Stack alignItems={"center"} justifyContent={"center"} height={145}>
               <Typography
                 fontSize={12}
                 fontWeight={500}

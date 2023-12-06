@@ -1,30 +1,45 @@
 import type {
   BaseErrors,
   ConnectionRequestMessage,
+  DisconnectBackResponse,
   DisconnectRequestMessage,
+  ExternalConnectionResponse,
+  ExternalListAccountsResponse,
+  ExternalNewAccountResponse,
+  ExternalSwitchChainResponse,
+  ExternalTransferResponse,
+  GetPoktTxRequestMessage,
+  IsSessionValidResponse,
   ListAccountsRequestMessage,
   NewAccountRequestMessage,
   RequestExistsError,
   SessionValidRequestMessage,
+  SwitchChainRequestMessage,
   TransferRequestMessage,
-  DisconnectBackResponse,
-  ExternalConnectionResponse,
-  ExternalListAccountsResponse,
-  ExternalNewAccountResponse,
-  ExternalTransferResponse,
-  IsSessionValidResponse,
-  TRequestBeingHandled,
+  BalanceRequestMessage,
+  ExternalBalanceResponse,
+  ExternalGetPoktTxResponse,
+  ExternalSelectedChainResponse,
+  SelectedChainRequestMessage,
 } from "../../types/communication";
+import { toWei } from "web3-utils";
 import browser, { type Runtime } from "webextension-polyfill";
+import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
+import {
+  INetwork,
+  PocketNetworkProtocolService,
+  SupportedProtocols,
+} from "@poktscan/keyring";
 import {
   OriginBlocked,
   OriginNotPresented,
   RequestConnectionExists,
   RequestNewAccountExists,
+  RequestSwitchChainExists,
   RequestTransferExists,
   SessionIdNotPresented,
   UnknownError,
-  VaultIsLocked,
+  UnrecognizedChainId,
 } from "../../errors/communication";
 import store from "../../redux/store";
 import {
@@ -38,6 +53,10 @@ import {
   CONNECTION_RESPONSE_MESSAGE,
   DISCONNECT_REQUEST,
   DISCONNECT_RESPONSE,
+  EXTERNAL_ACCOUNT_BALANCE_REQUEST,
+  EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
+  GET_POKT_TRANSACTION_REQUEST,
+  GET_POKT_TRANSACTION_RESPONSE,
   IS_SESSION_VALID_REQUEST,
   IS_SESSION_VALID_RESPONSE,
   LIST_ACCOUNTS_REQUEST,
@@ -45,20 +64,20 @@ import {
   NEW_ACCOUNT_REQUEST,
   NEW_ACCOUNT_RESPONSE,
   REQUEST_BEING_HANDLED,
+  SELECTED_CHAIN_REQUEST,
+  SELECTED_CHAIN_RESPONSE,
+  SWITCH_CHAIN_REQUEST,
+  SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
-import { getVault, NetworkStorage, returnExtensionErr } from "../../utils";
+import { getVault, isHex, returnExtensionErr } from "../../utils";
 import { getAccountBalance } from "../../redux/slices/app/network";
-import { getFee } from "../../utils/networkOperations";
 import { revokeSession } from "../../redux/slices/vault/session";
 import { HEIGHT, WIDTH } from "../../constants/ui";
+import { isValidAddress } from "../../utils/networkOperations";
 
 type MessageSender = Runtime.MessageSender;
-
-const RequestBeingHandledResponse: TRequestBeingHandled = {
-  type: REQUEST_BEING_HANDLED,
-};
 
 export type Message =
   | ConnectionRequestMessage
@@ -66,7 +85,11 @@ export type Message =
   | NewAccountRequestMessage
   | TransferRequestMessage
   | DisconnectRequestMessage
-  | ListAccountsRequestMessage;
+  | ListAccountsRequestMessage
+  | SelectedChainRequestMessage
+  | BalanceRequestMessage
+  | GetPoktTxRequestMessage
+  | SwitchChainRequestMessage;
 
 const ExtensionVaultInstance = getVault();
 
@@ -75,14 +98,16 @@ const ExtensionVaultInstance = getVault();
 // This is intended to be used in the background.
 class ExternalCommunicationController {
   public async onMessageHandler(message: Message, sender: MessageSender) {
-    let isRequestBeingHandled = false;
     if (message.type === CONNECTION_REQUEST_MESSAGE) {
       const response = await this._handleConnectionRequest(message, sender);
 
       if (response && response.type === CONNECTION_RESPONSE_MESSAGE) {
         return response;
       }
-      isRequestBeingHandled = true;
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
     }
 
     if (message.type === IS_SESSION_VALID_REQUEST) {
@@ -91,7 +116,6 @@ class ExternalCommunicationController {
       if (response?.type === IS_SESSION_VALID_RESPONSE) {
         return response;
       }
-      isRequestBeingHandled = true;
     }
 
     if (message.type === NEW_ACCOUNT_REQUEST) {
@@ -100,7 +124,10 @@ class ExternalCommunicationController {
       if (response && response?.type === NEW_ACCOUNT_RESPONSE) {
         return response;
       }
-      isRequestBeingHandled = true;
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
     }
 
     if (message?.type === TRANSFER_REQUEST) {
@@ -109,7 +136,22 @@ class ExternalCommunicationController {
       if (response && response?.type === TRANSFER_RESPONSE) {
         return response;
       }
-      isRequestBeingHandled = true;
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
+    }
+
+    if (message?.type === SWITCH_CHAIN_REQUEST) {
+      const response = await this._handleSwitchChainRequest(message, sender);
+
+      if (response && response?.type === SWITCH_CHAIN_RESPONSE) {
+        return response;
+      }
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
     }
 
     if (message?.type === DISCONNECT_REQUEST) {
@@ -128,8 +170,28 @@ class ExternalCommunicationController {
       }
     }
 
-    if (isRequestBeingHandled) {
-      return RequestBeingHandledResponse;
+    if (message?.type === EXTERNAL_ACCOUNT_BALANCE_REQUEST) {
+      const response = await this._handleBalanceRequest(message);
+
+      if (response?.type === EXTERNAL_ACCOUNT_BALANCE_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === SELECTED_CHAIN_REQUEST) {
+      const response = await this._handleGetSelectedChain(message);
+
+      if (response?.type === SELECTED_CHAIN_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === GET_POKT_TRANSACTION_REQUEST) {
+      const response = await this._getPoktTx(message);
+
+      if (response?.type === GET_POKT_TRANSACTION_RESPONSE) {
+        return response;
+      }
     }
   }
 
@@ -138,8 +200,7 @@ class ExternalCommunicationController {
     sender: MessageSender
   ): Promise<ExternalConnectionResponse> {
     try {
-      const { origin, faviconUrl, suggestedPermissions, protocol } =
-        message?.data || {};
+      const { origin, faviconUrl, protocol } = message?.data || {};
 
       return this._addExternalRequest(
         {
@@ -147,8 +208,8 @@ class ExternalCommunicationController {
           origin,
           faviconUrl,
           tabId: sender.tab.id,
-          suggestedPermissions,
           protocol,
+          requestId: message?.requestId,
         },
         CONNECTION_RESPONSE_MESSAGE
       );
@@ -157,6 +218,72 @@ class ExternalCommunicationController {
         type: CONNECTION_RESPONSE_MESSAGE,
         data: null,
         error: UnknownError,
+        requestId: message?.requestId,
+      };
+    }
+  }
+
+  private async _handleSwitchChainRequest(
+    message: SwitchChainRequestMessage,
+    sender: MessageSender
+  ): Promise<ExternalSwitchChainResponse> {
+    try {
+      const { origin, faviconUrl, protocol, chainId } = message?.data || {};
+
+      const state = store.getState();
+      const currentSelectedChain = state.app.selectedChainByProtocol[protocol];
+
+      let chainIdParsed = chainId;
+
+      if (
+        protocol === SupportedProtocols.Ethereum &&
+        chainId.startsWith("0x") &&
+        isHex(chainId.substring(2))
+      ) {
+        chainIdParsed = parseInt(chainId.substring(2), 16).toString();
+      }
+
+      if (currentSelectedChain === chainIdParsed) {
+        return {
+          type: SWITCH_CHAIN_RESPONSE,
+          data: null,
+          error: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      const networkExists = state.app.networks.some(
+        (network) =>
+          network.chainId === chainIdParsed && network.protocol === protocol
+      );
+
+      if (!networkExists) {
+        return {
+          type: SWITCH_CHAIN_RESPONSE,
+          data: null,
+          error: UnrecognizedChainId,
+          requestId: message?.requestId,
+        };
+      }
+
+      return this._addExternalRequest(
+        {
+          type: SWITCH_CHAIN_REQUEST,
+          origin,
+          faviconUrl,
+          tabId: sender.tab.id,
+          protocol,
+          chainId: chainIdParsed,
+          requestId: message?.requestId,
+        },
+        SWITCH_CHAIN_RESPONSE
+      );
+    } catch (e) {
+      return {
+        type: SWITCH_CHAIN_RESPONSE,
+        data: null,
+        error: UnknownError,
+        requestId: message?.requestId,
       };
     }
   }
@@ -214,6 +341,7 @@ class ExternalCommunicationController {
           type: NEW_ACCOUNT_RESPONSE,
           error: SessionIdNotPresented,
           data: null,
+          requestId: message?.requestId,
         };
       }
 
@@ -224,7 +352,10 @@ class ExternalCommunicationController {
           "create"
         );
       } catch (error) {
-        return returnExtensionErr(error, NEW_ACCOUNT_RESPONSE);
+        return {
+          ...returnExtensionErr(error, NEW_ACCOUNT_RESPONSE),
+          requestId: message?.requestId,
+        };
       }
 
       return this._addExternalRequest(
@@ -235,6 +366,7 @@ class ExternalCommunicationController {
           tabId: sender.tab.id,
           sessionId,
           protocol,
+          requestId: message?.requestId,
         },
         NEW_ACCOUNT_RESPONSE
       );
@@ -243,6 +375,7 @@ class ExternalCommunicationController {
         type: NEW_ACCOUNT_RESPONSE,
         error: UnknownError,
         data: null,
+        requestId: message?.requestId,
       };
     }
   }
@@ -254,15 +387,8 @@ class ExternalCommunicationController {
     try {
       const {
         sessionId,
-        faviconUrl,
-        origin,
-        fromAddress,
-        toAddress,
-        amount,
-        memo,
         protocol,
-        chainId,
-        fee: feeFromData,
+        transferData: { from },
       } = message?.data || {};
 
       if (!sessionId) {
@@ -270,6 +396,7 @@ class ExternalCommunicationController {
           type: TRANSFER_RESPONSE,
           error: SessionIdNotPresented,
           data: null,
+          requestId: message?.requestId,
         };
       }
 
@@ -277,76 +404,31 @@ class ExternalCommunicationController {
         await ExtensionVaultInstance.validateSessionForPermissions(
           sessionId,
           "transaction",
-          "send"
+          "send",
+          [from]
         );
       } catch (error) {
-        return returnExtensionErr(error, TRANSFER_RESPONSE);
+        return {
+          requestId: message?.requestId,
+          ...returnExtensionErr(error, TRANSFER_RESPONSE),
+        };
       }
 
-      const networks = await NetworkStorage.list().then((items) =>
-        items.concat()
-      );
-      const result = await store
-        .dispatch(
-          getAccountBalance({
-            address: fromAddress,
-            protocol,
-            chainId: chainId as any,
-          })
-        )
-        .unwrap();
-
-      // todo: fix validation balance
-
-      const balance = result.amount;
-      // getAccountBalance({
-      //     address: fromAddress,
-      //     protocol: protocol.name,
-      //     chainId: protocol.chainID as any,
-      //     assets,
-      //     networks,
-      //   });
-      const feeResult = await getFee({
-        protocol: protocol,
-        chainId: chainId as any,
-        networks,
-        options: undefined,
-      });
-
-      const minFee = feeResult.fee;
-
-      const fee = feeFromData || minFee;
-
-      // if (feeFromData && minFee > feeFromData) {
-      //   return {
-      //     type: TRANSFER_RESPONSE,
-      //     error: FeeLowerThanMinFee,
-      //     data: null,
-      //   };
-      // }
-      //
-      //
-      // if (amount > balance - fee) {
-      //   return {
-      //     type: TRANSFER_RESPONSE,
-      //     error: AmountHigherThanBalance,
-      //     data: null,
-      //   };
-      // }
+      const chainId = store
+        .getState()
+        .app.selectedChainByProtocol[protocol].toString();
 
       return this._addExternalRequest(
         {
           type: TRANSFER_REQUEST,
-          origin,
-          faviconUrl,
           tabId: sender.tab.id,
-          sessionId,
-          fromAddress,
-          toAddress,
-          amount,
-          memo,
           protocol,
-          fee: 0,
+          requestId: message?.requestId,
+          ...message.data,
+          transferData: {
+            ...message.data?.transferData,
+            chainId,
+          },
         },
         TRANSFER_RESPONSE
       );
@@ -355,6 +437,7 @@ class ExternalCommunicationController {
         type: TRANSFER_RESPONSE,
         error: UnknownError,
         data: null,
+        requestId: message?.requestId,
       };
     }
   }
@@ -364,6 +447,7 @@ class ExternalCommunicationController {
       | typeof CONNECTION_RESPONSE_MESSAGE
       | typeof NEW_ACCOUNT_RESPONSE
       | typeof TRANSFER_RESPONSE
+      | typeof SWITCH_CHAIN_RESPONSE
   >(
     request: RequestsType,
     responseMessage: T
@@ -371,6 +455,7 @@ class ExternalCommunicationController {
     type: T;
     error: BaseErrors | RequestExistsError<T>;
     data: null;
+    requestId: string;
   } | void> {
     let requestWasAdded = false;
     try {
@@ -380,7 +465,7 @@ class ExternalCommunicationController {
       );
 
       if (checkOriginResponse) {
-        return checkOriginResponse;
+        return { ...checkOriginResponse, requestId: request.requestId };
       }
 
       const { externalRequests, requestsWindowId } = store.getState().app;
@@ -399,8 +484,11 @@ class ExternalCommunicationController {
             ? RequestConnectionExists
             : responseMessage === NEW_ACCOUNT_RESPONSE
             ? RequestNewAccountExists
-            : RequestTransferExists) as RequestExistsError<T>,
+            : responseMessage === TRANSFER_RESPONSE
+            ? RequestTransferExists
+            : RequestSwitchChainExists) as RequestExistsError<T>,
           data: null,
+          requestId: request?.requestId,
         };
       } else {
         await store.dispatch(addExternalRequest(request));
@@ -428,6 +516,7 @@ class ExternalCommunicationController {
           type: responseMessage,
           data: null,
           error: UnknownError,
+          requestId: request?.requestId,
         };
       }
     }
@@ -455,6 +544,9 @@ class ExternalCommunicationController {
         return checkOriginResponse;
       }
 
+      const session = await ExtensionVaultInstance.getSession(sessionId);
+      const protocol = session?.protocol;
+
       try {
         await store
           .dispatch(revokeSession({ sessionId, external: true }))
@@ -467,6 +559,7 @@ class ExternalCommunicationController {
         type: DISCONNECT_RESPONSE,
         data: {
           disconnected: true,
+          protocol,
         },
         error: null,
       };
@@ -484,11 +577,15 @@ class ExternalCommunicationController {
   ): Promise<ExternalListAccountsResponse> {
     try {
       const sessionId = message?.data?.sessionId;
+
       if (!sessionId) {
         return {
           type: LIST_ACCOUNTS_RESPONSE,
-          error: SessionIdNotPresented,
-          data: null,
+          data: {
+            accounts: [],
+          },
+          error: null,
+          requestId: message?.requestId,
         };
       }
 
@@ -498,49 +595,240 @@ class ExternalCommunicationController {
       );
 
       if (checkOriginResponse) {
-        return checkOriginResponse;
-      }
-
-      try {
-        await ExtensionVaultInstance.validateSessionForPermissions(
-          sessionId,
-          "account",
-          "read"
-        );
-      } catch (error) {
-        return returnExtensionErr(error, LIST_ACCOUNTS_RESPONSE);
-      }
-
-      const { isUnlockedStatus } = store.getState().vault;
-
-      if (isUnlockedStatus !== "yes") {
         return {
-          type: LIST_ACCOUNTS_RESPONSE,
-          error: VaultIsLocked,
-          data: null,
+          requestId: message?.requestId,
+          ...checkOriginResponse,
         };
       }
 
-      // todo: fix balance
-      const accounts = await ExtensionVaultInstance.listAccounts(sessionId);
-      // const response = await store.dispatch(getAllBalances()).unwrap();
-      // const balanceByIdMap = response.newBalanceMap;
+      const sessionIsValid = await ExtensionVaultInstance.isSessionValid(
+        sessionId
+      );
+
+      if (!sessionIsValid) {
+        return {
+          type: LIST_ACCOUNTS_RESPONSE,
+          data: {
+            accounts: [],
+          },
+          error: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      const session = await ExtensionVaultInstance.getSession(sessionId);
+
+      let allAddresses: string[] = [];
+      const requestProtocol = message?.data?.protocol;
+
+      for (const permission of session.permissions) {
+        if (permission.resource === "account" && permission.action === "read") {
+          allAddresses = permission.identities.filter((item) =>
+            isValidAddress(item, requestProtocol)
+          );
+          break;
+        }
+      }
+
+      const currentSelectedAccountForProtocol =
+        store.getState().app.selectedAccountByProtocol[requestProtocol];
+
+      const selectedAccountOnApp = allAddresses.find(
+        (address) => address === currentSelectedAccountForProtocol
+      );
+
+      let addresses: string[];
+
+      if (selectedAccountOnApp) {
+        addresses = [
+          selectedAccountOnApp,
+          ...allAddresses.filter(
+            (address) => address !== currentSelectedAccountForProtocol
+          ),
+        ];
+      } else {
+        addresses = allAddresses;
+      }
 
       return {
         type: LIST_ACCOUNTS_RESPONSE,
         data: {
-          accounts: accounts.map((item) => ({
-            ...item.serialize(),
-            balance: 0, //balanceByIdMap[item.id]?.amount || 0,
-          })),
+          accounts: addresses,
         },
         error: null,
+        requestId: message?.requestId,
       };
     } catch (e) {
       return {
         type: LIST_ACCOUNTS_RESPONSE,
         error: UnknownError,
         data: null,
+        requestId: message?.requestId,
+      };
+    }
+  }
+
+  private async _handleBalanceRequest(
+    message: BalanceRequestMessage
+  ): Promise<ExternalBalanceResponse> {
+    const { data } = message || {};
+    try {
+      const checkOriginResponse = await this._checkOriginIsBlocked(
+        data?.origin,
+        EXTERNAL_ACCOUNT_BALANCE_RESPONSE
+      );
+
+      if (checkOriginResponse) {
+        return {
+          requestId: message?.requestId,
+          ...checkOriginResponse,
+        };
+      }
+
+      let chainId = store.getState().app.selectedChainByProtocol[data.protocol];
+
+      if (!chainId) {
+        chainId = data.protocol === SupportedProtocols.Pocket ? "mainnet" : "1";
+      }
+
+      const result = await store
+        .dispatch(
+          getAccountBalance({
+            address: data.address,
+            protocol: data.protocol,
+            chainId,
+          })
+        )
+        .unwrap();
+
+      let balanceToReturn;
+
+      if (data.protocol === SupportedProtocols.Pocket) {
+        // balance should be returned in uPOKT
+        balanceToReturn = result.amount ? result.amount * 1e6 : 0;
+      } else {
+        balanceToReturn =
+          "0x" + BigInt(toWei(result.amount, "ether")).toString(16);
+      }
+
+      return {
+        type: EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
+        error: null,
+        requestId: message?.requestId,
+        data: {
+          balance: balanceToReturn,
+        },
+      };
+    } catch (e) {
+      return {
+        type: EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
+      };
+    }
+  }
+
+  private async _handleGetSelectedChain(
+    message: SelectedChainRequestMessage
+  ): Promise<ExternalSelectedChainResponse> {
+    try {
+      const { data } = message || {};
+      const checkOriginResponse = await this._checkOriginIsBlocked(
+        data?.origin,
+        SELECTED_CHAIN_RESPONSE
+      );
+
+      if (checkOriginResponse) {
+        return {
+          requestId: message?.requestId,
+          ...checkOriginResponse,
+        };
+      }
+
+      let chainId = store.getState().app.selectedChainByProtocol[data.protocol];
+
+      if (data.protocol === SupportedProtocols.Ethereum) {
+        chainId = `0x${Number(chainId || "1").toString(16)}`;
+      }
+
+      return {
+        type: SELECTED_CHAIN_RESPONSE,
+        error: null,
+        data: {
+          chainId,
+        },
+        requestId: message?.requestId,
+      };
+    } catch (e) {
+      return {
+        type: SELECTED_CHAIN_RESPONSE,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
+      };
+    }
+  }
+
+  private async _getPoktTx(
+    message: GetPoktTxRequestMessage
+  ): Promise<ExternalGetPoktTxResponse> {
+    try {
+      const { origin, hash } = message?.data || {};
+      const checkOriginResponse = await this._checkOriginIsBlocked(
+        origin,
+        GET_POKT_TRANSACTION_RESPONSE
+      );
+
+      if (checkOriginResponse) {
+        return {
+          requestId: message?.requestId,
+          ...checkOriginResponse,
+        };
+      }
+
+      const pocketProtocolService = new PocketNetworkProtocolService(
+        new WebEncryptionService()
+      );
+
+      const state = store.getState();
+      const protocol = SupportedProtocols.Pocket;
+      const chainId = state.app.selectedChainByProtocol[protocol] || "mainnet";
+
+      const preferredRpc = state.app.customRpcs.find(
+        (rpc) => rpc.protocol === protocol && rpc.chainId === chainId
+      );
+
+      const defaultNetwork = state.app.networks.find(
+        (network) =>
+          network.protocol === protocol && network.chainId === chainId
+      );
+
+      const network: INetwork = {
+        protocol,
+        chainID: chainId,
+        rpcUrl: preferredRpc?.url || defaultNetwork.rpcUrl,
+      };
+
+      const result = await pocketProtocolService.getTransactionByHash(
+        network,
+        hash
+      );
+
+      return {
+        type: GET_POKT_TRANSACTION_RESPONSE,
+        data: {
+          tx: result,
+        },
+        error: null,
+        requestId: message?.requestId,
+      };
+    } catch (e) {
+      return {
+        type: GET_POKT_TRANSACTION_RESPONSE,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
       };
     }
   }
@@ -553,6 +841,10 @@ class ExternalCommunicationController {
       | typeof DISCONNECT_RESPONSE
       | typeof IS_SESSION_VALID_RESPONSE
       | typeof LIST_ACCOUNTS_RESPONSE
+      | typeof EXTERNAL_ACCOUNT_BALANCE_RESPONSE
+      | typeof SELECTED_CHAIN_RESPONSE
+      | typeof GET_POKT_TRANSACTION_RESPONSE
+      | typeof SWITCH_CHAIN_RESPONSE
   >(
     origin: string,
     responseMessage: T

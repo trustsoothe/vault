@@ -145,7 +145,10 @@ export class VaultTeller {
     return false;
   }
 
-  async authorizeExternal(request: ExternalAccessRequest): Promise<Session> {
+  async authorizeExternal(
+    request: ExternalAccessRequest,
+    protocol?: SupportedProtocols
+  ): Promise<Session> {
     if (!request || !(request instanceof ExternalAccessRequest)) {
       throw new Error("ExternalAccessRequest object is required");
     }
@@ -170,6 +173,7 @@ export class VaultTeller {
       maxAge: request.maxAge,
       accounts: request.accounts.concat(),
       origin: request.origin || null,
+      protocol,
     };
 
     const session = new Session(sessionOptions, newSessionId);

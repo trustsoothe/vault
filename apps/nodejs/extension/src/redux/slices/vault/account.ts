@@ -6,13 +6,13 @@ import {
   AccountReference,
   AccountUpdateOptions,
   Passphrase,
-  PrivateKeyRestoreError,
+  PrivateKeyRestoreErrorName,
   SerializedAccountReference,
   SerializedSession,
   SupportedProtocols,
   SupportedTransferOrigins,
   TransferOptions,
-  VaultRestoreError,
+  VaultRestoreErrorName,
 } from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 import { PASSPHRASE, VaultSlice } from "./index";
@@ -407,8 +407,8 @@ function increaseWrongPasswordCounter(
   error: SerializedError
 ) {
   if (
-    error.name === VaultRestoreError.name ||
-    error.name === PrivateKeyRestoreError.name
+    error?.name === VaultRestoreErrorName ||
+    error?.name === PrivateKeyRestoreErrorName
   ) {
     const currentCounter = state.wrongPasswordCounter[id];
 

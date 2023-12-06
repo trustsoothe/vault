@@ -6,13 +6,7 @@ import { SupportedProtocols } from "@poktscan/keyring";
 
 export type FetchStatus = "not-fetched" | "loading" | "error" | "fetched";
 
-export type Status =
-  | "loading"
-  | "error"
-  | "form"
-  | "summary"
-  | "submitted"
-  | "invalid_network";
+export type Status = "loading" | "error" | "form" | "summary" | "submitted";
 
 export interface ExternalTransferData {
   amount: string;
@@ -29,6 +23,10 @@ export interface ExternalTransferData {
   };
   /**required in bridge transfer*/
   vaultAddress?: string;
+  data?: string;
+  gasLimit?: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
 }
 
 export enum TransferType {

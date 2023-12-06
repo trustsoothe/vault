@@ -75,7 +75,7 @@ const AssetItem: React.FC<AssetItemProps> = ({
   const loadingBalance =
     (balanceMap?.[selectedAccountAddress]?.loading && !balance) || false;
 
-  const assetUsdPrice = data[asset.contractAddress] || 0;
+  const assetUsdPrice = data?.[asset.contractAddress] || 0;
 
   return (
     <Stack

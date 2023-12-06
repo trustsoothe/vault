@@ -52,6 +52,7 @@
     "tls-browserify": "0.2.2",
     "url": "^0.11.2",
     "web3-eth-accounts": "4.1.0",
+    "web3-utils": "4.0.7",
     "web3-validator": "^2.0.3",
     "webext-redux": "2.1.9",
     "webextension-polyfill": "0.10.0",

@@ -42,10 +42,10 @@ import {
 } from "../../redux/selectors/account";
 import {
   assetsIdOfSelectedAccountSelector,
-  assetsOfSelectedAccountSelector,
   assetsSelector,
   existsAssetsForSelectedNetworkSelector,
 } from "../../redux/selectors/asset";
+import useDidMountEffect from "../../hooks/useDidMountEffect";
 
 interface ButtonActionProps {
   label: string;
@@ -152,8 +152,8 @@ const SelectedAccount: React.FC = () => {
       if (accountOfNetwork) {
         dispatch(
           changeSelectedAccountOfNetwork({
-            network: selectedProtocol,
-            accountId: accountOfNetwork.id,
+            protocol: selectedProtocol,
+            address: accountOfNetwork.address,
           })
         );
       }
@@ -197,6 +197,14 @@ const SelectedAccount: React.FC = () => {
       setSelectedAsset(asset);
     }
   }, []);
+
+  useDidMountEffect(() => {
+    if (selectedAsset) {
+      if (!assetsOfAccount.some((asset) => asset.id === selectedAsset.id)) {
+        setSelectedAsset(null);
+      }
+    }
+  }, [assetsOfAccount?.length]);
 
   useEffect(() => {
     if (selectedAsset) {
@@ -482,7 +490,7 @@ const SelectedAccount: React.FC = () => {
                         ? [
                             {
                               label: "Remove Asset",
-                              onClick: showRemoveModal,
+                              onClick: showAssetsModal,
                               customProps: {
                                 color: theme.customColors.red100,
                                 sx: {

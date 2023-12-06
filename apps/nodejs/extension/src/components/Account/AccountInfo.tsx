@@ -1,4 +1,7 @@
-import type { SerializedAccountReference } from "@poktscan/keyring";
+import type {
+  SerializedAccountReference,
+  SupportedProtocols,
+} from "@poktscan/keyring";
 import type { IAsset } from "../../redux/slices/app";
 import React, { useCallback, useEffect, useState } from "react";
 import Stack from "@mui/material/Stack";
@@ -27,11 +30,11 @@ import {
   accountConnectedWithTabSelector,
   tabHasConnectionSelector,
 } from "../../redux/selectors/session";
-import { balanceMapConsideringAsset } from "../../redux/selectors/account";
+import { balanceMapOfNetworkSelector } from "../../redux/selectors/account";
 import {
-  networkSymbolSelector,
   selectedChainSelector,
   selectedProtocolSelector,
+  symbolOfNetworkSelector,
 } from "../../redux/selectors/network";
 
 interface AccountComponentProps {
@@ -39,6 +42,8 @@ interface AccountComponentProps {
   compact?: boolean;
   asset?: IAsset;
   onGoBackFromAsset?: () => void;
+  protocol?: SupportedProtocols;
+  chainId?: string;
 }
 
 const AccountInfo: React.FC<AccountComponentProps> = ({
@@ -46,6 +51,8 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
   compact = false,
   asset,
   onGoBackFromAsset,
+  protocol,
+  chainId,
 }) => {
   const theme = useTheme();
   const isPopup = useIsPopup();
@@ -61,11 +68,19 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
   const accountConnectedWithTab = useAppSelector(
     accountConnectedWithTabSelector
   );
-  const balanceMap = useAppSelector(balanceMapConsideringAsset(asset));
 
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedChain = useAppSelector(selectedChainSelector);
-  const symbol = useAppSelector(networkSymbolSelector);
+
+  const protocolToUse = protocol || selectedProtocol;
+  const chainIdToUse = chainId || selectedChain;
+
+  const balanceMap = useAppSelector(
+    balanceMapOfNetworkSelector(protocolToUse, chainIdToUse, asset)
+  );
+  const symbol = useAppSelector(
+    symbolOfNetworkSelector(protocolToUse, chainIdToUse)
+  );
 
   const {
     data: pricesByProtocolAndChain,
@@ -80,7 +95,7 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
   const usdPrice: number =
     (asset
       ? priceByContractAddress[asset.contractAddress]
-      : pricesByProtocolAndChain?.[selectedProtocol]?.[selectedChain]) || 0;
+      : pricesByProtocolAndChain?.[protocolToUse]?.[chainIdToUse]) || 0;
   const loadingPrice = asset
     ? isLoadingAssetsPrice
     : isLoadingNetworkPrices || isUninitialized;
@@ -97,8 +112,8 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
     if (address) {
       AppToBackground.getAccountBalance({
         address: address,
-        chainId: selectedChain,
-        protocol: selectedProtocol,
+        chainId: chainIdToUse,
+        protocol: protocolToUse,
         asset: asset
           ? {
               contractAddress: asset.contractAddress,
@@ -108,8 +123,8 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
       }).catch();
     }
   }, [
-    selectedProtocol,
-    selectedChain,
+    protocolToUse,
+    chainIdToUse,
     address,
     asset?.contractAddress,
     asset?.decimals,

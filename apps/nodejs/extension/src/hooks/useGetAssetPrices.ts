@@ -6,7 +6,7 @@ import {
   selectedProtocolSelector,
 } from "../redux/selectors/network";
 import {
-  assetsIdByAccountIdSelector,
+  assetsIdByAccountSelector,
   assetsSelector,
 } from "../redux/selectors/asset";
 
@@ -24,7 +24,7 @@ const useGetAssetPrices = (
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedChain = useAppSelector(selectedChainSelector);
   const assets = useAppSelector(assetsSelector);
-  const assetsIdByAccountId = useAppSelector(assetsIdByAccountIdSelector);
+  const assetsIdByAccount = useAppSelector(assetsIdByAccountSelector);
 
   const currentPlatform = useAppSelector(
     (state) =>
@@ -36,7 +36,7 @@ const useGetAssetPrices = (
   );
 
   const contractAddressToFetch = useMemo(() => {
-    const selectedAssets = Object.values(assetsIdByAccountId).reduce(
+    const selectedAssets = Object.values(assetsIdByAccount).reduce(
       (acc, assetsId) => [...acc, ...assetsId],
       []
     );
@@ -49,7 +49,7 @@ const useGetAssetPrices = (
       )
       .map((asset) => asset.contractAddress)
       .join(",");
-  }, [selectedProtocol, selectedChain, assets, assetsIdByAccountId]);
+  }, [selectedProtocol, selectedChain, assets, assetsIdByAccount]);
 
   const [fetchAssetPrices, result] = useLazyGetAssetPricesQuery({
     pollingInterval: 1000 * 60,

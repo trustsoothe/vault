@@ -3,15 +3,23 @@ import type {
   ExternalConnectionRequest,
   ExternalNewAccountRequest,
   ExternalTransferRequest,
+  AccountsChangedToProxy,
+  ExternalSwitchChainRequest,
 } from "../../../types/communication";
 import type { RootState } from "../../store";
+import set from "lodash/set";
+import get from "lodash/get";
 import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
   SerializedAccountReference,
+  Session,
   SupportedProtocols,
 } from "@poktscan/keyring";
-import { SELECTED_CHAIN_CHANGED } from "../../../constants/communication";
+import {
+  SELECTED_ACCOUNT_CHANGED,
+  SELECTED_CHAIN_CHANGED,
+} from "../../../constants/communication";
 import {
   addNetworksExtraReducers,
   setGetAccountPending as setGetAccountPendingFromNetwork,
@@ -22,7 +30,8 @@ export type RequestsType = (
   | ExternalConnectionRequest
   | ExternalNewAccountRequest
   | ExternalTransferRequest
-) & { requestedAt?: number };
+  | ExternalSwitchChainRequest
+) & { requestedAt?: number; requestId: string };
 
 export interface AccountBalanceInfo {
   amount: number;
@@ -43,11 +52,6 @@ interface IAccountBalances {
 }
 
 export type ErrorsByNetwork = Record<string, number>;
-
-export interface ErrorsPreferredNetwork {
-  [SupportedProtocols.Pocket]: Record<string, ErrorsByNetwork>;
-  [SupportedProtocols.Ethereum]: Record<string, ErrorsByNetwork>;
-}
 
 export interface Network {
   id: string;
@@ -110,16 +114,17 @@ export interface GeneralAppSlice {
   accountBalances: IAccountBalances;
   networks: Network[];
   assets: IAsset[];
-  errorsPreferredNetwork: ErrorsPreferredNetwork;
+  errorsPreferredNetwork: ErrorsByNetwork;
   activeTab?: {
     id?: number;
     url: string;
     favIconUrl?: string;
   };
   networksCanBeSelected: NetworkCanBeSelectedMap;
-  assetsIdByAccountId: Record<string, string[]>;
+  assetsIdByAccount: Record<string, string[]>;
   customRpcs: CustomRPC[];
   contacts: SerializedAccountReference[];
+  isReadyStatus: "yes" | "no" | "loading" | "error";
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -152,7 +157,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
     const selectedAccountByProtocol = {
       ...(response[SELECTED_ACCOUNTS_KEY] || {}),
     };
-    const assetsIdByAccountId = response[ASSETS_SELECTED_BY_ACCOUNTS_KEY] || {};
+    const assetsIdByAccount = response[ASSETS_SELECTED_BY_ACCOUNTS_KEY] || {};
     const showTestNetworks = response[SHOW_TEST_NETWORKS_KEY] || false;
     const networksCanBeSelected =
       response[NETWORKS_CAN_BE_SELECTED_KEY] ||
@@ -183,7 +188,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       selectedAccountByProtocol,
       showTestNetworks,
       networksCanBeSelected,
-      assetsIdByAccountId,
+      assetsIdByAccount,
       customRpcs,
       contacts,
     };
@@ -223,27 +228,33 @@ export const changeSelectedNetwork = createAsyncThunk(
       [network]: chainId,
     };
 
-    const promises: Promise<any>[] = [
-      browser.storage.local.set({
-        [SELECTED_NETWORK_KEY]: network,
-        [SELECTED_CHAINS_KEY]: newSelectedChainByProtocol,
-        [SELECTED_ACCOUNTS_KEY]: newSelectedAccountByProtocol,
-      }),
-    ];
+    await browser.storage.local.set({
+      [SELECTED_NETWORK_KEY]: network,
+      [SELECTED_CHAINS_KEY]: newSelectedChainByProtocol,
+      [SELECTED_ACCOUNTS_KEY]: newSelectedAccountByProtocol,
+    });
 
-    if (newSelectedAccountByProtocol[network] !== chainId) {
+    const promises: Promise<any>[] = [];
+
+    if (selectedChainByProtocol[network] !== chainId) {
       const message = {
         type: SELECTED_CHAIN_CHANGED,
         network,
         data: {
-          chainId,
+          chainId:
+            network === SupportedProtocols.Ethereum
+              ? `0x${Number(chainId || "1").toString(16)}`
+              : chainId,
         },
       };
 
-      promises.push(browser.runtime.sendMessage(message));
+      const allTabs = await browser.tabs.query({});
+      for (const tab of allTabs) {
+        promises.push(browser.tabs.sendMessage(tab.id, message));
+      }
     }
 
-    await Promise.all(promises);
+    await Promise.allSettled(promises);
 
     return {
       selectedProtocol: network,
@@ -295,40 +306,40 @@ export const toggleNetworkCanBeSelected = createAsyncThunk<
 
 export const toggleAssetOfAccount = createAsyncThunk<
   Record<string, string[]>,
-  { accountId: string; assetId: string }
->("app/toggleAssetOfAccount", async ({ accountId, assetId }, context) => {
-  const assetsIdByAccountId = (context.getState() as RootState).app
-    .assetsIdByAccountId;
+  { address: string; assetId: string }
+>("app/toggleAssetOfAccount", async ({ address, assetId }, context) => {
+  const assetsIdByAccount = (context.getState() as RootState).app
+    .assetsIdByAccount;
 
-  const assetInAccount = assetsIdByAccountId[accountId]?.includes(assetId);
+  const assetInAccount = assetsIdByAccount[address]?.includes(assetId);
 
   if (assetInAccount) {
-    assetsIdByAccountId[accountId] = assetsIdByAccountId[accountId].filter(
+    assetsIdByAccount[address] = assetsIdByAccount[address].filter(
       (asset) => assetId !== asset
     );
   } else {
-    assetsIdByAccountId[accountId] = [
-      ...(assetsIdByAccountId[accountId] || []),
+    assetsIdByAccount[address] = [
+      ...(assetsIdByAccount[address] || []),
       assetId,
     ];
   }
 
   await browser.storage.local.set({
-    [ASSETS_SELECTED_BY_ACCOUNTS_KEY]: assetsIdByAccountId,
+    [ASSETS_SELECTED_BY_ACCOUNTS_KEY]: assetsIdByAccount,
   });
 
-  return assetsIdByAccountId;
+  return assetsIdByAccount;
 });
 
 export const changeSelectedAccountOfNetwork = createAsyncThunk(
   "app/changeSelectedAccountOfNetwork",
   async (
     {
-      network,
-      accountId,
+      protocol,
+      address,
     }: {
-      network: SupportedProtocols;
-      accountId: string;
+      protocol: SupportedProtocols;
+      address: string;
     },
     context
   ) => {
@@ -337,12 +348,57 @@ export const changeSelectedAccountOfNetwork = createAsyncThunk(
 
     const newSelectedAccount = {
       ...selectedAccountByProtocol,
-      [network]: accountId,
+      [protocol]: address,
     };
 
     await browser.storage.local.set({
       [SELECTED_ACCOUNTS_KEY]: newSelectedAccount,
     });
+
+    const sessions = state.vault.sessions;
+
+    const promises: Promise<any>[] = [];
+
+    for (const session of sessions) {
+      if (!!session.origin) {
+        for (const permission of session.permissions) {
+          if (
+            permission.resource === "account" &&
+            permission.action === "read" &&
+            permission.identities.includes(address)
+          ) {
+            const sessionInstance = Session.deserialize(session);
+            if (sessionInstance.isValid()) {
+              const addresses = permission.identities;
+
+              const newAccounts = [
+                address,
+                ...addresses.filter((item) => item !== address),
+              ];
+
+              const message: AccountsChangedToProxy = {
+                type: SELECTED_ACCOUNT_CHANGED,
+                network: session.protocol || protocol,
+                data: {
+                  addresses: newAccounts,
+                },
+              };
+
+              try {
+                const tabsWithOrigin = await browser.tabs.query({
+                  url: `${session.origin}/*`,
+                });
+                for (const tab of tabsWithOrigin) {
+                  promises.push(browser.tabs.sendMessage(tab.id, message));
+                }
+              } catch (e) {}
+            }
+          }
+        }
+      }
+    }
+
+    await Promise.allSettled(promises);
 
     return newSelectedAccount;
   }
@@ -430,24 +486,15 @@ const initialState: GeneralAppSlice = {
       "11155111": {},
     },
   },
-  errorsPreferredNetwork: {
-    [SupportedProtocols.Pocket]: {
-      mainnet: {},
-      testnet: {},
-    },
-    [SupportedProtocols.Ethereum]: {
-      "1": {},
-      "5": {},
-      "11155111": {},
-    },
-  },
+  errorsPreferredNetwork: {},
   networksCanBeSelected: {
     [SupportedProtocols.Ethereum]: [],
     [SupportedProtocols.Pocket]: [],
   },
-  assetsIdByAccountId: {},
+  assetsIdByAccount: {},
   customRpcs: [],
   contacts: [],
+  isReadyStatus: "no",
 };
 
 const generalAppSlice = createSlice({
@@ -469,12 +516,21 @@ const generalAppSlice = createSlice({
     },
     removeExternalRequest: (
       state,
-      action: PayloadAction<{ origin: string; type: string }>
+      action: PayloadAction<{
+        origin: string;
+        type: string;
+        protocol: SupportedProtocols;
+      }>
     ) => {
-      const { origin, type } = action.payload;
+      const { origin, type, protocol } = action.payload;
 
       state.externalRequests = state.externalRequests.filter(
-        (request) => !(request.origin === origin && request.type === type)
+        (request) =>
+          !(
+            request.origin === origin &&
+            request.type === type &&
+            request.protocol === protocol
+          )
       );
     },
     changeActiveTab: (
@@ -482,6 +538,20 @@ const generalAppSlice = createSlice({
       action: PayloadAction<Required<GeneralAppSlice["activeTab"]>>
     ) => {
       state.activeTab = action.payload;
+    },
+    increaseErrorOfNetwork: (state, action: PayloadAction<string>) => {
+      const path = ["errorsPreferredNetwork", action.payload];
+      set(state, path, get(state, path, 0) + 1);
+    },
+    resetErrorOfNetwork: (state, action: PayloadAction<string>) => {
+      const path = ["errorsPreferredNetwork", action.payload];
+      set(state, path, 0);
+    },
+    setAppIsReadyStatus: (
+      state,
+      action: PayloadAction<GeneralAppSlice["isReadyStatus"]>
+    ) => {
+      state.isReadyStatus = action.payload;
     },
     // this is here to only set that an account is loading after verifying it in the thunk
     setGetAccountPending: setGetAccountPendingFromNetwork,
@@ -513,7 +583,7 @@ const generalAppSlice = createSlice({
           selectedAccountByProtocol,
           showTestNetworks,
           networksCanBeSelected,
-          assetsIdByAccountId,
+          assetsIdByAccount,
           customRpcs,
           contacts,
         } = action.payload;
@@ -523,9 +593,10 @@ const generalAppSlice = createSlice({
         state.selectedAccountByProtocol = selectedAccountByProtocol;
         state.showTestNetworks = showTestNetworks;
         state.networksCanBeSelected = networksCanBeSelected;
-        state.assetsIdByAccountId = assetsIdByAccountId;
+        state.assetsIdByAccount = assetsIdByAccount;
         state.customRpcs = customRpcs;
         state.contacts = contacts;
+        state.isReadyStatus = "yes";
       }
     );
     builder.addCase(changeSelectedNetwork.fulfilled, (state, action) => {
@@ -555,7 +626,7 @@ const generalAppSlice = createSlice({
     });
 
     builder.addCase(toggleAssetOfAccount.fulfilled, (state, action) => {
-      state.assetsIdByAccountId = action.payload;
+      state.assetsIdByAccount = action.payload;
     });
   },
 });
@@ -567,6 +638,9 @@ export const {
   addWindow,
   setGetAccountPending,
   changeActiveTab,
+  increaseErrorOfNetwork,
+  resetErrorOfNetwork,
+  setAppIsReadyStatus,
 } = generalAppSlice.actions;
 
 export default generalAppSlice.reducer;

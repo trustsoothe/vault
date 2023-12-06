@@ -6,6 +6,7 @@ import ExternalCommunicationController from "./controllers/communication/Externa
 import {
   changeActiveTab,
   loadSelectedNetworkAndAccount,
+  setAppIsReadyStatus,
 } from "./redux/slices/app";
 import {
   loadAssetsFromCdn,
@@ -15,6 +16,7 @@ import {
 } from "./redux/slices/app/network";
 import { getVault } from "./utils";
 import { lockVault } from "./redux/slices/vault";
+import { UnknownError } from "./errors/communication";
 
 wrapStore(store);
 
@@ -72,7 +74,72 @@ browser.tabs.onUpdated.addListener((activeInfo) => {
 const internal = new InternalCommunicationController();
 const external = new ExternalCommunicationController();
 
+const answerAppIsReadyRequest = async () => {
+  const status = store.getState().app.isReadyStatus;
+
+  if (status === "yes") {
+    return {
+      type: "APP_IS_READY_RESPONSE",
+      data: {
+        isReady: true,
+        chainByProtocol: store.getState().app.selectedChainByProtocol,
+      },
+      error: null,
+    };
+  }
+
+  const makeAppReady = async () => {
+    try {
+      await initializeExtension();
+
+      return {
+        type: "APP_IS_READY_RESPONSE",
+        data: {
+          isReady: true,
+          chainByProtocol: store.getState().app.selectedChainByProtocol,
+        },
+        error: null,
+      };
+    } catch (e) {
+      return {
+        type: "APP_IS_READY_RESPONSE",
+        data: null,
+        error: UnknownError,
+      };
+    }
+  };
+
+  if (status === "loading") {
+    return await new Promise((resolve) => {
+      const unsubscribe = store.subscribe(async () => {
+        const newStatus = store.getState().app.isReadyStatus;
+        if (newStatus !== "loading") {
+          if (newStatus === "no") {
+            resolve(await makeAppReady());
+          } else {
+            resolve({
+              type: "APP_IS_READY_RESPONSE",
+              data: {
+                isReady: true,
+                chainByProtocol: store.getState().app.selectedChainByProtocol,
+              },
+              error: null,
+            });
+          }
+          unsubscribe();
+        }
+      });
+    });
+  }
+
+  return await makeAppReady();
+};
+
 browser.runtime.onMessage.addListener(async (message, sender) => {
+  if (message?.type === "APP_IS_READY_REQUEST") {
+    return answerAppIsReadyRequest();
+  }
+
   if (message?.type === "WAIT_BACKGROUND") {
     return "INIT";
   }
@@ -93,17 +160,27 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
   };
 });
 
-// todo:
+async function initializeExtension() {
+  try {
+    store.dispatch(setAppIsReadyStatus("loading"));
+    await Promise.all([
+      store.dispatch(loadNetworksFromStorage()).unwrap(),
+      store.dispatch(loadAssetsFromStorage()).unwrap(),
+    ]);
+    await Promise.allSettled([
+      store.dispatch(loadNetworksFromCdn()),
+      store.dispatch(loadAssetsFromCdn()),
+    ]);
+    await store.dispatch(loadSelectedNetworkAndAccount()).unwrap();
+    store.dispatch(setAppIsReadyStatus("yes"));
+  } catch (e) {
+    console.error("ERROR TRYING TO INIT EXTENSION STATE:", e);
+    store.dispatch(setAppIsReadyStatus("error"));
+  }
+}
+
 (async () => {
-  await Promise.all([
-    store.dispatch(loadNetworksFromStorage()),
-    store.dispatch(loadAssetsFromStorage()),
-  ]);
-  await Promise.all([
-    store.dispatch(loadNetworksFromCdn()),
-    store.dispatch(loadAssetsFromCdn()),
-  ]);
-  await store.dispatch(loadSelectedNetworkAndAccount());
+  await initializeExtension();
 
   setInterval(async () => {
     await Promise.all([
@@ -127,4 +204,4 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
       }
     }
   }, 5 * 1000);
-})();
+})().catch();

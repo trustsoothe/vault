@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import { useForm, Controller } from "react-hook-form";
+import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Checkbox from "@mui/material/Checkbox";
@@ -231,7 +232,7 @@ const AddUpdateNetwork: React.FC = () => {
               <TextField
                 size={"small"}
                 autoComplete={"off"}
-                label={"ChainID"}
+                label={"Chain ID"}
                 disabled={!selectedProtocol || !networksOfProtocol?.length}
                 select
                 {...field}
@@ -300,6 +301,14 @@ const AddUpdateNetwork: React.FC = () => {
               />
             )}
           />
+          <Typography
+            fontSize={10}
+            color={theme.customColors.dark50}
+            marginTop={"5px!important"}
+          >
+            When Preferred is marked, this RPC will be used for all the RPC
+            calls of this network (combination of protocol and chain ID).
+          </Typography>
         </Stack>
         <Stack direction={"row"} spacing={2} width={1}>
           <Button

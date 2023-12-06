@@ -6,6 +6,7 @@ import {
   ExternalAccessRequest,
   SerializedSession,
   Session,
+  SupportedProtocols,
 } from "@poktscan/keyring";
 import browser from "webextension-polyfill";
 import { DISCONNECT_RESPONSE } from "../../../constants/communication";
@@ -15,11 +16,19 @@ type Builder = ActionReducerMapBuilder<VaultSlice>;
 
 const ExtensionVaultInstance = getVault();
 
+export interface AuthorizeExternalSessionParam {
+  request: ExternalAccessRequest;
+  protocol: SupportedProtocols;
+}
+
 export const authorizeExternalSession = createAsyncThunk<
   SerializedSession,
-  ExternalAccessRequest
->("vault/AuthorizeExternalSession", async (request) => {
-  const session = await ExtensionVaultInstance.authorizeExternal(request);
+  AuthorizeExternalSessionParam
+>("vault/AuthorizeExternalSession", async ({ request, protocol }) => {
+  const session = await ExtensionVaultInstance.authorizeExternal(
+    request,
+    protocol
+  );
   return session.serialize();
 });
 
@@ -47,6 +56,7 @@ export const revokeAllExternalSessions = createAsyncThunk(
           type: DISCONNECT_RESPONSE,
           data: {
             disconnected: true,
+            protocol: session.protocol,
           },
           error: null,
         };
@@ -102,6 +112,7 @@ export const revokeSession = createAsyncThunk<
           type: DISCONNECT_RESPONSE,
           data: {
             disconnected: true,
+            protocol: revokedSession.protocol,
           },
           error: null,
         };

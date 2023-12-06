@@ -115,4 +115,4 @@ export const chainIdLabelSelector = (rpc: CustomRPC) => (state: RootState) =>
       network.protocol === rpc.protocol && network.chainId === rpc.chainId
   )?.chainIdLabel;
 
-export const customRpcsSelector = (state) => state.app.customRpcs;
+export const customRpcsSelector = (state: RootState) => state.app.customRpcs;

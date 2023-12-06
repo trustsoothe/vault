@@ -12,6 +12,7 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
+import ContactIcon from "@mui/icons-material/AccountCircleOutlined";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import {
@@ -306,7 +307,17 @@ const Header = () => {
               key: "contacts_item",
               label: "Contacts",
               route: CONTACTS_PAGE,
-              icon: SitesIcon,
+              icon: () => (
+                <ContactIcon
+                  sx={{
+                    fontSize: "13px!important",
+                    marginLeft: 0.3,
+                    "& path": {
+                      color: `${theme.customColors.dark75}!important`,
+                    },
+                  }}
+                />
+              ),
             },
             {
               key: "networks_item",
@@ -364,31 +375,26 @@ const Header = () => {
                     marginX: "10px",
                     ...(isLock && {
                       "& span": {
-                        color: `${theme.customColors.red100}!important`,
+                        color: `${theme.customColors.red100}`,
                       },
                     }),
                     "&:hover": {
-                      ...(isLock
-                        ? {
-                            "& a, span": {
-                              color: theme.customColors.red100,
-                              fontWeight: 700,
-                            },
-                          }
-                        : {
-                            backgroundColor: theme.customColors.primary500,
-                            "& a, span": {
-                              color: theme.customColors.white,
-                              fontWeight: 700,
-                            },
-                            "& path": { color: theme.customColors.white },
-                            "& path[fill], circle[fill]": {
-                              fill: theme.customColors.white,
-                            },
-                            "& path[stroke], circle[stroke]": {
-                              stroke: theme.customColors.white,
-                            },
-                          }),
+                      backgroundColor: isLock
+                        ? theme.customColors.red100
+                        : theme.customColors.primary500,
+                      "& a, span": {
+                        color: theme.customColors.white,
+                        fontWeight: 700,
+                      },
+                      "& path": {
+                        color: `${theme.customColors.white}!important`,
+                      },
+                      "& path[fill], circle[fill]": {
+                        fill: theme.customColors.white,
+                      },
+                      "& path[stroke], circle[stroke]": {
+                        stroke: theme.customColors.white,
+                      },
                     },
                   }}
                 >

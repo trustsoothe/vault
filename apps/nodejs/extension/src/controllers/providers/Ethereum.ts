@@ -1,12 +1,12 @@
-import BaseProvider, { PocketNetworkMethod } from "./base";
+import BaseProvider, { EthereumMethod } from "./base";
 import { SupportedProtocols } from "@poktscan/keyring";
 
-export default class PocketNetworkProvider extends BaseProvider {
+export default class EthereumProvider extends BaseProvider {
   constructor() {
-    super(SupportedProtocols.Pocket);
+    super(SupportedProtocols.Ethereum);
 
     if (!this._isConnected) {
-      this.send(PocketNetworkMethod.CHAIN)
+      this.send(EthereumMethod.CHAIN)
         .then((chainId) => {
           if (chainId && !this._isConnected) {
             this._isConnected = true;

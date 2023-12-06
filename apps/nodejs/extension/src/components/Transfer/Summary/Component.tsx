@@ -4,6 +4,8 @@ import Typography from "@mui/material/Typography";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
+import Skeleton from "@mui/material/Skeleton";
 import { SupportedProtocols } from "@poktscan/keyring";
 import RowSpaceBetween from "../../common/RowSpaceBetween";
 import { getTruncatedText, returnNumWithTwoDecimals } from "../../../utils/ui";
@@ -140,17 +142,14 @@ const Summary: React.FC<SummaryProps> = ({ compact = false }) => {
   const { watch } = useFormContext<FormValues>();
   const values = watch();
   const { protocol, chainId, asset } = values;
-  const { feeSelected, isPokt, transferType } = useTransferContext();
+  const { feeSelected, isPokt, transferType, feeFetchStatus, getNetworkFee } =
+    useTransferContext();
   const accounts = useAppSelector(accountsSelector);
 
   const symbol = useAppSelector(symbolOfNetworkSelector(protocol, chainId));
 
-  const {
-    data: priceByContractAddress,
-    isError: isAssetsPriceError,
-    isLoading: isLoadingAssetsPrice,
-    refetch: refetchAssetsPrice,
-  } = useGetAssetPrices(false);
+  const { data: priceByContractAddress, refetch: refetchAssetsPrice } =
+    useGetAssetPrices(false);
   const { data: pricesByProtocolAndChain } = useGetPrices();
 
   useEffect(() => {
@@ -161,7 +160,7 @@ const Summary: React.FC<SummaryProps> = ({ compact = false }) => {
 
   const assetUsdPrice = priceByContractAddress[asset?.contractAddress] || 0;
   const selectedNetworkPrice: number =
-    pricesByProtocolAndChain?.[protocol]?.[chainId] || 0;
+    pricesByProtocolAndChain?.[protocol]?.[chainId];
 
   const rows = useMemo(() => {
     const transferAmount = Number(values.amount);
@@ -187,24 +186,59 @@ const Summary: React.FC<SummaryProps> = ({ compact = false }) => {
       toAddress = `${name} (${getTruncatedText(address)})`;
     }
 
-    const amountText = `${transferAmount} ${
+    let amountText = `${transferAmount} ${
       values.asset ? values.asset.symbol : symbol
-    } / $${returnNumWithTwoDecimals(
-      transferAmount * (values.asset ? assetUsdPrice : selectedNetworkPrice),
-      "0"
-    )} USD`;
+    }`;
 
-    const rows: any[] = [
-      {
-        label: !isPokt ? "Max Fee" : "Fee",
-        value: !isPokt ? (
-          <MaxFeeSelector networkPrice={selectedNetworkPrice} />
-        ) : (
-          `${feeSelected} ${symbol}`
-        ),
-        containerProps: !isPokt ? errorContainerProps : undefined,
-      },
-    ];
+    const usdPrice = values.asset ? assetUsdPrice : selectedNetworkPrice;
+    if (typeof usdPrice === "number") {
+      amountText += ` / $${returnNumWithTwoDecimals(
+        transferAmount * usdPrice,
+        "0"
+      )} USD`;
+    }
+
+    const rows = [];
+
+    if (isPokt) {
+      let value: React.ReactNode;
+
+      if (feeFetchStatus === "fetched" || feeSelected) {
+        value = `${feeSelected} ${symbol}`;
+      } else if (feeFetchStatus === "loading") {
+        value = <Skeleton variant={"rectangular"} width={50} height={15} />;
+      } else {
+        value = (
+          <Typography>
+            Error getting fee.{" "}
+            <Button
+              sx={{
+                fontSize: 12,
+                height: 20,
+                padding: 0,
+                minWidth: 35,
+                justifyContent: "flex-end",
+              }}
+              onClick={getNetworkFee}
+            >
+              Retry
+            </Button>
+          </Typography>
+        );
+      }
+
+      rows.push({
+        label: "Fee",
+        value,
+        containerProps: errorContainerProps,
+      });
+    } else {
+      rows.push({
+        label: "Max Fee",
+        value: <MaxFeeSelector networkPrice={selectedNetworkPrice} />,
+        containerProps: errorContainerProps,
+      });
+    }
 
     if (transferType !== "mint") {
       rows.unshift(
@@ -224,14 +258,18 @@ const Summary: React.FC<SummaryProps> = ({ compact = false }) => {
       );
 
       if (!asset) {
+        let text = `${total} ${symbol}`;
+
+        if (typeof selectedNetworkPrice === "number") {
+          text += ` / $${returnNumWithTwoDecimals(
+            total * selectedNetworkPrice,
+            "0"
+          )} USD`;
+        }
+
         rows.push({
           label: !isPokt ? "Max Total" : "Total",
-          value: (
-            <AmountValidationWrapper>{`${total} ${symbol} / $${returnNumWithTwoDecimals(
-              total * selectedNetworkPrice,
-              "0"
-            )} USD`}</AmountValidationWrapper>
-          ),
+          value: <AmountValidationWrapper>{text}</AmountValidationWrapper>,
           containerProps: errorContainerProps,
         });
       }
@@ -253,6 +291,9 @@ const Summary: React.FC<SummaryProps> = ({ compact = false }) => {
     feeSelected,
     isPokt,
     transferType,
+    assetUsdPrice,
+    getNetworkFee,
+    feeFetchStatus,
   ]);
 
   return (

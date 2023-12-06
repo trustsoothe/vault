@@ -247,10 +247,14 @@ const ImportAccount: React.FC = () => {
             setAccountToReImport(account);
             setStatus("account_exists");
           } else {
+            const address = await getAddressFromPrivateKey(
+              privateKey,
+              selectedProtocol
+            );
             dispatch(
               changeSelectedAccountOfNetwork({
-                network: selectedProtocol,
-                accountId: response.data.accountId,
+                protocol: selectedProtocol,
+                address,
               })
             ).then(() => {
               setTimeout(() => {

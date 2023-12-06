@@ -132,7 +132,7 @@ async function _baseRequest<T extends BrowserRequest["type"]>(
         const { data, error } = event.data;
 
         if (data) {
-          if ("rejected" in data) {
+          if (typeof data === "object" && "rejected" in data) {
             delete data.rejected;
           }
 

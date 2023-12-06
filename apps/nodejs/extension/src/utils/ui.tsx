@@ -2,7 +2,9 @@ import type {
   ConnectionResponseFromBack,
   NewAccountResponseFromBack,
   TransferResponseFromBack,
+  SwitchChainResponseFromBack,
 } from "../types/communication";
+import type { SupportedProtocols } from "@poktscan/keyring";
 import React from "react";
 import Stack from "@mui/material/Stack";
 import browser from "webextension-polyfill";
@@ -16,6 +18,7 @@ import {
 } from "notistack";
 import { removeExternalRequest, RequestsType } from "../redux/slices/app";
 import {
+  InvalidSession,
   OperationRejected,
   OriginBlocked,
   RequestTimeout,
@@ -26,6 +29,8 @@ import {
   CONNECTION_RESPONSE_MESSAGE,
   NEW_ACCOUNT_REQUEST,
   NEW_ACCOUNT_RESPONSE,
+  SWITCH_CHAIN_REQUEST,
+  SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../constants/communication";
@@ -36,17 +41,29 @@ export const closeCurrentWindow = () =>
     .getCurrent()
     .then((window) => browser.windows.remove(window.id));
 
-type RequestsFromBack =
+type RequestsFromBack = (
   | ConnectionResponseFromBack
   | NewAccountResponseFromBack
-  | TransferResponseFromBack;
+  | TransferResponseFromBack
+  | SwitchChainResponseFromBack
+) & { requestId: string };
+
+export interface PartialRequest {
+  origin: string;
+  tabId: number;
+  type: RequestsType["type"];
+  sessionId?: string;
+  protocol: SupportedProtocols;
+  requestId: string;
+}
 
 export const removeRequestWithRes = async (
-  request: RequestsType,
+  request: PartialRequest,
   error:
     | typeof OriginBlocked
     | typeof RequestTimeout
-    | typeof OperationRejected,
+    | typeof OperationRejected
+    | typeof InvalidSession,
   dispatch: ReturnType<typeof useAppDispatch>,
   requestsLength: number,
   closeWindow = false
@@ -54,7 +71,8 @@ export const removeRequestWithRes = async (
   let responseType:
     | typeof TRANSFER_RESPONSE
     | typeof CONNECTION_RESPONSE_MESSAGE
-    | typeof NEW_ACCOUNT_RESPONSE;
+    | typeof NEW_ACCOUNT_RESPONSE
+    | typeof SWITCH_CHAIN_RESPONSE;
   let data: RequestsFromBack["data"] = null;
   let errorToReturn: RequestsFromBack["error"] = null;
 
@@ -98,6 +116,14 @@ export const removeRequestWithRes = async (
       responseType = NEW_ACCOUNT_RESPONSE;
       break;
     }
+    case SWITCH_CHAIN_REQUEST: {
+      if (error.name === OperationRejected.name) {
+        data = null;
+        errorToReturn = OperationRejected;
+      }
+      responseType = SWITCH_CHAIN_RESPONSE;
+      break;
+    }
   }
 
   const numberOfRequests = requestsLength - 1;
@@ -108,6 +134,7 @@ export const removeRequestWithRes = async (
     type: responseType,
     data,
     error: errorToReturn,
+    requestId: request.requestId,
   } as RequestsFromBack;
 
   await Promise.all([
@@ -116,6 +143,7 @@ export const removeRequestWithRes = async (
       removeExternalRequest({
         origin: request.origin,
         type: request.type,
+        protocol: request.protocol,
       })
     ),
     browser.action.setBadgeText({

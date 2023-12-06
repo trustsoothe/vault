@@ -2,7 +2,7 @@ import type { RootState } from "../store";
 import type { IAsset } from "../slices/app";
 import { createSelector } from "@reduxjs/toolkit";
 import { SupportedProtocols } from "@poktscan/keyring";
-import { selectedAccountIdSelector } from "./account";
+import { selectedAccountAddressSelector } from "./account";
 import { selectedChainSelector, selectedProtocolSelector } from "./network";
 
 export const assetsSelector = createSelector(
@@ -10,13 +10,13 @@ export const assetsSelector = createSelector(
   (app) => app.assets
 );
 
-export const assetsIdByAccountIdSelector = (state: RootState) =>
-  state.app.assetsIdByAccountId;
+export const assetsIdByAccountSelector = (state: RootState) =>
+  state.app.assetsIdByAccount;
 
 export const assetsIdOfSelectedAccountSelector = (state: RootState) => {
-  const selectedAccountId = selectedAccountIdSelector(state);
+  const selectedAccountAddress = selectedAccountAddressSelector(state);
 
-  return state.app.assetsIdByAccountId[selectedAccountId];
+  return state.app.assetsIdByAccount[selectedAccountAddress];
 };
 
 export const existsAssetsForSelectedNetworkSelector = (state: RootState) => {
@@ -69,8 +69,8 @@ export const wPoktVaultAddressSelector = (state: RootState) => {
   )?.vaultAddress;
 };
 
-const MAINNET_BASE_API_URL = "https://wpokt-monitor.vercel.app/api";
-const TESTNET_BASE_API_URL = "https://testnet-wpokt-monitor.vercel.app/api";
+const MAINNET_BASE_API_URL = "https://wpokt.network/api";
+const TESTNET_BASE_API_URL = "https://testnet-wpokt.vercel.app/api";
 
 export const wPoktBaseUrlSelector = (action: string) => (state: RootState) => {
   const selectedChain =
@@ -84,8 +84,11 @@ export const wPoktBaseUrlSelector = (action: string) => (state: RootState) => {
   }
 };
 
-export const assetAlreadyIncludedSelector = (asset?: IAsset) => (state) => {
-  const selectedAccountId = selectedAccountIdSelector(state);
+export const assetAlreadyIncludedSelector =
+  (asset?: IAsset) => (state: RootState) => {
+    const selectedAccountAddress = selectedAccountAddressSelector(state);
 
-  return state.app.assetsIdByAccountId[selectedAccountId]?.includes(asset?.id);
-};
+    return state.app.assetsIdByAccount[selectedAccountAddress]?.includes(
+      asset?.id
+    );
+  };

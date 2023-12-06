@@ -9,7 +9,6 @@ import { Account } from "../../../vault";
 import { getPublicKeyAsync, signAsync, utils } from "@noble/ed25519";
 import { Buffer } from "buffer";
 import { IEncryptionService } from "../../encryption/IEncryptionService";
-import { Network as NetworkObject } from "../../../network";
 import { AccountReference, SupportedProtocols } from "../../values";
 import urlJoin from "url-join";
 import {
@@ -36,14 +35,9 @@ import { ProtocolFee } from "../ProtocolFee";
 import { INetwork } from "../INetwork";
 import { NetworkStatus } from "../../values/NetworkStatus";
 import { IAsset } from "../IAsset";
-import {
-  IProtocolTransactionResult,
-  ProtocolTransaction,
-} from "../ProtocolTransaction";
+import { IProtocolTransactionResult } from "../ProtocolTransaction";
 import { PocketNetworkTransactionTypes } from "./PocketNetworkTransactionTypes";
 import { PocketNetworkProtocolTransaction } from "./PocketNetworkProtocolTransaction";
-
-type Network = NetworkObject<SupportedProtocols.Pocket>;
 
 export class PocketNetworkProtocolService
   implements IProtocolService<SupportedProtocols.Pocket>
@@ -285,6 +279,25 @@ export class PocketNetworkProtocolService
           "Unsupported transaction type. Not implemented."
         );
     }
+  }
+
+  async getTransactionByHash(network: INetwork, hash: string) {
+    this.validateNetwork(network);
+
+    const url = urlJoin(network.rpcUrl, "v1/query/tx");
+
+    const response = await globalThis.fetch(url, {
+      method: "POST",
+      body: JSON.stringify({
+        hash,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new NetworkRequestError("Failed to fetch transaction");
+    }
+
+    return await response.json();
   }
 
   isValidPrivateKey(privateKey: string): boolean {

@@ -19,3 +19,5 @@ export const SAVE_CONTACT_PAGE = "/contact/save";
 export const REMOVE_CONTACT_PAGE = "/contact/remove";
 
 export const REIMPORT_SEARCH_PARAM = "?reimport=true";
+
+export const CHANGE_SELECTED_CHAIN_PAGE = "/network/change_chain";

@@ -1,4 +1,4 @@
-import type { ErrorsPreferredNetwork } from "../redux/slices/app";
+import type { ErrorsByNetwork } from "../redux/slices/app";
 import { Buffer } from "buffer";
 import crypto from "crypto-browserify";
 import scrypt from "scrypt-js";
@@ -41,7 +41,7 @@ interface GetFeeParam<T extends SupportedProtocols = SupportedProtocols> {
   protocol: T;
   chainId: string;
   networks: NetworkForOperations[];
-  errorsPreferredNetwork?: ErrorsPreferredNetwork;
+  errorsPreferredNetwork?: ErrorsByNetwork;
   options: T extends SupportedProtocols.Ethereum
     ? EthereumNetworkFeeRequestOptions
     : undefined;
@@ -63,8 +63,7 @@ export const getFee = async ({
 
   if (errorsPreferredNetwork) {
     const preferredNetworks = networks.filter((item) => {
-      const errors =
-        errorsPreferredNetwork?.[item.protocol]?.[item.chainID]?.[item.id] || 0;
+      const errors = errorsPreferredNetwork?.[item.id] || 0;
       return (
         item.isPreferred &&
         item.protocol === protocol &&
@@ -111,7 +110,7 @@ interface GetAccountBalanceParam {
   protocol: SupportedProtocols;
   chainId: string;
   networks: NetworkForOperations[];
-  errorsPreferredNetwork?: ErrorsPreferredNetwork;
+  errorsPreferredNetwork?: ErrorsByNetwork;
   asset?: { contractAddress: string; decimals: number };
 }
 
@@ -142,8 +141,7 @@ export const getAccountBalance = async ({
 
   if (errorsPreferredNetwork) {
     const preferredNetworks = networks.filter((item) => {
-      const errors =
-        errorsPreferredNetwork?.[item.protocol]?.[item.chainID]?.[item.id] || 0;
+      const errors = errorsPreferredNetwork?.[item.id] || 0;
       return (
         item.isPreferred &&
         item.protocol === protocol &&

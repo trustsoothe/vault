@@ -1,24 +1,25 @@
 import type {
   ExternalConnectionRequest,
   ExternalNewAccountRequest,
-  ExternalTransferRequest,
+  ExternalSwitchChainRequest,
+  ExternalSwitchChainResponse,
   InternalConnectionResponse,
   InternalNewAccountResponse,
   InternalTransferResponse,
 } from "../../types/communication";
 import browser, { type Runtime } from "webextension-polyfill";
 import {
-  AccountExistError,
+  AccountExistErrorName,
   EthereumNetworkFee,
   ExternalAccessRequest,
   OriginReference,
   PermissionResources,
   PermissionsBuilder,
   PocketNetworkFee,
-  PrivateKeyRestoreError,
+  PrivateKeyRestoreErrorName,
   SerializedAccountReference,
   SupportedProtocols,
-  VaultRestoreError,
+  VaultRestoreErrorName,
 } from "@poktscan/keyring";
 import store from "../../redux/store";
 import {
@@ -28,9 +29,13 @@ import {
   ANSWER_CONNECTION_RESPONSE,
   ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_NEW_ACCOUNT_RESPONSE,
+  ANSWER_SWITCH_CHAIN_REQUEST,
+  ANSWER_SWITCH_CHAIN_RESPONSE,
   ANSWER_TRANSACTION_REQUEST,
   ANSWER_TRANSFER_REQUEST,
   ANSWER_TRANSFER_RESPONSE,
+  CHECK_PERMISSION_FOR_SESSION_REQUEST,
+  CHECK_PERMISSION_FOR_SESSION_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
   IMPORT_ACCOUNT_REQUEST,
@@ -41,6 +46,7 @@ import {
   LOCK_VAULT_RESPONSE,
   NETWORK_FEE_REQUEST,
   NETWORK_FEE_RESPONSE,
+  NEW_ACCOUNT_REQUEST,
   NEW_ACCOUNT_RESPONSE,
   PK_ACCOUNT_REQUEST,
   PK_ACCOUNT_RESPONSE,
@@ -50,6 +56,7 @@ import {
   REVOKE_EXTERNAL_SESSIONS_RESPONSE,
   REVOKE_SESSION_REQUEST,
   REVOKE_SESSION_RESPONSE,
+  SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
   UNLOCK_VAULT_REQUEST,
@@ -58,7 +65,9 @@ import {
   UPDATE_ACCOUNT_RESPONSE,
 } from "../../constants/communication";
 import {
+  changeSelectedNetwork,
   IAsset,
+  increaseErrorOfNetwork,
   removeExternalRequest,
   RequestsType,
   resetRequestsState,
@@ -66,25 +75,26 @@ import {
 import { initVault, lockVault, unlockVault } from "../../redux/slices/vault";
 import {
   addNewAccount,
-  updateAccount,
   getPrivateKeyOfAccount,
   importAccount,
   ImportAccountParam,
   removeAccount,
   sendTransfer,
   SendTransactionParams, sendRawTransaction,
+  updateAccount,
 } from "../../redux/slices/vault/account";
 import {
   authorizeExternalSession,
   revokeAllExternalSessions,
   revokeSession,
 } from "../../redux/slices/vault/session";
-import { UnknownError } from "../../errors/communication";
+import { OperationRejected, UnknownError } from "../../errors/communication";
 import {
   getAccountBalance,
   GetAccountBalanceParam,
 } from "../../redux/slices/app/network";
 import { getFee, NetworkForOperations } from "../../utils/networkOperations";
+import { getVault } from "../../utils";
 
 type MessageSender = Runtime.MessageSender;
 type UnknownErrorType = typeof UnknownError;
@@ -102,11 +112,16 @@ export interface AnswerConnectionRequest {
     accepted: boolean;
     request: ExternalConnectionRequest;
     selectedAccounts: string[];
+    protocol: SupportedProtocols;
   } | null;
 }
 
 export type AnswerConnectionResponse = BaseResponse<
   typeof ANSWER_CONNECTION_RESPONSE
+>;
+
+export type AnswerSwitchChainResponse = BaseResponse<
+  typeof ANSWER_SWITCH_CHAIN_RESPONSE
 >;
 
 export interface AnswerNewAccountRequest {
@@ -139,7 +154,12 @@ export interface AnswerTransferRequest {
   data: {
     rejected?: boolean;
     transferData: SendTransactionParams | null;
-    request?: ExternalTransferRequest | null;
+    request?: {
+      tabId: number;
+      origin: string;
+      requestId: string;
+      protocol: SupportedProtocols;
+    }  | null;
   };
 }
 
@@ -148,7 +168,12 @@ export interface AnswerTransactionRequest {
   data: {
     rejected?: boolean;
     transferData: SendTransactionParams | null;
-    request?: ExternalTransferRequest | null;
+    request?: {
+      tabId: number;
+      origin: string;
+      requestId: string;
+      protocol: SupportedProtocols;
+    } | null;
   };
 }
 
@@ -321,6 +346,32 @@ export interface NetworkFeeResponse {
   error: UnknownErrorType | null;
 }
 
+export interface CheckPermissionForSessionMessage {
+  type: typeof CHECK_PERMISSION_FOR_SESSION_REQUEST;
+  data: {
+    sessionId: string;
+    resource: string;
+    action: string;
+    ids?: string[];
+  };
+}
+
+export interface CheckPermissionForSessionResponse {
+  type: typeof CHECK_PERMISSION_FOR_SESSION_RESPONSE;
+  data: {
+    sessionIsValid: boolean;
+  } | null;
+  error: UnknownErrorType | null;
+}
+
+export interface AnswerSwitchChainRequest {
+  type: typeof ANSWER_SWITCH_CHAIN_REQUEST;
+  data: {
+    accepted: boolean;
+    request: ExternalSwitchChainRequest;
+  } | null;
+}
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
@@ -336,7 +387,9 @@ export type Message =
   | PrivateKeyAccountMessage
   | RevokeExternalSessionsMessage
   | AccountBalanceMessage
-  | NetworkFeeMessage;
+  | NetworkFeeMessage
+  | CheckPermissionForSessionMessage
+  | AnswerSwitchChainRequest;
 
 // Controller to manage the communication between extension views and the background
 class InternalCommunicationController {
@@ -353,10 +406,12 @@ class InternalCommunicationController {
           let response:
             | InternalTransferResponse
             | InternalConnectionResponse
-            | InternalNewAccountResponse;
+            | InternalNewAccountResponse
+            | ExternalSwitchChainResponse;
 
           if (request.type === CONNECTION_REQUEST_MESSAGE) {
             response = {
+              requestId: request.requestId,
               type: CONNECTION_RESPONSE_MESSAGE,
               data: {
                 accepted: false,
@@ -366,6 +421,7 @@ class InternalCommunicationController {
             } as InternalConnectionResponse;
           } else if (request.type === TRANSFER_REQUEST) {
             response = {
+              requestId: request.requestId,
               type: TRANSFER_RESPONSE,
               data: {
                 rejected: true,
@@ -374,8 +430,9 @@ class InternalCommunicationController {
               },
               error: null,
             } as InternalTransferResponse;
-          } else {
+          } else if (request.type === NEW_ACCOUNT_REQUEST) {
             response = {
+              requestId: request.requestId,
               type: NEW_ACCOUNT_RESPONSE,
               data: {
                 rejected: true,
@@ -384,6 +441,13 @@ class InternalCommunicationController {
               },
               error: null,
             } as InternalNewAccountResponse;
+          } else {
+            response = {
+              requestId: request.requestId,
+              type: SWITCH_CHAIN_RESPONSE,
+              data: null,
+              error: OperationRejected,
+            } as ExternalSwitchChainResponse;
           }
 
           return browser.tabs.sendMessage(request.tabId, response);
@@ -457,6 +521,14 @@ class InternalCommunicationController {
     if (message?.type === NETWORK_FEE_REQUEST) {
       return this._getNetworkFee(message);
     }
+
+    if (message?.type === CHECK_PERMISSION_FOR_SESSION_REQUEST) {
+      return this._checkPermissionsForSession(message);
+    }
+
+    if (message?.type === ANSWER_SWITCH_CHAIN_REQUEST) {
+      return this._answerSwitchChainRequest(message);
+    }
   }
 
   private async _handleInitializeVault(
@@ -496,7 +568,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === VaultRestoreError.name) {
+      if (error?.name === VaultRestoreErrorName) {
         return {
           type: UNLOCK_VAULT_RESPONSE,
           data: {
@@ -583,7 +655,8 @@ class InternalCommunicationController {
     message: AnswerConnectionRequest
   ): Promise<AnswerConnectionResponse> {
     try {
-      const { accepted, selectedAccounts, request } = message?.data || {};
+      const { accepted, selectedAccounts, request, protocol } =
+        message?.data || {};
       const { origin, tabId, type } = request;
 
       const promises: Promise<unknown>[] = [];
@@ -594,9 +667,11 @@ class InternalCommunicationController {
           type: CONNECTION_RESPONSE_MESSAGE,
           data: {
             accepted: false,
-            address: null,
+            addresses: null,
             session: null,
+            protocol,
           },
+          requestId: request?.requestId,
           error: null,
         };
 
@@ -622,25 +697,50 @@ class InternalCommunicationController {
         );
 
         const [session, tabs] = await Promise.all([
-          store.dispatch(authorizeExternalSession(requestReference)).unwrap(),
+          store
+            .dispatch(
+              authorizeExternalSession({
+                request: requestReference,
+                protocol,
+              })
+            )
+            .unwrap(),
           browser.tabs.query({ url: `${origin}/*` }),
         ]);
 
         if (session) {
-          const accounts = store.getState().vault.accounts;
-          const addresses = accounts
-            .filter((account) => selectedAccounts.includes(account.id))
-            .map((account) => account.address);
+          const currentSelectedAccountForProtocol =
+            store.getState().app.selectedAccountByProtocol[protocol];
+
+          const selectedAccountOnApp = selectedAccounts.find(
+            (address) => address === currentSelectedAccountForProtocol
+          );
+
+          let addresses: string[];
+
+          if (selectedAccountOnApp) {
+            addresses = [
+              selectedAccountOnApp,
+              ...selectedAccounts.filter(
+                (address) => address !== selectedAccountOnApp
+              ),
+            ];
+          } else {
+            addresses = selectedAccounts;
+          }
+
           responseToProxy = {
             type: CONNECTION_RESPONSE_MESSAGE,
+            requestId: request?.requestId,
             data: {
               accepted: true,
-              address: addresses[0],
+              addresses,
               session: {
                 id: session.id,
                 maxAge,
                 createdAt: session.createdAt,
               },
+              protocol,
             },
             error: null,
           };
@@ -654,7 +754,7 @@ class InternalCommunicationController {
 
       promises.push(
         store.dispatch(
-          removeExternalRequest({ origin, type })
+          removeExternalRequest({ origin, type, protocol: request.protocol })
         ) as unknown as Promise<unknown>
       );
 
@@ -692,6 +792,84 @@ class InternalCommunicationController {
     }
   }
 
+  private async _answerSwitchChainRequest(
+    message: AnswerSwitchChainRequest
+  ): Promise<AnswerSwitchChainResponse> {
+    try {
+      const { accepted, request } = message?.data || {};
+      const { origin, tabId, type } = request;
+
+      const promises: Promise<unknown>[] = [];
+      let responseToProxy: ExternalSwitchChainResponse;
+
+      if (!accepted) {
+        responseToProxy = {
+          requestId: request?.requestId,
+          type: SWITCH_CHAIN_RESPONSE,
+          data: null,
+          error: OperationRejected,
+        };
+
+        promises.push(browser.tabs.sendMessage(tabId, responseToProxy));
+      } else {
+        await store
+          .dispatch(
+            changeSelectedNetwork({
+              network: request.protocol,
+              chainId: request.chainId,
+            })
+          )
+          .unwrap();
+
+        responseToProxy = {
+          requestId: request?.requestId,
+          type: SWITCH_CHAIN_RESPONSE,
+          data: null,
+          error: null,
+        };
+      }
+
+      promises.push(
+        browser.tabs.sendMessage(tabId, responseToProxy),
+        store.dispatch(
+          removeExternalRequest({ origin, type, protocol: request.protocol })
+        ) as unknown as Promise<unknown>
+      );
+
+      await Promise.all(promises);
+
+      if (request) {
+        await this._updateBadgeText();
+      }
+
+      return {
+        type: ANSWER_SWITCH_CHAIN_RESPONSE,
+        data: {
+          answered: true,
+        },
+        error: null,
+      };
+    } catch (e) {
+      const tabId = message?.data?.request?.tabId;
+
+      if (tabId) {
+        await browser.tabs
+          .sendMessage(tabId, {
+            type: SWITCH_CHAIN_RESPONSE,
+            data: null,
+            error: UnknownError,
+          } as ExternalSwitchChainResponse)
+          .catch();
+      }
+
+      return {
+        type: ANSWER_SWITCH_CHAIN_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
   private async _answerCreateNewAccount(
     message: AnswerNewAccountRequest
   ): Promise<AnswerNewAccountResponse> {
@@ -704,6 +882,7 @@ class InternalCommunicationController {
 
       if (typeof rejected === "boolean" && rejected && request) {
         response = {
+          requestId: request?.requestId,
           type: NEW_ACCOUNT_RESPONSE,
           data: {
             rejected: true,
@@ -718,6 +897,7 @@ class InternalCommunicationController {
             removeExternalRequest({
               origin: request.origin,
               type: request.type,
+              protocol: accountData.protocol,
             })
           ),
         ]);
@@ -740,6 +920,7 @@ class InternalCommunicationController {
         if (request) {
           response = {
             type: NEW_ACCOUNT_RESPONSE,
+            requestId: request?.requestId,
             data: {
               rejected: false,
               address,
@@ -753,6 +934,7 @@ class InternalCommunicationController {
               removeExternalRequest({
                 origin: request.origin,
                 type: request.type,
+                protocol: accountData.protocol,
               })
             ),
           ]);
@@ -774,7 +956,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === VaultRestoreError.name) {
+      if (error?.name === VaultRestoreErrorName) {
         return {
           type: ANSWER_NEW_ACCOUNT_RESPONSE,
           data: {
@@ -819,6 +1001,7 @@ class InternalCommunicationController {
       if (typeof rejected === "boolean" && rejected && request) {
         response = {
           type: TRANSFER_RESPONSE,
+          requestId: request?.requestId,
           data: {
             rejected: true,
             hash: null,
@@ -831,20 +1014,23 @@ class InternalCommunicationController {
           store.dispatch(
             removeExternalRequest({
               origin: request.origin,
-              type: request.type,
+              type: TRANSFER_REQUEST,
+              protocol: request.protocol,
             })
           ),
         ]);
       } else if (!rejected) {
+        debugger;
         hash = await store.dispatch(sendTransfer(transferData)).unwrap();
 
         if (request) {
           response = {
             type: TRANSFER_RESPONSE,
+            requestId: request?.requestId,
             data: {
               rejected: false,
               hash,
-              protocol: transferData.network.protocol,
+              protocol: transferData.from.asset.protocol,
             },
             error: null,
           };
@@ -853,7 +1039,8 @@ class InternalCommunicationController {
             store.dispatch(
               removeExternalRequest({
                 origin: request.origin,
-                type: request.type,
+                type: TRANSFER_REQUEST,
+                protocol: request.protocol,
               })
             ),
           ]);
@@ -873,7 +1060,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === PrivateKeyRestoreError.name) {
+      if (error?.name === PrivateKeyRestoreErrorName) {
         return {
           type: ANSWER_TRANSFER_RESPONSE,
           data: {
@@ -922,7 +1109,7 @@ class InternalCommunicationController {
           data: {
             rejected: true,
             hash: null,
-            protocol: null,
+            protocol: request.protocol
           },
           error: null,
         };
@@ -931,7 +1118,8 @@ class InternalCommunicationController {
           store.dispatch(
             removeExternalRequest({
               origin: request.origin,
-              type: request.type,
+              type: TRANSFER_REQUEST,
+              protocol: request.protocol
             })
           ),
         ]);
@@ -953,7 +1141,8 @@ class InternalCommunicationController {
             store.dispatch(
               removeExternalRequest({
                 origin: request.origin,
-                type: request.type,
+                type: TRANSFER_REQUEST,
+                protocol: request.protocol
               })
             ),
           ]);
@@ -973,7 +1162,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === PrivateKeyRestoreError.name) {
+      if (error?.name === PrivateKeyRestoreErrorName) {
         return {
           type: ANSWER_TRANSFER_RESPONSE,
           data: {
@@ -1021,7 +1210,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === VaultRestoreError.name) {
+      if (error?.name === VaultRestoreErrorName) {
         return {
           type: UPDATE_ACCOUNT_RESPONSE,
           data: {
@@ -1053,7 +1242,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === VaultRestoreError.name) {
+      if (error?.name === VaultRestoreErrorName) {
         return {
           type: REMOVE_ACCOUNT_RESPONSE,
           data: {
@@ -1088,7 +1277,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === VaultRestoreError.name) {
+      if (error?.name === VaultRestoreErrorName) {
         return {
           type: IMPORT_ACCOUNT_RESPONSE,
           data: {
@@ -1100,7 +1289,7 @@ class InternalCommunicationController {
         };
       }
 
-      if (error?.name === AccountExistError.name) {
+      if (error?.name === AccountExistErrorName) {
         return {
           type: IMPORT_ACCOUNT_RESPONSE,
           data: {
@@ -1136,7 +1325,7 @@ class InternalCommunicationController {
         error: null,
       };
     } catch (error) {
-      if (error?.name === VaultRestoreError.name) {
+      if (error?.name === VaultRestoreErrorName) {
         return {
           type: PK_ACCOUNT_RESPONSE,
           data: {
@@ -1148,7 +1337,7 @@ class InternalCommunicationController {
         };
       }
 
-      if (error?.name === PrivateKeyRestoreError.name) {
+      if (error?.name === PrivateKeyRestoreErrorName) {
         return {
           type: PK_ACCOUNT_RESPONSE,
           data: {
@@ -1214,7 +1403,11 @@ class InternalCommunicationController {
             : undefined,
       });
 
-      // todo: save network with errors
+      if (result.networksWithErrors?.length) {
+        for (const networkId of result.networksWithErrors) {
+          await store.dispatch(increaseErrorOfNetwork(networkId));
+        }
+      }
 
       return {
         type: NETWORK_FEE_RESPONSE,
@@ -1262,6 +1455,43 @@ class InternalCommunicationController {
           } as NetworkForOperations)
       ),
     ];
+  }
+
+  private async _checkPermissionsForSession(
+    message: CheckPermissionForSessionMessage
+  ): Promise<CheckPermissionForSessionResponse> {
+    try {
+      const vault = getVault();
+
+      let sessionIsValid: boolean;
+
+      try {
+        const { sessionId, resource, ids, action } = message?.data || {};
+        await vault.validateSessionForPermissions(
+          sessionId,
+          resource,
+          action,
+          ids
+        );
+        sessionIsValid = true;
+      } catch (e) {
+        sessionIsValid = false;
+      }
+
+      return {
+        type: CHECK_PERMISSION_FOR_SESSION_RESPONSE,
+        data: {
+          sessionIsValid,
+        },
+        error: null,
+      };
+    } catch (e) {
+      return {
+        type: CHECK_PERMISSION_FOR_SESSION_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
   }
 
   private async _updateBadgeText() {

@@ -60,6 +60,18 @@ export const FromAddressNotValid = createError(
   "fromAddress is not valid."
 );
 
+export const AddressNotValid = createError(
+  "ADDRESS_NOT_VALID",
+  7,
+  "fromAddress is not valid."
+);
+
+export const BlockNotSupported = createError(
+  "BLOCK_NOT_SUPPORTED",
+  11,
+  "Block passed is not valid. Only latest is supported."
+);
+
 export const ToAddressNotValid = createError(
   "TO_ADDRESS_NOT_VALID",
   8,
@@ -144,6 +156,24 @@ export const RequestTransferExists = createError(
   "There is a pending transfer request from this origin."
 );
 
+export const RequestSwitchChainExists = createError(
+  "REQUEST_SWITCH_CHAIN_EXISTS",
+  1003,
+  "There is a pending switch chain request from this origin and protocol."
+);
+
+export const UnrecognizedChainId = createError(
+  "UNRECOGNIZED_CHAIN_ID",
+  4092,
+  "Unrecognized chain ID."
+);
+
+export const ChainIdNotPresented = createError(
+  "CHAIN_ID_NOT_PRESENTED",
+  1004,
+  "Chain ID not presented."
+);
+
 export const InvalidSession = createError(
   "INVALID_SESSION",
   500,
@@ -173,3 +203,12 @@ export const OperationRejected = createError(
   504,
   `The operation was rejected by the user.`
 );
+
+export const ProviderNotReady = createError(
+  "PROVIDER_NOT_READY",
+  -1,
+  "The provider is not ready to receive requests yet."
+);
+
+export const propertyIsNotValid = (property: string) =>
+  createError(`PROPERTY_NOT_VALID`, 10000, `${property} is not valid`);
