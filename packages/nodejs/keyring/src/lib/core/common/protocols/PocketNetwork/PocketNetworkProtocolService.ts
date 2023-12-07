@@ -21,6 +21,7 @@ import {
 } from "./schemas";
 import {
   ArgumentError,
+  InvalidPrivateKeyError,
   NetworkRequestError,
   ProtocolTransactionError,
 } from "../../../../errors";
@@ -97,6 +98,10 @@ export class PocketNetworkProtocolService
 
     if (!options.privateKey) {
       throw new ArgumentError("options.privateKey");
+    }
+
+    if (!this.isValidPrivateKey(options.privateKey)) {
+      throw new InvalidPrivateKeyError(options.privateKey);
     }
 
     const publicKey = this.getPublicKeyFromPrivateKey(options.privateKey);

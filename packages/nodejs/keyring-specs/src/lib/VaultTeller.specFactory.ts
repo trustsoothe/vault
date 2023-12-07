@@ -575,7 +575,7 @@ export default <
           const transferFundsOperation = vaultTeller.transferFunds(session.id, {
             from: {
               type: SupportedTransferOrigins.RawPrivateKey,
-              value: 'some-invalid-private-key',
+              value: '0x0000000000000000000000000000000000000000000000000000000000000000',
             },
             to: {
               type: SupportedTransferDestinations.RawAddress,
