@@ -14,7 +14,7 @@ import {
 import {WebEncryptionService} from '@poktscan/keyring-encryption-web'
 import {MockServerFactory} from "../../../../../mocks/mock-server-factory";
 
-describe.skip('PocketNetworkProtocolService', () => {
+describe('PocketNetworkProtocolService', () => {
   const network : INetwork = {
     rpcUrl: "http://localhost:8080",
     protocol: SupportedProtocols.Pocket,
