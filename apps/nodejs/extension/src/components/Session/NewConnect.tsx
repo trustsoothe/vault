@@ -35,6 +35,7 @@ import {
   accountBalancesSelector,
   accountsSelector,
 } from "../../redux/selectors/account";
+import TooltipOverflow from "../common/TooltipOverflow";
 
 type AccountWithBalanceInfo = SerializedAccountReference & {
   balanceInfo: AccountBalanceInfo;
@@ -62,13 +63,17 @@ const AccountItem: React.FC<AccountItemProps> = ({
 
   const { address, balanceInfo, symbol } = account;
 
-  useEffect(() => {
+  const getAccountBalance = useCallback(() => {
     AppToBackground.getAccountBalance({
       address,
       chainId: chainId as any,
       protocol,
     }).catch();
   }, [protocol, chainId, address]);
+
+  useEffect(() => {
+    getAccountBalance();
+  }, [getAccountBalance]);
 
   const balance = (balanceInfo?.amount as number) || 0;
   const errorBalance = balanceInfo?.error || false;
@@ -103,7 +108,7 @@ const AccountItem: React.FC<AccountItemProps> = ({
         }}
       />
 
-      <Stack width={1}>
+      <Stack width={295}>
         <Typography
           fontWeight={500}
           fontSize={13}
@@ -114,15 +119,62 @@ const AccountItem: React.FC<AccountItemProps> = ({
         </Typography>
         {loadingBalance ? (
           <Skeleton variant={"rectangular"} width={75} height={14} />
+        ) : errorBalance ? (
+          <Stack direction={"row"} alignItems={"center"} spacing={0.2}>
+            <Typography
+              fontSize={12}
+              lineHeight={"16px"}
+              color={theme.customColors.dark75}
+            >
+              Balance error.
+            </Typography>
+            <Button
+              sx={{
+                fontSize: 12,
+                height: 16,
+                minWidth: 0,
+                paddingX: 0.5,
+                marginTop: "2px!important",
+              }}
+              variant={"text"}
+              onClick={getAccountBalance}
+            >
+              Retry
+            </Button>
+          </Stack>
         ) : (
-          <Typography
-            sx={{ fontSize: "12px!important" }}
-            lineHeight={"16px"}
-            component={"span"}
-            color={theme.customColors.dark75}
-          >
-            {roundAndSeparate(balance, 2, "0")} {symbol}
-          </Typography>
+          <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
+            <TooltipOverflow
+              enableTextCopy={false}
+              text={`${roundAndSeparate(
+                balance,
+                account.protocol === SupportedProtocols.Ethereum ? 18 : 6,
+                "0"
+              )}`}
+              containerProps={{
+                height: 16,
+                marginTop: "-5px!important",
+              }}
+              textProps={{
+                height: 16,
+                lineHeight: "16px",
+              }}
+              linkProps={{
+                fontSize: "12px!important",
+                lineHeight: "16px",
+                component: "span",
+                color: theme.customColors.dark75,
+              }}
+            />
+            <Typography
+              fontSize={12}
+              lineHeight={"16px"}
+              component={"span"}
+              color={theme.customColors.dark75}
+            >
+              {symbol}
+            </Typography>
+          </Stack>
         )}
       </Stack>
     </Stack>
@@ -297,6 +349,7 @@ const NewConnect: React.FC = () => {
               showBorderBottom={index !== accounts.length - 1}
               protocol={protocol}
               chainId={selectedChain}
+              key={account.id}
             />
           ))}
         </Stack>

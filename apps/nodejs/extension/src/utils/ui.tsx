@@ -18,10 +18,9 @@ import {
 } from "notistack";
 import { removeExternalRequest, RequestsType } from "../redux/slices/app";
 import {
-  InvalidSession,
   OperationRejected,
-  OriginBlocked,
   RequestTimeout,
+  UnauthorizedError,
 } from "../errors/communication";
 import { useAppDispatch } from "../hooks/redux";
 import {
@@ -60,10 +59,9 @@ export interface PartialRequest {
 export const removeRequestWithRes = async (
   request: PartialRequest,
   error:
-    | typeof OriginBlocked
     | typeof RequestTimeout
     | typeof OperationRejected
-    | typeof InvalidSession,
+    | typeof UnauthorizedError,
   dispatch: ReturnType<typeof useAppDispatch>,
   requestsLength: number,
   closeWindow = false
@@ -76,14 +74,14 @@ export const removeRequestWithRes = async (
   let data: RequestsFromBack["data"] = null;
   let errorToReturn: RequestsFromBack["error"] = null;
 
-  if (error.name !== OperationRejected.name) {
+  if (error.code !== OperationRejected.code) {
     errorToReturn = error;
   }
 
   switch (request.type) {
     case TRANSFER_REQUEST: {
       responseType = TRANSFER_RESPONSE;
-      if (error.name === OperationRejected.name) {
+      if (error.code === OperationRejected.code) {
         data = {
           rejected: true,
           hash: null,
@@ -95,7 +93,7 @@ export const removeRequestWithRes = async (
     }
     case CONNECTION_REQUEST_MESSAGE: {
       responseType = CONNECTION_RESPONSE_MESSAGE;
-      if (error.name === OperationRejected.name) {
+      if (error.code === OperationRejected.code) {
         data = {
           accepted: false,
           session: null,
@@ -105,7 +103,7 @@ export const removeRequestWithRes = async (
       break;
     }
     case NEW_ACCOUNT_REQUEST: {
-      if (error.name === OperationRejected.name) {
+      if (error.code === OperationRejected.code) {
         data = {
           rejected: true,
           address: null,
@@ -117,7 +115,7 @@ export const removeRequestWithRes = async (
       break;
     }
     case SWITCH_CHAIN_REQUEST: {
-      if (error.name === OperationRejected.name) {
+      if (error.code === OperationRejected.code) {
         data = null;
         errorToReturn = OperationRejected;
       }

@@ -52,8 +52,6 @@ export const ANSWER_NEW_ACCOUNT_RESPONSE = "ANSWER_NEW_ACCOUNT_RESPONSE";
 export const ANSWER_TRANSFER_REQUEST = "ANSWER_TRANSFER_REQUEST";
 export const ANSWER_TRANSFER_RESPONSE = "ANSWER_TRANSFER_RESPONSE";
 
-export const ANSWER_TRANSACTION_REQUEST = "ANSWER_TRANSACTION_REQUEST";
-
 export const INITIALIZE_VAULT_REQUEST = "INITIALIZE_VAULT_REQUEST";
 export const INITIALIZE_VAULT_RESPONSE = "INITIALIZE_VAULT_RESPONSE";
 
@@ -101,3 +99,9 @@ export const APP_IS_READY = "APP_IS_READY";
 export const REQUEST_BEING_HANDLED = "REQUEST_BEING_HANDLED";
 
 export const MINUTES_ALLOWED_FOR_REQ = 5;
+
+export const EIP6963EthAnnounceType = "eip6963:announceProvider";
+export const PocketAnnounceType = "pocket:announceProvider";
+
+export const EIP6963EthRequestType = "eip6963:requestProvider";
+export const PocketRequestType = "pocket:requestProvider";

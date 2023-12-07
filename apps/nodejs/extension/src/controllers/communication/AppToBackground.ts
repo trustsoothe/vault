@@ -6,7 +6,6 @@ import type {
   AnswerNewAccountRequest,
   AnswerNewAccountResponse,
   AnswerSwitchChainResponse,
-  AnswerTransactionRequest,
   AnswerTransferRequest,
   AnswerTransferResponse,
   ImportAccountMessage,
@@ -40,7 +39,7 @@ import {
   ACCOUNT_BALANCE_REQUEST,
   ANSWER_CONNECTION_REQUEST,
   ANSWER_SWITCH_CHAIN_REQUEST,
-  ANSWER_NEW_ACCOUNT_REQUEST, ANSWER_TRANSACTION_REQUEST,
+  ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_TRANSFER_REQUEST,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
   IMPORT_ACCOUNT_REQUEST,
@@ -122,15 +121,6 @@ export default class AppToBackground {
       type: ANSWER_TRANSFER_REQUEST,
       data,
     } as AnswerTransferRequest);
-  }
-
-  static async sendRequestToAnswerTransaction(
-    data: AnswerTransferRequest["data"]
-  ): Promise<AnswerTransferResponse> {
-    return browser.runtime.sendMessage({
-      type: ANSWER_TRANSACTION_REQUEST,
-      data,
-    } as AnswerTransactionRequest);
   }
 
   static async initializeVault(

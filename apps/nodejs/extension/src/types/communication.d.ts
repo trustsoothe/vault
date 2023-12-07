@@ -3,7 +3,11 @@ import type {
   SerializedSession,
 } from "@poktscan/keyring";
 import type { SupportedProtocols } from "@poktscan/keyring";
-import type { TProtocol } from "../controllers/communication/Proxy";
+import type {
+  TProtocol,
+  TEthTransferBody,
+  TPocketTransferBody,
+} from "../controllers/communication/Proxy";
 import {
   CONNECTION_REQUEST_MESSAGE,
   CHECK_CONNECTION_REQUEST,
@@ -19,7 +23,6 @@ import {
   LIST_ACCOUNTS_RESPONSE,
   NEW_ACCOUNT_RESPONSE,
   TRANSFER_RESPONSE,
-  ACCOUNT_BALANCE_REQUEST,
   EXTERNAL_ACCOUNT_BALANCE_REQUEST,
   EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
   SELECTED_CHAIN_REQUEST,
@@ -34,23 +37,15 @@ import {
 } from "../constants/communication";
 import {
   AddressNotValid,
-  AmountHigherThanBalance,
   AmountNotPresented,
   AmountNotValid,
   BlockNotSupported,
-  FeeLowerThanMinFee,
-  FeeNotValid,
-  ForbiddenSession,
   FromAddressNotPresented,
   FromAddressNotValid,
   InvalidBody,
-  InvalidPermission,
   InvalidProtocol,
-  InvalidSession,
   MemoNotValid,
-  NotConnected,
   OperationRejected,
-  OriginBlocked,
   OriginNotPresented,
   propertyIsNotValid,
   ProtocolNotPresented,
@@ -62,15 +57,10 @@ import {
   SessionIdNotPresented,
   ToAddressNotPresented,
   ToAddressNotValid,
+  UnauthorizedError,
   UnknownError,
   UnrecognizedChainId,
-  VaultIsLocked,
 } from "../errors/communication";
-import { PocketNetworkMethod } from "../controllers/providers/base";
-import {
-  TEthTransferBody,
-  TPocketTransferBody,
-} from "../controllers/communication/Proxy";
 
 // EXTERNAL (used in redux)
 
@@ -222,7 +212,6 @@ export interface ProxyValidConnectionRes extends BaseProxyResponse {
 
 export type ProxyConnectionErrors =
   | ConnectionRequestErrors
-  | typeof InvalidPermission
   | typeof OperationRejected;
 
 export interface ProxyErrConnectionRes extends BaseProxyResponse {
@@ -283,8 +272,7 @@ type ExternalNewAccountRequestErrors =
   | BaseErrors
   | typeof RequestTimeout
   | typeof SessionIdNotPresented
-  | typeof InvalidSession
-  | typeof ForbiddenSession
+  | typeof UnauthorizedError
   | typeof RequestNewAccountExists;
 
 export type ExternalNewAccountResponse = void | {
@@ -345,15 +333,11 @@ export type ExternalTransferErrors =
   | BaseErrors
   | typeof RequestTimeout
   | typeof SessionIdNotPresented
-  | typeof FeeLowerThanMinFee
-  | typeof InvalidSession
-  | typeof ForbiddenSession
-  | typeof RequestTransferExists
-  | typeof AmountHigherThanBalance;
+  | typeof UnauthorizedError
+  | typeof RequestTransferExists;
 
 export type ProxyTransferError =
   | ExternalTransferErrors
-  | typeof FeeNotValid
   | typeof AmountNotPresented
   | typeof ToAddressNotPresented
   | typeof FromAddressNotPresented
@@ -438,14 +422,12 @@ export type DisconnectRequestMessage = BaseRequestWithSession<
 
 export type ExternalDisconnectErrors =
   | BaseErrors
-  | typeof InvalidSession
-  | typeof ForbiddenSession
+  | typeof UnauthorizedError
   | typeof SessionIdNotPresented;
 
 export type ProxyDisconnectErrors =
   | ExternalDisconnectErrors
-  | typeof RequestTimeout
-  | typeof NotConnected;
+  | typeof RequestTimeout;
 
 export interface DisconnectBackResponse {
   type: typeof DISCONNECT_RESPONSE;
@@ -495,16 +477,9 @@ export interface AccountItem extends SerializedAccountReference {
   balance: number;
 }
 
-export type ExternalListAccountsErrors =
-  | BaseErrors
-  | typeof InvalidSession
-  | typeof ForbiddenSession
-  | typeof SessionIdNotPresented;
+export type ExternalListAccountsErrors = BaseErrors;
 
-export type ProxyListAccountsErrors =
-  | ExternalListAccountsErrors
-  | typeof RequestTimeout
-  | typeof NotConnected;
+export type ProxyListAccountsErrors = ExternalListAccountsErrors;
 
 export interface ExternalListAccountsResponse {
   type: typeof LIST_ACCOUNTS_RESPONSE;

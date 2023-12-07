@@ -53,7 +53,6 @@ import {
   selectedAccountAddressSelector,
 } from "../../redux/selectors/account";
 import { assetsIdByAccountSelector } from "../../redux/selectors/asset";
-import {AnswerTransferResponse} from "../../controllers/communication/Internal";
 import NetworkAndAccount from "./NetworkAndAccount";
 
 export type FeeSpeed = "n/a" | "low" | "medium" | "high";
@@ -96,6 +95,12 @@ type NetworkFeeParam = Parameters<typeof AppToBackground.getNetworkFee>[0];
 type SendTransferParam = Parameters<
   typeof AppToBackground.sendRequestToAnswerTransfer
 >[0]["transferData"];
+
+const parseHexWeiToNumber = (hexWei: string) => {
+  if (hexWei) {
+    return parseInt(hexWei.substring(2), 16);
+  }
+};
 
 const Transfer: React.FC = () => {
   const theme = useTheme();
@@ -332,6 +337,11 @@ const Transfer: React.FC = () => {
           ...baseParam,
           toAddress,
           asset,
+          data: externalTransferData?.data,
+          // @ts-ignore
+          gasLimit: externalTransferData?.gasLimit,
+          maxFeePerGas: externalTransferData?.maxFeePerGas,
+          maxPriorityFeePerGas: externalTransferData?.maxPriorityFeePerGas,
         };
       }
 
@@ -405,7 +415,7 @@ const Transfer: React.FC = () => {
         if (transferType === "bridge") {
           memo = WPOKTBridge.createBridgeTransaction({
             amount: externalTransferData.amount,
-            chainID: chainId === "mainnet" ? "1" : "5",
+            chainID: chainId,
             from: fromAddress,
             vaultAddress: externalTransferData.vaultAddress,
             ethereumAddress: externalTransferData.toAddress,
@@ -532,7 +542,7 @@ const Transfer: React.FC = () => {
             }
           : undefined;
 
-        const feeInfo = (networkFee as EthereumNetworkFee)?.[data.feeSpeed];
+        const feeInfo = (networkFee as EthereumNetworkFee)[data.feeSpeed];
 
         const networkBaseTransferParam = {
           ...baseTransferParam,
@@ -543,9 +553,9 @@ const Transfer: React.FC = () => {
           asset: assetParam,
           amount: Number(data.amount),
           transactionParams: {
-            maxFeePerGas: feeInfo?.suggestedMaxFeePerGas,
-            maxPriorityFeePerGas: feeInfo?.suggestedMaxPriorityFeePerGas,
-            gasLimit: (networkFee as EthereumNetworkFee)?.estimatedGas,
+            maxFeePerGas: feeInfo.suggestedMaxFeePerGas,
+            maxPriorityFeePerGas: feeInfo.suggestedMaxPriorityFeePerGas,
+            gasLimit: (networkFee as EthereumNetworkFee).estimatedGas,
           },
         };
 
@@ -589,23 +599,35 @@ const Transfer: React.FC = () => {
           });
         } else {
           transferParam = networkBaseTransferParam;
+
+          if (externalTransferData) {
+            transferParam = merge(transferParam, {
+              amount: Number(data.amount || "0") * 1e18,
+              transactionParams: {
+                data: externalTransferData.data,
+                maxFeePerGas: parseHexWeiToNumber(
+                  externalTransferData.maxFeePerGas
+                ),
+                maxPriorityFeePerGas: parseHexWeiToNumber(
+                  externalTransferData.maxPriorityFeePerGas
+                ),
+                gasLimit: parseHexWeiToNumber(externalTransferData.gasLimit),
+              },
+            });
+          }
         }
       }
 
-      let response: AnswerTransferResponse;
-
-      if (['mint', 'burn'].includes(transferType)) {
-        response = await AppToBackground.sendRequestToAnswerTransaction({
-          rejected: false,
-          transferData: transferParam,
-          // todo: pass this when present
-          request: undefined,
-        });
-      } else {
-        response = await AppToBackground.sendRequestToAnswerTransfer({
-          rejected: false,
-          transferData: transferParam,
-          request: externalRequestInfo
+      const response = await AppToBackground.sendRequestToAnswerTransfer({
+        rejected: false,
+        transferData: {
+          ...transferParam,
+          isRawTransaction:
+            ["mint", "burn"].includes(transferType) ||
+            (!!externalRequestInfo &&
+              data.protocol === SupportedProtocols.Ethereum),
+        },
+        request: externalRequestInfo
           ? {
               origin: externalRequestInfo.origin,
               tabId: externalRequestInfo.tabId,
@@ -613,7 +635,7 @@ const Transfer: React.FC = () => {
               requestId: externalRequestInfo.requestId,
             }
           : undefined,
-      });}
+      });
 
       if (response.error) {
         setStatus("error");
@@ -641,6 +663,7 @@ const Transfer: React.FC = () => {
       transferType,
       externalTransferData,
       externalRequestInfo,
+      networkFee,
     ]
   );
 

@@ -44,16 +44,20 @@ declare module "webextension-polyfill" {
   }
 }
 
+interface IProvider {
+  send: (
+    methodOrPayload: MethodOrPayload,
+    argsOrCallback?: ArgsOrCallback
+  ) => unknown;
+  sendAsync: (method: Method, callback: Function) => void;
+  request: (args: Method) => unknown;
+  isSoothe: true;
+}
+
 declare global {
   interface Window {
-    pocketNetwork: {
-      send: (
-        methodOrPayload: MethodOrPayload,
-        argsOrCallback?: ArgsOrCallback
-      ) => unknown;
-      request: (args: Method) => unknown;
-      isSoothe: true;
-    };
+    pocketNetwork: IProvider;
+    ethereum: IProvider;
     soothe: {
       connect: () => Promise<ProxyConnectionRes["data"]>;
       disconnect: () => Promise<ProxyDisconnectRes["data"]>;
@@ -94,3 +98,15 @@ export type BrowserResponse =
   | ProxyBalanceRes
   | ProxyGetPoktTxRes
   | ProxySwitchChainRes;
+
+export interface EIP6963ProviderInfo {
+  uuid: string;
+  name: string;
+  icon: string;
+  rdns: string;
+}
+
+export interface EIP6963ProviderDetail {
+  info: EIP6963ProviderInfo;
+  provider: Readonly<IProvider>;
+}

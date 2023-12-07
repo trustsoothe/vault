@@ -84,7 +84,7 @@ import {
   BlockNotSupported,
   ChainIdNotPresented,
   FromAddressNotPresented,
-  NotConnected,
+  UnauthorizedError,
   OperationRejected,
   propertyIsNotValid,
   ToAddressNotPresented,
@@ -140,7 +140,8 @@ const PocketTransferBody = z.object({
   amount: z
     .string()
     .nonempty()
-    .regex(/^\d*\.?\d*$/),
+    .regex(/^\d+$/)
+    .refine((value) => Number(value) > 0, "amount should be greater than 0"),
   memo: z.string().max(75).optional(),
 });
 
@@ -566,7 +567,7 @@ class ProxyCommunicationController {
           await this._handleNewAccountResponse(response);
         }
       } else {
-        return this._sendNewAccountResponse(requestId, null, NotConnected);
+        return this._sendNewAccountResponse(requestId, null, UnauthorizedError);
       }
     } catch (e) {
       if (!requestWasSent) {
@@ -591,7 +592,7 @@ class ProxyCommunicationController {
       } else {
         this._sendNewAccountResponse(requestId, null, error);
 
-        if (error.name === "INVALID_SESSION") {
+        if (error?.code === UnauthorizedError.code) {
           this._sendDisconnectResponse(true, null, response.data.protocol);
         }
       }
@@ -717,7 +718,7 @@ class ProxyCommunicationController {
           await this._handleTransferResponse(response, requestId);
         }
       } else {
-        return this._sendTransferResponse(requestId, null, NotConnected);
+        return this._sendTransferResponse(requestId, null, UnauthorizedError);
       }
     } catch (e) {
       if (!requestWasSent) {
@@ -742,7 +743,7 @@ class ProxyCommunicationController {
       } else {
         this._sendTransferResponse(requestId, null, error);
 
-        if (error.name === "INVALID_SESSION") {
+        if (error?.code === UnauthorizedError.code) {
           this._sendDisconnectResponse(true, null, response.data.protocol);
         }
       }
@@ -808,7 +809,7 @@ class ProxyCommunicationController {
 
         const disconnected =
           response?.data?.disconnected ||
-          response?.error?.name === "INVALID_SESSION";
+          response?.error?.code === UnauthorizedError.code;
 
         if (disconnected) {
           this._sessionByProtocol[protocol] = null;
@@ -820,7 +821,7 @@ class ProxyCommunicationController {
           protocol
         );
       } else {
-        this._sendDisconnectResponse(false, NotConnected, protocol);
+        this._sendDisconnectResponse(false, UnauthorizedError, protocol);
       }
     } catch (e) {
       this._sendDisconnectResponse(false, UnknownError, protocol);
@@ -915,7 +916,7 @@ class ProxyCommunicationController {
 
       window.postMessage(proxyResponse, window.location.origin);
 
-      if (proxyResponse?.error?.name === "INVALID_SESSION") {
+      if (proxyResponse?.error?.code === UnauthorizedError.code) {
         this._sendDisconnectResponse(true, null, protocol);
       }
     } catch (e) {

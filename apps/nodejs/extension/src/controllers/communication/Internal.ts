@@ -31,7 +31,6 @@ import {
   ANSWER_NEW_ACCOUNT_RESPONSE,
   ANSWER_SWITCH_CHAIN_REQUEST,
   ANSWER_SWITCH_CHAIN_RESPONSE,
-  ANSWER_TRANSACTION_REQUEST,
   ANSWER_TRANSFER_REQUEST,
   ANSWER_TRANSFER_RESPONSE,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
@@ -80,7 +79,7 @@ import {
   ImportAccountParam,
   removeAccount,
   sendTransfer,
-  SendTransactionParams, sendRawTransaction,
+  SendTransactionParams,
   updateAccount,
 } from "../../redux/slices/vault/account";
 import {
@@ -151,20 +150,6 @@ export type AnswerNewAccountResponse = BaseResponse<
 
 export interface AnswerTransferRequest {
   type: typeof ANSWER_TRANSFER_REQUEST;
-  data: {
-    rejected?: boolean;
-    transferData: SendTransactionParams | null;
-    request?: {
-      tabId: number;
-      origin: string;
-      requestId: string;
-      protocol: SupportedProtocols;
-    }  | null;
-  };
-}
-
-export interface AnswerTransactionRequest {
-  type: typeof ANSWER_TRANSACTION_REQUEST;
   data: {
     rejected?: boolean;
     transferData: SendTransactionParams | null;
@@ -376,7 +361,6 @@ export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
   | AnswerTransferRequest
-  | AnswerTransactionRequest
   | InitializeVaultRequest
   | UnlockVaultRequest
   | LockVaultMessage
@@ -472,10 +456,6 @@ class InternalCommunicationController {
 
     if (message?.type === ANSWER_TRANSFER_REQUEST) {
       return this._answerTransferAccount(message);
-    }
-
-    if (message?.type === ANSWER_TRANSACTION_REQUEST) {
-      return this._answerTransactionAccount(message);
     }
 
     if (message?.type === INITIALIZE_VAULT_REQUEST) {
@@ -1001,11 +981,11 @@ class InternalCommunicationController {
       if (typeof rejected === "boolean" && rejected && request) {
         response = {
           type: TRANSFER_RESPONSE,
-          requestId: request?.requestId,
+          requestId: request.requestId,
           data: {
             rejected: true,
             hash: null,
-            protocol: null,
+            protocol: request.protocol,
           },
           error: null,
         };
@@ -1020,115 +1000,12 @@ class InternalCommunicationController {
           ),
         ]);
       } else if (!rejected) {
-        debugger;
         hash = await store.dispatch(sendTransfer(transferData)).unwrap();
 
         if (request) {
           response = {
             type: TRANSFER_RESPONSE,
-            requestId: request?.requestId,
-            data: {
-              rejected: false,
-              hash,
-              protocol: transferData.from.asset.protocol,
-            },
-            error: null,
-          };
-          await Promise.all([
-            browser.tabs.sendMessage(request.tabId, response),
-            store.dispatch(
-              removeExternalRequest({
-                origin: request.origin,
-                type: TRANSFER_REQUEST,
-                protocol: request.protocol,
-              })
-            ),
-          ]);
-        }
-      }
-
-      if (request) {
-        await this._updateBadgeText();
-      }
-
-      return {
-        type: ANSWER_TRANSFER_RESPONSE,
-        data: {
-          answered: true,
-          hash,
-        },
-        error: null,
-      };
-    } catch (error) {
-      if (error?.name === PrivateKeyRestoreErrorName) {
-        return {
-          type: ANSWER_TRANSFER_RESPONSE,
-          data: {
-            answered: true,
-            isPasswordWrong: true,
-            hash: null,
-          },
-          error: null,
-        };
-      }
-
-      const tabId = message?.data?.request?.tabId;
-
-      if (tabId) {
-        await browser.tabs
-          .sendMessage(tabId, {
-            type: TRANSFER_RESPONSE,
-            data: null,
-            error: UnknownError,
-          })
-          .catch();
-      }
-
-      console.log("SEND TRANSFER ERROR:", error);
-
-      return {
-        type: ANSWER_TRANSFER_RESPONSE,
-        data: null,
-        error: UnknownError,
-      };
-    }
-  }
-
-  private async _answerTransactionAccount(
-    message: AnswerTransactionRequest
-  ): Promise<AnswerTransferResponse> {
-    try {
-      const { rejected, request, transferData } = message?.data || {};
-
-      let hash: string | null = null;
-      let response: InternalTransferResponse;
-
-      if (typeof rejected === "boolean" && rejected && request) {
-        response = {
-          type: TRANSFER_RESPONSE,
-          data: {
-            rejected: true,
-            hash: null,
-            protocol: request.protocol
-          },
-          error: null,
-        };
-        await Promise.all([
-          browser.tabs.sendMessage(request.tabId, response),
-          store.dispatch(
-            removeExternalRequest({
-              origin: request.origin,
-              type: TRANSFER_REQUEST,
-              protocol: request.protocol
-            })
-          ),
-        ]);
-      } else if (!rejected) {
-        hash = await store.dispatch(sendRawTransaction(transferData)).unwrap();
-
-        if (request) {
-          response = {
-            type: TRANSFER_RESPONSE,
+            requestId: request.requestId,
             data: {
               rejected: false,
               hash,
@@ -1142,7 +1019,7 @@ class InternalCommunicationController {
               removeExternalRequest({
                 origin: request.origin,
                 type: TRANSFER_REQUEST,
-                protocol: request.protocol
+                protocol: request.protocol,
               })
             ),
           ]);

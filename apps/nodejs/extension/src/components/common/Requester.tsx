@@ -2,7 +2,7 @@ import { useTheme } from "@mui/material";
 import Typography from "@mui/material/Typography";
 import React, { useCallback, useEffect, useState } from "react";
 import Stack, { StackProps } from "@mui/material/Stack";
-import { OriginBlocked } from "../../errors/communication";
+import { UnauthorizedError } from "../../errors/communication";
 import ToggleBlockSite from "../Session/ToggleBlockSite";
 import { PartialRequest, removeRequestWithRes } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
@@ -44,7 +44,7 @@ const Requester: React.FC<RequesterProps> = ({
     if (request) {
       removeRequestWithRes(
         request,
-        OriginBlocked,
+        UnauthorizedError,
         dispatch,
         externalRequestsLength,
         !isUnlocked

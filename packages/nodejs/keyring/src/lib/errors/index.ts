@@ -30,28 +30,34 @@ export class SessionIdRequiredError extends KeyringError {
   }
 }
 
+export const SessionNotFoundErrorName = "SessionNotFoundError";
+
 export class SessionNotFoundError extends KeyringError {
   constructor() {
     super({
-      name: "SessionNotFoundError",
+      name: SessionNotFoundErrorName,
       message: "Unauthorized: Session id not found",
     });
   }
 }
 
+export const InvalidSessionErrorName = "InvalidSessionError";
+
 export class InvalidSessionError extends KeyringError {
   constructor() {
     super({
-      name: "InvalidSessionError",
+      name: InvalidSessionErrorName,
       message: "Unauthorized: Session is invalid",
     });
   }
 }
 
+export const ForbiddenSessionErrorName = "ForbiddenSessionError";
+
 export class ForbiddenSessionError extends KeyringError {
   constructor() {
     super({
-      name: "ForbiddenSessionError",
+      name: ForbiddenSessionErrorName,
       message: "Unauthorized: Session is not allowed to perform this operation",
     });
   }
@@ -172,8 +178,8 @@ export class PrivateKeyRestoreError extends KeyringError {
 export class InvalidChainIDError extends KeyringError {
   constructor(message?: string) {
     super({
-      name: 'InvalidChainIDError',
-      message: message || 'Invalid Chain ID',
+      name: "InvalidChainIDError",
+      message: message || "Invalid Chain ID",
     });
   }
 }

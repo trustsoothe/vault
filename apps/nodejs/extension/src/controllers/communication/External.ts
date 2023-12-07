@@ -31,7 +31,7 @@ import {
   SupportedProtocols,
 } from "@poktscan/keyring";
 import {
-  OriginBlocked,
+  UnauthorizedError,
   OriginNotPresented,
   RequestConnectionExists,
   RequestNewAccountExists,
@@ -852,7 +852,7 @@ class ExternalCommunicationController {
     type: T;
     error:
       | typeof OriginNotPresented
-      | typeof OriginBlocked
+      | typeof UnauthorizedError
       | typeof UnknownError;
     data: null;
   } | void> {
@@ -870,7 +870,7 @@ class ExternalCommunicationController {
       if (blockSites.includes(origin)) {
         return {
           type: responseMessage,
-          error: OriginBlocked,
+          error: UnauthorizedError,
           data: null,
         };
       }

@@ -55,7 +55,7 @@ const RequestHandler: React.FC = () => {
           if ("amount" in dataFromRequest) {
             transferDataState = {
               fromAddress: dataFromRequest.from,
-              amount: dataFromRequest.amount,
+              amount: (Number(dataFromRequest.amount) / 1e6).toString(),
               toAddress: dataFromRequest.to,
               memo: dataFromRequest.memo,
             };
@@ -66,7 +66,7 @@ const RequestHandler: React.FC = () => {
               toAddress: transferData.to,
               data: transferData.data,
               amount: transferData.value
-                ? fromWei(transferData.value, "ether").toString()
+                ? fromWei(transferData.value.substring(2), "ether").toString()
                 : undefined,
               gasLimit: transferData.gas,
               maxFeePerGas: transferData.maxFeePerGas,

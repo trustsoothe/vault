@@ -34,7 +34,11 @@ import {
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
-import { ProviderNotReady, RequestTimeout } from "../../errors/communication";
+import {
+  ProviderNotReady,
+  RequestTimeout,
+  UnsupportedMethod,
+} from "../../errors/communication";
 
 interface ChainChangedMessage {
   type: typeof SELECTED_CHAIN_CHANGED;
@@ -84,10 +88,11 @@ export default class BaseProvider extends EventEmitter {
     super();
     this.network = protocol;
 
-    Object.defineProperty(this, "network", {
-      configurable: false,
-      writable: false,
-    });
+    // this is required to prevent that this is undefined in these methods when the
+    // provider is taken from the announcement event in some pages. For example: https://eip6963.org/
+    this.send = this.send.bind(this);
+    this.sendAsync = this.sendAsync.bind(this);
+    this.request = this.request.bind(this);
 
     window.addEventListener(
       "message",
@@ -151,6 +156,12 @@ export default class BaseProvider extends EventEmitter {
     }
   }
 
+  sendAsync(method: Method, callback: Function) {
+    this.request(method)
+      .then((res: any) => callback(null, res))
+      .catch((err) => callback(err, null));
+  }
+
   async request(args: Method) {
     const { method, params } = args;
 
@@ -168,7 +179,7 @@ export default class BaseProvider extends EventEmitter {
       (this.network === SupportedProtocols.Ethereum &&
         !Object.values(EthereumMethod).includes(method as EthereumMethod))
     ) {
-      throw Error(`method not supported: ${method}`);
+      throw UnsupportedMethod;
     }
 
     switch (method) {
@@ -197,7 +208,7 @@ export default class BaseProvider extends EventEmitter {
         sootheRequestType = EXTERNAL_ACCOUNT_BALANCE_REQUEST;
         break;
       }
-      // case EthereumMethod.SEND_TRANSACTION:
+      case EthereumMethod.SEND_TRANSACTION:
       case PocketNetworkMethod.SEND_TRANSACTION: {
         sootheRequestType = TRANSFER_REQUEST;
         break;

@@ -2,6 +2,10 @@ import {
   EthereumMethod,
   PocketNetworkMethod,
 } from "../controllers/providers/base";
+import {
+  TEthTransferBody,
+  TPocketTransferBody,
+} from "../controllers/communication/Proxy";
 
 interface AccountRequest {
   method:
@@ -32,14 +36,12 @@ interface EthBalanceRequest {
 
 interface SendTransferRequest {
   method: typeof PocketNetworkMethod.SEND_TRANSACTION;
-  params: [
-    {
-      from: string;
-      to: string;
-      amount: string;
-      memo?: string;
-    }
-  ];
+  params: [TPocketTransferBody];
+}
+
+interface SendTransactionRequest {
+  method: typeof EthereumMethod.SEND_TRANSACTION;
+  params: [TEthTransferBody];
 }
 
 interface SwitchChainRequest {
@@ -64,6 +66,7 @@ export type Method =
   | BalanceRequest
   | EthBalanceRequest
   | SendTransferRequest
+  | SendTransactionRequest
   | ListAccountRequest
   | GetPoktTxRequest
   | SwitchChainRequest;
