@@ -1,0 +1,50 @@
+{
+  "resources": {
+    "@mui/material": {
+      "globals": {
+        "Blob": true,
+        "File": true
+      }
+    },
+    "@poktscan/keyring>web3-eth": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "@poktscan/keyring>web3-providers-http": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "@poktscan/keyring>web3-providers-http>cross-fetch": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "cross-fetch": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "crypto-browserify>randombytes": {
+      "globals": {
+        "crypto": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/dist/index.js": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "react-dom": {
+      "globals": {
+        "HTMLIFrameElement": true
+      }
+    }
+  }
+}

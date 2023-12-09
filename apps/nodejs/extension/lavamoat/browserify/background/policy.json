@@ -1,0 +1,1006 @@
+{
+  "resources": {
+    "@mui/material": {
+      "globals": {
+        "Blob": true,
+        "File": true
+      }
+    },
+    "@poktscan/keyring>protobufjs": {
+      "globals": {
+        "setTimeout": true
+      },
+      "packages": {
+        "@poktscan/keyring>protobufjs>@protobufjs/aspromise": true,
+        "@poktscan/keyring>protobufjs>@protobufjs/base64": true,
+        "@poktscan/keyring>protobufjs>@protobufjs/eventemitter": true,
+        "@poktscan/keyring>protobufjs>@protobufjs/float": true,
+        "@poktscan/keyring>protobufjs>@protobufjs/inquire": true,
+        "@poktscan/keyring>protobufjs>@protobufjs/pool": true,
+        "@poktscan/keyring>protobufjs>@protobufjs/utf8": true
+      }
+    },
+    "@poktscan/keyring>web3-eth": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "clearInterval": true,
+        "clearTimeout": true,
+        "console.warn": true,
+        "fetch": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@poktscan/keyring>web3-eth>setimmediate": true,
+        "@poktscan/keyring>web3-eth>web3-core": true,
+        "@poktscan/keyring>web3-eth>web3-eth-abi": true,
+        "@poktscan/keyring>web3-eth>web3-net": true,
+        "@poktscan/keyring>web3-eth>web3-rpc-methods": true,
+        "browserify>timers-browserify": true,
+        "web3-eth-accounts": true,
+        "web3-eth-accounts>web3-utils": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator": true
+      }
+    },
+    "@poktscan/keyring>web3-eth-contract": {
+      "packages": {
+        "@poktscan/keyring>web3-eth-contract>web3-eth": true,
+        "@poktscan/keyring>web3-eth>web3-core": true,
+        "@poktscan/keyring>web3-eth>web3-eth-abi": true,
+        "web3-eth-accounts>web3-utils": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator": true
+      }
+    },
+    "@poktscan/keyring>web3-eth-contract>web3-eth": {
+      "globals": {
+        "clearInterval": true,
+        "clearTimeout": true,
+        "console.warn": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@poktscan/keyring>web3-eth>setimmediate": true,
+        "@poktscan/keyring>web3-eth>web3-core": true,
+        "@poktscan/keyring>web3-eth>web3-eth-abi": true,
+        "@poktscan/keyring>web3-eth>web3-net": true,
+        "@poktscan/keyring>web3-eth>web3-rpc-methods": true,
+        "browserify>timers-browserify": true,
+        "web3-eth-accounts": true,
+        "web3-eth-accounts>web3-utils": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator": true
+      }
+    },
+    "@poktscan/keyring>web3-eth>setimmediate": {
+      "globals": {
+        "MessageChannel": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "process": true
+      }
+    },
+    "@poktscan/keyring>web3-eth>web3-core": {
+      "packages": {
+        "@poktscan/keyring>web3-eth>web3-core>web3-eth-iban": true,
+        "@poktscan/keyring>web3-eth>web3-providers-ws": true,
+        "@poktscan/keyring>web3-providers-http": true,
+        "web3-eth-accounts": true,
+        "web3-eth-accounts>web3-utils": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator": true
+      }
+    },
+    "@poktscan/keyring>web3-eth>web3-core>web3-eth-iban": {
+      "packages": {
+        "web3-eth-accounts>web3-utils": true,
+        "web3-utils>web3-errors": true,
+        "web3-validator": true
+      }
+    },
+    "@poktscan/keyring>web3-eth>web3-eth-abi": {
+      "globals": {
+        "Buffer": true,
+        "console.error": true
+      },
+      "packages": {
+        "@poktscan/keyring>web3-eth>web3-eth-abi>abitype": true,
+        "web3-eth-accounts>web3-utils": true,
+        "web3-utils>web3-errors": true,
+        "web3-validator": true
+      }
+    },
+    "@poktscan/keyring>web3-eth>web3-net": {
+      "packages": {
+        "@poktscan/keyring>web3-eth>web3-core": true,
+        "@poktscan/keyring>web3-eth>web3-rpc-methods": true,
+        "web3-eth-accounts>web3-utils": true,
+        "web3-utils>web3-types": true
+      }
+    },
+    "@poktscan/keyring>web3-eth>web3-providers-ws": {
+      "packages": {
+        "@poktscan/keyring>web3-eth>web3-providers-ws>isomorphic-ws": true,
+        "web3-eth-accounts>web3-utils": true,
+        "web3-utils>web3-errors": true
+      }
+    },
+    "@poktscan/keyring>web3-eth>web3-providers-ws>isomorphic-ws": {
+      "globals": {
+        "MozWebSocket": true,
+        "WebSocket": true
+      }
+    },
+    "@poktscan/keyring>web3-eth>web3-rpc-methods": {
+      "packages": {
+        "web3-validator": true
+      }
+    },
+    "@poktscan/keyring>web3-providers-http": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      },
+      "packages": {
+        "@poktscan/keyring>web3-providers-http>cross-fetch": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true
+      }
+    },
+    "@poktscan/keyring>web3-providers-http>cross-fetch": {
+      "globals": {
+        "Blob": true,
+        "FileReader": true,
+        "FormData": true,
+        "URLSearchParams.prototype.isPrototypeOf": true,
+        "XMLHttpRequest": true,
+        "fetch": true,
+        "setTimeout": true
+      }
+    },
+    "@reduxjs/toolkit": {
+      "globals": {
+        "AbortController": true,
+        "Headers": true,
+        "Request": true,
+        "URLSearchParams": true,
+        "__REDUX_DEVTOOLS_EXTENSION_COMPOSE__": true,
+        "__REDUX_DEVTOOLS_EXTENSION__": true,
+        "_type": true,
+        "addEventListener": true,
+        "clearTimeout": true,
+        "console.error": true,
+        "console.warn": true,
+        "document": true,
+        "fetch": true,
+        "message": true,
+        "name": true,
+        "navigator": true,
+        "queueMicrotask": true,
+        "removeEventListener": true,
+        "requestAnimationFrame": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@reduxjs/toolkit>immer": true,
+        "@reduxjs/toolkit>redux-thunk": true,
+        "@reduxjs/toolkit>reselect": true,
+        "process": true,
+        "react": true,
+        "react-redux": true,
+        "react-redux>redux": true
+      }
+    },
+    "@reduxjs/toolkit>immer": {
+      "packages": {
+        "process": true
+      }
+    },
+    "@reduxjs/toolkit>reselect": {
+      "globals": {
+        "WeakRef": true,
+        "_cachedRevision": true,
+        "_cachedValue": true,
+        "_deps": true,
+        "_isEqual": true,
+        "_lastValue": true,
+        "_value": true,
+        "children": true,
+        "collectionTag": true,
+        "console.warn": true,
+        "fn": true,
+        "hits": true,
+        "id": true,
+        "proxy": true,
+        "revision": true,
+        "tag": true,
+        "tags": true
+      },
+      "packages": {
+        "process": true
+      }
+    },
+    "browserify>browser-pack>safe-buffer": {
+      "packages": {
+        "browserify>buffer": true
+      }
+    },
+    "browserify>buffer": {
+      "globals": {
+        "console": true
+      },
+      "packages": {
+        "buffer>base64-js": true,
+        "buffer>ieee754": true
+      }
+    },
+    "browserify>readable-stream>util-deprecate": {
+      "globals": {
+        "console.trace": true,
+        "console.warn": true
+      }
+    },
+    "browserify>string_decoder": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true
+      }
+    },
+    "browserify>timers-browserify": {
+      "globals": {
+        "clearInterval": true,
+        "clearTimeout": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "process": true
+      }
+    },
+    "cross-fetch": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "crypto-browserify": {
+      "packages": {
+        "crypto-browserify>browserify-cipher": true,
+        "crypto-browserify>browserify-sign": true,
+        "crypto-browserify>create-ecdh": true,
+        "crypto-browserify>create-hash": true,
+        "crypto-browserify>create-hmac": true,
+        "crypto-browserify>diffie-hellman": true,
+        "crypto-browserify>pbkdf2": true,
+        "crypto-browserify>public-encrypt": true,
+        "crypto-browserify>randombytes": true,
+        "crypto-browserify>randomfill": true
+      }
+    },
+    "crypto-browserify>browserify-cipher": {
+      "packages": {
+        "crypto-browserify>browserify-cipher>browserify-aes": true,
+        "crypto-browserify>browserify-cipher>browserify-des": true,
+        "crypto-browserify>browserify-cipher>evp_bytestokey": true
+      }
+    },
+    "crypto-browserify>browserify-cipher>browserify-aes": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "browserify>buffer": true,
+        "crypto-browserify>browserify-cipher>browserify-aes>buffer-xor": true,
+        "crypto-browserify>browserify-cipher>evp_bytestokey": true,
+        "crypto-browserify>create-hash>cipher-base": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>browserify-cipher>browserify-aes>buffer-xor": {
+      "packages": {
+        "browserify>buffer": true
+      }
+    },
+    "crypto-browserify>browserify-cipher>browserify-des": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify>browserify-cipher>browserify-des>des.js": true,
+        "crypto-browserify>create-hash>cipher-base": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>browserify-cipher>browserify-des>des.js": {
+      "packages": {
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>browserify-cipher>evp_bytestokey": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify>create-hash>md5.js": true
+      }
+    },
+    "crypto-browserify>browserify-sign": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify>browserify-sign>bn.js": true,
+        "crypto-browserify>create-ecdh>elliptic": true,
+        "crypto-browserify>create-hash": true,
+        "crypto-browserify>create-hmac": true,
+        "crypto-browserify>public-encrypt>browserify-rsa": true,
+        "crypto-browserify>public-encrypt>parse-asn1": true,
+        "glob>inherits": true,
+        "stream-http>readable-stream": true
+      }
+    },
+    "crypto-browserify>browserify-sign>bn.js": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
+    "crypto-browserify>create-ecdh": {
+      "packages": {
+        "browserify>buffer": true,
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "crypto-browserify>create-ecdh>elliptic": true
+      }
+    },
+    "crypto-browserify>create-ecdh>bn.js": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
+    "crypto-browserify>create-ecdh>elliptic": {
+      "packages": {
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "crypto-browserify>create-ecdh>elliptic>brorand": true,
+        "crypto-browserify>create-ecdh>elliptic>hash.js": true,
+        "crypto-browserify>create-ecdh>elliptic>hmac-drbg": true,
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-crypto-utils": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>create-ecdh>elliptic>brorand": {
+      "globals": {
+        "crypto": true,
+        "msCrypto": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
+    "crypto-browserify>create-ecdh>elliptic>hash.js": {
+      "packages": {
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>create-ecdh>elliptic>hmac-drbg": {
+      "packages": {
+        "crypto-browserify>create-ecdh>elliptic>hash.js": true,
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-crypto-utils": true
+      }
+    },
+    "crypto-browserify>create-hash": {
+      "packages": {
+        "crypto-browserify>create-hash>cipher-base": true,
+        "crypto-browserify>create-hash>md5.js": true,
+        "crypto-browserify>pbkdf2>ripemd160": true,
+        "crypto-browserify>pbkdf2>sha.js": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>create-hash>cipher-base": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "browserify>string_decoder": true,
+        "glob>inherits": true,
+        "stream-browserify": true
+      }
+    },
+    "crypto-browserify>create-hash>md5.js": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify>pbkdf2>ripemd160>hash-base": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>create-hmac": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify>create-hash": true,
+        "crypto-browserify>create-hash>cipher-base": true,
+        "crypto-browserify>pbkdf2>ripemd160": true,
+        "crypto-browserify>pbkdf2>sha.js": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>diffie-hellman": {
+      "packages": {
+        "browserify>buffer": true,
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "crypto-browserify>diffie-hellman>miller-rabin": true,
+        "crypto-browserify>randombytes": true
+      }
+    },
+    "crypto-browserify>diffie-hellman>miller-rabin": {
+      "packages": {
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "crypto-browserify>create-ecdh>elliptic>brorand": true
+      }
+    },
+    "crypto-browserify>pbkdf2": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify>create-hash": true,
+        "crypto-browserify>pbkdf2>ripemd160": true,
+        "crypto-browserify>pbkdf2>sha.js": true,
+        "process": true
+      }
+    },
+    "crypto-browserify>pbkdf2>ripemd160": {
+      "packages": {
+        "browserify>buffer": true,
+        "crypto-browserify>pbkdf2>ripemd160>hash-base": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>pbkdf2>ripemd160>hash-base": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "glob>inherits": true,
+        "stream-http>readable-stream": true
+      }
+    },
+    "crypto-browserify>pbkdf2>sha.js": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>public-encrypt": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "crypto-browserify>create-hash": true,
+        "crypto-browserify>public-encrypt>browserify-rsa": true,
+        "crypto-browserify>public-encrypt>parse-asn1": true,
+        "crypto-browserify>randombytes": true
+      }
+    },
+    "crypto-browserify>public-encrypt>browserify-rsa": {
+      "packages": {
+        "browserify>buffer": true,
+        "crypto-browserify>public-encrypt>browserify-rsa>bn.js": true,
+        "crypto-browserify>randombytes": true
+      }
+    },
+    "crypto-browserify>public-encrypt>browserify-rsa>bn.js": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
+    "crypto-browserify>public-encrypt>parse-asn1": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify>browserify-cipher>browserify-aes": true,
+        "crypto-browserify>browserify-cipher>evp_bytestokey": true,
+        "crypto-browserify>pbkdf2": true,
+        "crypto-browserify>public-encrypt>parse-asn1>asn1.js": true
+      }
+    },
+    "crypto-browserify>public-encrypt>parse-asn1>asn1.js": {
+      "packages": {
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
+        "encoding>iconv-lite>safer-buffer": true,
+        "glob>inherits": true
+      }
+    },
+    "crypto-browserify>randombytes": {
+      "globals": {
+        "crypto": true
+      },
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "process": true
+      }
+    },
+    "crypto-browserify>randomfill": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify>randombytes": true,
+        "process": true
+      }
+    },
+    "encoding>iconv-lite>safer-buffer": {
+      "packages": {
+        "browserify>buffer": true,
+        "process": true
+      }
+    },
+    "ethereum-cryptography": {
+      "globals": {
+        "TextDecoder": true,
+        "crypto": true
+      },
+      "packages": {
+        "ethereum-cryptography>@noble/curves": true,
+        "ethereum-cryptography>@noble/hashes": true
+      }
+    },
+    "ethereum-cryptography>@noble/curves": {
+      "globals": {
+        "TextEncoder": true
+      },
+      "packages": {
+        "ethereum-cryptography>@noble/curves>@noble/hashes": true
+      }
+    },
+    "ethereum-cryptography>@noble/curves>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "ethereum-cryptography>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "events": {
+      "globals": {
+        "console": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring-encryption-web/dist/index.js": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto.getRandomValues": true,
+        "crypto.subtle.decrypt": true,
+        "crypto.subtle.deriveBits": true,
+        "crypto.subtle.deriveKey": true,
+        "crypto.subtle.encrypt": true,
+        "crypto.subtle.importKey": true
+      },
+      "packages": {
+        "browserify>buffer": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring-storage-extension/dist/index.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/dist/index.js": true,
+        "webextension-polyfill": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/dist/index.js": {
+      "globals": {
+        "WebAssembly.Instance": true,
+        "WebAssembly.Module": true,
+        "XMLHttpRequest": true,
+        "console.error": true,
+        "crypto": true,
+        "fetch": true
+      },
+      "packages": {
+        "@poktscan/keyring>@pokt-foundation/pocketjs-types": true,
+        "@poktscan/keyring>hex-lite": true,
+        "@poktscan/keyring>protobufjs": true,
+        "@poktscan/keyring>varint": true,
+        "@poktscan/keyring>web3-eth": true,
+        "@poktscan/keyring>web3-eth-contract": true,
+        "@poktscan/keyring>web3-providers-http": true,
+        "browserify>buffer": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/index.js": true,
+        "lodash": true,
+        "uuid": true,
+        "web3-eth-accounts": true,
+        "zod": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": {
+      "globals": {
+        "clearTimeout": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "web3-utils>web3-errors": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true
+      },
+      "packages": {
+        "ethereum-cryptography": true,
+        "web3-utils>web3-errors": true,
+        "web3-validator": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/event_emitter.js": {
+      "globals": {
+        "CustomEvent": true,
+        "EventTarget": true
+      },
+      "packages": {
+        "events": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/formatter.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/objects.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/uint8array.js": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/hash.js": {
+      "packages": {
+        "ethereum-cryptography": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
+        "web3-utils>web3-errors": true,
+        "web3-validator": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/index.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/event_emitter.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/formatter.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/hash.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/objects.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/promise_helpers.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/random.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/socket_provider.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/uint8array.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/uuid.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/validation.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/json_rpc.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/uuid.js": true,
+        "web3-utils>web3-errors": true,
+        "web3-validator": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/objects.js": {
+      "packages": {
+        "web3-utils>web3-types": true,
+        "web3-validator": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/promise_helpers.js": {
+      "globals": {
+        "clearInterval": true,
+        "clearTimeout": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "web3-validator": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/random.js": {
+      "packages": {
+        "ethereum-cryptography": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/socket_provider.js": {
+      "globals": {
+        "setTimeout": true
+      },
+      "packages": {
+        "browserify>timers-browserify": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/validation.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": true,
+        "web3-utils>web3-errors": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/string_manipulation.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true,
+        "web3-utils>web3-errors": true,
+        "web3-validator": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/uuid.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/random.js": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/validation.js": {
+      "packages": {
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": {
+      "globals": {
+        "clearTimeout": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "web3-utils>web3-errors": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": {
+      "globals": {
+        "console.error": true
+      },
+      "packages": {
+        "events": true,
+        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true
+      }
+    },
+    "process": {
+      "globals": {
+        "clearTimeout": true,
+        "setTimeout": true
+      }
+    },
+    "react-dom": {
+      "globals": {
+        "HTMLIFrameElement": true,
+        "MSApp": true,
+        "__REACT_DEVTOOLS_GLOBAL_HOOK__": true,
+        "addEventListener": true,
+        "clearTimeout": true,
+        "clipboardData": true,
+        "console.error": true,
+        "document": true,
+        "event": true,
+        "queueMicrotask": true,
+        "removeEventListener": true,
+        "reportError": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "react": true,
+        "react-dom>scheduler": true
+      }
+    },
+    "react-dom>scheduler": {
+      "globals": {
+        "MessageChannel": true,
+        "clearTimeout": true,
+        "console.error": true,
+        "navigator": true,
+        "performance": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "browserify>timers-browserify": true
+      }
+    },
+    "react-redux": {
+      "globals": {
+        "console": true,
+        "document": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "process": true,
+        "react": true,
+        "react-dom": true,
+        "react-redux>hoist-non-react-statics": true,
+        "react-redux>react-is": true,
+        "react-redux>use-sync-external-store": true
+      }
+    },
+    "react-redux>hoist-non-react-statics": {
+      "packages": {
+        "react-redux>hoist-non-react-statics>react-is": true
+      }
+    },
+    "react-redux>hoist-non-react-statics>react-is": {
+      "globals": {
+        "console.warn": true
+      },
+      "packages": {
+        "process": true
+      }
+    },
+    "react-redux>react-is": {
+      "globals": {
+        "console.warn": true
+      },
+      "packages": {
+        "process": true
+      }
+    },
+    "react-redux>redux": {
+      "globals": {
+        "console": true
+      },
+      "packages": {
+        "process": true
+      }
+    },
+    "react-redux>use-sync-external-store": {
+      "globals": {
+        "__REACT_DEVTOOLS_GLOBAL_HOOK__": true,
+        "console": true,
+        "document": true
+      },
+      "packages": {
+        "process": true,
+        "react": true
+      }
+    },
+    "stream-browserify": {
+      "packages": {
+        "events": true,
+        "glob>inherits": true,
+        "stream-http>readable-stream": true
+      }
+    },
+    "stream-http>readable-stream": {
+      "packages": {
+        "browserify>browser-resolve": true,
+        "browserify>buffer": true,
+        "browserify>readable-stream>util-deprecate": true,
+        "browserify>string_decoder": true,
+        "events": true,
+        "glob>inherits": true,
+        "process": true
+      }
+    },
+    "uuid": {
+      "globals": {
+        "crypto": true
+      }
+    },
+    "web3-eth-accounts": {
+      "globals": {
+        "console.warn": true,
+        "localStorage": true
+      },
+      "packages": {
+        "ethereum-cryptography": true,
+        "web3-eth-accounts>@ethereumjs/rlp": true,
+        "web3-eth-accounts>crc-32": true,
+        "web3-eth-accounts>web3-utils": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator": true
+      }
+    },
+    "web3-eth-accounts>@ethereumjs/rlp": {
+      "globals": {
+        "TextEncoder": true
+      }
+    },
+    "web3-eth-accounts>crc-32": {
+      "globals": {
+        "DO_NOT_EXPORT_CRC": true,
+        "define": true
+      }
+    },
+    "web3-eth-accounts>web3-utils": {
+      "globals": {
+        "CustomEvent": true,
+        "EventTarget": true,
+        "TextDecoder": true,
+        "TextEncoder": true,
+        "clearInterval": true,
+        "clearTimeout": true,
+        "console.error": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "browserify>timers-browserify": true,
+        "ethereum-cryptography": true,
+        "events": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator": true
+      }
+    },
+    "web3-utils": {
+      "globals": {
+        "CustomEvent": true,
+        "EventTarget": true,
+        "TextDecoder": true,
+        "TextEncoder": true,
+        "clearInterval": true,
+        "clearTimeout": true,
+        "console.error": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "browserify>timers-browserify": true,
+        "ethereum-cryptography": true,
+        "events": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator": true
+      }
+    },
+    "web3-utils>web3-errors": {
+      "globals": {
+        "new": true,
+        "target": true
+      }
+    },
+    "web3-validator": {
+      "packages": {
+        "ethereum-cryptography": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator>zod": true
+      }
+    },
+    "web3-validator>zod": {
+      "globals": {
+        "URL": true,
+        "new": true,
+        "target": true
+      }
+    },
+    "webext-redux": {
+      "globals": {
+        "browser": true,
+        "chrome": true,
+        "console.error": true,
+        "console.warn": true
+      },
+      "packages": {
+        "webext-redux>lodash.assignin": true
+      }
+    },
+    "webextension-polyfill": {
+      "globals": {
+        "browser": true,
+        "chrome": true,
+        "console.error": true,
+        "console.warn": true,
+        "define": true
+      }
+    },
+    "zod": {
+      "globals": {
+        "URL": true,
+        "new": true,
+        "target": true
+      }
+    }
+  }
+}

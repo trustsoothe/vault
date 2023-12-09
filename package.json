@@ -1,5 +1,5 @@
 {
-  "name": "Keyring",
+  "name": "keyring",
   "version": "0.0.0",
   "license": "UNLICENSED",
   "private": true,
@@ -37,6 +37,8 @@
   },
   "packageManager": "yarn@1.22.19",
   "resolutions": {
-    "prettier": "2.7.1"
+    "prettier": "2.7.1",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0"
   }
 }

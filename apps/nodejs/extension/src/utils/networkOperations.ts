@@ -1,7 +1,7 @@
 import type { ErrorsByNetwork } from "../redux/slices/app";
 import { Buffer } from "buffer";
 import crypto from "crypto-browserify";
-import scrypt from "scrypt-js";
+import { scryptSync } from 'ethereum-cryptography/scrypt.js'
 import { isAddress as isEthAddress, validator } from "web3-validator";
 import { decrypt, encrypt, keyStoreSchema } from "web3-eth-accounts";
 import {
@@ -309,12 +309,12 @@ export const getPrivateKeyFromPPK = async (
     // Retrieve the salt
     const decryptSalt = Buffer.from(jsonObject.salt, "hex");
     // Scrypt hash
-    const scryptHash = await scrypt.scrypt(
+    const scryptHash = scryptSync(
       Buffer.from(filePassword, "utf8"),
       decryptSalt,
       scryptOptions.N,
-      scryptOptions.r,
       scryptOptions.p,
+      scryptOptions.r,
       scryptHashLength
     );
     // Create a buffer from the ciphertext
@@ -362,12 +362,12 @@ export const getPortableWalletContent = async (
     const algorithm = "aes-256-gcm";
     const salt = crypto.randomBytes(16);
 
-    const scryptHash = await scrypt.scrypt(
+    const scryptHash = scryptSync(
       Buffer.from(password, "utf8"),
       salt,
       SCRYPT_OPTIONS.N,
-      SCRYPT_OPTIONS.r,
       SCRYPT_OPTIONS.p,
+      SCRYPT_OPTIONS.r,
       SCRYPT_HASH_LENGTH
     );
     // Create the nonce from the first 12 bytes of the sha256 Scrypt hash

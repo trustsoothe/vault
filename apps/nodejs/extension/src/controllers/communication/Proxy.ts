@@ -1,4 +1,4 @@
-import { SupportedProtocols } from "@poktscan/keyring";
+import type { AppIsReadyMessage } from "../providers/base";
 import type { BrowserRequest } from "../../types";
 import type {
   AppIsReadyRequest,
@@ -31,8 +31,6 @@ import type {
   SwitchChainRequestMessage,
   TransferRequestMessage,
   TransferResponseFromBack,
-} from "../../types/communication";
-import {
   AccountsChangedToProvider,
   AccountsChangedToProxy,
   AppIsReadyResponse,
@@ -51,6 +49,7 @@ import {
 } from "../../types/communication";
 import browser from "webextension-polyfill";
 import { z, ZodError } from "zod";
+import { SupportedProtocols } from "@poktscan/keyring";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,
@@ -91,7 +90,6 @@ import {
   UnknownError,
 } from "../../errors/communication";
 import { isValidAddress } from "../../utils/networkOperations";
-import { AppIsReadyMessage } from "../providers/base";
 
 interface DisconnectResponse {
   type: typeof DISCONNECT_RESPONSE;
