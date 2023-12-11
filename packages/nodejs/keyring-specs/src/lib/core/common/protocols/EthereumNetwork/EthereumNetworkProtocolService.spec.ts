@@ -117,6 +117,80 @@ describe("EthereumNetworkProtocolService", () => {
 
         expect(expectedFee).toStrictEqual(fee);
       })
+
+      describe('when a site provides gasLimit', () => {
+        test('uses the provided gasLimit', async () => {
+          const feeRequestOptions: EthereumNetworkFeeRequestOptions = {
+            protocol: SupportedProtocols.Ethereum,
+            to: '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
+            gasLimit: 100000,
+          };
+
+          const fee = await protocolService.getFee(network, feeRequestOptions);
+
+          expect(fee).toEqual(expect.objectContaining({
+            estimatedGas: 100000,
+          }))
+        });
+        test('calculates the site fee based on the provided gasLimit (uses medium suggestions)', async () => {
+          const feeRequestOptions: EthereumNetworkFeeRequestOptions = {
+            protocol: SupportedProtocols.Ethereum,
+            to: '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
+            gasLimit: 100000,
+          };
+
+          const fee = await protocolService.getFee(network, feeRequestOptions);
+
+          expect(fee).toEqual(expect.objectContaining({
+            site: {
+              suggestedMaxPriorityFeePerGas: 1500000000,
+              suggestedMaxFeePerGas: 1500000600,
+              amount: '0.0001500',
+            },
+          }))
+        });
+      });
+
+      describe('when the site provides a maxFeePerGas', () => {
+        test('uses the provided maxFeePerGas to calculate the site', async () => {
+          const feeRequestOptions: EthereumNetworkFeeRequestOptions = {
+            protocol: SupportedProtocols.Ethereum,
+            to: '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
+            maxFeePerGas: '5',
+          };
+
+          const fee = await protocolService.getFee(network, feeRequestOptions);
+
+          expect(fee).toEqual(expect.objectContaining({
+            site: {
+              suggestedMaxPriorityFeePerGas: 1500000000,
+              suggestedMaxFeePerGas: 5000000000,
+              amount: '0.0000473',
+            },
+          }))
+        });
+      });
+
+      describe('when the site provides a maxPriorityFeePerGas', () => {
+        test('uses the provided maxFeePerGas to calculate the site', async () => {
+          const feeRequestOptions: EthereumNetworkFeeRequestOptions = {
+            protocol: SupportedProtocols.Ethereum,
+            to: '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
+            maxPriorityFeePerGas: '2.0',
+          };
+
+          const fee = await protocolService.getFee(network, feeRequestOptions);
+
+          expect(fee).toEqual(expect.objectContaining({
+            site: {
+              suggestedMaxPriorityFeePerGas: 2000000000,
+              suggestedMaxFeePerGas: 1500000600,
+              amount: '0.0000630',
+            },
+          }))
+        });
+      });
+
     })
 
     describe('Unsuccessful requests', () => {

@@ -8,5 +8,8 @@ export interface EthereumNetworkFeeRequestOptions
   to: string;
   value?: string;
   data?: string;
+  gasLimit?: number;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
   asset?: IAsset;
 }

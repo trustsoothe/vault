@@ -40,6 +40,7 @@ import { IProtocolTransactionResult } from "../ProtocolTransaction";
 import { Buffer } from "buffer";
 import { EthereumNetworkProtocolTransaction } from "./EthereumNetworkProtocolTransaction";
 import { EthereumNetworkTransactionTypes } from "./EthereumNetworkTransactionTypes";
+import {EthereumNetworkFee} from "./EthereumNetworkFee";
 
 interface SuggestedFeeSpeed {
   suggestedMaxPriorityFeePerGas: string;
@@ -172,13 +173,15 @@ export class EthereumNetworkProtocolService
         .encodeABI();
     }
 
-    let estimatedGas = 0;
+    let estimatedGas = options.gasLimit;
     let suggestions: SuggestedFees;
 
-    try {
-      estimatedGas = Number(await ethClient.estimateGas(options)) * 1.5;
-    } catch (e) {
-      throw new NetworkRequestError("Failed while estimating gas");
+    if (!estimatedGas) {
+      try {
+        estimatedGas = Number(await ethClient.estimateGas(options)) * 1.5;
+      } catch (e) {
+        throw new NetworkRequestError("Failed while estimating gas");
+      }
     }
 
     try {
@@ -205,7 +208,7 @@ export class EthereumNetworkProtocolService
       return Number(fromWei(feeInWei, "ether")).toFixed(7);
     };
 
-    return {
+    const estimatedFee: EthereumNetworkFee = {
       protocol: SupportedProtocols.Ethereum,
       estimatedGas: Number(estimatedGas),
       baseFee: suggestions.estimatedBaseFee,
@@ -249,6 +252,30 @@ export class EthereumNetworkProtocolService
         ),
       },
     };
+
+    if (options.gasLimit || options.maxFeePerGas || options.maxPriorityFeePerGas) {
+      return {
+        ...estimatedFee,
+        site: {
+          suggestedMaxFeePerGas: Number(
+            toWei(options.maxFeePerGas || suggestions.medium.suggestedMaxFeePerGas, "gwei")
+          ),
+          suggestedMaxPriorityFeePerGas: Number(
+            toWei(options.maxPriorityFeePerGas || suggestions.medium.suggestedMaxPriorityFeePerGas, "gwei")
+          ),
+          amount: calculateAmountForSpeed(
+            suggestions.estimatedBaseFee,
+            estimatedGas,
+            {
+              ...suggestions.medium,
+              suggestedMaxPriorityFeePerGas: options.maxPriorityFeePerGas || suggestions.medium.suggestedMaxPriorityFeePerGas,
+            }
+          ),
+        }
+      }
+    }
+
+    return estimatedFee;
   }
 
   isValidPrivateKey(privateKey: string): boolean {
