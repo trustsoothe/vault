@@ -1,7 +1,7 @@
 import type { ErrorsByNetwork } from "../redux/slices/app";
 import { Buffer } from "buffer";
 import crypto from "crypto-browserify";
-import { scryptSync } from 'ethereum-cryptography/scrypt.js'
+import { scrypt } from "ethereum-cryptography/scrypt.js";
 import { isAddress as isEthAddress, validator } from "web3-validator";
 import { decrypt, encrypt, keyStoreSchema } from "web3-eth-accounts";
 import {
@@ -309,7 +309,7 @@ export const getPrivateKeyFromPPK = async (
     // Retrieve the salt
     const decryptSalt = Buffer.from(jsonObject.salt, "hex");
     // Scrypt hash
-    const scryptHash = scryptSync(
+    const scryptHash = await scrypt(
       Buffer.from(filePassword, "utf8"),
       decryptSalt,
       scryptOptions.N,
@@ -362,7 +362,7 @@ export const getPortableWalletContent = async (
     const algorithm = "aes-256-gcm";
     const salt = crypto.randomBytes(16);
 
-    const scryptHash = scryptSync(
+    const scryptHash = await scrypt(
       Buffer.from(password, "utf8"),
       salt,
       SCRYPT_OPTIONS.N,

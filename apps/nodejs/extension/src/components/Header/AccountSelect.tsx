@@ -290,7 +290,6 @@ const AccountSelect: React.FC<AccountSelectProps> = ({
                 borderTop: `none!important`,
                 borderBottomLeftRadius: "12px",
                 borderBottomRightRadius: "12px",
-                marginLeft: 0.1,
               }}
             >
               <Stack

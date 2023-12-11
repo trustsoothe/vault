@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "webpack --config webpack/webpack.dev.js --watch",
     "build": "webpack --config webpack/webpack.prod.js",
-    "build:lavamoat": "NODE_ENV=production node lavamoat/build.js",
+    "build:lavamoat": "NODE_ENV=production node -r dotenv/config lavamoat/build.js",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
     "style": "prettier --write \"src/**/*.{ts,tsx}\""
   },
@@ -60,7 +60,7 @@
     "@babel/preset-env": "7.23.5",
     "@babel/preset-react": "7.23.3",
     "@browserify/uglifyify": "6.0.0",
-    "@lavamoat/allow-scripts": "2.5.1",
+    "@lavamoat/allow-scripts": "3.0.0",
     "@lavamoat/snow": "2.0.1",
     "@poktscan/keyring": "*",
     "@poktscan/keyring-encryption-web": "*",
@@ -74,14 +74,17 @@
     "@types/react-dom": "18.2.0",
     "@types/react-window": "1.8.5",
     "@types/webextension-polyfill": "0.10.0",
-    "babel-plugin-inline-react-svg": "^2.0.2",
+    "babel-plugin-inline-dotenv": "1.7.0",
+    "babel-plugin-inline-react-svg": "2.0.2",
     "babelify": "10.0.0",
     "browserify": "17.0.0",
     "copy-webpack-plugin": "9.0.1",
+    "dotenv": "16.3.1",
+    "dotenv-webpack": "8.0.1",
     "fs-extra": "11.2.0",
     "glob": "7.2.3",
     "jest": "29.5.0",
-    "lavamoat-browserify": "15.9.1",
+    "lavamoat-browserify": "17.0.0",
     "path-browserify": "1.0.1",
     "prettier": "2.7.1",
     "process": "0.11.10",
@@ -111,9 +114,10 @@
   "lavamoat": {
     "allowScripts": {
       "@poktscan/keyring>protobufjs": false,
+      "@poktscan/keyring>vitest>jsdom>ws>bufferutil": false,
+      "@poktscan/keyring>vitest>jsdom>ws>utf-8-validate": false,
       "@poktscan/keyring>vitest>vite>esbuild": false,
-      "tinyify>browser-pack-flat>scope-analyzer>es6-map>es5-ext": false,
-      "webpack-cli>@webpack-cli/init>@webpack-cli/generators>yeoman-environment>mem-fs-editor>ejs": false
+      "net-browserify>express-ws>ws": false
     }
   }
 }

@@ -24,6 +24,8 @@ import type {
 import type { ArgsOrCallback, Method, MethodOrPayload } from "./provider";
 import type { GeneralAppSlice } from "../redux/slices/app";
 import type { VaultSlice } from "../redux/slices/vault";
+import type { Runtime } from "webextension-polyfill";
+import MessageSender = Runtime.MessageSender;
 
 export type AppSliceBuilder = ActionReducerMapBuilder<GeneralAppSlice>;
 export type VaultSliceBuilder = ActionReducerMapBuilder<VaultSlice>;
@@ -109,4 +111,19 @@ export interface EIP6963ProviderInfo {
 export interface EIP6963ProviderDetail {
   info: EIP6963ProviderInfo;
   provider: Readonly<IProvider>;
+}
+
+type SomeString<T extends string> = T;
+
+export interface ICommunicationController {
+  messageForController(messageType: string): boolean;
+
+  onMessageHandler<
+    T extends
+      | { type: SomeString; data; requestId: string }
+      | { type: SomeString; data; requestId?: string }
+  >(
+    message: T,
+    sender: MessageSender
+  ): Promise<unknown>;
 }

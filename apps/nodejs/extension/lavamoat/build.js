@@ -4,7 +4,7 @@ const fs = require("fs");
 const fsExtra = require("fs-extra");
 const path = require("path");
 
-// entry points
+// entry files
 const files = [
   "home.tsx",
   "offscreen.ts",
@@ -19,38 +19,42 @@ fs.mkdirSync(path.join("dist", "js"), { recursive: true });
 fsExtra.copySync("public", "dist", { override: true });
 
 // copy contents from snow to dist
-fs.copyFileSync(
-  path.resolve(
-    __dirname,
-    "..",
-    "..",
-    "..",
-    "..",
-    "node_modules",
-    "@lavamoat",
-    "snow",
-    "snow.prod.js"
-  ),
-  path.resolve(__dirname, "..", "dist", "js", "snow.js")
+const snowFilePath = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "node_modules",
+  "@lavamoat",
+  "snow",
+  "snow.prod.js"
 );
+const snowOutputPath = path.resolve(__dirname, "..", "dist", "js", "snow.js");
+
+fs.copyFileSync(snowFilePath, snowOutputPath);
 
 // THIS IS REQUIRED BECAUSE WE NEED TO INSERT THE SCUTTLER IF NOT PRESENTED INSTEAD OF RETURN AN ERROR (IN SERVICE WORKER WE ARE NOT ALLOWED TO DO THIS)
 // AND BECAUSE WE NEED TO ADD CUSTOM OPTIONS TO LOCKDOWN
-fs.copyFileSync(
-  path.resolve(__dirname, "..", "resources", "lavamoat_runtime.js"),
-  path.resolve(
-    __dirname,
-    "..",
-    "..",
-    "..",
-    "..",
-    "node_modules",
-    "@lavamoat",
-    "lavapack",
-    "src",
-    "runtime.js"
-  )
+const editedLavamoatPath = path.resolve(
+  __dirname,
+  "..",
+  "resources",
+  "lavamoat_runtime.js"
 );
+const editedLavamaoutOutputPath = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "node_modules",
+  "@lavamoat",
+  "lavapack",
+  "src",
+  "runtime.js"
+);
+fs.copyFileSync(editedLavamoatPath, editedLavamaoutOutputPath);
 
 // for to create the bundle for each entry file
 for (const file of files) {
@@ -63,31 +67,30 @@ for (const file of files) {
     extensions: [".js", ".ts", ".tsx", ".cjs"],
     dedupe: false,
   };
+
+  const web3ValidatorPath = path.resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "node_modules",
+    "web3-validator",
+    "lib",
+    "commonjs",
+    "index.js"
+  );
   let b = browserify(opts)
     // this is required because if browserify imports from web3-validator.min.js then web3-validator will be undefined
-    .require(
-      path.resolve(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "..",
-        "node_modules",
-        "web3-validator",
-        "lib",
-        "commonjs",
-        "index.js"
-      ),
-      { expose: "web3-validator" }
-    )
+    .require(web3ValidatorPath, { expose: "web3-validator" })
     .plugin(tsify)
     .transform("babelify", {
       extensions: [".ts", ".tsx", ".js", ".cjs", ".svg"],
       presets: ["@babel/preset-env", "@babel/preset-react"],
-      plugins: ["inline-react-svg"],
-      // sourceMaps: false,
+      plugins: ["inline-react-svg", "inline-dotenv"],
       global: true,
       ignore: [
+        // files need parsing
         /\/node_modules\/(?!@reduxjs\/toolkit\/dist\/query\/cjs\/rtk-query)(?!isomorphic-ws\/browser\.js)(?!webextension-polyfill)/,
       ],
     });
@@ -97,9 +100,7 @@ for (const file of files) {
     const lavamoatOpts = {
       policy: `./lavamoat/browserify/${fileWithoutExt}/policy.json`,
       override: `./lavamoat/browserify/policy-override.json`,
-      // todo: add env to run auto policy
-      // writeAutoPolicy: true,
-      // writeAutoPolicyDebug: true,
+      writeAutoPolicy: process.env.LAVAMOAT_AUTO_POLICY === "true",
       scuttleGlobalThis: {
         enabled: true,
         exceptions: [
@@ -127,6 +128,7 @@ for (const file of files) {
 
   b.transform("@browserify/uglifyify", {
     global: true,
+    sourceMap: false,
   })
     .bundle()
     .pipe(fs.createWriteStream(dest));

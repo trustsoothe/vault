@@ -693,6 +693,7 @@ export interface AppIsReadyResponse {
     isReady: true;
     chainByProtocol: Partial<Record<SupportedProtocols, string>>;
   } | null;
+  error?: typeof UnknownError | null;
 }
 
 // selected accounts changed

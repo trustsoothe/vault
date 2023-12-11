@@ -489,6 +489,7 @@ const SelectedAccount: React.FC = () => {
                       {(selectedAsset
                         ? [
                             {
+                              key: "remove_asset_item",
                               label: "Remove Asset",
                               onClick: showAssetsModal,
                               customProps: {
@@ -504,19 +505,27 @@ const SelectedAccount: React.FC = () => {
                             },
                           ]
                         : [
-                            { label: "Private Key", onClick: onClickPk },
                             {
+                              key: "private_key_item",
+                              label: "Private Key",
+                              onClick: onClickPk,
+                            },
+                            {
+                              key: "reimport_item",
                               label: "Reimport Account",
                               onClick: onClickReimport,
                             },
                             {
+                              key: "rename_item",
                               label: "Rename Account",
                               onClick: showRenameModal,
                             },
                             {
+                              key: "divider1_item",
                               type: "divider",
                             },
                             {
+                              key: "remove_item",
                               label: "Remove Account",
                               onClick: showRemoveModal,
                               customProps: {
@@ -531,10 +540,11 @@ const SelectedAccount: React.FC = () => {
                               },
                             },
                           ]
-                      ).map(({ type, label, onClick, customProps }) => {
+                      ).map(({ type, label, onClick, customProps, key }) => {
                         if (type === "divider") {
                           return (
                             <Divider
+                              key={key}
                               sx={{
                                 marginY: 0.7,
                                 borderColor: theme.customColors.dark15,
@@ -544,6 +554,7 @@ const SelectedAccount: React.FC = () => {
                         } else {
                           return (
                             <Typography
+                              key={key}
                               width={1}
                               height={30}
                               fontSize={11}

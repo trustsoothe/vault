@@ -22,10 +22,8 @@ import { RPC_ALREADY_EXISTS } from "../../../errors/rpc";
 
 const NETWORKS_STORAGE_KEY = "networks";
 const ASSETS_STORAGE_KEY = "assets";
-const NETWORKS_CDN_URL =
-  "https://poktscan-v1.nyc3.cdn.digitaloceanspaces.com/networks.json";
-const ASSETS_CDN_URL =
-  "https://poktscan-v1.nyc3.cdn.digitaloceanspaces.com/assets.json";
+const NETWORKS_CDN_URL = process.env.NETWORKS_CDN_URL;
+const ASSETS_CDN_URL = process.env.ASSETS_CDN_URL;
 
 export const loadNetworksFromStorage = createAsyncThunk(
   "app/loadNetworksFromStorage",

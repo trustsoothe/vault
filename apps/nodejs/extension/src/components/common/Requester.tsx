@@ -56,10 +56,10 @@ const Requester: React.FC<RequesterProps> = ({
     return (
       <Stack
         position={"absolute"}
-        height={HEIGHT - 111}
+        height={HEIGHT - 71}
         width={WIDTH}
         left={0}
-        top={111}
+        top={71}
         bgcolor={"white"}
         zIndex={10000}
         paddingX={2}

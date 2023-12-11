@@ -527,7 +527,6 @@
         "WebAssembly.Instance": true,
         "WebAssembly.Module": true,
         "XMLHttpRequest": true,
-        "console.error": true,
         "crypto": true,
         "fetch": true
       },

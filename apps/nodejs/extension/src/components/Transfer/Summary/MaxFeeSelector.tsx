@@ -80,7 +80,7 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({
   const ethFee = networkFee as EthereumNetworkFee;
 
   const options: Option[] = useMemo(() => {
-    return [
+    const opts: Option[] = [
       {
         speed: "low",
         maxFee: ethFee?.low?.amount,
@@ -94,6 +94,15 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({
         maxFee: ethFee?.high?.amount,
       },
     ];
+
+    if (ethFee?.site) {
+      opts.unshift({
+        speed: "site",
+        maxFee: ethFee.site.amount,
+      });
+    }
+
+    return opts;
   }, [ethFee]);
 
   const nativeBalance =
@@ -203,10 +212,10 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({
               PaperProps={{
                 sx: {
                   marginTop: 0.3,
-                  maxHeight: 126,
-                  height: 126,
+                  maxHeight: options.length === 4 ? 160 : 126,
+                  height: options.length === 4 ? 160 : 126,
                   paddingX: 0,
-                  marginLeft: -1,
+                  marginLeft: -0.5,
                   width: popoverWidth ? popoverWidth + 10 : 100,
                   boxShadow:
                     "0px 5px 5px -10px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.01), 0px 3px 14px -5px rgba(0,0,0,0.12)",

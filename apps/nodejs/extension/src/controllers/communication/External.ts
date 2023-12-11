@@ -1,3 +1,4 @@
+import type { ICommunicationController } from "../../types";
 import type {
   BaseErrors,
   ConnectionRequestMessage,
@@ -91,12 +92,29 @@ export type Message =
   | GetPoktTxRequestMessage
   | SwitchChainRequestMessage;
 
+const mapMessageType: Record<Message["type"], true> = {
+  [CONNECTION_REQUEST_MESSAGE]: true,
+  [IS_SESSION_VALID_REQUEST]: true,
+  [NEW_ACCOUNT_REQUEST]: true,
+  [TRANSFER_REQUEST]: true,
+  [SWITCH_CHAIN_REQUEST]: true,
+  [DISCONNECT_REQUEST]: true,
+  [LIST_ACCOUNTS_REQUEST]: true,
+  [EXTERNAL_ACCOUNT_BALANCE_REQUEST]: true,
+  [SELECTED_CHAIN_REQUEST]: true,
+  [GET_POKT_TRANSACTION_REQUEST]: true,
+};
+
 const ExtensionVaultInstance = getVault();
 
 // Controller to manage the communication between the background and the content script.
 // The content script is the one sending messages and the background response the messages.
 // This is intended to be used in the background.
-class ExternalCommunicationController {
+class ExternalCommunicationController implements ICommunicationController {
+  messageForController(messageType: string) {
+    return mapMessageType[messageType] || false;
+  }
+
   public async onMessageHandler(message: Message, sender: MessageSender) {
     if (message.type === CONNECTION_REQUEST_MESSAGE) {
       const response = await this._handleConnectionRequest(message, sender);

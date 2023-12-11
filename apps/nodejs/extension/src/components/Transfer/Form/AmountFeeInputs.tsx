@@ -38,6 +38,7 @@ export const timeByFeeSpeedMap: Record<FeeSpeed, string> = {
   medium: "30 secs",
   high: "15 secs",
   "n/a": "unknown",
+  site: "unknown",
 };
 
 const EthFeeInputs: React.FC<EthFeeInputsProps> = ({ networkPriceData }) => {
@@ -71,9 +72,14 @@ const EthFeeInputs: React.FC<EthFeeInputsProps> = ({ networkPriceData }) => {
             SelectProps={{
               MenuProps: {
                 sx: {
+                  "& .MuiList-root": {
+                    paddingY: 0.5,
+                  },
                   "& .MuiMenuItem-root": {
-                    height: 35,
-                    minHeight: 35,
+                    height: 30,
+                    minHeight: 30,
+                    fontSize: 13,
+                    paddingX: 1,
                   },
                 },
               },
@@ -96,6 +102,10 @@ const EthFeeInputs: React.FC<EthFeeInputsProps> = ({ networkPriceData }) => {
             <MenuItem value={"low"}>Low</MenuItem>
             <MenuItem value={"medium"}>Medium</MenuItem>
             <MenuItem value={"high"}>High</MenuItem>
+            {(field.value === "site" ||
+              !!(networkFee as EthereumNetworkFee)?.site) && (
+              <MenuItem value={"site"}>Site</MenuItem>
+            )}
           </TextField>
         )}
       />

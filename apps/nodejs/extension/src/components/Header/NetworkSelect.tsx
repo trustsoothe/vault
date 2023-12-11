@@ -209,7 +209,6 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
                 borderTop: `none!important`,
                 borderBottomLeftRadius: "12px",
                 borderBottomRightRadius: "12px",
-                marginLeft: isShowingAccountSelect ? 0.1 : 0,
               }}
             >
               <Stack

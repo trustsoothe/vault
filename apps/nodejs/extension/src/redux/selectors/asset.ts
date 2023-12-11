@@ -69,8 +69,8 @@ export const wPoktVaultAddressSelector = (state: RootState) => {
   )?.vaultAddress;
 };
 
-const MAINNET_BASE_API_URL = "https://wpokt.network/api";
-const TESTNET_BASE_API_URL = "https://testnet-wpokt.vercel.app/api";
+const MAINNET_BASE_API_URL = process.env.WPOKT_MAINNET_API_BASE_URL;
+const TESTNET_BASE_API_URL = process.env.WPOKT_TESTNET_API_BASE_URL;
 
 export const wPoktBaseUrlSelector = (action: string) => (state: RootState) => {
   const selectedChain =

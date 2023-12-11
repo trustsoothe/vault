@@ -55,7 +55,7 @@ import {
 import { assetsIdByAccountSelector } from "../../redux/selectors/asset";
 import NetworkAndAccount from "./NetworkAndAccount";
 
-export type FeeSpeed = "n/a" | "low" | "medium" | "high";
+export type FeeSpeed = "n/a" | "low" | "medium" | "high" | "site";
 
 export interface AssetLocationState {
   asset: IAsset;
@@ -96,9 +96,9 @@ type SendTransferParam = Parameters<
   typeof AppToBackground.sendRequestToAnswerTransfer
 >[0]["transferData"];
 
-const parseHexWeiToNumber = (hexWei: string) => {
-  if (hexWei) {
-    return parseInt(hexWei.substring(2), 16);
+const parseHexToNumber = (str: string, radix = 16) => {
+  if (str) {
+    return parseInt(str.substring(2), radix);
   }
 };
 
@@ -134,6 +134,12 @@ const Transfer: React.FC = () => {
       ? externalTransferState?.transferType
       : TransferType.normal;
 
+  const useSiteFee =
+    externalTransferData &&
+    (externalTransferData.gasLimit ||
+      externalTransferData.maxPriorityFeePerGas ||
+      externalTransferData.maxFeePerGas);
+
   const methods = useForm<FormValues>({
     defaultValues: {
       rpcUrl: null,
@@ -143,11 +149,12 @@ const Transfer: React.FC = () => {
       amount: externalTransferData?.amount || "",
       fee: "",
       accountPassword: "",
-      feeSpeed:
-        (externalRequestInfo?.protocol || selectedProtocolOnApp) ===
-        SupportedProtocols.Pocket
-          ? "n/a"
-          : "low",
+      feeSpeed: useSiteFee
+        ? "site"
+        : (externalRequestInfo?.protocol || selectedProtocolOnApp) ===
+          SupportedProtocols.Pocket
+        ? "n/a"
+        : "medium",
       protocol: externalRequestInfo?.protocol || selectedProtocolOnApp,
       chainId: externalRequestInfo?.chainId || selectedChainOnApp,
       asset:
@@ -260,11 +267,12 @@ const Transfer: React.FC = () => {
       amount: "",
       fee: "",
       accountPassword: "",
-      feeSpeed:
-        (externalRequestInfo?.protocol || selectedProtocolOnApp) ===
-        SupportedProtocols.Pocket
-          ? "n/a"
-          : "low",
+      feeSpeed: useSiteFee
+        ? "site"
+        : (externalRequestInfo?.protocol || selectedProtocolOnApp) ===
+          SupportedProtocols.Pocket
+        ? "n/a"
+        : "low",
       protocol: externalRequestInfo?.protocol || selectedProtocolOnApp,
       chainId: externalRequestInfo?.chainId || selectedChainOnApp,
     });
@@ -273,7 +281,7 @@ const Transfer: React.FC = () => {
     previousChain.current = null;
     setFeeStatus("not-fetched");
   }, [protocol]);
-  //
+
   useEffect(() => {
     if (selectedAccount) {
       setTimeout(() => setValue("from", selectedAccount.address), 0);
@@ -338,8 +346,7 @@ const Transfer: React.FC = () => {
           toAddress,
           asset,
           data: externalTransferData?.data,
-          // @ts-ignore
-          gasLimit: externalTransferData?.gasLimit,
+          gasLimit: parseHexToNumber(externalTransferData?.gasLimit),
           maxFeePerGas: externalTransferData?.maxFeePerGas,
           maxPriorityFeePerGas: externalTransferData?.maxPriorityFeePerGas,
         };
@@ -605,13 +612,13 @@ const Transfer: React.FC = () => {
               amount: Number(data.amount || "0") * 1e18,
               transactionParams: {
                 data: externalTransferData.data,
-                maxFeePerGas: parseHexWeiToNumber(
+                maxFeePerGas: parseHexToNumber(
                   externalTransferData.maxFeePerGas
                 ),
-                maxPriorityFeePerGas: parseHexWeiToNumber(
+                maxPriorityFeePerGas: parseHexToNumber(
                   externalTransferData.maxPriorityFeePerGas
                 ),
-                gasLimit: parseHexWeiToNumber(externalTransferData.gasLimit),
+                gasLimit: parseHexToNumber(externalTransferData.gasLimit),
               },
             });
           }

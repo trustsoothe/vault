@@ -1,3 +1,4 @@
+import type { ICommunicationController } from "../../types";
 import type {
   ExternalConnectionRequest,
   ExternalNewAccountRequest,
@@ -319,6 +320,9 @@ export interface NetworkFeeMessage {
     chainId: string;
     data?: string;
     from?: string;
+    gasLimit?: number;
+    maxFeePerGas?: string;
+    maxPriorityFeePerGas?: string;
   };
 }
 
@@ -375,74 +379,33 @@ export type Message =
   | CheckPermissionForSessionMessage
   | AnswerSwitchChainRequest;
 
+const mapMessageType: Record<Message["type"], true> = {
+  [ANSWER_CONNECTION_REQUEST]: true,
+  [ANSWER_NEW_ACCOUNT_REQUEST]: true,
+  [ANSWER_TRANSFER_REQUEST]: true,
+  [INITIALIZE_VAULT_REQUEST]: true,
+  [UNLOCK_VAULT_REQUEST]: true,
+  [LOCK_VAULT_REQUEST]: true,
+  [REVOKE_EXTERNAL_SESSIONS_REQUEST]: true,
+  [REVOKE_SESSION_REQUEST]: true,
+  [UPDATE_ACCOUNT_REQUEST]: true,
+  [REMOVE_ACCOUNT_REQUEST]: true,
+  [IMPORT_ACCOUNT_REQUEST]: true,
+  [PK_ACCOUNT_REQUEST]: true,
+  [ACCOUNT_BALANCE_REQUEST]: true,
+  [NETWORK_FEE_REQUEST]: true,
+  [CHECK_PERMISSION_FOR_SESSION_REQUEST]: true,
+  [ANSWER_SWITCH_CHAIN_REQUEST]: true,
+};
+
 // Controller to manage the communication between extension views and the background
-class InternalCommunicationController {
+class InternalCommunicationController implements ICommunicationController {
   constructor() {
-    browser.windows.onRemoved.addListener(this.handleOnRemovedWindow);
+    browser.windows.onRemoved.addListener(this._handleOnRemovedWindow);
   }
 
-  async handleOnRemovedWindow(windowId: number) {
-    const { requestsWindowId, externalRequests } = store.getState().app;
-
-    if (externalRequests?.length && windowId === requestsWindowId) {
-      await Promise.all([
-        ...externalRequests.map((request: RequestsType) => {
-          let response:
-            | InternalTransferResponse
-            | InternalConnectionResponse
-            | InternalNewAccountResponse
-            | ExternalSwitchChainResponse;
-
-          if (request.type === CONNECTION_REQUEST_MESSAGE) {
-            response = {
-              requestId: request.requestId,
-              type: CONNECTION_RESPONSE_MESSAGE,
-              data: {
-                accepted: false,
-                session: null,
-              },
-              error: null,
-            } as InternalConnectionResponse;
-          } else if (request.type === TRANSFER_REQUEST) {
-            response = {
-              requestId: request.requestId,
-              type: TRANSFER_RESPONSE,
-              data: {
-                rejected: true,
-                hash: null,
-                protocol: null,
-              },
-              error: null,
-            } as InternalTransferResponse;
-          } else if (request.type === NEW_ACCOUNT_REQUEST) {
-            response = {
-              requestId: request.requestId,
-              type: NEW_ACCOUNT_RESPONSE,
-              data: {
-                rejected: true,
-                address: null,
-                protocol: null,
-              },
-              error: null,
-            } as InternalNewAccountResponse;
-          } else {
-            response = {
-              requestId: request.requestId,
-              type: SWITCH_CHAIN_RESPONSE,
-              data: null,
-              error: OperationRejected,
-            } as ExternalSwitchChainResponse;
-          }
-
-          return browser.tabs.sendMessage(request.tabId, response);
-        }),
-        browser.action.setBadgeText({ text: "" }),
-      ]);
-    }
-
-    if (windowId === requestsWindowId) {
-      await store.dispatch(resetRequestsState());
-    }
+  messageForController(messageType: string) {
+    return mapMessageType[messageType] || false;
   }
 
   async onMessageHandler(message: Message, _: MessageSender) {
@@ -508,6 +471,70 @@ class InternalCommunicationController {
 
     if (message?.type === ANSWER_SWITCH_CHAIN_REQUEST) {
       return this._answerSwitchChainRequest(message);
+    }
+  }
+
+  private async _handleOnRemovedWindow(windowId: number) {
+    const { requestsWindowId, externalRequests } = store.getState().app;
+
+    if (externalRequests?.length && windowId === requestsWindowId) {
+      await Promise.all([
+        ...externalRequests.map((request: RequestsType) => {
+          let response:
+            | InternalTransferResponse
+            | InternalConnectionResponse
+            | InternalNewAccountResponse
+            | ExternalSwitchChainResponse;
+
+          if (request.type === CONNECTION_REQUEST_MESSAGE) {
+            response = {
+              requestId: request.requestId,
+              type: CONNECTION_RESPONSE_MESSAGE,
+              data: {
+                accepted: false,
+                session: null,
+              },
+              error: null,
+            } as InternalConnectionResponse;
+          } else if (request.type === TRANSFER_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: TRANSFER_RESPONSE,
+              data: {
+                rejected: true,
+                hash: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalTransferResponse;
+          } else if (request.type === NEW_ACCOUNT_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: NEW_ACCOUNT_RESPONSE,
+              data: {
+                rejected: true,
+                address: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalNewAccountResponse;
+          } else {
+            response = {
+              requestId: request.requestId,
+              type: SWITCH_CHAIN_RESPONSE,
+              data: null,
+              error: OperationRejected,
+            } as ExternalSwitchChainResponse;
+          }
+
+          return browser.tabs.sendMessage(request.tabId, response);
+        }),
+        browser.action.setBadgeText({ text: "" }),
+      ]);
+    }
+
+    if (windowId === requestsWindowId) {
+      await store.dispatch(resetRequestsState());
     }
   }
 
@@ -1257,7 +1284,7 @@ class InternalCommunicationController {
   }
 
   private async _getNetworkFee({
-    data: { protocol, chainId, toAddress, asset, data, from },
+    data: { protocol, chainId, toAddress, asset, ...optionProps },
   }: NetworkFeeMessage): Promise<NetworkFeeResponse> {
     try {
       const networks = this._getNetworks();
@@ -1274,8 +1301,7 @@ class InternalCommunicationController {
                 to: toAddress,
                 protocol,
                 asset: asset ? { ...asset, chainID: asset.chainId } : undefined,
-                data,
-                from,
+                ...optionProps,
               }
             : undefined,
       });
