@@ -184,9 +184,22 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
             : "Select Network"}
         </Typography>
         {!anchorEl ? (
-          <ExpandIcon />
+          <ExpandIcon
+            style={{
+              minWidth: 30,
+              width: 30,
+              height: 30,
+            }}
+          />
         ) : (
-          <IconButton onClick={onCloseSelector}>
+          <IconButton
+            onClick={onCloseSelector}
+            sx={{
+              minWidth: 30,
+              width: 30,
+              height: 30,
+            }}
+          >
             <CloseIcon />
           </IconButton>
         )}
@@ -204,7 +217,7 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
                 bgcolor: theme.customColors.white,
                 boxShadow: "0px 0px 6px 0px #1C2D4A26",
                 width: isShowingAccountSelect ? 180 : 370,
-                maxHeight: 250,
+                maxHeight: 430,
                 border: `1px solid ${theme.customColors.dark15}`,
                 borderTop: `none!important`,
                 borderBottomLeftRadius: "12px",
@@ -212,7 +225,6 @@ const NetworkSelect: React.FC<NetworkSelectProps> = ({
               }}
             >
               <Stack
-                maxHeight={130}
                 marginY={1}
                 boxSizing={"border-box"}
                 width={"calc(100% - 5px)"}

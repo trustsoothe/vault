@@ -63,18 +63,18 @@ const INVALID_PPK_MESSAGE = "File is not valid";
 const readFile = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
-      const fr = new FileReader()
+      const fr = new FileReader();
 
       fr.onload = (event) => {
-        resolve(event.target.result.toString())
-      }
+        resolve(event.target.result.toString());
+      };
 
-      fr.readAsText(file)
+      fr.readAsText(file);
     } catch (e) {
-      reject(e)
+      reject(e);
     }
-  })
-}
+  });
+};
 
 const getPrivateKey = async (
   data: FormValues,
@@ -83,7 +83,7 @@ const getPrivateKey = async (
   let privateKey: string;
 
   if (data.json_file) {
-    const contentFile =  await readFile(data.json_file);
+    const contentFile = await readFile(data.json_file);
 
     privateKey = await getPrivateKeyFromPPK(
       contentFile,

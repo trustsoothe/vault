@@ -26,7 +26,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import CircularLoading from "../common/CircularLoading";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import TransferSubmittedStep from "./TransferSubmitted";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import SummaryStep from "./Summary/Step";
 import TransferForm from "./Form/index";
 import {
@@ -54,6 +54,7 @@ import {
 } from "../../redux/selectors/account";
 import { assetsIdByAccountSelector } from "../../redux/selectors/asset";
 import NetworkAndAccount from "./NetworkAndAccount";
+import { addMintIdSent } from "../../redux/slices/app";
 
 export type FeeSpeed = "n/a" | "low" | "medium" | "high" | "site";
 
@@ -106,6 +107,7 @@ const Transfer: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
 
   const networks = useAppSelector(networksSelector);
   const customRpcs = useAppSelector(customRpcsSelector);
@@ -652,6 +654,9 @@ const Transfer: React.FC = () => {
           setStatus("summary");
         } else {
           if (response.data && response.data.hash) {
+            if (externalTransferData?.mintId && transferType === "mint") {
+              dispatch(addMintIdSent(externalTransferData.mintId));
+            }
             setTransferHash(response.data.hash);
             setStatus("submitted");
           } else {
@@ -671,6 +676,7 @@ const Transfer: React.FC = () => {
       externalTransferData,
       externalRequestInfo,
       networkFee,
+      dispatch,
     ]
   );
 

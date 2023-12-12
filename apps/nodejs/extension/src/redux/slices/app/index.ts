@@ -125,6 +125,7 @@ export interface GeneralAppSlice {
   customRpcs: CustomRPC[];
   contacts: SerializedAccountReference[];
   isReadyStatus: "yes" | "no" | "loading" | "error";
+  idOfMintsSent: string[];
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -218,7 +219,8 @@ export const changeSelectedNetwork = createAsyncThunk(
         );
 
         if (accountOfNetwork) {
-          newSelectedAccountByProtocol[selectedProtocol] = accountOfNetwork.id;
+          newSelectedAccountByProtocol[selectedProtocol] =
+            accountOfNetwork.address;
         }
       }
     }
@@ -495,6 +497,7 @@ const initialState: GeneralAppSlice = {
   customRpcs: [],
   contacts: [],
   isReadyStatus: "no",
+  idOfMintsSent: [],
 };
 
 const generalAppSlice = createSlice({
@@ -552,6 +555,9 @@ const generalAppSlice = createSlice({
       action: PayloadAction<GeneralAppSlice["isReadyStatus"]>
     ) => {
       state.isReadyStatus = action.payload;
+    },
+    addMintIdSent: (state, action: PayloadAction<string>) => {
+      state.idOfMintsSent = [...state.idOfMintsSent, action.payload];
     },
     // this is here to only set that an account is loading after verifying it in the thunk
     setGetAccountPending: setGetAccountPendingFromNetwork,
@@ -641,6 +647,7 @@ export const {
   increaseErrorOfNetwork,
   resetErrorOfNetwork,
   setAppIsReadyStatus,
+  addMintIdSent,
 } = generalAppSlice.actions;
 
 export default generalAppSlice.reducer;

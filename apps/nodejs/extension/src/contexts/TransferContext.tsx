@@ -13,6 +13,7 @@ export interface ExternalTransferData {
   fromAddress?: string;
   toAddress: string;
   memo?: string;
+  mintId?: string;
   /**required in mint transfer*/
   signatures?: string[];
   /**required in mint transfer*/

@@ -209,13 +209,17 @@ export const isNetworkUrlHealthy = async (network: INetwork) => {
 
     const result = await ProtocolService.getNetworkStatus(network);
 
-    return (
-      result?.canProvideBalance &&
-      result?.canSendTransaction &&
-      result?.canProvideFee
-    );
+    return {
+      canSendTransaction: result?.canProvideBalance,
+      canProvideBalance: result?.canSendTransaction,
+      canProvideFee: result?.canProvideFee,
+    };
   } catch (e) {
-    return false;
+    return {
+      canSendTransaction: false,
+      canProvideBalance: false,
+      canProvideFee: false,
+    };
   }
 };
 

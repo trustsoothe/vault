@@ -65,6 +65,7 @@ import {
   UPDATE_ACCOUNT_RESPONSE,
 } from "../../constants/communication";
 import {
+  changeActiveTab,
   changeSelectedNetwork,
   IAsset,
   increaseErrorOfNetwork,
@@ -766,6 +767,18 @@ class InternalCommunicationController implements ICommunicationController {
       );
 
       await Promise.all(promises);
+      const activeTabs = await browser.tabs.query({ active: true });
+      if (activeTabs.length) {
+        const activeTab = activeTabs[0];
+
+        await store.dispatch(
+          changeActiveTab({
+            favIconUrl: activeTab.favIconUrl,
+            url: activeTab.url,
+            id: activeTab.id,
+          })
+        );
+      }
 
       if (request) {
         await this._updateBadgeText();

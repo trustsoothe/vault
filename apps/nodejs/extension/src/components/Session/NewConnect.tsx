@@ -109,14 +109,16 @@ const AccountItem: React.FC<AccountItemProps> = ({
       />
 
       <Stack width={295}>
-        <Typography
-          fontWeight={500}
-          fontSize={13}
-          letterSpacing={"0.5px"}
-          lineHeight={"22px"}
-        >
-          {account.name} ({getTruncatedText(address)})
-        </Typography>
+        <TooltipOverflow
+          enableTextCopy={false}
+          text={`${account.name} (${getTruncatedText(address)})`}
+          textProps={{
+            fontSize: 13,
+            fontWeight: 500,
+            lineHeight: "22px",
+            letterSpacing: "0.5px",
+          }}
+        />
         {loadingBalance ? (
           <Skeleton variant={"rectangular"} width={75} height={14} />
         ) : errorBalance ? (

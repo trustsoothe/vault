@@ -234,3 +234,30 @@ export const getTruncatedText = (text: string, charactersPerSide = 4) => {
 
   return `${firstCharacters}...${lastCharacters}`;
 };
+
+export const secsToText = (secs: number) => {
+  const secsInHour = 3600;
+
+  function pad(a, b = 2) {
+    return (1e15 + a + "").slice(-b);
+  }
+
+  if (secs > secsInHour) {
+    const hours = Math.floor(secs / secsInHour);
+    secs -= hours * secsInHour;
+    const minutes = Math.floor(secs / 60);
+    secs -= minutes * 60;
+    const seconds = Math.floor(secs);
+
+    return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+  } else if (secs > 60) {
+    const minutes = Math.floor(secs / 60);
+    secs -= minutes * 60;
+    const seconds = Math.floor(secs);
+
+    return `${minutes}:${pad(seconds)}`;
+  } else {
+    const seconds = Math.floor(secs);
+    return `0:${pad(seconds)}`;
+  }
+};

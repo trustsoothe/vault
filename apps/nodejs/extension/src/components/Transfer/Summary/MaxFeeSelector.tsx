@@ -215,10 +215,10 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({
                   maxHeight: options.length === 4 ? 160 : 126,
                   height: options.length === 4 ? 160 : 126,
                   paddingX: 0,
-                  marginLeft: -0.5,
+                  marginLeft: -1,
                   width: popoverWidth ? popoverWidth + 10 : 100,
                   boxShadow:
-                    "0px 5px 5px -10px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.01), 0px 3px 14px -5px rgba(0,0,0,0.12)",
+                    "0px 5px 0px -10px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.02), 0px 10px 30px -2px rgba(0,0,0,0.4)",
                   borderBottomLeftRadius: "4px",
                   borderBottomRightRadius: "4px",
                   borderTop: "none!important",

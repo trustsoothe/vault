@@ -92,3 +92,6 @@ export const assetAlreadyIncludedSelector =
       asset?.id
     );
   };
+
+export const idOfMintsSentSelector = (state: RootState) =>
+  state.app.idOfMintsSent;

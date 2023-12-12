@@ -104,19 +104,12 @@ const TooltipOverflow: React.FC<BaseTextRowProps> = (props) => {
   const [openTooltip, setOpenTooltip] = useState<boolean>(false);
   const [isTextOverflowed, setIsTextOverflowed] = useState<boolean>(false);
   const [tooltipContent, setTooltipContent] = useState<string>("");
-  const textRef = useRef<HTMLElement>(null);
 
-  const isSmOrLess = useMediaQuery(theme.breakpoints.down("md"));
-  const isMd = useMediaQuery(theme.breakpoints.only("md"));
-  const isLg = useMediaQuery(theme.breakpoints.only("lg"));
-
-  useEffect(() => {
-    if (textRef.current) {
-      setIsTextOverflowed(
-        textRef.current.scrollWidth > textRef.current.clientWidth
-      );
+  const textRef = useCallback((node: HTMLParagraphElement) => {
+    if (node) {
+      setIsTextOverflowed(node.scrollWidth + 1 > node.clientWidth);
     }
-  }, [isSmOrLess, isMd, isLg]);
+  }, []);
 
   const toggleOpenTooltip = useCallback(
     (
@@ -145,7 +138,7 @@ const TooltipOverflow: React.FC<BaseTextRowProps> = (props) => {
     (e: React.MouseEvent<HTMLSpanElement>) => {
       toggleOpenTooltip(e, tooltipText ?? text);
     },
-    [tooltipText, text, toggleOpenTooltip, isSmOrLess]
+    [tooltipText, text, toggleOpenTooltip]
   );
   const onMouseLeave = useCallback(
     (e: React.MouseEvent<HTMLSpanElement>) => {
@@ -228,8 +221,8 @@ const TooltipOverflow: React.FC<BaseTextRowProps> = (props) => {
         open={openTooltip}
         onOpen={onMouseEnter}
         onClose={onMouseLeave}
-        disableFocusListener={disableTooltipListeners || !isSmOrLess}
-        disableTouchListener={disableTooltipListeners || !isSmOrLess}
+        disableFocusListener={disableTooltipListeners}
+        disableTouchListener={disableTooltipListeners}
         disableHoverListener={disableTooltipListeners}
         enterDelay={500}
         enterNextDelay={500}
@@ -319,7 +312,6 @@ const TooltipOverflow: React.FC<BaseTextRowProps> = (props) => {
       textProps,
       tooltipProps,
       disableTooltipListeners,
-      isSmOrLess,
       tooltipSxProps,
     ]
   );

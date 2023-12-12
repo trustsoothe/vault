@@ -37,6 +37,27 @@ import {
   symbolOfNetworkSelector,
 } from "../../redux/selectors/network";
 
+interface NavigationBackProps {
+  onBack?: () => void;
+  label: string;
+}
+
+const NavigationBack: React.FC<NavigationBackProps> = ({ onBack, label }) => {
+  const theme = useTheme();
+  return (
+    <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
+      {onBack && (
+        <IconButton onClick={onBack}>
+          <ArrowBackIcon
+            sx={{ fontSize: 18, color: theme.customColors.primary250 }}
+          />
+        </IconButton>
+      )}
+      <Typography fontSize={12}>{label}</Typography>
+    </Stack>
+  );
+};
+
 interface AccountComponentProps {
   account: SerializedAccountReference;
   compact?: boolean;
@@ -44,6 +65,8 @@ interface AccountComponentProps {
   onGoBackFromAsset?: () => void;
   protocol?: SupportedProtocols;
   chainId?: string;
+  onGoBack?: () => void;
+  backLabel?: string;
 }
 
 const AccountInfo: React.FC<AccountComponentProps> = ({
@@ -53,6 +76,8 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
   onGoBackFromAsset,
   protocol,
   chainId,
+  onGoBack,
+  backLabel,
 }) => {
   const theme = useTheme();
   const isPopup = useIsPopup();
@@ -63,6 +88,7 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
     refetch: refetchAssetsPrice,
   } = useGetAssetPrices(false);
 
+  const [showLoading, setShowLoading] = useState(true);
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   const tabHasConnection = useAppSelector(tabHasConnectionSelector);
   const accountConnectedWithTab = useAppSelector(
@@ -106,7 +132,8 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
 
   const balance = (balanceMap?.[address]?.amount as number) || 0;
   const errorBalance = balanceMap?.[address]?.error || false;
-  const loadingBalance = (balanceMap?.[address]?.loading && !balance) || false;
+  const loadingBalance =
+    (balanceMap?.[address]?.loading && !balance && showLoading) || false;
 
   const getAccountBalance = useCallback(() => {
     if (address) {
@@ -120,7 +147,13 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
               decimals: asset.decimals,
             }
           : undefined,
-      }).catch();
+      })
+        .then((res) => {
+          if (res?.data?.answered) {
+            setShowLoading(false);
+          }
+        })
+        .catch();
     }
   }, [
     protocolToUse,
@@ -168,22 +201,16 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
           direction={"row"}
           marginLeft={-0.5}
           alignItems={"center"}
-          justifyContent={isPopup || !!asset ? "space-between" : "flex-end"}
+          justifyContent={
+            isPopup || !!asset || !!backLabel ? "space-between" : "flex-end"
+          }
         >
-          {asset ? (
-            <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
-              {onGoBackFromAsset && (
-                <IconButton onClick={onGoBackFromAsset}>
-                  <ArrowBackIcon
-                    sx={{ fontSize: 18, color: theme.customColors.primary250 }}
-                  />
-                </IconButton>
-              )}
-              <Typography fontSize={12}>
-                {account.name} / {asset.symbol}
-              </Typography>
-            </Stack>
-          ) : null}
+          {(asset || backLabel) && (
+            <NavigationBack
+              label={asset ? `${account.name} / ${asset.symbol}` : backLabel}
+              onBack={onGoBackFromAsset || onGoBack}
+            />
+          )}
           <Tooltip title={"Copied"} open={showCopyTooltip}>
             <Stack
               height={26}

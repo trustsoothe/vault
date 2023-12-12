@@ -369,6 +369,7 @@ const AmountFeeInputs: React.FC = () => {
       sx={{
         order: 2,
         "& .MuiFormHelperText-root": {
+          left: 10,
           bottom: "-24px",
           width: "calc(100% - 30px)",
         },

@@ -265,9 +265,21 @@ const AccountSelect: React.FC<AccountSelectProps> = ({
           {!anchorEl ? selectedAccount?.name || "No Account" : "Select Account"}
         </Typography>
         {!anchorEl ? (
-          <ExpandIcon />
+          <ExpandIcon
+            style={{
+              minWidth: 30,
+              width: 30,
+              height: 30,
+            }}
+          />
         ) : (
-          <IconButton>
+          <IconButton
+            sx={{
+              minWidth: 30,
+              width: 30,
+              height: 30,
+            }}
+          >
             <CloseIcon />
           </IconButton>
         )}

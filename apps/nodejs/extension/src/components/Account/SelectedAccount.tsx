@@ -134,7 +134,7 @@ const SelectedAccount: React.FC = () => {
   );
   const assetsIdOfAccount = useAppSelector(assetsIdOfSelectedAccountSelector);
   const assets = useAppSelector(assetsSelector);
-  // todo: verify if is not memoized
+
   const assetsOfAccount = useMemo(() => {
     return assets.filter(
       (asset) =>
@@ -368,7 +368,7 @@ const SelectedAccount: React.FC = () => {
             lineHeight={"20px"}
             textAlign={"center"}
           >
-            You do not have any account yet.
+            You do not have any accounts yet.
             <br />
             Please create new or import an account.
           </Typography>
@@ -403,6 +403,8 @@ const SelectedAccount: React.FC = () => {
     );
   }
 
+  const isPokt = selectedProtocol === SupportedProtocols.Pocket;
+
   return (
     <>
       <Stack paddingTop={1}>
@@ -411,6 +413,13 @@ const SelectedAccount: React.FC = () => {
             account={selectedAccount}
             asset={selectedAsset}
             onGoBackFromAsset={onGoBackFromAsset}
+            {...(wPoktVisible &&
+              isPokt && {
+                onGoBack: toggleWPoktVisible,
+                backLabel: `${selectedAccount.name} / POKT`,
+                asset: null,
+                onGoBackFromAsset: undefined,
+              })}
           />
         )}
         {!wPoktVisible && (

@@ -34,21 +34,32 @@ const AccountAndVaultPasswords: React.FC<AccountAndVaultPasswordsProps> = ({
 }) => {
   const theme = useTheme();
   const accountPass = (
-    <Password
-      passwordName={"account_password"}
-      labelPassword={"Account Password"}
-      confirmPasswordName={"confirm_account_password"}
-      containerProps={{
-        width: 1,
-        marginTop: "10px!important",
-        spacing: 0.5,
-        ...passwordContainerProps,
-      }}
-      inputsContainerProps={{
-        spacing: "18px",
-      }}
-      randomKey={accountRandomKey}
-    />
+    <>
+      <Password
+        passwordName={"account_password"}
+        labelPassword={"Account Password"}
+        confirmPasswordName={"confirm_account_password"}
+        containerProps={{
+          width: 1,
+          marginTop: "10px!important",
+          spacing: 0.5,
+          ...passwordContainerProps,
+        }}
+        inputsContainerProps={{
+          spacing: "18px",
+        }}
+        randomKey={accountRandomKey}
+      />
+      <Typography
+        fontSize={10}
+        color={theme.customColors.dark75}
+        marginTop={"10px!important"}
+      >
+        Be sure to have saved the account password before proceed. You won't be
+        able to get the private key of the account if you don't know the
+        password.
+      </Typography>
+    </>
   );
 
   const vaultPass = requireVaultPassword ? (

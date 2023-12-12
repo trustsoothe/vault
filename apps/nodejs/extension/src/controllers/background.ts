@@ -19,7 +19,10 @@ import {
   setAppIsReadyStatus,
 } from "../redux/slices/app";
 import { getVault } from "../utils";
-import { lockVault } from "../redux/slices/vault";
+import {
+  lockVault,
+  restoreDateUntilVaultIsLocked,
+} from "../redux/slices/vault";
 import store, { RootState } from "../redux/store";
 import InternalCommunicationController from "./communication/Internal";
 import ExternalCommunicationController from "./communication/External";
@@ -88,12 +91,12 @@ export default class BackgroundController {
 
   /** To save in state the active tab */
   private _onTabUpdated(tabId: number) {
-    browser.tabs
-      .get(tabId)
-      .then((tab) => {
-        const activeTab = store.getState().app.activeTab;
+    const activeTab = store.getState().app.activeTab;
 
-        if (activeTab && activeTab.id === tab.id) {
+    if (tabId === activeTab?.id) {
+      browser.tabs
+        .get(tabId)
+        .then((tab) => {
           store.dispatch(
             changeActiveTab({
               id: tab.id,
@@ -101,9 +104,9 @@ export default class BackgroundController {
               favIconUrl: tab.favIconUrl,
             })
           );
-        }
-      })
-      .catch();
+        })
+        .catch();
+    }
   }
 
   /** To response UI and provider messages. There can only be on onMessage listener to avoid wrong responses */
@@ -189,6 +192,7 @@ export default class BackgroundController {
   private async _initializeExtensionState() {
     try {
       store.dispatch(setAppIsReadyStatus("loading"));
+      await store.dispatch(restoreDateUntilVaultIsLocked());
       await Promise.all([
         store.dispatch(loadNetworksFromStorage()).unwrap(),
         store.dispatch(loadAssetsFromStorage()).unwrap(),
