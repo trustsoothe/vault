@@ -75,7 +75,7 @@ const getTitle = (path: string, search: string) => {
       return "Update Contact";
     }
   }
-  return titleMap[path] || "Soothe Wallet";
+  return titleMap[path] || "Soothe Vault";
 };
 
 const ROUTES_WHERE_HIDE_SELECTORS = [

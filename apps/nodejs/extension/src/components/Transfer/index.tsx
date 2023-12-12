@@ -416,7 +416,7 @@ const Transfer: React.FC = () => {
 
   useEffect(() => {
     if (externalTransferData) {
-      setValue("amount", externalTransferData.amount.toString());
+      setValue("amount", externalTransferData.amount?.toString() || "0");
       setValue("toAddress", externalTransferData.toAddress);
       if (transferType === "bridge" || externalTransferData.memo) {
         let memo;

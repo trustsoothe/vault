@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Soothe Wallet",
+  "name": "Soothe Vault",
   "description": "Extension to manage your vault of wallets",
   "version": "0.0.1",
   "icons": {
