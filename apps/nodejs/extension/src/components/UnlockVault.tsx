@@ -11,11 +11,12 @@ import Password from "./common/Password";
 import SootheLogoHeader from "./common/SootheLogoHeader";
 import RememberPasswordCheckbox from "./common/RememberPassword";
 import { OperationRejected } from "../errors/communication";
-import { removeRequestWithRes } from "../utils/ui";
+import { removeRequestWithRes, secsToText } from "../utils/ui";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import Requester from "./common/Requester";
 import {
   currentExternalRequest,
+  dateUntilVaultIsLockedSelector,
   externalRequestsLengthSelector,
   vaultLockedForWrongPasswordsSelector,
 } from "../redux/selectors/session";
@@ -36,12 +37,37 @@ const UnlockVault: React.FC = () => {
   const [rememberPass, setRememberPass] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [wrongPassword, setWrongPassword] = useState(false);
+  const [secsToExpire, setSecsToExpire] = useState(0);
 
   const currentRequest = useAppSelector(currentExternalRequest);
   const externalRequestsLength = useAppSelector(externalRequestsLengthSelector);
   const lockedForWrongPasswords = useAppSelector(
     vaultLockedForWrongPasswordsSelector
   );
+  const dateUntilVaultIsLocked = useAppSelector(dateUntilVaultIsLockedSelector);
+
+  useEffect(() => {
+    let interval;
+
+    const handler = () => {
+      if (dateUntilVaultIsLocked && dateUntilVaultIsLocked > Date.now()) {
+        setSecsToExpire((dateUntilVaultIsLocked - Date.now()) / 1000);
+      } else {
+        setSecsToExpire(0);
+      }
+    };
+
+    handler();
+    if (dateUntilVaultIsLocked) {
+      interval = setInterval(handler, 1000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [dateUntilVaultIsLocked]);
 
   useEffect(() => {
     setIsRequesting(window.location.search.includes("view=request"));
@@ -153,6 +179,7 @@ const UnlockVault: React.FC = () => {
             }}
             variant={"contained"}
             fullWidth
+            disabled={!!secsToExpire}
             type={"submit"}
           >
             Unlock Vault
@@ -176,13 +203,14 @@ const UnlockVault: React.FC = () => {
           marginBottom: 1,
           boxShadow: "none",
         }}
+        disabled={!!secsToExpire}
         variant={"contained"}
         type={"submit"}
       >
         Unlock Vault
       </Button>
     );
-  }, [currentRequest, theme, isRequesting, onClickReject]);
+  }, [currentRequest, theme, isRequesting, onClickReject, secsToExpire]);
 
   if (status === "loading") {
     return <CircularLoading />;
@@ -213,7 +241,7 @@ const UnlockVault: React.FC = () => {
             sx={{ userSelect: "none" }}
             color={theme.customColors.primary999}
           >
-            {lockedForWrongPasswords
+            {lockedForWrongPasswords || !!secsToExpire
               ? "Vault Locked"
               : "Unlock Vault to Continue"}
           </Typography>
@@ -221,21 +249,39 @@ const UnlockVault: React.FC = () => {
             height={50}
             paddingX={6}
             fontSize={14}
-            marginBottom={isRequesting ? 3 : 6}
+            marginBottom={isRequesting || !!secsToExpire ? 3 : 6}
             textAlign={"center"}
             lineHeight={"20px"}
-            fontWeight={lockedForWrongPasswords ? 700 : 400}
+            fontWeight={lockedForWrongPasswords || !!secsToExpire ? 700 : 400}
             color={
-              lockedForWrongPasswords
+              lockedForWrongPasswords || !!secsToExpire
                 ? theme.customColors.red100
                 : theme.customColors.dark100
             }
           >
-            {lockedForWrongPasswords
+            {lockedForWrongPasswords || !!secsToExpire
               ? "The vault was locked due to many wrong password."
               : "Make sure no one is looking when you type your password."}
           </Typography>
           {requestComponent}
+          {!!secsToExpire && (
+            <Typography
+              lineHeight={"24px"}
+              marginBottom={0.6}
+              fontSize={14}
+              letterSpacing={"0.5px"}
+            >
+              Time Remaining:{" "}
+              <span
+                style={{
+                  fontWeight: 700,
+                  color: theme.customColors.primary999,
+                }}
+              >
+                {secsToText(secsToExpire)}
+              </span>
+            </Typography>
+          )}
           <FormProvider {...methods}>
             <Password
               autofocusPassword={true}
@@ -244,17 +290,22 @@ const UnlockVault: React.FC = () => {
               hidePasswordStrong={true}
               labelPassword={"Vault Password"}
               justRequire={true}
+              inputsDisabled={!!secsToExpire}
               containerProps={{
                 spacing: 1.7,
               }}
-              errorPassword={wrongPassword ? "Wrong password" : undefined}
+              errorPassword={
+                wrongPassword && !secsToExpire ? "Wrong password" : undefined
+              }
             />
           </FormProvider>
           <RememberPasswordCheckbox
             checked={rememberPass}
+            disabled={!!secsToExpire}
             onChange={onChangeRemember}
             containerProps={{
               marginLeft: 0,
+              marginTop: wrongPassword ? 1 : 0.5,
             }}
           />
         </Stack>

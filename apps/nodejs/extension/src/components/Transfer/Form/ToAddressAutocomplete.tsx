@@ -45,6 +45,7 @@ const renderAutocompleteOption = (
     <Stack
       component={"li"}
       {...props}
+      key={account.address}
       sx={{
         paddingX: "10px!important",
         paddingY: "5px!important",
@@ -185,7 +186,7 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
 
       if (state.index === 0) {
         return (
-          <>
+          <React.Fragment key={account.address}>
             <Typography
               color={theme.customColors.dark75}
               fontSize={addressSize || 12}
@@ -195,7 +196,7 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
               Paste the address or select an internal account/contact.
             </Typography>
             {itemComponent}
-          </>
+          </React.Fragment>
         );
       }
       return itemComponent;

@@ -1,0 +1,86 @@
+{
+  "resources": {
+    "@mui/material": {
+      "globals": {
+        "Blob": true,
+        "File": true
+      }
+    },
+    "@poktscan/keyring>web3-eth": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "@poktscan/keyring>web3-providers-http": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "@poktscan/keyring>web3-providers-http>cross-fetch": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "cross-fetch": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "crypto-browserify>randombytes": {
+      "globals": {
+        "crypto": true
+      }
+    },
+    "ethereum-cryptography": {
+      "globals": {
+        "TextDecoder": true,
+        "crypto": true
+      },
+      "packages": {
+        "ethereum-cryptography>@noble/hashes": true
+      }
+    },
+    "ethereum-cryptography>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/dist/index.js": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "react-dom": {
+      "globals": {
+        "HTMLIFrameElement": true
+      }
+    },
+    "web3-utils>web3-errors": {
+      "globals": {
+        "new": true,
+        "target": true
+      }
+    },
+    "web3-validator": {
+      "packages": {
+        "ethereum-cryptography": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator>zod": true
+      }
+    },
+    "web3-validator>zod": {
+      "globals": {
+        "URL": true,
+        "new": true,
+        "target": true
+      }
+    }
+  }
+}

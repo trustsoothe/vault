@@ -11,6 +11,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import Summary from "./Summary/Component";
 import { useAppSelector } from "../../hooks/redux";
 import { explorerTransactionUrlOfNetworkSelector } from "../../redux/selectors/network";
+import { getTruncatedText } from "../../utils/ui";
 
 interface SummaryStepProps {
   hash: string;
@@ -51,17 +52,26 @@ const TransferSubmittedStep: React.FC<SummaryStepProps> = ({ hash }) => {
         >
           <TaskAltIcon sx={{ fontSize: 20 }} color={"success"} />
           <Typography fontSize={14} fontWeight={600}>
-            Transfer submitted successfully!
+            Transaction submitted successfully!
           </Typography>
         </Stack>
-        <Typography fontSize={12} sx={{ wordBreak: "break-all" }}>
+        <Typography
+          fontSize={12}
+          sx={{ wordBreak: "break-all" }}
+          fontWeight={500}
+        >
+          Transaction hash:
           <a
             href={link}
-            style={{ color: theme.customColors.primary500, fontWeight: 600 }}
+            style={{
+              color: theme.customColors.primary500,
+              fontWeight: 600,
+              marginLeft: 5,
+            }}
             target={"_blank"}
           >
-            {hash}
-          </a>{" "}
+            {getTruncatedText(hash, 15)}
+          </a>
           <Tooltip title={"Copied"} open={showCopyHashTooltip}>
             <IconButton
               sx={{ padding: 0, marginLeft: 0.3, marginTop: -0.2 }}

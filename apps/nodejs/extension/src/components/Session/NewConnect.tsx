@@ -35,6 +35,7 @@ import {
   accountBalancesSelector,
   accountsSelector,
 } from "../../redux/selectors/account";
+import TooltipOverflow from "../common/TooltipOverflow";
 
 type AccountWithBalanceInfo = SerializedAccountReference & {
   balanceInfo: AccountBalanceInfo;
@@ -62,13 +63,17 @@ const AccountItem: React.FC<AccountItemProps> = ({
 
   const { address, balanceInfo, symbol } = account;
 
-  useEffect(() => {
+  const getAccountBalance = useCallback(() => {
     AppToBackground.getAccountBalance({
       address,
       chainId: chainId as any,
       protocol,
     }).catch();
   }, [protocol, chainId, address]);
+
+  useEffect(() => {
+    getAccountBalance();
+  }, [getAccountBalance]);
 
   const balance = (balanceInfo?.amount as number) || 0;
   const errorBalance = balanceInfo?.error || false;
@@ -103,26 +108,75 @@ const AccountItem: React.FC<AccountItemProps> = ({
         }}
       />
 
-      <Stack width={1}>
-        <Typography
-          fontWeight={500}
-          fontSize={13}
-          letterSpacing={"0.5px"}
-          lineHeight={"22px"}
-        >
-          {account.name} ({getTruncatedText(address)})
-        </Typography>
+      <Stack width={295}>
+        <TooltipOverflow
+          enableTextCopy={false}
+          text={`${account.name} (${getTruncatedText(address)})`}
+          textProps={{
+            fontSize: 13,
+            fontWeight: 500,
+            lineHeight: "22px",
+            letterSpacing: "0.5px",
+          }}
+        />
         {loadingBalance ? (
           <Skeleton variant={"rectangular"} width={75} height={14} />
+        ) : errorBalance ? (
+          <Stack direction={"row"} alignItems={"center"} spacing={0.2}>
+            <Typography
+              fontSize={12}
+              lineHeight={"16px"}
+              color={theme.customColors.dark75}
+            >
+              Balance error.
+            </Typography>
+            <Button
+              sx={{
+                fontSize: 12,
+                height: 16,
+                minWidth: 0,
+                paddingX: 0.5,
+                marginTop: "2px!important",
+              }}
+              variant={"text"}
+              onClick={getAccountBalance}
+            >
+              Retry
+            </Button>
+          </Stack>
         ) : (
-          <Typography
-            sx={{ fontSize: "12px!important" }}
-            lineHeight={"16px"}
-            component={"span"}
-            color={theme.customColors.dark75}
-          >
-            {roundAndSeparate(balance, 2, "0")} {symbol}
-          </Typography>
+          <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
+            <TooltipOverflow
+              enableTextCopy={false}
+              text={`${roundAndSeparate(
+                balance,
+                account.protocol === SupportedProtocols.Ethereum ? 18 : 6,
+                "0"
+              )}`}
+              containerProps={{
+                height: 16,
+                marginTop: "-5px!important",
+              }}
+              textProps={{
+                height: 16,
+                lineHeight: "16px",
+              }}
+              linkProps={{
+                fontSize: "12px!important",
+                lineHeight: "16px",
+                component: "span",
+                color: theme.customColors.dark75,
+              }}
+            />
+            <Typography
+              fontSize={12}
+              lineHeight={"16px"}
+              component={"span"}
+              color={theme.customColors.dark75}
+            >
+              {symbol}
+            </Typography>
+          </Stack>
         )}
       </Stack>
     </Stack>
@@ -131,9 +185,8 @@ const AccountItem: React.FC<AccountItemProps> = ({
 
 const NewConnect: React.FC = () => {
   const theme = useTheme();
-  // todo: this should come with the request
-  const [protocol, setProtocol] = useState(SupportedProtocols.Pocket);
   const currentRequest: ExternalConnectionRequest = useLocation()?.state;
+  const protocol = currentRequest?.protocol;
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
   );
@@ -148,12 +201,12 @@ const NewConnect: React.FC = () => {
     selectedChainByProtocolSelector
   );
 
-  const toggleSelectAccount = useCallback((id: string) => {
+  const toggleSelectAccount = useCallback((address: string) => {
     setSelectedAccounts((prevState) => {
-      const alreadySelected = prevState.includes(id);
+      const alreadySelected = prevState.includes(address);
       return !alreadySelected
-        ? [...prevState, id]
-        : prevState.filter((item) => item !== id);
+        ? [...prevState, address]
+        : prevState.filter((item) => item !== address);
     });
   }, []);
 
@@ -167,6 +220,7 @@ const NewConnect: React.FC = () => {
           accepted: accepted && !!selectedAccounts.length,
           request: currentRequest,
           selectedAccounts,
+          protocol: currentRequest.protocol,
         });
         const isError = !!result.error;
         setStatus(isError ? "error" : "normal");
@@ -208,7 +262,7 @@ const NewConnect: React.FC = () => {
 
   const toggleSelectAll = useCallback(() => {
     setSelectedAccounts(
-      isAllSelected ? [] : accountsWithBalance.map((item) => item.id)
+      isAllSelected ? [] : accountsWithBalance.map((item) => item.address)
     );
   }, [isAllSelected, accountsWithBalance]);
 
@@ -291,12 +345,13 @@ const NewConnect: React.FC = () => {
         >
           {accountsWithBalance.map((account, index) => (
             <AccountItem
-              onClickCheckbox={() => toggleSelectAccount(account.id)}
-              isChecked={selectedAccounts.includes(account.id)}
+              onClickCheckbox={() => toggleSelectAccount(account.address)}
+              isChecked={selectedAccounts.includes(account.address)}
               account={account}
               showBorderBottom={index !== accounts.length - 1}
               protocol={protocol}
               chainId={selectedChain}
+              key={account.id}
             />
           ))}
         </Stack>

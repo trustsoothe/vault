@@ -107,7 +107,7 @@ const ListRPCs: React.FC = () => {
       spacing={1.5}
       maxHeight={450}
     >
-      <Stack flexGrow={1} overflow={"auto"}>
+      <Stack flexGrow={1} overflow={"auto"} spacing={1.5}>
         {customRpcs.length ? (
           customRpcs.map((rpc) => <ItemRPC rpc={rpc} key={rpc.id} />)
         ) : (

@@ -2,21 +2,30 @@ import type { ActionReducerMapBuilder } from "@reduxjs/toolkit";
 import type { SerializedAccountReference } from "@poktscan/keyring";
 import type { Storage as OriginalStorage } from "webextension-polyfill/namespaces/storage";
 import type {
+  ProxyBalanceRes,
   ProxyCheckConnectionRequest,
   ProxyConnectionRequest,
   ProxyConnectionRes,
   ProxyDisconnectRequest,
   ProxyDisconnectRes,
+  ProxyGetPoktTxRes,
   ProxyListAccountsRequest,
   ProxyListAccountsRes,
   ProxyNewAccountRequest,
   ProxyNewAccountRes,
+  ProxySwitchChainRes,
   ProxyTransferRequest,
   ProxyTransferRes,
+  ProxyBalanceRequest,
+  ProxyGetPoktTxRequest,
+  ProxySelectedChainRequest,
+  ProxySwitchChainRequest,
 } from "./communication";
 import type { ArgsOrCallback, Method, MethodOrPayload } from "./provider";
 import type { GeneralAppSlice } from "../redux/slices/app";
 import type { VaultSlice } from "../redux/slices/vault";
+import type { Runtime } from "webextension-polyfill";
+import MessageSender = Runtime.MessageSender;
 
 export type AppSliceBuilder = ActionReducerMapBuilder<GeneralAppSlice>;
 export type VaultSliceBuilder = ActionReducerMapBuilder<VaultSlice>;
@@ -37,16 +46,20 @@ declare module "webextension-polyfill" {
   }
 }
 
+interface IProvider {
+  send: (
+    methodOrPayload: MethodOrPayload,
+    argsOrCallback?: ArgsOrCallback
+  ) => unknown;
+  sendAsync: (method: Method, callback: Function) => void;
+  request: (args: Method) => unknown;
+  isSoothe: true;
+}
+
 declare global {
   interface Window {
-    pocketNetwork: {
-      send: (
-        methodOrPayload: MethodOrPayload,
-        argsOrCallback?: ArgsOrCallback
-      ) => unknown;
-      request: (args: Method) => unknown;
-      isSoothe: true;
-    };
+    pocketNetwork: IProvider;
+    ethereum: IProvider;
     soothe: {
       connect: () => Promise<ProxyConnectionRes["data"]>;
       disconnect: () => Promise<ProxyDisconnectRes["data"]>;
@@ -72,11 +85,45 @@ export type BrowserRequest =
   | ProxyNewAccountRequest
   | ProxyTransferRequest
   | ProxyDisconnectRequest
-  | ProxyListAccountsRequest;
+  | ProxyListAccountsRequest
+  | ProxySelectedChainRequest
+  | ProxyBalanceRequest
+  | ProxyGetPoktTxRequest
+  | ProxySwitchChainRequest;
 
 export type BrowserResponse =
   | ProxyConnectionRes
   | ProxyListAccountsRes
   | ProxyDisconnectRes
   | ProxyNewAccountRes
-  | ProxyTransferRes;
+  | ProxyTransferRes
+  | ProxyBalanceRes
+  | ProxyGetPoktTxRes
+  | ProxySwitchChainRes;
+
+export interface EIP6963ProviderInfo {
+  uuid: string;
+  name: string;
+  icon: string;
+  rdns: string;
+}
+
+export interface EIP6963ProviderDetail {
+  info: EIP6963ProviderInfo;
+  provider: Readonly<IProvider>;
+}
+
+type SomeString<T extends string> = T;
+
+export interface ICommunicationController {
+  messageForController(messageType: string): boolean;
+
+  onMessageHandler<
+    T extends
+      | { type: SomeString; data; requestId: string }
+      | { type: SomeString; data; requestId?: string }
+  >(
+    message: T,
+    sender: MessageSender
+  ): Promise<unknown>;
+}

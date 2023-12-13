@@ -42,10 +42,10 @@ import {
 } from "../../redux/selectors/account";
 import {
   assetsIdOfSelectedAccountSelector,
-  assetsOfSelectedAccountSelector,
   assetsSelector,
   existsAssetsForSelectedNetworkSelector,
 } from "../../redux/selectors/asset";
+import useDidMountEffect from "../../hooks/useDidMountEffect";
 
 interface ButtonActionProps {
   label: string;
@@ -134,7 +134,7 @@ const SelectedAccount: React.FC = () => {
   );
   const assetsIdOfAccount = useAppSelector(assetsIdOfSelectedAccountSelector);
   const assets = useAppSelector(assetsSelector);
-  // todo: verify if is not memoized
+
   const assetsOfAccount = useMemo(() => {
     return assets.filter(
       (asset) =>
@@ -152,8 +152,8 @@ const SelectedAccount: React.FC = () => {
       if (accountOfNetwork) {
         dispatch(
           changeSelectedAccountOfNetwork({
-            network: selectedProtocol,
-            accountId: accountOfNetwork.id,
+            protocol: selectedProtocol,
+            address: accountOfNetwork.address,
           })
         );
       }
@@ -197,6 +197,14 @@ const SelectedAccount: React.FC = () => {
       setSelectedAsset(asset);
     }
   }, []);
+
+  useDidMountEffect(() => {
+    if (selectedAsset) {
+      if (!assetsOfAccount.some((asset) => asset.id === selectedAsset.id)) {
+        setSelectedAsset(null);
+      }
+    }
+  }, [assetsOfAccount?.length]);
 
   useEffect(() => {
     if (selectedAsset) {
@@ -360,7 +368,7 @@ const SelectedAccount: React.FC = () => {
             lineHeight={"20px"}
             textAlign={"center"}
           >
-            You do not have any account yet.
+            You do not have any accounts yet.
             <br />
             Please create new or import an account.
           </Typography>
@@ -395,6 +403,8 @@ const SelectedAccount: React.FC = () => {
     );
   }
 
+  const isPokt = selectedProtocol === SupportedProtocols.Pocket;
+
   return (
     <>
       <Stack paddingTop={1}>
@@ -403,6 +413,13 @@ const SelectedAccount: React.FC = () => {
             account={selectedAccount}
             asset={selectedAsset}
             onGoBackFromAsset={onGoBackFromAsset}
+            {...(wPoktVisible &&
+              isPokt && {
+                onGoBack: toggleWPoktVisible,
+                backLabel: `${selectedAccount.name} / POKT`,
+                asset: null,
+                onGoBackFromAsset: undefined,
+              })}
           />
         )}
         {!wPoktVisible && (
@@ -481,8 +498,9 @@ const SelectedAccount: React.FC = () => {
                       {(selectedAsset
                         ? [
                             {
+                              key: "remove_asset_item",
                               label: "Remove Asset",
-                              onClick: showRemoveModal,
+                              onClick: showAssetsModal,
                               customProps: {
                                 color: theme.customColors.red100,
                                 sx: {
@@ -496,19 +514,27 @@ const SelectedAccount: React.FC = () => {
                             },
                           ]
                         : [
-                            { label: "Private Key", onClick: onClickPk },
                             {
+                              key: "private_key_item",
+                              label: "Private Key",
+                              onClick: onClickPk,
+                            },
+                            {
+                              key: "reimport_item",
                               label: "Reimport Account",
                               onClick: onClickReimport,
                             },
                             {
+                              key: "rename_item",
                               label: "Rename Account",
                               onClick: showRenameModal,
                             },
                             {
+                              key: "divider1_item",
                               type: "divider",
                             },
                             {
+                              key: "remove_item",
                               label: "Remove Account",
                               onClick: showRemoveModal,
                               customProps: {
@@ -523,10 +549,11 @@ const SelectedAccount: React.FC = () => {
                               },
                             },
                           ]
-                      ).map(({ type, label, onClick, customProps }) => {
+                      ).map(({ type, label, onClick, customProps, key }) => {
                         if (type === "divider") {
                           return (
                             <Divider
+                              key={key}
                               sx={{
                                 marginY: 0.7,
                                 borderColor: theme.customColors.dark15,
@@ -536,6 +563,7 @@ const SelectedAccount: React.FC = () => {
                         } else {
                           return (
                             <Typography
+                              key={key}
                               width={1}
                               height={30}
                               fontSize={11}

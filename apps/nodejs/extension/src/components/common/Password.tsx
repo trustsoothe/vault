@@ -31,6 +31,7 @@ interface PasswordProps {
   horizontal?: boolean;
   autofocusPassword?: boolean;
   randomKey?: string;
+  inputsDisabled?: boolean;
 }
 
 interface TextFieldWithShowPasswordProps
@@ -40,62 +41,81 @@ interface TextFieldWithShowPasswordProps
   endAdornments?: React.ReactNode[];
 }
 
-const TextFieldWithShowPassword: React.FC<TextFieldWithShowPasswordProps> = ({
-  canShowPassword = true,
-  overrideType = false,
-  endAdornments,
-  ...others
-}) => {
-  const [showPassword, setShowPassword] = useState(false);
+const TextFieldWithShowPassword: React.FC<TextFieldWithShowPasswordProps> =
+  React.forwardRef(
+    (
+      {
+        canShowPassword = true,
+        overrideType = false,
+        endAdornments,
+        disabled,
+        ...others
+      },
+      ref
+    ) => {
+      const [showPassword, setShowPassword] = useState(false);
 
-  const toggleShowPassword = useCallback(() => {
-    setShowPassword((prevState) => !prevState);
-  }, []);
+      const toggleShowPassword = useCallback(() => {
+        setShowPassword((prevState) => !prevState);
+      }, []);
 
-  const endAdornment = useMemo(() => {
-    if (!canShowPassword && !endAdornments?.length) {
-      return null;
-    }
+      const endAdornment = useMemo(() => {
+        if (!canShowPassword && !endAdornments?.length) {
+          return null;
+        }
 
-    const adornments: React.ReactNode[] = endAdornments?.length
-      ? [...endAdornments]
-      : [];
+        const adornments: React.ReactNode[] = endAdornments?.length
+          ? [...endAdornments]
+          : [];
 
-    if (canShowPassword) {
-      adornments.push(
-        <IconButton
-          onClick={toggleShowPassword}
-          sx={{ padding: 0, width: 40, height: 40 }}
-          key={"show-password-toggle"}
-        >
-          {showPassword ? (
-            <VisibilityOffIcon sx={{ fontSize: 18 }} />
-          ) : (
-            <VisibilityIcon sx={{ fontSize: 18 }} />
-          )}
-        </IconButton>
+        if (canShowPassword) {
+          adornments.push(
+            <IconButton
+              onClick={toggleShowPassword}
+              sx={{ padding: 0, width: 40, height: 40 }}
+              key={"show-password-toggle"}
+              disabled={disabled}
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <VisibilityOffIcon sx={{ fontSize: 18 }} />
+              ) : (
+                <VisibilityIcon sx={{ fontSize: 18 }} />
+              )}
+            </IconButton>
+          );
+        }
+
+        return (
+          <Stack direction={"row"}>{adornments.map((item) => item)}</Stack>
+        );
+      }, [
+        endAdornments,
+        showPassword,
+        canShowPassword,
+        toggleShowPassword,
+        disabled,
+      ]);
+
+      return (
+        <TextField
+          size={"small"}
+          variant={"outlined"}
+          {...others}
+          inputRef={ref}
+          type={showPassword && canShowPassword ? "text" : "password"}
+          InputProps={{
+            endAdornment: endAdornment,
+            ...others?.InputProps,
+          }}
+          disabled={disabled}
+          {...(overrideType && {
+            type: others.type,
+          })}
+        />
       );
     }
-
-    return <Stack direction={"row"}>{adornments.map((item) => item)}</Stack>;
-  }, [endAdornments, showPassword, canShowPassword, toggleShowPassword]);
-
-  return (
-    <TextField
-      size={"small"}
-      variant={"outlined"}
-      {...others}
-      type={showPassword && canShowPassword ? "text" : "password"}
-      InputProps={{
-        endAdornment: endAdornment,
-        ...others?.InputProps,
-      }}
-      {...(overrideType && {
-        type: others.type,
-      })}
-    />
   );
-};
 
 const Password: React.FC<PasswordProps> = function <T extends {}>({
   passwordName,
@@ -116,6 +136,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
   inputsContainerProps,
   autofocusPassword = false,
   randomKey,
+  inputsDisabled = false,
 }) {
   const {
     control,
@@ -191,6 +212,10 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
   const toggleRandomPassword = useCallback(() => {
     const newRandom = !random;
     if (canGenerateRandomFirst || canGenerateRandomSecond) {
+      if (confirmPasswordName) {
+        setValue(confirmPasswordName, "" as PathValue<any, any>);
+      }
+
       if (newRandom) {
         const pass = generateRandomPassword() as PathValue<any, any>;
         if (canGenerateRandomFirst) {
@@ -267,6 +292,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
                 textDecoration: "underline",
               },
             }}
+            tabIndex={-1}
             onClick={toggleRandomPassword}
           >
             {random ? "Introduce Password" : "Generate Random"}
@@ -327,6 +353,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
                 error={!!error || !!errorPassword}
                 helperText={error?.message || errorPassword}
                 inputRef={ref}
+                disabled={inputsDisabled}
                 endAdornments={
                   isRandomFirstPassword
                     ? [
@@ -337,7 +364,9 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
                             arrow
                           >
                             <IconButton
+                              disabled={inputsDisabled}
                               onClick={onClickCopyPass}
+                              tabIndex={-1}
                               sx={{ padding: 0, width: 40, height: 40 }}
                             >
                               <CopyIcon />
@@ -404,6 +433,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
                 canShowPassword={
                   isRandomSecondPassword ? false : canShowPassword
                 }
+                disabled={inputsDisabled}
                 label={labelConfirm}
                 size={"small"}
                 type={isRandomSecondPassword ? "text" : "password"}
@@ -422,7 +452,9 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
                           >
                             <IconButton
                               onClick={onClickCopyConfirm}
+                              disabled={inputsDisabled}
                               sx={{ padding: 0, width: 40, height: 40 }}
+                              tabIndex={-1}
                             >
                               <CopyIcon />
                             </IconButton>
@@ -462,6 +494,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
     onClickCopyPass,
     random,
     canGenerateRandomSecond,
+    inputsDisabled,
     canGenerateRandomFirst,
   ]);
 

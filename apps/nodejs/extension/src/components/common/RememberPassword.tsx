@@ -10,12 +10,14 @@ interface RememberPasswordCheckboxProps {
   ) => void;
   checked: boolean;
   containerProps?: StackProps;
+  disabled?: boolean;
 }
 
 const RememberPasswordCheckbox: React.FC<RememberPasswordCheckboxProps> = ({
   onChange,
   checked,
   containerProps,
+  disabled,
 }) => {
   return (
     <Stack
@@ -25,6 +27,7 @@ const RememberPasswordCheckbox: React.FC<RememberPasswordCheckboxProps> = ({
       {...containerProps}
     >
       <FormControlLabel
+        disabled={disabled}
         sx={{
           height: 20,
           marginLeft: "-2px",

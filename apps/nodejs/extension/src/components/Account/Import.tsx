@@ -60,6 +60,22 @@ interface FormValues {
 
 const INVALID_PPK_MESSAGE = "File is not valid";
 
+const readFile = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const fr = new FileReader();
+
+      fr.onload = (event) => {
+        resolve(event.target.result.toString());
+      };
+
+      fr.readAsText(file);
+    } catch (e) {
+      reject(e);
+    }
+  });
+};
+
 const getPrivateKey = async (
   data: FormValues,
   protocol: SupportedProtocols
@@ -67,7 +83,7 @@ const getPrivateKey = async (
   let privateKey: string;
 
   if (data.json_file) {
-    const contentFile = await data.json_file.text();
+    const contentFile = await readFile(data.json_file);
 
     privateKey = await getPrivateKeyFromPPK(
       contentFile,
@@ -247,10 +263,14 @@ const ImportAccount: React.FC = () => {
             setAccountToReImport(account);
             setStatus("account_exists");
           } else {
+            const address = await getAddressFromPrivateKey(
+              privateKey,
+              selectedProtocol
+            );
             dispatch(
               changeSelectedAccountOfNetwork({
-                network: selectedProtocol,
-                accountId: response.data.accountId,
+                protocol: selectedProtocol,
+                address,
               })
             ).then(() => {
               setTimeout(() => {
@@ -465,7 +485,7 @@ const ImportAccount: React.FC = () => {
                         return "Required";
                       }
 
-                      const content = await value.text();
+                      const content = await readFile(value);
 
                       if (!isValidPPK(content, selectedProtocol)) {
                         return INVALID_PPK_MESSAGE;
@@ -473,9 +493,8 @@ const ImportAccount: React.FC = () => {
 
                       if (accountToReimport) {
                         try {
-                          const ppkContent = await value.text();
                           const privateKey = await getPrivateKeyFromPPK(
-                            ppkContent,
+                            content,
                             formValues.file_password,
                             selectedProtocol
                           );
@@ -554,7 +573,7 @@ const ImportAccount: React.FC = () => {
                         //@ts-ignore
                         value={field?.value?.fileName}
                         onChange={(event) => {
-                          field.onChange(event?.target?.files?.[0] || null);
+                          field.onChange(event.target.files?.[0] || null);
                         }}
                       />
                     </Button>

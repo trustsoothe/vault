@@ -5,38 +5,43 @@ import { SupportedProtocols } from "@poktscan/keyring";
 export const accountBalancesSelector = (state: RootState) =>
   state.app.accountBalances;
 
-export const balanceMapConsideringAsset =
-  (asset?: IAsset) => (state: RootState) => {
-    const selectedProtocol = state.app.selectedProtocol;
-    const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];
+export const balanceMapOfNetworkSelector =
+  (protocol: SupportedProtocols, chainId: string, asset?: IAsset) =>
+  (state: RootState) => {
+    const chainBalanceMap = state.app.accountBalances?.[protocol]?.[chainId];
 
-    const chainBalanceMap =
-      state.app.accountBalances?.[selectedProtocol]?.[selectedChain];
-
-    if (asset && selectedProtocol === SupportedProtocols.Ethereum) {
+    if (asset && protocol === SupportedProtocols.Ethereum) {
       return chainBalanceMap?.[asset.contractAddress];
     }
 
     return chainBalanceMap;
   };
 
-export const selectedAccountIdSelector = (state: RootState) => {
+export const balanceMapConsideringAsset =
+  (asset?: IAsset) => (state: RootState) => {
+    const selectedProtocol = state.app.selectedProtocol;
+    const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];
+
+    return balanceMapOfNetworkSelector(
+      selectedProtocol,
+      selectedChain,
+      asset
+    )(state);
+  };
+
+export const selectedAccountAddressSelector = (state: RootState) => {
   const selectedProtocol = state.app.selectedProtocol;
   return state.app.selectedAccountByProtocol[selectedProtocol];
 };
 
 export const selectedAccountSelector = (state: RootState) => {
   const selectedProtocol = state.app.selectedProtocol;
-  const selectedAccountId =
+  const selectedAccountAddress =
     state.app.selectedAccountByProtocol[selectedProtocol];
 
   return state.vault.accounts.find(
-    (account) => account.id === selectedAccountId
+    (account) => account.address === selectedAccountAddress
   );
-};
-
-export const selectedAccountAddressSelector = (state: RootState) => {
-  return selectedAccountSelector(state)?.address;
 };
 
 export const accountsSelector = (state: RootState) => state.vault.accounts;
@@ -44,17 +49,14 @@ export const accountsSelector = (state: RootState) => state.vault.accounts;
 export const wPoktBalanceSelector = (state: RootState) => {
   const selectedProtocol = state.app.selectedProtocol;
   const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];
-  const selectedAccountId =
+  const selectedAccountAddress =
     state.app.selectedAccountByProtocol[selectedProtocol];
 
   const chainBalanceMap =
     state.app.accountBalances?.[selectedProtocol]?.[selectedChain];
-  const accountAddress = state.vault.accounts.find(
-    (account) => account.id === selectedAccountId
-  )?.address;
 
   if (selectedProtocol === SupportedProtocols.Pocket) {
-    return chainBalanceMap?.[accountAddress]?.amount || 0;
+    return chainBalanceMap?.[selectedAccountAddress]?.amount || 0;
   } else {
     const assetContractAddress = state.app.assets.find(
       (asset) =>
@@ -63,7 +65,8 @@ export const wPoktBalanceSelector = (state: RootState) => {
         asset.chainId === selectedChain
     )?.contractAddress;
     return (
-      chainBalanceMap?.[assetContractAddress]?.[accountAddress]?.amount || 0
+      chainBalanceMap?.[assetContractAddress]?.[selectedAccountAddress]
+        ?.amount || 0
     );
   }
 };

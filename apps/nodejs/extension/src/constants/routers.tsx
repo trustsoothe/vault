@@ -5,6 +5,7 @@ import {
   ACCOUNTS_PAGE,
   ADD_NETWORK_PAGE,
   BLOCK_SITE_PAGE,
+  CHANGE_SELECTED_CHAIN_PAGE,
   CONTACTS_PAGE,
   CREATE_ACCOUNT_PAGE,
   DISCONNECT_SITE_PAGE,
@@ -37,6 +38,7 @@ import React from "react";
 import ContactList from "../components/Contact/List";
 import SaveContact from "../components/Contact/SaveContact";
 import RemoveContact from "../components/Contact/RemoveContact";
+import ChangeSelectedChain from "../components/Network/ChangeChain";
 
 export const router = createHashRouter([
   {
@@ -135,6 +137,10 @@ export const requestRouter = createHashRouter([
       {
         path: TRANSFER_PAGE,
         element: <Transfer />,
+      },
+      {
+        path: CHANGE_SELECTED_CHAIN_PAGE,
+        element: <ChangeSelectedChain />,
       },
     ],
   },

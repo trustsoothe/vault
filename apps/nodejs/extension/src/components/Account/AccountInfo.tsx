@@ -1,4 +1,7 @@
-import type { SerializedAccountReference } from "@poktscan/keyring";
+import type {
+  SerializedAccountReference,
+  SupportedProtocols,
+} from "@poktscan/keyring";
 import type { IAsset } from "../../redux/slices/app";
 import React, { useCallback, useEffect, useState } from "react";
 import Stack from "@mui/material/Stack";
@@ -27,18 +30,43 @@ import {
   accountConnectedWithTabSelector,
   tabHasConnectionSelector,
 } from "../../redux/selectors/session";
-import { balanceMapConsideringAsset } from "../../redux/selectors/account";
+import { balanceMapOfNetworkSelector } from "../../redux/selectors/account";
 import {
-  networkSymbolSelector,
   selectedChainSelector,
   selectedProtocolSelector,
+  symbolOfNetworkSelector,
 } from "../../redux/selectors/network";
+
+interface NavigationBackProps {
+  onBack?: () => void;
+  label: string;
+}
+
+const NavigationBack: React.FC<NavigationBackProps> = ({ onBack, label }) => {
+  const theme = useTheme();
+  return (
+    <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
+      {onBack && (
+        <IconButton onClick={onBack}>
+          <ArrowBackIcon
+            sx={{ fontSize: 18, color: theme.customColors.primary250 }}
+          />
+        </IconButton>
+      )}
+      <Typography fontSize={12}>{label}</Typography>
+    </Stack>
+  );
+};
 
 interface AccountComponentProps {
   account: SerializedAccountReference;
   compact?: boolean;
   asset?: IAsset;
   onGoBackFromAsset?: () => void;
+  protocol?: SupportedProtocols;
+  chainId?: string;
+  onGoBack?: () => void;
+  backLabel?: string;
 }
 
 const AccountInfo: React.FC<AccountComponentProps> = ({
@@ -46,6 +74,10 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
   compact = false,
   asset,
   onGoBackFromAsset,
+  protocol,
+  chainId,
+  onGoBack,
+  backLabel,
 }) => {
   const theme = useTheme();
   const isPopup = useIsPopup();
@@ -56,16 +88,25 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
     refetch: refetchAssetsPrice,
   } = useGetAssetPrices(false);
 
+  const [showLoading, setShowLoading] = useState(true);
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   const tabHasConnection = useAppSelector(tabHasConnectionSelector);
   const accountConnectedWithTab = useAppSelector(
     accountConnectedWithTabSelector
   );
-  const balanceMap = useAppSelector(balanceMapConsideringAsset(asset));
 
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedChain = useAppSelector(selectedChainSelector);
-  const symbol = useAppSelector(networkSymbolSelector);
+
+  const protocolToUse = protocol || selectedProtocol;
+  const chainIdToUse = chainId || selectedChain;
+
+  const balanceMap = useAppSelector(
+    balanceMapOfNetworkSelector(protocolToUse, chainIdToUse, asset)
+  );
+  const symbol = useAppSelector(
+    symbolOfNetworkSelector(protocolToUse, chainIdToUse)
+  );
 
   const {
     data: pricesByProtocolAndChain,
@@ -80,7 +121,7 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
   const usdPrice: number =
     (asset
       ? priceByContractAddress[asset.contractAddress]
-      : pricesByProtocolAndChain?.[selectedProtocol]?.[selectedChain]) || 0;
+      : pricesByProtocolAndChain?.[protocolToUse]?.[chainIdToUse]) || 0;
   const loadingPrice = asset
     ? isLoadingAssetsPrice
     : isLoadingNetworkPrices || isUninitialized;
@@ -91,25 +132,32 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
 
   const balance = (balanceMap?.[address]?.amount as number) || 0;
   const errorBalance = balanceMap?.[address]?.error || false;
-  const loadingBalance = (balanceMap?.[address]?.loading && !balance) || false;
+  const loadingBalance =
+    (balanceMap?.[address]?.loading && !balance && showLoading) || false;
 
   const getAccountBalance = useCallback(() => {
     if (address) {
       AppToBackground.getAccountBalance({
         address: address,
-        chainId: selectedChain,
-        protocol: selectedProtocol,
+        chainId: chainIdToUse,
+        protocol: protocolToUse,
         asset: asset
           ? {
               contractAddress: asset.contractAddress,
               decimals: asset.decimals,
             }
           : undefined,
-      }).catch();
+      })
+        .then((res) => {
+          if (res?.data?.answered) {
+            setShowLoading(false);
+          }
+        })
+        .catch();
     }
   }, [
-    selectedProtocol,
-    selectedChain,
+    protocolToUse,
+    chainIdToUse,
     address,
     asset?.contractAddress,
     asset?.decimals,
@@ -153,22 +201,16 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
           direction={"row"}
           marginLeft={-0.5}
           alignItems={"center"}
-          justifyContent={isPopup || !!asset ? "space-between" : "flex-end"}
+          justifyContent={
+            isPopup || !!asset || !!backLabel ? "space-between" : "flex-end"
+          }
         >
-          {asset ? (
-            <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
-              {onGoBackFromAsset && (
-                <IconButton onClick={onGoBackFromAsset}>
-                  <ArrowBackIcon
-                    sx={{ fontSize: 18, color: theme.customColors.primary250 }}
-                  />
-                </IconButton>
-              )}
-              <Typography fontSize={12}>
-                {account.name} / {asset.symbol}
-              </Typography>
-            </Stack>
-          ) : null}
+          {(asset || backLabel) && (
+            <NavigationBack
+              label={asset ? `${account.name} / ${asset.symbol}` : backLabel}
+              onBack={onGoBackFromAsset || onGoBack}
+            />
+          )}
           <Tooltip title={"Copied"} open={showCopyTooltip}>
             <Stack
               height={26}

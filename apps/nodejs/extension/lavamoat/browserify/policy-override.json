@@ -1,0 +1,51 @@
+{
+  "resources": {
+    "cross-fetch": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "@poktscan/keyring>web3-eth": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "@poktscan/keyring>web3-providers-http": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "@poktscan/keyring>web3-providers-http>cross-fetch": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/dist/index.js": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true
+      }
+    },
+    "react-dom": {
+      "globals": {
+        "HTMLIFrameElement": true
+      }
+    },
+    "crypto-browserify>randombytes": {
+      "globals": {
+        "crypto": true,
+        "crypto.getRandomValues": true
+      }
+    },
+    "@mui/material": {
+      "globals": {
+        "Blob": true,
+        "File": true
+      }
+    }
+  }
+}

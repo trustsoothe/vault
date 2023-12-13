@@ -7,8 +7,11 @@ import Typography from "@mui/material/Typography";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { IAsset, toggleAssetOfAccount } from "../../redux/slices/app";
-import { selectedAccountIdSelector } from "../../redux/selectors/account";
-import { assetAlreadyIncludedSelector } from "../../redux/selectors/asset";
+import { selectedAccountAddressSelector } from "../../redux/selectors/account";
+import {
+  assetAlreadyIncludedSelector,
+  assetsSelector,
+} from "../../redux/selectors/asset";
 import {
   selectedChainSelector,
   selectedProtocolSelector,
@@ -21,21 +24,21 @@ interface AssetItemProps {
 const AssetItem: React.FC<AssetItemProps> = ({ asset }) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const selectedAccountId = useAppSelector(selectedAccountIdSelector);
+  const selectedAccountAddress = useAppSelector(selectedAccountAddressSelector);
   const assetAlreadyIncluded = useAppSelector(
     assetAlreadyIncludedSelector(asset)
   );
 
   const toggleAssetIncluded = useCallback(() => {
-    if (asset && selectedAccountId) {
+    if (asset && selectedAccountAddress) {
       dispatch(
         toggleAssetOfAccount({
           assetId: asset.id,
-          accountId: selectedAccountId,
+          address: selectedAccountAddress,
         })
       );
     }
-  }, [dispatch, asset, selectedAccountId]);
+  }, [dispatch, asset, selectedAccountAddress]);
 
   return (
     <Stack
@@ -97,8 +100,8 @@ const EditAssetsSelectionModal: React.FC<EditAssetsSelectionModalProps> = ({
   const [stillShowModal, setStillShowModal] = useState(false);
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedChain = useAppSelector(selectedChainSelector);
-  const selectedAccountId = useAppSelector(selectedAccountIdSelector);
-  const assets = useAppSelector((state) => state.app.assets);
+  const selectedAccountAddress = useAppSelector(selectedAccountAddressSelector);
+  const assets = useAppSelector(assetsSelector);
 
   const assetsOfNetwork = useMemo(() => {
     return assets.filter(
@@ -109,7 +112,7 @@ const EditAssetsSelectionModal: React.FC<EditAssetsSelectionModalProps> = ({
 
   useEffect(() => {
     onClose();
-  }, [selectedAccountId]);
+  }, [selectedAccountAddress]);
 
   const onClickAway = useCallback(() => {
     if (stillShowModal) {

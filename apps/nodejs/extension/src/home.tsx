@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import GlobalStyles from "@mui/material/GlobalStyles";
 import { RouterProvider } from "react-router-dom";
 import { createRoot } from "react-dom/client";
@@ -16,7 +16,10 @@ import CircularLoading from "./components/common/CircularLoading";
 import ThemeProvider from "./theme";
 import { SnackbarProvider } from "notistack";
 import { closeCurrentWindow, removeRequestWithRes } from "./utils/ui";
-import { MINUTES_ALLOWED_FOR_REQ } from "./constants/communication";
+import {
+  APP_IS_READY_REQUEST,
+  MINUTES_ALLOWED_FOR_REQ,
+} from "./constants/communication";
 import { RequestTimeout } from "./errors/communication";
 import { useAppDispatch, useAppSelector } from "./hooks/redux";
 import useIsPopup from "./hooks/useIsPopup";
@@ -29,6 +32,7 @@ import {
   initializeStatusSelector,
   vaultSessionExistsSelector,
 } from "./redux/selectors/session";
+import OperationFailed from "./components/common/OperationFailed";
 
 const store = new Store();
 const storeWithMiddleware = applyMiddleware(
@@ -57,6 +61,7 @@ const Home: React.FC = () => {
   const externalRequests = useAppSelector(externalRequestsSelector);
   const initializeStatus = useAppSelector(initializeStatusSelector);
   const vaultSessionExists = useAppSelector(vaultSessionExistsSelector);
+  const appStatus = useAppSelector((state) => state.app.isReadyStatus);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -89,9 +94,29 @@ const Home: React.FC = () => {
     return () => clearInterval(interval);
   }, [externalRequests, dispatch, view]);
 
+  const retryInitExtension = useCallback(() => {
+    browser.runtime.sendMessage({ type: APP_IS_READY_REQUEST }).catch();
+  }, [dispatch]);
+
   const content = useMemo(() => {
-    if (initializeStatus === "loading" || view === "loading") {
+    if (
+      initializeStatus === "loading" ||
+      view === "loading" ||
+      appStatus === "loading"
+    ) {
       return <CircularLoading />;
+    }
+
+    if (appStatus === "error") {
+      return (
+        <OperationFailed
+          text={"Error trying to initialized the extension."}
+          retryBtnProps={{
+            type: "button",
+          }}
+          onRetry={retryInitExtension}
+        />
+      );
     }
 
     if (initializeStatus === "none") {
@@ -109,7 +134,13 @@ const Home: React.FC = () => {
     }
 
     return <UnlockVault />;
-  }, [initializeStatus, vaultSessionExists, view]);
+  }, [
+    initializeStatus,
+    vaultSessionExists,
+    view,
+    appStatus,
+    retryInitExtension,
+  ]);
 
   return (
     <>
@@ -214,7 +245,7 @@ const Home: React.FC = () => {
 };
 
 // to only display the UI when the servicer worker is activated and avoid blank UI
-browser.runtime.sendMessage({ type: "WAIT_BACKGROUND" }).then(() => {
+browser.runtime.sendMessage({ type: APP_IS_READY_REQUEST }).then(() => {
   storeWithMiddleware.ready().then(() => {
     const root = createRoot(document.getElementById("root")!);
 

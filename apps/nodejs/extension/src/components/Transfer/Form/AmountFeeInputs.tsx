@@ -1,4 +1,4 @@
-import type { FormValues } from "../index";
+import type { FeeSpeed, FormValues } from "../index";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -29,10 +29,229 @@ import { accountBalancesSelector } from "../../../redux/selectors/account";
 
 export type AmountStatus = "not-fetched" | "loading" | "error" | "fetched";
 
+interface EthFeeInputsProps {
+  networkPriceData: ReturnType<typeof useGetPrices>;
+}
+
+export const timeByFeeSpeedMap: Record<FeeSpeed, string> = {
+  low: "1 min",
+  medium: "30 secs",
+  high: "15 secs",
+  "n/a": "unknown",
+  site: "unknown",
+};
+
+const EthFeeInputs: React.FC<EthFeeInputsProps> = ({ networkPriceData }) => {
+  const theme = useTheme();
+  const { control, watch } = useFormContext<FormValues>();
+  const [toAddress, protocol, chainId, feeSpeed] = watch([
+    "toAddress",
+    "protocol",
+    "chainId",
+    "feeSpeed",
+  ]);
+  const { networkFee, feeFetchStatus, getNetworkFee, feeSelected } =
+    useTransferContext();
+  const { data } = networkPriceData;
+  const selectedNetworkPrice: number = data?.[protocol]?.[chainId] || 0;
+  const symbol = useAppSelector(symbolOfNetworkSelector(protocol, chainId));
+
+  const canShowUsd = !!data;
+
+  return (
+    <Stack direction={"row"} width={1} marginTop={"25px!important"} spacing={1}>
+      <Controller
+        control={control}
+        name={"feeSpeed"}
+        render={({ field }) => (
+          <TextField
+            select
+            size={"small"}
+            label={"Tx Speed"}
+            disabled={!networkFee || feeFetchStatus !== "fetched"}
+            SelectProps={{
+              MenuProps: {
+                sx: {
+                  "& .MuiList-root": {
+                    paddingY: 0.5,
+                  },
+                  "& .MuiMenuItem-root": {
+                    height: 30,
+                    minHeight: 30,
+                    fontSize: 13,
+                    paddingX: 1,
+                  },
+                },
+              },
+            }}
+            sx={{
+              width: 90,
+              "& .MuiSelect-icon": { top: 5, right: -2 },
+              "& .MuiSelect-select": {
+                paddingRight: "27px!important",
+              },
+              "& .MuiFormHelperText-root": {
+                bottom: "-18px!important",
+                left: "10px!important",
+                color: theme.customColors.dark75,
+              },
+            }}
+            {...field}
+            helperText={`Est. ${timeByFeeSpeedMap[field.value]}`}
+          >
+            <MenuItem value={"low"}>Low</MenuItem>
+            <MenuItem value={"medium"}>Medium</MenuItem>
+            <MenuItem value={"high"}>High</MenuItem>
+            {(field.value === "site" ||
+              !!(networkFee as EthereumNetworkFee)?.site) && (
+              <MenuItem value={"site"}>Site</MenuItem>
+            )}
+          </TextField>
+        )}
+      />
+      <Stack
+        position={"relative"}
+        borderRadius={"2px"}
+        border={`1px solid ${theme.customColors.dark25}`}
+        height={40}
+        alignItems={"center"}
+        paddingLeft={0.7}
+        flexGrow={1}
+        boxSizing={"border-box"}
+        direction={"row"}
+        width={160}
+      >
+        <Typography
+          fontSize={10}
+          color={theme.customColors.dark50}
+          position={"absolute"}
+          bgcolor={theme.customColors.dark2}
+          whiteSpace={"nowrap"}
+          top={-10}
+          left={2}
+          paddingX={0.6}
+        >
+          Fee ({symbol}
+          {canShowUsd ? " / USD" : ""})
+        </Typography>
+        {!toAddress ? (
+          <Typography fontSize={14} color={theme.customColors.red100}>
+            Select recipient first
+          </Typography>
+        ) : feeFetchStatus === "loading" && !networkFee ? (
+          <>
+            <Skeleton variant={"rectangular"} width={80} height={20} />
+            <Divider
+              flexItem
+              orientation={"vertical"}
+              sx={{ marginX: 0.7, marginY: 0.5 }}
+            />
+            <Skeleton variant={"rectangular"} width={80} height={20} />
+          </>
+        ) : feeFetchStatus === "error" ? (
+          <Typography fontSize={14} color={theme.customColors.red100}>
+            Error getting fee.{" "}
+            <span
+              onClick={getNetworkFee}
+              style={{ textDecoration: "underline", cursor: "pointer" }}
+            >
+              Retry
+            </span>
+          </Typography>
+        ) : (
+          <>
+            <Typography fontSize={14} fontWeight={600} letterSpacing={"0.3px"}>
+              {(networkFee as EthereumNetworkFee)?.[feeSpeed]?.amount}
+            </Typography>
+
+            {canShowUsd && (
+              <>
+                <Divider
+                  flexItem
+                  orientation={"vertical"}
+                  sx={{ marginX: 0.7, marginY: 0.5 }}
+                />
+                <Typography
+                  fontSize={12}
+                  color={theme.customColors.dark90}
+                  width={"min-content"}
+                  textOverflow={"ellipsis"}
+                  overflow={"hidden"}
+                  whiteSpace={"nowrap"}
+                >
+                  $
+                  {returnNumWithTwoDecimals(
+                    Number(feeSelected) * selectedNetworkPrice,
+                    "0"
+                  )}
+                </Typography>
+              </>
+            )}
+          </>
+        )}
+      </Stack>
+    </Stack>
+  );
+};
+
+interface PoktFeeProps {
+  symbol: string;
+}
+
+const PoktFee: React.FC<PoktFeeProps> = ({ symbol }) => {
+  const theme = useTheme();
+  const { networkFee, feeFetchStatus, getNetworkFee } = useTransferContext();
+
+  return (
+    <Stack
+      position={"relative"}
+      borderRadius={"2px"}
+      border={`1px solid ${theme.customColors.dark25}`}
+      height={40}
+      justifyContent={"center"}
+      paddingLeft={0.7}
+      width={80}
+      minWidth={80}
+      maxWidth={80}
+      boxSizing={"border-box"}
+    >
+      <Typography
+        fontSize={10}
+        color={theme.customColors.dark50}
+        position={"absolute"}
+        bgcolor={theme.customColors.dark2}
+        whiteSpace={"nowrap"}
+        top={-10}
+        left={2}
+        paddingX={0.6}
+      >
+        Fee ({symbol})
+      </Typography>
+      {feeFetchStatus === "loading" && !networkFee ? (
+        <Skeleton variant={"rectangular"} width={40} height={20} />
+      ) : feeFetchStatus === "error" ? (
+        <Button
+          sx={{
+            color: theme.customColors.red100,
+            fontSize: 12,
+            paddingLeft: 0,
+          }}
+          onClick={getNetworkFee}
+        >
+          Error. Retry
+        </Button>
+      ) : (
+        <Typography fontSize={16} fontWeight={600}>
+          0.01
+        </Typography>
+      )}
+    </Stack>
+  );
+};
+
 const AmountFeeInputs: React.FC = () => {
   const theme = useTheme();
-  const { networkFee, getNetworkFee, feeFetchStatus, disableInputs } =
-    useTransferContext();
+  const { networkFee, feeFetchStatus, disableInputs } = useTransferContext();
   const { control, getValues, setValue, clearErrors, watch } =
     useFormContext<FormValues>();
   const {
@@ -60,11 +279,13 @@ const AmountFeeInputs: React.FC = () => {
     "asset",
   ]);
 
+  const networkPriceData = useGetPrices();
   const {
     data: pricesByProtocolAndChain,
     isLoading,
+    isError: isNativePriceError,
     isUninitialized,
-  } = useGetPrices();
+  } = networkPriceData;
 
   const loadingNetworkPrice = isLoading || isUninitialized;
   const selectedNetworkPrice: number =
@@ -106,6 +327,7 @@ const AmountFeeInputs: React.FC = () => {
   const loadingAmountUsdPrice = asset
     ? isLoadingAssetsPrice
     : loadingNetworkPrice;
+  const errorLoadingUsdPrice = asset ? isAssetsPriceError : isNativePriceError;
 
   const onClickAll = useCallback(() => {
     const feeSpeed = getValues("feeSpeed");
@@ -147,6 +369,7 @@ const AmountFeeInputs: React.FC = () => {
       sx={{
         order: 2,
         "& .MuiFormHelperText-root": {
+          left: 10,
           bottom: "-24px",
           width: "calc(100% - 30px)",
         },
@@ -245,6 +468,7 @@ const AmountFeeInputs: React.FC = () => {
                       height={40}
                       justifyContent={"center"}
                       minWidth={30}
+                      display={errorLoadingUsdPrice ? "none" : "flex"}
                     >
                       <Typography
                         fontSize={14}
@@ -308,174 +532,9 @@ const AmountFeeInputs: React.FC = () => {
             />
           )}
         />
-        {!isEth && (
-          <Stack
-            position={"relative"}
-            borderRadius={"2px"}
-            borderBottom={`1px solid ${theme.customColors.dark25}`}
-            height={40}
-            justifyContent={"center"}
-            paddingLeft={0.7}
-            width={80}
-            minWidth={80}
-            maxWidth={80}
-            boxSizing={"border-box"}
-          >
-            <Typography
-              fontSize={10}
-              color={theme.customColors.dark50}
-              position={"absolute"}
-              bgcolor={theme.customColors.dark2}
-              whiteSpace={"nowrap"}
-              top={-10}
-              left={2}
-              paddingX={0.6}
-            >
-              Fee ({symbol})
-            </Typography>
-            {feeFetchStatus === "loading" && !networkFee ? (
-              <Skeleton variant={"rectangular"} width={40} height={20} />
-            ) : feeFetchStatus === "error" ? (
-              <Button
-                sx={{
-                  color: theme.customColors.red100,
-                  fontSize: 12,
-                  paddingLeft: 0,
-                }}
-                onClick={getNetworkFee}
-              >
-                Error. Retry
-              </Button>
-            ) : (
-              <Typography fontSize={16} fontWeight={600}>
-                0.01
-              </Typography>
-            )}
-          </Stack>
-        )}
+        {!isEth && <PoktFee symbol={symbol} />}
       </Stack>
-      {isEth && (
-        <Stack
-          direction={"row"}
-          width={1}
-          marginTop={"25px!important"}
-          spacing={1}
-        >
-          <Controller
-            control={control}
-            name={"feeSpeed"}
-            render={({ field }) => (
-              <TextField
-                select
-                size={"small"}
-                label={"Tx Speed"}
-                disabled={!networkFee || feeFetchStatus !== "fetched"}
-                SelectProps={{
-                  MenuProps: {
-                    sx: {
-                      "& .MuiMenuItem-root": {
-                        height: 35,
-                        minHeight: 35,
-                      },
-                    },
-                  },
-                }}
-                sx={{
-                  width: 90,
-                  "& .MuiSelect-icon": { top: 5, right: -2 },
-                  "& .MuiSelect-select": {
-                    paddingRight: "27px!important",
-                  },
-                }}
-                {...field}
-              >
-                <MenuItem value={"low"}>Low</MenuItem>
-                <MenuItem value={"medium"}>Medium</MenuItem>
-                <MenuItem value={"high"}>High</MenuItem>
-              </TextField>
-            )}
-          />
-          <Stack
-            position={"relative"}
-            borderRadius={"2px"}
-            border={`1px solid ${theme.customColors.dark25}`}
-            height={40}
-            alignItems={"center"}
-            paddingLeft={0.7}
-            flexGrow={1}
-            boxSizing={"border-box"}
-            direction={"row"}
-            width={160}
-          >
-            <Typography
-              fontSize={10}
-              color={theme.customColors.dark50}
-              position={"absolute"}
-              bgcolor={theme.customColors.dark2}
-              whiteSpace={"nowrap"}
-              top={-10}
-              left={2}
-              paddingX={0.6}
-            >
-              Fee ({symbol} / USD)
-            </Typography>
-            {!toAddress ? (
-              <Typography fontSize={14} color={theme.customColors.red100}>
-                Select recipient first
-              </Typography>
-            ) : feeFetchStatus === "loading" && !networkFee ? (
-              <>
-                <Skeleton variant={"rectangular"} width={80} height={20} />
-                <Divider
-                  flexItem
-                  orientation={"vertical"}
-                  sx={{ marginX: 0.7, marginY: 0.5 }}
-                />
-                <Skeleton variant={"rectangular"} width={80} height={20} />
-              </>
-            ) : feeFetchStatus === "error" ? (
-              <Typography fontSize={14} color={theme.customColors.red100}>
-                Error getting fee.{" "}
-                <span
-                  onClick={getNetworkFee}
-                  style={{ textDecoration: "underline", cursor: "pointer" }}
-                >
-                  Retry
-                </span>
-              </Typography>
-            ) : (
-              <>
-                <Typography
-                  fontSize={14}
-                  fontWeight={600}
-                  letterSpacing={"0.3px"}
-                >
-                  {(networkFee as EthereumNetworkFee)?.[feeSpeed]?.amount}
-                </Typography>
-                <Divider
-                  flexItem
-                  orientation={"vertical"}
-                  sx={{ marginX: 0.7, marginY: 0.5 }}
-                />
-                <Typography
-                  fontSize={12}
-                  color={theme.customColors.dark90}
-                  width={"min-content"}
-                  textOverflow={"ellipsis"}
-                  overflow={"hidden"}
-                  whiteSpace={"nowrap"}
-                >
-                  $
-                  {returnNumWithTwoDecimals(
-                    Number(feeSelected) * selectedNetworkPrice,
-                    "0"
-                  )}
-                </Typography>
-              </>
-            )}
-          </Stack>
-        </Stack>
-      )}
+      {isEth && <EthFeeInputs networkPriceData={networkPriceData} />}
     </Stack>
   );
 };

@@ -1,8 +1,8 @@
 import {
-  ForbiddenSessionError,
-  InvalidSessionError,
+  ForbiddenSessionErrorName,
+  InvalidSessionErrorName,
+  SessionNotFoundErrorName,
   SerializedAsset,
-  SessionNotFoundError,
   SupportedProtocols,
   VaultTeller,
 } from "@poktscan/keyring";
@@ -13,11 +13,7 @@ import {
   ExtensionVaultStorage,
 } from "@poktscan/keyring-storage-extension";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
-import {
-  ForbiddenSession,
-  InvalidSession,
-  UnknownError,
-} from "../errors/communication";
+import { UnauthorizedError, UnknownError } from "../errors/communication";
 
 let extensionVaultInstance: VaultTeller;
 
@@ -50,26 +46,16 @@ export const returnExtensionErr = <T extends string>(
   error: Error,
   responseType: T
 ) => {
-  if (error instanceof SessionNotFoundError) {
+  if (
+    [
+      ForbiddenSessionErrorName,
+      InvalidSessionErrorName,
+      SessionNotFoundErrorName,
+    ].includes(error?.name)
+  ) {
     return {
       type: responseType,
-      error: InvalidSession,
-      data: null,
-    };
-  }
-
-  if (error instanceof InvalidSessionError) {
-    return {
-      type: responseType,
-      error: InvalidSession,
-      data: null,
-    };
-  }
-
-  if (error instanceof ForbiddenSessionError) {
-    return {
-      type: responseType,
-      error: ForbiddenSession,
+      error: UnauthorizedError,
       data: null,
     };
   }

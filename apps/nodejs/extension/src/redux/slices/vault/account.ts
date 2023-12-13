@@ -1,3 +1,4 @@
+import type { IProtocolTransactionResult } from "@poktscan/keyring/dist/lib/core/common/protocols/ProtocolTransaction";
 import type { RootState } from "../../store";
 import type { VaultSliceBuilder } from "../../../types";
 import { SerializedError, createAsyncThunk } from "@reduxjs/toolkit";
@@ -6,13 +7,13 @@ import {
   AccountReference,
   AccountUpdateOptions,
   Passphrase,
-  PrivateKeyRestoreError,
+  PrivateKeyRestoreErrorName,
   SerializedAccountReference,
   SerializedSession,
   SupportedProtocols,
   SupportedTransferOrigins,
   TransferOptions,
-  VaultRestoreError,
+  VaultRestoreErrorName,
 } from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 import { PASSPHRASE, VaultSlice } from "./index";
@@ -237,6 +238,7 @@ export interface SendTransactionParams
     memo?: string;
     gasLimit?: number;
   };
+  isRawTransaction?: boolean;
 }
 
 export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
@@ -245,7 +247,11 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
     const state = context.getState() as RootState;
     const sessionId = state.vault.vaultSession.id;
 
-    const result = await ExtensionVaultInstance.transferFunds(sessionId, {
+    let result: IProtocolTransactionResult<
+      "Pocket" | "Ethereum" | "Unspecified"
+    >;
+
+    const transactionArg = {
       ...transferOptions,
       transactionParams: {
         from: "",
@@ -253,27 +259,19 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
         amount: "",
         ...transferOptions.transactionParams,
       },
-    });
+    };
 
-    return result.transactionHash;
-  }
-);
-
-export const sendRawTransaction = createAsyncThunk<string, SendTransactionParams>(
-  "vault/sendRawTransaction",
-  async (transferOptions, context) => {
-    const state = context.getState() as RootState;
-    const sessionId = state.vault.vaultSession.id;
-
-    const result = await ExtensionVaultInstance.sendRawTransaction(sessionId, {
-      ...transferOptions,
-      transactionParams: {
-        from: "",
-        to: "",
-        amount: "",
-        ...transferOptions.transactionParams,
-      },
-    });
+    if (transferOptions.isRawTransaction) {
+      result = await ExtensionVaultInstance.sendRawTransaction(
+        sessionId,
+        transactionArg
+      );
+    } else {
+      result = await ExtensionVaultInstance.transferFunds(
+        sessionId,
+        transactionArg
+      );
+    }
 
     return result.transactionHash;
   }
@@ -407,8 +405,8 @@ function increaseWrongPasswordCounter(
   error: SerializedError
 ) {
   if (
-    error.name === VaultRestoreError.name ||
-    error.name === PrivateKeyRestoreError.name
+    error?.name === VaultRestoreErrorName ||
+    error?.name === PrivateKeyRestoreErrorName
   ) {
     const currentCounter = state.wrongPasswordCounter[id];
 

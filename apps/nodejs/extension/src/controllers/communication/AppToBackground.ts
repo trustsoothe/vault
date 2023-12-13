@@ -5,7 +5,7 @@ import type {
   AnswerConnectionResponse,
   AnswerNewAccountRequest,
   AnswerNewAccountResponse,
-  AnswerTransactionRequest,
+  AnswerSwitchChainResponse,
   AnswerTransferRequest,
   AnswerTransferResponse,
   ImportAccountMessage,
@@ -29,12 +29,19 @@ import type {
   UpdateAccountMessage,
   UpdateAccountResponse,
 } from "./Internal";
+import {
+  AnswerSwitchChainRequest,
+  CheckPermissionForSessionMessage,
+  CheckPermissionForSessionResponse,
+} from "./Internal";
 import browser from "webextension-polyfill";
 import {
   ACCOUNT_BALANCE_REQUEST,
   ANSWER_CONNECTION_REQUEST,
-  ANSWER_NEW_ACCOUNT_REQUEST, ANSWER_TRANSACTION_REQUEST,
+  ANSWER_SWITCH_CHAIN_REQUEST,
+  ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_TRANSFER_REQUEST,
+  CHECK_PERMISSION_FOR_SESSION_REQUEST,
   IMPORT_ACCOUNT_REQUEST,
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
@@ -116,15 +123,6 @@ export default class AppToBackground {
     } as AnswerTransferRequest);
   }
 
-  static async sendRequestToAnswerTransaction(
-    data: AnswerTransferRequest["data"]
-  ): Promise<AnswerTransferResponse> {
-    return browser.runtime.sendMessage({
-      type: ANSWER_TRANSACTION_REQUEST,
-      data,
-    } as AnswerTransactionRequest);
-  }
-
   static async initializeVault(
     password: string,
     rememberPass: boolean
@@ -189,6 +187,26 @@ export default class AppToBackground {
   ): Promise<NetworkFeeResponse> {
     const message: NetworkFeeMessage = {
       type: NETWORK_FEE_REQUEST,
+      data,
+    };
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async checkPermissionForSession(
+    data: CheckPermissionForSessionMessage["data"]
+  ): Promise<CheckPermissionForSessionResponse> {
+    const message: CheckPermissionForSessionMessage = {
+      type: CHECK_PERMISSION_FOR_SESSION_REQUEST,
+      data,
+    };
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async answerSwitchChain(
+    data: AnswerSwitchChainRequest["data"]
+  ): Promise<AnswerSwitchChainResponse> {
+    const message: AnswerSwitchChainRequest = {
+      type: ANSWER_SWITCH_CHAIN_REQUEST,
       data,
     };
     return browser.runtime.sendMessage(message);

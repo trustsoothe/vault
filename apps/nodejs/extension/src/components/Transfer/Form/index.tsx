@@ -30,7 +30,6 @@ const TransferForm: React.FC = () => {
         spacing={2}
       >
         <AmountFeeInputs />
-        {/*<NetworkAutocomplete />*/}
         <ToAddressAutocomplete disabled={disableInputs} />
         {isPokt && (
           <Controller
@@ -47,7 +46,15 @@ const TransferForm: React.FC = () => {
                 sx={{
                   order: 8,
                   marginTop: "20px!important",
+                  "& .MuiFormHelperText-root": {
+                    left: 10,
+                    bottom: -18,
+                    width: "calc(100% - 30px)",
+                  },
                 }}
+                helperText={
+                  "This will be public in the blockchain. Don't put sensitive data here."
+                }
               />
             )}
           />

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { SupportedProtocols } from "@poktscan/keyring";
 import { useGetPricesQuery } from "../redux/slices/prices";
 import { useAppSelector } from "./redux";
+import { networksSelector } from "../redux/selectors/network";
 
 export interface NetworkPrices {
   [SupportedProtocols.Pocket]: Record<string, number>;
@@ -11,7 +12,7 @@ export interface NetworkPrices {
 const useGetPrices = (
   options?: Parameters<typeof useGetPricesQuery>[1]
 ): ReturnType<typeof useGetPricesQuery> & { data?: NetworkPrices } => {
-  const networks = useAppSelector((state) => state.app.networks);
+  const networks = useAppSelector(networksSelector);
   const ids = networks
     .filter((item) => !!item.coinGeckoId)
     .map((item) => item.coinGeckoId)
@@ -19,8 +20,8 @@ const useGetPrices = (
 
   const result = useGetPricesQuery(ids, options);
 
-  const data = useMemo(() => {
-    if (!result.data) return result.data;
+  return useMemo(() => {
+    if (!result.data) return result;
 
     const objectToReturn: NetworkPrices = {
       [SupportedProtocols.Ethereum]: {},
@@ -33,13 +34,11 @@ const useGetPrices = (
       objectToReturn[protocol][chainId] = result.data[coinGeckoId]?.usd || 0;
     }
 
-    return objectToReturn;
-  }, [result?.data, networks]);
-
-  return {
-    ...result,
-    data,
-  };
+    return {
+      ...result,
+      data: objectToReturn,
+    };
+  }, [result, result?.data, networks]);
 };
 
 export default useGetPrices;

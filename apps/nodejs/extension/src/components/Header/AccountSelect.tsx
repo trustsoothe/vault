@@ -12,7 +12,7 @@ import {
   type SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/keyring";
-import { roundAndSeparate } from "../../utils/ui";
+import { getTruncatedText, roundAndSeparate } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import CloseIcon from "../../assets/img/close_icon.svg";
 import ExpandIcon from "../../assets/img/drop_down_icon.svg";
@@ -26,7 +26,7 @@ import {
 import {
   accountsSelector,
   balanceMapConsideringAsset,
-  selectedAccountIdSelector,
+  selectedAccountAddressSelector,
   selectedAccountSelector,
 } from "../../redux/selectors/account";
 
@@ -45,7 +45,7 @@ const AccountItem: React.FC<AccountItemProps> = ({
   const dispatch = useAppDispatch();
   const selectedChain = useAppSelector(selectedChainSelector);
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
-  const selectedAccountId = useAppSelector(selectedAccountIdSelector);
+  const selectedAccountAddress = useAppSelector(selectedAccountAddressSelector);
   const balanceMap = useAppSelector(balanceMapConsideringAsset(undefined));
 
   useEffect(() => {
@@ -56,16 +56,13 @@ const AccountItem: React.FC<AccountItemProps> = ({
     }).catch();
   }, []);
 
-  const { address, name, id } = account;
+  const { address, name } = account;
 
   const balance = (balanceMap?.[address]?.amount as number) || 0;
   const errorBalance = balanceMap?.[address]?.error || false;
   const loadingBalance = (balanceMap?.[address]?.loading && !balance) || false;
 
-  const addressFirstCharacters = address.substring(0, 4);
-  const addressLastCharacters = address.substring(address.length - 4);
-
-  const isSelected = selectedAccountId === id;
+  const isSelected = selectedAccountAddress === address;
 
   const onClickItem = useCallback(() => {
     if (isSelected) {
@@ -75,11 +72,11 @@ const AccountItem: React.FC<AccountItemProps> = ({
 
     dispatch(
       changeSelectedAccountOfNetwork({
-        network: selectedProtocol,
-        accountId: id,
+        protocol: selectedProtocol,
+        address,
       })
     ).then(() => closeSelector());
-  }, [isSelected, closeSelector, selectedProtocol, id, dispatch]);
+  }, [isSelected, closeSelector, selectedProtocol, address, dispatch]);
 
   return (
     <Stack
@@ -138,7 +135,7 @@ const AccountItem: React.FC<AccountItemProps> = ({
             color={theme.customColors.dark75}
             lineHeight={"20px"}
           >
-            {addressFirstCharacters}...{addressLastCharacters}
+            {getTruncatedText(address)}
           </Typography>
         </Stack>
       </Stack>
@@ -268,9 +265,21 @@ const AccountSelect: React.FC<AccountSelectProps> = ({
           {!anchorEl ? selectedAccount?.name || "No Account" : "Select Account"}
         </Typography>
         {!anchorEl ? (
-          <ExpandIcon />
+          <ExpandIcon
+            style={{
+              minWidth: 30,
+              width: 30,
+              height: 30,
+            }}
+          />
         ) : (
-          <IconButton>
+          <IconButton
+            sx={{
+              minWidth: 30,
+              width: 30,
+              height: 30,
+            }}
+          >
             <CloseIcon />
           </IconButton>
         )}
@@ -293,7 +302,6 @@ const AccountSelect: React.FC<AccountSelectProps> = ({
                 borderTop: `none!important`,
                 borderBottomLeftRadius: "12px",
                 borderBottomRightRadius: "12px",
-                marginLeft: 0.1,
               }}
             >
               <Stack

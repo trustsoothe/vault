@@ -9,42 +9,17 @@ import { DISCONNECT_SITE_PAGE } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import { enqueueSnackbar } from "../../utils/ui";
+import { enqueueSnackbar, getTruncatedText, secsToText } from "../../utils/ui";
 import ExpandIcon from "../../assets/img/expand_icon.svg";
 import { useAppSelector } from "../../hooks/redux";
 import { sessionsSelector } from "../../redux/selectors/session";
 import { accountsSelector } from "../../redux/selectors/account";
+import TooltipOverflow from "../common/TooltipOverflow";
+import { labelByProtocolMap } from "../../constants/protocols";
 
 interface ListItemProps {
   session: Session;
 }
-
-const secsInHour = 3600;
-
-function pad(a, b = 2) {
-  return (1e15 + a + "").slice(-b);
-}
-
-const secsToText = (secs: number) => {
-  if (secs > secsInHour) {
-    const hours = Math.floor(secs / secsInHour);
-    secs -= hours * secsInHour;
-    const minutes = Math.floor(secs / 60);
-    secs -= minutes * 60;
-    const seconds = Math.floor(secs);
-
-    return `${hours}:${pad(minutes)}:${pad(seconds)}`;
-  } else if (secs > 60) {
-    const minutes = Math.floor(secs / 60);
-    secs -= minutes * 60;
-    const seconds = Math.floor(secs);
-
-    return `${minutes}:${pad(seconds)}`;
-  } else {
-    const seconds = Math.floor(secs);
-    return `0:${pad(seconds)}`;
-  }
-};
 
 const ListItem: React.FC<ListItemProps> = ({ session }) => {
   const theme = useTheme();
@@ -94,19 +69,17 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
       );
 
     return accounts
-      .filter((account) => idMap.includes(account.id))
+      .filter((account) => idMap.includes(account.address))
       .map(({ address, name }) => {
-        const addressFirstCharacters = address?.substring(0, 4);
-        const addressLastCharacters = address?.substring(address?.length - 4);
-
         return (
           <Typography
             marginLeft={2}
             lineHeight={"20px"}
             fontSize={11}
             letterSpacing={"0.5px"}
+            key={address}
           >
-            {name} ({addressFirstCharacters}...{addressLastCharacters})
+            {name} ({getTruncatedText(address)})
           </Typography>
         );
       });
@@ -131,18 +104,25 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
         alignItems={"center"}
         height={30}
         maxWidth={1}
+        spacing={1}
+        width={337}
       >
-        <Typography
-          maxWidth={270}
-          whiteSpace={"nowrap"}
-          textOverflow={"ellipsis"}
-          overflow={"hidden"}
-          fontSize={14}
-          fontWeight={500}
-          letterSpacing={"0.5px"}
-        >
-          {session.origin.value}
-        </Typography>
+        <TooltipOverflow
+          enableTextCopy={false}
+          containerProps={{
+            height: 30,
+            marginTop: "-5px!important",
+          }}
+          textProps={{
+            height: 30,
+            lineHeight: "30px",
+          }}
+          text={session.origin.value}
+          linkProps={{
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        />
         <Typography
           fontSize={13}
           fontWeight={500}
@@ -173,6 +153,24 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
           color={theme.customColors.dark100}
         >
           {secsToText(secsToExpire)}
+        </Typography>
+      </Stack>
+      <Stack direction={"row"} justifyContent={"space-between"} height={25}>
+        <Typography
+          fontSize={12}
+          lineHeight={"20px"}
+          letterSpacing={"0.5px"}
+          color={theme.customColors.dark100}
+        >
+          Protocol
+        </Typography>
+        <Typography
+          fontSize={12}
+          lineHeight={"20px"}
+          letterSpacing={"0.5px"}
+          color={theme.customColors.dark100}
+        >
+          {labelByProtocolMap[session.protocol] || session.protocol}
         </Typography>
       </Stack>
       <Stack

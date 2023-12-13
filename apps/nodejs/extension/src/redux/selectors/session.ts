@@ -63,6 +63,9 @@ export const currentExternalRequest = createSelector(
 export const vaultLockedForWrongPasswordsSelector = (state: RootState) =>
   state.vault.isUnlockedStatus === "locked_due_wrong_password";
 
+export const dateUntilVaultIsLockedSelector = (state: RootState) =>
+  state.vault.dateUntilVaultIsLocked;
+
 export const initializeStatusSelector = (state: RootState) =>
   state.vault.initializeStatus;
 export const vaultSessionExistsSelector = (state: RootState) =>

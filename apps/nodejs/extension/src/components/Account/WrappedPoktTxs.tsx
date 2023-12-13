@@ -34,11 +34,15 @@ import {
   selectedProtocolSelector,
 } from "../../redux/selectors/network";
 import {
+  idOfMintsSentSelector,
   wPoktAssetSelector,
   wPoktBaseUrlSelector,
   wPoktVaultAddressSelector,
 } from "../../redux/selectors/asset";
 import { wPoktBalanceSelector } from "../../redux/selectors/account";
+import MintTransactionModal, {
+  MintTransactionModalProps,
+} from "./MintTransactionModal";
 
 export enum Status {
   PENDING = "pending",
@@ -89,23 +93,8 @@ interface BurnTransaction extends BaseTransaction {
   return_tx_hash: string;
 }
 
-interface BaseResponse {
-  page: number;
-  totalPages: number;
-}
-
-interface MintResponse extends BaseResponse {
-  mints: MintTransaction[];
-  totalMints: number;
-}
-
-interface BurnResponse extends BaseResponse {
-  burns: BurnTransaction[];
-  totalBurns: number;
-}
-
 type Transaction = BurnTransaction | MintTransaction;
-type Response = BurnResponse | MintResponse;
+type Response = BurnTransaction[] | MintTransaction[];
 
 const addZeroIfOnlyOneDigit = (value: number) => {
   return value < 10 ? `0${value}` : value.toString();
@@ -158,32 +147,18 @@ interface TransactionItemProps {
   tx: Transaction;
   action: Action;
   txAllowedToMint?: string;
+  onClickMint: (tx: Transaction) => void;
 }
 
 const TransactionItem: React.FC<TransactionItemProps> = ({
   tx,
   action,
   txAllowedToMint,
+  onClickMint,
 }) => {
   const theme = useTheme();
-  const navigate = useNavigate();
   const explorerTransactionUrl = useAppSelector(explorerTransactionUrlSelector);
   const explorerAccountUrl = useAppSelector(explorerAccountUrlForWpoktSelector);
-  const wPoktAsset = useAppSelector(wPoktAssetSelector);
-
-  const onClickMint = useCallback(() => {
-    const state: ExternalTransferState = {
-      asset: wPoktAsset,
-      transferType: TransferType.mint,
-      transferData: {
-        amount: "",
-        toAddress: "",
-        signatures: (tx as MintTransaction).signatures,
-        mintInfo: (tx as MintTransaction).data,
-      },
-    };
-    navigate(TRANSFER_PAGE, { state });
-  }, [navigate, tx, wPoktAsset]);
 
   const dateCreated = new Date(tx.created_at);
   const createdAt = formatDate(dateCreated);
@@ -206,8 +181,14 @@ const TransactionItem: React.FC<TransactionItemProps> = ({
         containerProps={{
           width: 77,
           minWidth: 77,
+          justifyContent: "flex-start!important",
         }}
         textProps={{
+          sx: {
+            textAlign: "left!important",
+          },
+        }}
+        linkProps={{
           sx: {
             textAlign: "left!important",
           },
@@ -266,7 +247,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({
             textTransform: "capitalize",
           }}
           disabled={tx._id !== txAllowedToMint}
-          onClick={onClickMint}
+          onClick={() => onClickMint(tx)}
         >
           {action.replace("s", "")}
         </Button>
@@ -521,7 +502,7 @@ const TransferForm: React.FC<TransferFormProps> = ({
               }
 
               const total = amountFromInput + fee;
-              return /*total > balance ? `Insufficient balance` :*/ true;
+              return total > balance ? `Insufficient balance` : true;
             },
           }}
           render={({ field, fieldState: { error } }) => (
@@ -586,11 +567,11 @@ const TransferForm: React.FC<TransferFormProps> = ({
             order: 9,
           }}
           type={"submit"}
-          // disabled={
-          //   !balance ||
-          //   (poktFeeStatus === "not-fetched" &&
-          //     selectedProtocol === SupportedProtocols.Pocket)
-          // }
+          disabled={
+            !balance ||
+            (poktFeeStatus === "not-fetched" &&
+              selectedProtocol === SupportedProtocols.Pocket)
+          }
         >
           {action === "burns" ? "Wrap" : "Unwrap"}
         </Button>
@@ -598,9 +579,6 @@ const TransferForm: React.FC<TransferFormProps> = ({
     </Stack>
   );
 };
-
-const MAINNET_BASE_API_URL = "https://wpokt-monitor.vercel.app/api";
-const TESTNET_BASE_API_URL = "https://testnet-wpokt-monitor.vercel.app/api";
 
 type Action = "burns" | "mints";
 
@@ -611,8 +589,6 @@ interface WrappedPoktTxsProps {
   onCloseForm?: () => void;
 }
 
-// const itemsLimit = 10;
-
 const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
   address,
   action,
@@ -621,16 +597,19 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
 }) => {
   const theme = useTheme();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [page, setPage] = useState(1);
+  const [mintInfoOfModal, setMintInfoOfModal] =
+    useState<MintTransactionModalProps["mintInfo"]>(null);
   const [fetchStatus, setFetchStatus] = useState<
     "loading" | "normal" | "error"
   >("loading");
 
   useEffect(() => {
     setTransactions([]);
-    setPage(1);
   }, [action, address]);
 
+  const navigate = useNavigate();
+  const wPoktAsset = useAppSelector(wPoktAssetSelector);
+  const idOfMintsSent = useAppSelector(idOfMintsSentSelector);
   const baseUrl = useAppSelector(wPoktBaseUrlSelector(action));
 
   const abortControllerRef = useRef<AbortController>(null);
@@ -638,35 +617,61 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
   const fetchTransactions = useCallback(() => {
     abortControllerRef.current = new AbortController();
     setFetchStatus("loading");
-    fetch(`${baseUrl}/${action}/all?page=${page}&recipient=${address}`, {
+    fetch(`${baseUrl}/${action}/active?recipient=${address}`, {
       signal: abortControllerRef.current.signal,
     })
       .then((res) => res.json())
-      .then((json: Response) => {
-        let items: Transaction[];
-        if (action === "burns") {
-          items = (json as BurnResponse).burns;
-        } else {
-          items = (json as MintResponse).mints;
-        }
-
-        setTransactions((prevState) => [...prevState, ...items]);
+      .then((items: Response) => {
+        setTransactions(items);
         setFetchStatus("normal");
       })
       .catch(() => {
         setFetchStatus("error");
       })
       .finally(() => (abortControllerRef.current = null));
-  }, [action, page, address]);
+  }, [action, address]);
 
   useEffect(() => {
     fetchTransactions();
+
+    const interval = setInterval(fetchTransactions, 30000);
+
     return () => {
+      clearInterval(interval);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
   }, [fetchTransactions]);
+
+  const onClickMint = useCallback(
+    (tx: Transaction) => {
+      if ("data" in tx) {
+        if (idOfMintsSent.includes(tx._id)) {
+          setMintInfoOfModal({
+            mintId: tx._id,
+            mintInfo: tx.data,
+            signatures: tx.signatures,
+          });
+          return;
+        }
+
+        const state: ExternalTransferState = {
+          asset: wPoktAsset,
+          transferType: TransferType.mint,
+          transferData: {
+            amount: "",
+            toAddress: "",
+            mintId: tx._id,
+            signatures: (tx as MintTransaction).signatures,
+            mintInfo: (tx as MintTransaction).data,
+          },
+        };
+        navigate(TRANSFER_PAGE, { state });
+      }
+    },
+    [wPoktAsset, idOfMintsSent]
+  );
 
   const txAllowedToMint = useMemo(() => {
     if (action === "burns") return null;
@@ -686,113 +691,121 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
   }, [action, transactions]);
 
   return (
-    <Stack spacing={1} marginX={-0.5} marginTop={showForm ? 1.5 : 2.2}>
-      {showForm && (
-        <TransferForm action={action} onClose={onCloseForm} address={address} />
-      )}
-      <Stack height={showForm ? 200 : 210} marginTop={1}>
-        <Stack
-          direction={"row"}
-          alignItems={"center"}
-          justifyContent={"space-between"}
-          height={30}
-          minHeight={30}
-          borderBottom={`1px solid ${theme.customColors.dark25}`}
-          paddingX={1}
-        >
+    <>
+      <Stack spacing={1} marginX={-0.5} marginTop={showForm ? 1.5 : 2.2}>
+        {showForm && (
+          <TransferForm
+            action={action}
+            onClose={onCloseForm}
+            address={address}
+          />
+        )}
+        <Stack height={showForm ? 200 : 210} marginTop={1}>
           <Typography
+            marginLeft={0.5}
             fontSize={12}
+            lineHeight={"30px"}
             fontWeight={500}
             sx={{ textTransform: "capitalize" }}
           >
             {action}
           </Typography>
-        </Stack>
-        <Stack
-          width={transactions.length > 5 ? 362 : 370}
-          height={24}
-          minHeight={24}
-          spacing={1.7}
-          direction={"row"}
-          alignItems={"center"}
-          sx={{
-            "& p": {
-              fontSize: 10,
-              fontWeight: 500,
-              textAlign: "center",
-              letterSpacing: "0.5px",
-            },
-          }}
-          paddingX={0.5}
-          boxSizing={"border-box"}
-          bgcolor={theme.customColors.dark2}
-          borderBottom={`1px solid ${theme.customColors.dark15}`}
-        >
-          <Typography
-            width={77}
-            minWidth={77}
-            sx={{ textAlign: "left!important" }}
+          <Stack
+            width={transactions.length > 5 ? 362 : 370}
+            height={24}
+            minHeight={24}
+            spacing={1.7}
+            direction={"row"}
+            alignItems={"center"}
+            sx={{
+              "& p": {
+                fontSize: 10,
+                fontWeight: 500,
+                textAlign: "center",
+                letterSpacing: "0.5px",
+              },
+            }}
+            paddingX={0.5}
+            boxSizing={"border-box"}
+            bgcolor={theme.customColors.dark2}
+            borderBottom={`1px solid ${theme.customColors.dark15}`}
           >
-            Created at
-          </Typography>
-          <Typography width={50} minWidth={50}>
-            Sender
-          </Typography>
-          <Typography width={65} minWidth={65}>
-            Amount
-          </Typography>
-          <Typography width={40} minWidth={40}>
-            {action === "burns" ? "Status" : "Nonce"}
-          </Typography>
-          <Typography width={60} minWidth={60} textAlign={"right"}>
-            {action === "burns" ? "Return TX" : "Mint TX"}
-          </Typography>
-        </Stack>
-        <Stack
-          width={370}
-          sx={{
-            overflowY: fetchStatus === "loading" ? "hidden" : "auto",
-            overflowX: "hidden",
-          }}
-        >
-          {fetchStatus === "error" ? (
-            <OperationFailed
-              text={"Transactions load failed."}
-              onRetry={fetchTransactions}
-              cancelBtnProps={{ sx: { display: "none" } }}
-            />
-          ) : !transactions.length && fetchStatus === "normal" ? (
-            <Stack alignItems={"center"} justifyContent={"center"} flexGrow={1}>
-              <Typography
-                fontSize={12}
-                fontWeight={500}
-                letterSpacing={"0.5px"}
-                color={theme.customColors.primary250}
+            <Typography
+              width={77}
+              minWidth={77}
+              sx={{ textAlign: "left!important" }}
+            >
+              Created at
+            </Typography>
+            <Typography width={50} minWidth={50}>
+              Sender
+            </Typography>
+            <Typography width={65} minWidth={65}>
+              Amount
+            </Typography>
+            <Typography width={40} minWidth={40}>
+              {action === "burns" ? "Status" : "Nonce"}
+            </Typography>
+            <Typography width={60} minWidth={60} textAlign={"right"}>
+              {action === "burns" ? "Return TX" : "Mint TX"}
+            </Typography>
+          </Stack>
+          <Stack
+            width={370}
+            flexGrow={1}
+            sx={{
+              overflowY: fetchStatus === "loading" ? "hidden" : "auto",
+              overflowX: "hidden",
+            }}
+          >
+            {fetchStatus === "error" ? (
+              <OperationFailed
+                text={"Transactions load failed."}
+                onRetry={fetchTransactions}
+                cancelBtnProps={{ sx: { display: "none" } }}
+              />
+            ) : !transactions.length && fetchStatus === "normal" ? (
+              <Stack
+                alignItems={"center"}
+                justifyContent={"center"}
+                height={145}
               >
-                NO ACTIVITY
-              </Typography>
-            </Stack>
-          ) : (
-            <>
-              {transactions.map((item) => (
-                <TransactionItem
-                  tx={item}
-                  key={item._id}
-                  action={action}
-                  txAllowedToMint={txAllowedToMint}
-                />
-              ))}
-              {fetchStatus === "loading" &&
-                new Array(5)
-                  .fill(null)
-                  .map((_, index) => (
-                    <TransactionSkeleton action={action} key={index} />
-                  ))}
-            </>
-          )}
+                <Typography
+                  fontSize={12}
+                  fontWeight={500}
+                  letterSpacing={"0.5px"}
+                  color={theme.customColors.primary250}
+                >
+                  NO ACTIVITY
+                </Typography>
+              </Stack>
+            ) : (
+              <>
+                {fetchStatus === "loading"
+                  ? new Array(5)
+                      .fill(null)
+                      .map((_, index) => (
+                        <TransactionSkeleton action={action} key={index} />
+                      ))
+                  : transactions.map((item) => (
+                      <TransactionItem
+                        tx={item}
+                        key={item._id}
+                        action={action}
+                        txAllowedToMint={txAllowedToMint}
+                        onClickMint={onClickMint}
+                      />
+                    ))}
+              </>
+            )}
+          </Stack>
         </Stack>
       </Stack>
-    </Stack>
+      <MintTransactionModal
+        onClose={() => setMintInfoOfModal(null)}
+        mintInfo={mintInfoOfModal}
+      />
+    </>
   );
 };
 

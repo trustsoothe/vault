@@ -1,10 +1,11 @@
-import {Account} from "../core/vault";
+import { Account } from "../core/vault";
 
 interface IKeyringError {
   name: string;
   message: string;
   innerError?: Error;
 }
+
 export class KeyringError extends Error {
   readonly keyringError: true = true;
   readonly name: string;
@@ -29,28 +30,34 @@ export class SessionIdRequiredError extends KeyringError {
   }
 }
 
+export const SessionNotFoundErrorName = "SessionNotFoundError";
+
 export class SessionNotFoundError extends KeyringError {
   constructor() {
     super({
-      name: "SessionNotFoundError",
+      name: SessionNotFoundErrorName,
       message: "Unauthorized: Session id not found",
     });
   }
 }
 
+export const InvalidSessionErrorName = "InvalidSessionError";
+
 export class InvalidSessionError extends KeyringError {
   constructor() {
     super({
-      name: "InvalidSessionError",
+      name: InvalidSessionErrorName,
       message: "Unauthorized: Session is invalid",
     });
   }
 }
 
+export const ForbiddenSessionErrorName = "ForbiddenSessionError";
+
 export class ForbiddenSessionError extends KeyringError {
   constructor() {
     super({
-      name: "ForbiddenSessionError",
+      name: ForbiddenSessionErrorName,
       message: "Unauthorized: Session is not allowed to perform this operation",
     });
   }
@@ -65,11 +72,14 @@ export class VaultIsLockedError extends KeyringError {
   }
 }
 
+export const VaultRestoreErrorName = "VaultRestoreError";
+
 export class VaultRestoreError extends KeyringError {
   constructor() {
     super({
-      name: "VaultRestoreError",
-      message: "Invalid Operation: Vault can not be restored. Make sure the passphrase is correct.",
+      name: VaultRestoreErrorName,
+      message:
+        "Invalid Operation: Vault can not be restored. Make sure the passphrase is correct.",
     });
   }
 }
@@ -77,8 +87,10 @@ export class VaultRestoreError extends KeyringError {
 export class ProtocolNotSupported extends KeyringError {
   constructor(protocol?: string) {
     super({
-      name: 'ProtocolNotSupported',
-      message: protocol ? `Protocol "${protocol}" not supported` : 'Protocol not supported',
+      name: "ProtocolNotSupported",
+      message: protocol
+        ? `Protocol "${protocol}" not supported`
+        : "Protocol not supported",
     });
   }
 }
@@ -86,7 +98,7 @@ export class ProtocolNotSupported extends KeyringError {
 export class ArgumentError extends KeyringError {
   constructor(argument: string, message?: string) {
     super({
-      name: 'ArgumentError',
+      name: "ArgumentError",
       message: message || `Invalid Argument: ${argument}`,
     });
   }
@@ -95,17 +107,19 @@ export class ArgumentError extends KeyringError {
 export class NetworkRequestError extends KeyringError {
   constructor(message: string, innerError?: Error) {
     super({
-      name: 'NetworkRequestError',
+      name: "NetworkRequestError",
       message,
       innerError,
     });
   }
 }
 
+export const AccountExistErrorName = "AccountExistError";
+
 export class AccountExistError extends KeyringError {
   constructor(account: Account) {
     super({
-      name: 'AccountExistError',
+      name: AccountExistErrorName,
       message: `An account with address: ${account.address} and protocol: "${account.protocol}" already exists within the vault.`,
     });
   }
@@ -114,7 +128,7 @@ export class AccountExistError extends KeyringError {
 export class ProtocolMismatchError extends KeyringError {
   constructor(message?: string) {
     super({
-      name: 'ProtocolMismatchError',
+      name: "ProtocolMismatchError",
       message: message || `Mismatching protocols have been provided`,
     });
   }
@@ -123,8 +137,8 @@ export class ProtocolMismatchError extends KeyringError {
 export class InvalidPrivateKeyError extends KeyringError {
   constructor(message?: string) {
     super({
-      name: 'InvalidPrivateKeyError',
-      message: message || 'The provided private key is invalid',
+      name: "InvalidPrivateKeyError",
+      message: message || "The provided private key is invalid",
     });
   }
 }
@@ -132,8 +146,8 @@ export class InvalidPrivateKeyError extends KeyringError {
 export class AccountNotFoundError extends KeyringError {
   constructor(message?: string) {
     super({
-      name: 'AccountNotFoundError',
-      message: message || 'The provided account was not found',
+      name: "AccountNotFoundError",
+      message: message || "The provided account was not found",
     });
   }
 }
@@ -141,18 +155,22 @@ export class AccountNotFoundError extends KeyringError {
 export class ProtocolTransactionError extends KeyringError {
   constructor(message?: string, innerError?: Error) {
     super({
-      name: 'ProtocolTransactionError',
-      message: message || 'The provided transaction failed',
+      name: "ProtocolTransactionError",
+      message: message || "The provided transaction failed",
       innerError,
     });
   }
 }
 
+export const PrivateKeyRestoreErrorName = "PrivateKeyRestoreError";
+
 export class PrivateKeyRestoreError extends KeyringError {
   constructor(message?: string) {
     super({
-      name: 'PrivateKeyRestoreError',
-      message: message || 'Invalid Operation: Private Key can not be restored. Make sure the passphrase is correct.',
+      name: PrivateKeyRestoreErrorName,
+      message:
+        message ||
+        "Invalid Operation: Private Key can not be restored. Make sure the passphrase is correct.",
     });
   }
 }
@@ -160,8 +178,8 @@ export class PrivateKeyRestoreError extends KeyringError {
 export class InvalidChainIDError extends KeyringError {
   constructor(message?: string) {
     super({
-      name: 'InvalidChainIDError',
-      message: message || 'Invalid Chain ID',
+      name: "InvalidChainIDError",
+      message: message || "Invalid Chain ID",
     });
   }
 }

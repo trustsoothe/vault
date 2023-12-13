@@ -114,8 +114,8 @@ const CreateNewAccount: React.FC = () => {
         } else {
           dispatch(
             changeSelectedAccountOfNetwork({
-              network: protocol,
-              accountId: result.data.accountId,
+              protocol: protocol,
+              address: result.data.address,
             })
           ).then(() => {
             enqueueSnackbar({

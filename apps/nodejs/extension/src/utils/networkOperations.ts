@@ -1,7 +1,7 @@
-import type { ErrorsPreferredNetwork } from "../redux/slices/app";
+import type { ErrorsByNetwork } from "../redux/slices/app";
 import { Buffer } from "buffer";
 import crypto from "crypto-browserify";
-import scrypt from "scrypt-js";
+import { scrypt } from "ethereum-cryptography/scrypt.js";
 import { isAddress as isEthAddress, validator } from "web3-validator";
 import { decrypt, encrypt, keyStoreSchema } from "web3-eth-accounts";
 import {
@@ -41,7 +41,7 @@ interface GetFeeParam<T extends SupportedProtocols = SupportedProtocols> {
   protocol: T;
   chainId: string;
   networks: NetworkForOperations[];
-  errorsPreferredNetwork?: ErrorsPreferredNetwork;
+  errorsPreferredNetwork?: ErrorsByNetwork;
   options: T extends SupportedProtocols.Ethereum
     ? EthereumNetworkFeeRequestOptions
     : undefined;
@@ -63,8 +63,7 @@ export const getFee = async ({
 
   if (errorsPreferredNetwork) {
     const preferredNetworks = networks.filter((item) => {
-      const errors =
-        errorsPreferredNetwork?.[item.protocol]?.[item.chainID]?.[item.id] || 0;
+      const errors = errorsPreferredNetwork?.[item.id] || 0;
       return (
         item.isPreferred &&
         item.protocol === protocol &&
@@ -111,7 +110,7 @@ interface GetAccountBalanceParam {
   protocol: SupportedProtocols;
   chainId: string;
   networks: NetworkForOperations[];
-  errorsPreferredNetwork?: ErrorsPreferredNetwork;
+  errorsPreferredNetwork?: ErrorsByNetwork;
   asset?: { contractAddress: string; decimals: number };
 }
 
@@ -142,8 +141,7 @@ export const getAccountBalance = async ({
 
   if (errorsPreferredNetwork) {
     const preferredNetworks = networks.filter((item) => {
-      const errors =
-        errorsPreferredNetwork?.[item.protocol]?.[item.chainID]?.[item.id] || 0;
+      const errors = errorsPreferredNetwork?.[item.id] || 0;
       return (
         item.isPreferred &&
         item.protocol === protocol &&
@@ -211,13 +209,17 @@ export const isNetworkUrlHealthy = async (network: INetwork) => {
 
     const result = await ProtocolService.getNetworkStatus(network);
 
-    return (
-      result?.canProvideBalance &&
-      result?.canSendTransaction &&
-      result?.canProvideFee
-    );
+    return {
+      canSendTransaction: result?.canProvideBalance,
+      canProvideBalance: result?.canSendTransaction,
+      canProvideFee: result?.canProvideFee,
+    };
   } catch (e) {
-    return false;
+    return {
+      canSendTransaction: false,
+      canProvideBalance: false,
+      canProvideFee: false,
+    };
   }
 };
 
@@ -311,12 +313,12 @@ export const getPrivateKeyFromPPK = async (
     // Retrieve the salt
     const decryptSalt = Buffer.from(jsonObject.salt, "hex");
     // Scrypt hash
-    const scryptHash = await scrypt.scrypt(
+    const scryptHash = await scrypt(
       Buffer.from(filePassword, "utf8"),
       decryptSalt,
       scryptOptions.N,
-      scryptOptions.r,
       scryptOptions.p,
+      scryptOptions.r,
       scryptHashLength
     );
     // Create a buffer from the ciphertext
@@ -364,12 +366,12 @@ export const getPortableWalletContent = async (
     const algorithm = "aes-256-gcm";
     const salt = crypto.randomBytes(16);
 
-    const scryptHash = await scrypt.scrypt(
+    const scryptHash = await scrypt(
       Buffer.from(password, "utf8"),
       salt,
       SCRYPT_OPTIONS.N,
-      SCRYPT_OPTIONS.r,
       SCRYPT_OPTIONS.p,
+      SCRYPT_OPTIONS.r,
       SCRYPT_HASH_LENGTH
     );
     // Create the nonce from the first 12 bytes of the sha256 Scrypt hash

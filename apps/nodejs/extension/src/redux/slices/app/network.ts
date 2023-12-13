@@ -10,6 +10,7 @@ import {
   CUSTOM_RPCS_KEY,
   CustomRPC,
   type GeneralAppSlice,
+  resetErrorOfNetwork,
   setGetAccountPending as setGetAccountPendingFromApp,
 } from "./index";
 import { wait } from "../../../utils";
@@ -21,10 +22,8 @@ import { RPC_ALREADY_EXISTS } from "../../../errors/rpc";
 
 const NETWORKS_STORAGE_KEY = "networks";
 const ASSETS_STORAGE_KEY = "assets";
-const NETWORKS_CDN_URL =
-  "https://poktscan-v1.nyc3.cdn.digitaloceanspaces.com/networks.json";
-const ASSETS_CDN_URL =
-  "https://poktscan-v1.nyc3.cdn.digitaloceanspaces.com/assets.json";
+const NETWORKS_CDN_URL = process.env.NETWORKS_CDN_URL;
+const ASSETS_CDN_URL = process.env.ASSETS_CDN_URL;
 
 export const loadNetworksFromStorage = createAsyncThunk(
   "app/loadNetworksFromStorage",
@@ -102,7 +101,7 @@ interface SaveCustomRpcParam {
 
 export const saveCustomRpc = createAsyncThunk(
   "app/saveCustomRpc",
-  async ({ rpc, idToReplace }: SaveCustomRpcParam) => {
+  async ({ rpc, idToReplace }: SaveCustomRpcParam, context) => {
     const alreadySavedRpcsRes = await browser.storage.local.get(
       CUSTOM_RPCS_KEY
     );
@@ -125,11 +124,24 @@ export const saveCustomRpc = createAsyncThunk(
       ...rpc,
     };
 
+    let resetErrors = false;
+
     const newRpcList = idToReplace
-      ? alreadySavedRpcs.map((item) =>
-          item.id === idToReplace ? rpcToSave : item
-        )
+      ? alreadySavedRpcs.map((item) => {
+          if (item.id === idToReplace) {
+            if (item.url !== rpcToSave.url) {
+              resetErrors = true;
+            }
+            return rpcToSave;
+          }
+
+          return item;
+        })
       : [...alreadySavedRpcs, rpcToSave];
+
+    if (resetErrors) {
+      await context.dispatch(resetErrorOfNetwork(idToReplace));
+    }
 
     await browser.storage.local.set({
       [CUSTOM_RPCS_KEY]: newRpcList,
@@ -313,10 +325,8 @@ const addAccountBalanceToBuilder = (builder: AppSliceBuilder) => {
     });
 
     if (networksWithErrors.length) {
-      const { protocol, chainId } = action.meta.arg;
-
       for (const networkId of networksWithErrors) {
-        const path = ["errorsPreferredNetwork", protocol, chainId, networkId];
+        const path = ["errorsPreferredNetwork", networkId];
         set(state, path, get(state, path, 0) + 1);
       }
     }

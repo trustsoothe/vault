@@ -20,6 +20,7 @@ import { useAppSelector } from "../../../hooks/redux";
 import { useTransferContext } from "../../../contexts/TransferContext";
 import { symbolOfNetworkSelector } from "../../../redux/selectors/network";
 import { accountBalancesSelector } from "../../../redux/selectors/account";
+import { timeByFeeSpeedMap } from "../Form/AmountFeeInputs";
 
 interface Option {
   speed: FeeSpeed;
@@ -27,10 +28,12 @@ interface Option {
 }
 
 interface MaxFeeSelectorProps {
-  networkPrice: number;
+  networkPrice?: number;
 }
 
-const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
+const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({
+  networkPrice = 0,
+}) => {
   const theme: Theme = useTheme();
   const { watch, control } = useFormContext();
   const { networkFee, feeFetchStatus, getNetworkFee, status } =
@@ -77,7 +80,7 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
   const ethFee = networkFee as EthereumNetworkFee;
 
   const options: Option[] = useMemo(() => {
-    return [
+    const opts: Option[] = [
       {
         speed: "low",
         maxFee: ethFee?.low?.amount,
@@ -91,6 +94,15 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
         maxFee: ethFee?.high?.amount,
       },
     ];
+
+    if (ethFee?.site) {
+      opts.unshift({
+        speed: "site",
+        maxFee: ethFee.site.amount,
+      });
+    }
+
+    return opts;
   }, [ethFee]);
 
   const nativeBalance =
@@ -101,6 +113,7 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
       control={control}
       name={"feeSpeed"}
       rules={{
+        deps: ["amount"],
         ...(asset && {
           validate: (value) => {
             return Number(ethFee?.[value]?.amount) > nativeBalance
@@ -198,13 +211,14 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
               transformOrigin={{ vertical: "top", horizontal: 1 }}
               PaperProps={{
                 sx: {
-                  maxHeight: 105,
-                  height: 105,
+                  marginTop: 0.3,
+                  maxHeight: options.length === 4 ? 160 : 126,
+                  height: options.length === 4 ? 160 : 126,
                   paddingX: 0,
                   marginLeft: -1,
                   width: popoverWidth ? popoverWidth + 10 : 100,
                   boxShadow:
-                    "0px 5px 5px -10px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.01), 0px 3px 14px -5px rgba(0,0,0,0.12)",
+                    "0px 5px 0px -10px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.02), 0px 10px 30px -2px rgba(0,0,0,0.4)",
                   borderBottomLeftRadius: "4px",
                   borderBottomRightRadius: "4px",
                   borderTop: "none!important",
@@ -219,16 +233,13 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
                     cursor: "pointer",
                     paddingLeft: 1,
                     paddingRight: 0.5,
-                    minHeight: `33px !important`,
+                    minHeight: `40px !important`,
                     backgroundColor:
                       value === option.speed
                         ? `${theme.customColors.primary100}!important`
                         : undefined,
                     ":hover": {
                       backgroundColor: `${theme.customColors.dark5}`,
-                    },
-                    ":focus": {
-                      backgroundColor: "transparent !important",
                     },
                   }}
                   onClick={() => {
@@ -239,7 +250,7 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
                   <Typography
                     sx={{
                       fontSize: 11,
-                      color: theme.customColors.dark75,
+                      color: theme.customColors.dark90,
                       fontWeight: 400,
                       whiteSpace: "nowrap",
                       overflow: "hidden",
@@ -252,6 +263,9 @@ const MaxFeeSelector: React.FC<MaxFeeSelectorProps> = ({ networkPrice }) => {
                       "0"
                     )}{" "}
                     USD
+                  </Typography>
+                  <Typography fontSize={9} color={theme.customColors.dark75}>
+                    Est. {timeByFeeSpeedMap[option.speed]}
                   </Typography>
                 </Stack>
               ))}

@@ -2,7 +2,9 @@ import type {
   ConnectionResponseFromBack,
   NewAccountResponseFromBack,
   TransferResponseFromBack,
+  SwitchChainResponseFromBack,
 } from "../types/communication";
+import type { SupportedProtocols } from "@poktscan/keyring";
 import React from "react";
 import Stack from "@mui/material/Stack";
 import browser from "webextension-polyfill";
@@ -17,8 +19,8 @@ import {
 import { removeExternalRequest, RequestsType } from "../redux/slices/app";
 import {
   OperationRejected,
-  OriginBlocked,
   RequestTimeout,
+  UnauthorizedError,
 } from "../errors/communication";
 import { useAppDispatch } from "../hooks/redux";
 import {
@@ -26,6 +28,8 @@ import {
   CONNECTION_RESPONSE_MESSAGE,
   NEW_ACCOUNT_REQUEST,
   NEW_ACCOUNT_RESPONSE,
+  SWITCH_CHAIN_REQUEST,
+  SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../constants/communication";
@@ -36,17 +40,28 @@ export const closeCurrentWindow = () =>
     .getCurrent()
     .then((window) => browser.windows.remove(window.id));
 
-type RequestsFromBack =
+type RequestsFromBack = (
   | ConnectionResponseFromBack
   | NewAccountResponseFromBack
-  | TransferResponseFromBack;
+  | TransferResponseFromBack
+  | SwitchChainResponseFromBack
+) & { requestId: string };
+
+export interface PartialRequest {
+  origin: string;
+  tabId: number;
+  type: RequestsType["type"];
+  sessionId?: string;
+  protocol: SupportedProtocols;
+  requestId: string;
+}
 
 export const removeRequestWithRes = async (
-  request: RequestsType,
+  request: PartialRequest,
   error:
-    | typeof OriginBlocked
     | typeof RequestTimeout
-    | typeof OperationRejected,
+    | typeof OperationRejected
+    | typeof UnauthorizedError,
   dispatch: ReturnType<typeof useAppDispatch>,
   requestsLength: number,
   closeWindow = false
@@ -54,18 +69,19 @@ export const removeRequestWithRes = async (
   let responseType:
     | typeof TRANSFER_RESPONSE
     | typeof CONNECTION_RESPONSE_MESSAGE
-    | typeof NEW_ACCOUNT_RESPONSE;
+    | typeof NEW_ACCOUNT_RESPONSE
+    | typeof SWITCH_CHAIN_RESPONSE;
   let data: RequestsFromBack["data"] = null;
   let errorToReturn: RequestsFromBack["error"] = null;
 
-  if (error.name !== OperationRejected.name) {
+  if (error.code !== OperationRejected.code) {
     errorToReturn = error;
   }
 
   switch (request.type) {
     case TRANSFER_REQUEST: {
       responseType = TRANSFER_RESPONSE;
-      if (error.name === OperationRejected.name) {
+      if (error.code === OperationRejected.code) {
         data = {
           rejected: true,
           hash: null,
@@ -77,7 +93,7 @@ export const removeRequestWithRes = async (
     }
     case CONNECTION_REQUEST_MESSAGE: {
       responseType = CONNECTION_RESPONSE_MESSAGE;
-      if (error.name === OperationRejected.name) {
+      if (error.code === OperationRejected.code) {
         data = {
           accepted: false,
           session: null,
@@ -87,7 +103,7 @@ export const removeRequestWithRes = async (
       break;
     }
     case NEW_ACCOUNT_REQUEST: {
-      if (error.name === OperationRejected.name) {
+      if (error.code === OperationRejected.code) {
         data = {
           rejected: true,
           address: null,
@@ -96,6 +112,14 @@ export const removeRequestWithRes = async (
         errorToReturn = null;
       }
       responseType = NEW_ACCOUNT_RESPONSE;
+      break;
+    }
+    case SWITCH_CHAIN_REQUEST: {
+      if (error.code === OperationRejected.code) {
+        data = null;
+        errorToReturn = OperationRejected;
+      }
+      responseType = SWITCH_CHAIN_RESPONSE;
       break;
     }
   }
@@ -108,6 +132,7 @@ export const removeRequestWithRes = async (
     type: responseType,
     data,
     error: errorToReturn,
+    requestId: request.requestId,
   } as RequestsFromBack;
 
   await Promise.all([
@@ -116,6 +141,7 @@ export const removeRequestWithRes = async (
       removeExternalRequest({
         origin: request.origin,
         type: request.type,
+        protocol: request.protocol,
       })
     ),
     browser.action.setBadgeText({
@@ -207,4 +233,31 @@ export const getTruncatedText = (text: string, charactersPerSide = 4) => {
   const lastCharacters = text?.substring(text?.length - charactersPerSide);
 
   return `${firstCharacters}...${lastCharacters}`;
+};
+
+export const secsToText = (secs: number) => {
+  const secsInHour = 3600;
+
+  function pad(a, b = 2) {
+    return (1e15 + a + "").slice(-b);
+  }
+
+  if (secs > secsInHour) {
+    const hours = Math.floor(secs / secsInHour);
+    secs -= hours * secsInHour;
+    const minutes = Math.floor(secs / 60);
+    secs -= minutes * 60;
+    const seconds = Math.floor(secs);
+
+    return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+  } else if (secs > 60) {
+    const minutes = Math.floor(secs / 60);
+    secs -= minutes * 60;
+    const seconds = Math.floor(secs);
+
+    return `${minutes}:${pad(seconds)}`;
+  } else {
+    const seconds = Math.floor(secs);
+    return `0:${pad(seconds)}`;
+  }
 };

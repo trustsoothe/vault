@@ -145,7 +145,10 @@ export class VaultTeller {
     return false;
   }
 
-  async authorizeExternal(request: ExternalAccessRequest): Promise<Session> {
+  async authorizeExternal(
+    request: ExternalAccessRequest,
+    protocol?: SupportedProtocols
+  ): Promise<Session> {
     if (!request || !(request instanceof ExternalAccessRequest)) {
       throw new Error("ExternalAccessRequest object is required");
     }
@@ -170,6 +173,7 @@ export class VaultTeller {
       maxAge: request.maxAge,
       accounts: request.accounts.concat(),
       origin: request.origin || null,
+      protocol,
     };
 
     const session = new Session(sessionOptions, newSessionId);
@@ -417,7 +421,7 @@ export class VaultTeller {
 
   async sendRawTransaction(
     sessionId: string,
-    options: TransferOptions,
+    options: TransferOptions
   ): Promise<IProtocolTransactionResult<AllowedProtocols>> {
     await this.validateSessionForPermissions(sessionId, "transaction", "send");
 
@@ -434,17 +438,22 @@ export class VaultTeller {
     }
 
     if (options.from.type === SupportedTransferOrigins.VaultAccountId) {
-      const {account: vaultAccount, privateKey: vaultPrivateKey} = await this.getVaultAccountAndPrivateKey(options);
+      const { account: vaultAccount, privateKey: vaultPrivateKey } =
+        await this.getVaultAccountAndPrivateKey(options);
       account = vaultAccount;
       privateKey = vaultPrivateKey;
     }
 
     if (!account) {
-      throw new Error(`Transfer origin "${options.from.type}" not supported. No account was found.`);
+      throw new Error(
+        `Transfer origin "${options.from.type}" not supported. No account was found.`
+      );
     }
 
     if (!privateKey) {
-      throw new Error(`Transfer origin "${options.from.type}" not supported. No private key was found.`);
+      throw new Error(
+        `Transfer origin "${options.from.type}" not supported. No private key was found.`
+      );
     }
 
     switch (options.network.protocol) {
@@ -481,8 +490,8 @@ export class VaultTeller {
           },
           options.asset
         );
-        default:
-          throw new Error(`Transfer origin "${options.from.type}" not supported`);
+      default:
+        throw new Error(`Transfer origin "${options.from.type}" not supported`);
     }
   }
 
@@ -502,6 +511,7 @@ export class VaultTeller {
           to: options.to.value,
           amount: options.amount.toString(),
           fee: options.transactionParams.fee,
+          memo: options.transactionParams.memo,
           privateKey,
         });
       case SupportedProtocols.Ethereum:
@@ -531,7 +541,9 @@ export class VaultTeller {
   private async transferWithVaultAccount(
     options: TransferOptions
   ): Promise<IProtocolTransactionResult<AllowedProtocols>> {
-    let {account, privateKey} = await this.getVaultAccountAndPrivateKey(options);
+    let { account, privateKey } = await this.getVaultAccountAndPrivateKey(
+      options
+    );
     return await this.sendTransaction(account, privateKey, options);
   }
 
@@ -566,7 +578,7 @@ export class VaultTeller {
     } catch (e) {
       throw new PrivateKeyRestoreError();
     }
-    return {account, privateKey};
+    return { account, privateKey };
   }
 
   private async transferWithPrivateKey(

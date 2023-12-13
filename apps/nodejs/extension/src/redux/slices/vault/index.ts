@@ -2,10 +2,11 @@ import type {
   SerializedAccountReference,
   SerializedSession,
 } from "@poktscan/keyring";
+import type { RootState } from "../../store";
 import { v4 } from "uuid";
 import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { Passphrase } from "@poktscan/keyring";
+import { Passphrase, VaultRestoreErrorName } from "@poktscan/keyring";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 import { AssetStorage, getVault, NetworkStorage } from "../../../utils";
 import { addSessionThunksToBuilder } from "./session";
@@ -16,6 +17,9 @@ const ExtensionVaultInstance = getVault();
 
 type InitializeStatus = "loading" | "exists" | "none";
 
+const LOCKED_VAULT_PASS_ID = "LOCKED_VAULT_PASS";
+const MAX_UNLOCK_PASSWORDS_TRIES = 6;
+
 export interface VaultSlice {
   initializeStatus?: InitializeStatus;
   isUnlockedStatus: "no" | "yes" | "unlocking" | "locked_due_wrong_password";
@@ -24,6 +28,7 @@ export interface VaultSlice {
   wrongPasswordCounter: Record<string, number>;
   accounts: SerializedAccountReference[];
   sessions: SerializedSession[];
+  dateUntilVaultIsLocked?: number;
 }
 
 export const VAULT_HAS_BEEN_INITIALIZED_KEY = "vault_has_been_initialized";
@@ -41,9 +46,36 @@ export const initVault = createAsyncThunk<
   await dispatch(unlockVault({ password, remember })).unwrap();
 });
 
+const VaultCannotBeUnlockedError = Object.freeze({
+  name: "VaultCannotBeUnlocked",
+  message: "The vault cannot be unlocked right now.",
+});
+
+export const restoreDateUntilVaultIsLocked = createAsyncThunk(
+  "vault/restoreDateUntilVaultIsLocked",
+  async () => {
+    const response = await browser.storage.local.get(LOCKED_VAULT_PASS_ID);
+
+    return response[LOCKED_VAULT_PASS_ID];
+  }
+);
+
 export const unlockVault = createAsyncThunk(
   "vault/unlockVault",
-  async ({ password, remember }: { password: string; remember: boolean }) => {
+  async (
+    { password, remember }: { password: string; remember: boolean },
+    context
+  ) => {
+    const state = context.getState() as RootState;
+    const dateUntilVaultIsLocked = state.vault.dateUntilVaultIsLocked;
+
+    if (
+      dateUntilVaultIsLocked &&
+      dateUntilVaultIsLocked > new Date().getTime()
+    ) {
+      throw VaultCannotBeUnlockedError;
+    }
+
     const session = await ExtensionVaultInstance.unlockVault(password);
 
     let passwordEncrypted: string;
@@ -141,9 +173,28 @@ const vaultSlice = createSlice({
       state.sessions = sessions;
       state.accounts = accounts;
       state.passwordRemembered = passwordRemembered;
+
+      state.wrongPasswordCounter[LOCKED_VAULT_PASS_ID] = 0;
+      state.dateUntilVaultIsLocked = undefined;
     });
     builder.addCase(unlockVault.rejected, (state, action) => {
-      console.log("ERROR UNLOCKING VAULT:", action.error);
+      debugger;
+      if (action.error?.name === VaultRestoreErrorName) {
+        const currentCounter =
+          state.wrongPasswordCounter[LOCKED_VAULT_PASS_ID] || 0;
+
+        // disable unlock vault for 5 minutes
+        if (currentCounter + 1 === MAX_UNLOCK_PASSWORDS_TRIES) {
+          const date = Date.now() + 5 * 60 * 1000;
+          state.dateUntilVaultIsLocked = date;
+          browser.storage.local.set({ [LOCKED_VAULT_PASS_ID]: date }).catch();
+        } else if (
+          !currentCounter ||
+          currentCounter + 1 < MAX_UNLOCK_PASSWORDS_TRIES
+        ) {
+          state.wrongPasswordCounter[LOCKED_VAULT_PASS_ID] = currentCounter + 1;
+        }
+      }
     });
 
     builder.addCase(initVault.fulfilled, (state) => {
@@ -153,6 +204,15 @@ const vaultSlice = createSlice({
     builder.addCase(checkInitializeStatus.fulfilled, (state, action) => {
       state.initializeStatus = action.payload;
     });
+
+    builder.addCase(
+      restoreDateUntilVaultIsLocked.fulfilled,
+      (state, action) => {
+        if (action.payload) {
+          state.dateUntilVaultIsLocked = action.payload;
+        }
+      }
+    );
   },
 });
 

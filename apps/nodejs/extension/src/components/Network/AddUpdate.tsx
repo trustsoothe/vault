@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import { useForm, Controller } from "react-hook-form";
+import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Checkbox from "@mui/material/Checkbox";
@@ -28,6 +29,12 @@ interface FormValues {
   isPreferred: boolean;
 }
 
+interface HealthStatus {
+  canSendTransaction: boolean;
+  canProvideBalance: boolean;
+  canProvideFee: boolean;
+}
+
 const defaultFormValues: FormValues = {
   url: "",
   protocol: SupportedProtocols.Pocket,
@@ -47,6 +54,7 @@ const AddUpdateNetwork: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [rpcToUpdate, setRpcToUpdate] = useState<CustomRPC>(null);
+  const [rpcHealthResult, setRpcHealthResult] = useState<HealthStatus>(null);
   const [status, setStatus] = useState<
     "normal" | "loading" | "error" | "invalid_url" | "already_exists"
   >("normal");
@@ -59,7 +67,7 @@ const AddUpdateNetwork: React.FC = () => {
   const customRpcs = useAppSelector(customRpcsSelector);
 
   useEffect(() => {
-    setValue("chainId", null);
+    setValue("chainId", "");
   }, [selectedProtocol]);
 
   const onCancel = useCallback(() => {
@@ -95,13 +103,18 @@ const AddUpdateNetwork: React.FC = () => {
       setStatus("loading");
 
       if (!rpcToUpdate || (rpcToUpdate && rpcToUpdate.url !== data.url)) {
-        const isHealthy = await isNetworkUrlHealthy({
+        const healthResult = await isNetworkUrlHealthy({
           protocol: data.protocol,
           chainID: data.chainId as any,
           rpcUrl: data.url,
         });
 
-        if (!isHealthy) {
+        if (
+          !healthResult.canProvideFee ||
+          !healthResult.canSendTransaction ||
+          !healthResult.canProvideBalance
+        ) {
+          setRpcHealthResult(healthResult);
           setStatus("invalid_url");
           return;
         }
@@ -141,6 +154,7 @@ const AddUpdateNetwork: React.FC = () => {
   );
 
   const onClickOk = useCallback(() => {
+    setRpcHealthResult(null);
     setStatus("normal");
     setTimeout(() => setFocus("url", { shouldSelect: true }), 25);
   }, [setFocus]);
@@ -168,16 +182,37 @@ const AddUpdateNetwork: React.FC = () => {
     }
 
     if (status === "invalid_url" || status === "already_exists") {
-      const text =
-        status === "invalid_url"
-          ? "The provided RPC Url is not valid. Please introduce a valid one."
-          : "The provided RPC already exists. Please introduce another one.";
+      let text: string;
+
+      if (status === "already_exists") {
+        text = "The provided RPC already exists. Please introduce another one.";
+      } else {
+        text =
+          "The provided RPC url did not passed all the checks.\nHere are the checks it dit not passed:\n";
+        if (!rpcHealthResult?.canProvideFee) {
+          text += "\n- Fee check.";
+        }
+        if (!rpcHealthResult?.canProvideBalance) {
+          text += "\n- Balance check.";
+        }
+        if (!rpcHealthResult?.canSendTransaction) {
+          text += "\n- Transaction check.";
+        }
+
+        text += "\n\nPlease introduce a valid RPC url.";
+      }
 
       return (
         <OperationFailed
           text={text}
           onCancel={onCancel}
           retryBtnText={"Ok"}
+          textProps={{
+            fontSize: 13,
+            whiteSpace: "pre-line",
+            textAlign: status === "invalid_url" ? "left" : "center",
+            marginBottom: status === "invalid_url" ? "10px!important" : 0,
+          }}
           retryBtnProps={{
             type: "button",
           }}
@@ -195,7 +230,7 @@ const AddUpdateNetwork: React.FC = () => {
         justifyContent={"space-between"}
         paddingTop={2}
       >
-        <Stack spacing={1.5}>
+        <Stack spacing={1.8}>
           <Controller
             name={"protocol"}
             control={control}
@@ -231,7 +266,7 @@ const AddUpdateNetwork: React.FC = () => {
               <TextField
                 size={"small"}
                 autoComplete={"off"}
-                label={"ChainID"}
+                label={"Chain ID"}
                 disabled={!selectedProtocol || !networksOfProtocol?.length}
                 select
                 {...field}
@@ -259,7 +294,7 @@ const AddUpdateNetwork: React.FC = () => {
               <TextField
                 size={"small"}
                 autoComplete={"off"}
-                label={"RPC Url"}
+                label={"RPC url"}
                 error={!!error}
                 helperText={error?.message}
                 InputLabelProps={{
@@ -300,6 +335,21 @@ const AddUpdateNetwork: React.FC = () => {
               />
             )}
           />
+          <Typography
+            fontSize={10}
+            color={theme.customColors.dark50}
+            marginTop={"5px!important"}
+          >
+            When Preferred is marked, this RPC will be used for all the RPC
+            calls of this network (combination of protocol and chain ID).
+          </Typography>
+          <Typography
+            fontSize={10}
+            color={theme.customColors.dark50}
+            marginTop={"5px!important"}
+          >
+            If the call to this RPC fail, then the default RPC will be used.
+          </Typography>
         </Stack>
         <Stack direction={"row"} spacing={2} width={1}>
           <Button
@@ -342,6 +392,7 @@ const AddUpdateNetwork: React.FC = () => {
     selectedProtocol,
     networksOfProtocol,
     onClickOk,
+    rpcHealthResult,
     control,
   ]);
 
