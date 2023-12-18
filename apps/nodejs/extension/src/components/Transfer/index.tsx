@@ -466,13 +466,17 @@ const Transfer: React.FC = () => {
   const amount = useMemo(() => {
     const chainBalanceMap = accountBalances[protocol][chainId];
 
+    if (fromAddress) {
+      return chainBalanceMap[fromAddress]?.amount || 0;
+    }
+
     if (asset && protocol === SupportedProtocols.Ethereum) {
       return (
         chainBalanceMap?.[asset.contractAddress]?.[fromAddress]?.amount || 0
       );
     }
 
-    return chainBalanceMap[fromAddress]?.amount || 0;
+    return 0;
   }, [accountBalances, protocol, chainId, fromAddress, asset]);
 
   const onSubmit = useCallback(
