@@ -2,11 +2,19 @@ import type { ICommunicationController } from "../../types";
 import type {
   ExternalConnectionRequest,
   ExternalNewAccountRequest,
+  ExternalPersonalSignRequest,
+  ExternalSignedTypedDataRequest,
   ExternalSwitchChainRequest,
   ExternalSwitchChainResponse,
   InternalConnectionResponse,
   InternalNewAccountResponse,
   InternalTransferResponse,
+} from "../../types/communication";
+import {
+  ExternalPersonalSignResponse,
+  ExternalSignTypedDataResponse,
+  InternalPersonalSignResponse,
+  InternalSignedTypedDataResponse,
 } from "../../types/communication";
 import browser, { type Runtime } from "webextension-polyfill";
 import {
@@ -30,6 +38,10 @@ import {
   ANSWER_CONNECTION_RESPONSE,
   ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_NEW_ACCOUNT_RESPONSE,
+  ANSWER_PERSONAL_SIGN_REQUEST,
+  ANSWER_PERSONAL_SIGN_RESPONSE,
+  ANSWER_SIGNED_TYPED_DATA_REQUEST,
+  ANSWER_SIGNED_TYPED_DATA_RESPONSE,
   ANSWER_SWITCH_CHAIN_REQUEST,
   ANSWER_SWITCH_CHAIN_RESPONSE,
   ANSWER_TRANSFER_REQUEST,
@@ -48,6 +60,8 @@ import {
   NETWORK_FEE_RESPONSE,
   NEW_ACCOUNT_REQUEST,
   NEW_ACCOUNT_RESPONSE,
+  PERSONAL_SIGN_REQUEST,
+  PERSONAL_SIGN_RESPONSE,
   PK_ACCOUNT_REQUEST,
   PK_ACCOUNT_RESPONSE,
   REMOVE_ACCOUNT_REQUEST,
@@ -56,6 +70,8 @@ import {
   REVOKE_EXTERNAL_SESSIONS_RESPONSE,
   REVOKE_SESSION_REQUEST,
   REVOKE_SESSION_RESPONSE,
+  SIGN_TYPED_DATA_REQUEST,
+  SIGN_TYPED_DATA_RESPONSE,
   SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
@@ -80,8 +96,8 @@ import {
   importAccount,
   ImportAccountParam,
   removeAccount,
-  sendTransfer,
   SendTransactionParams,
+  sendTransfer,
   updateAccount,
 } from "../../redux/slices/vault/account";
 import {
@@ -362,6 +378,30 @@ export interface AnswerSwitchChainRequest {
   } | null;
 }
 
+export interface AnswerSignedTypedDataRequest {
+  type: typeof ANSWER_SIGNED_TYPED_DATA_REQUEST;
+  data: {
+    accepted: boolean;
+    request: ExternalSignedTypedDataRequest;
+  };
+}
+
+export type AnswerSignedTypedDataResponse = BaseResponse<
+  typeof ANSWER_SIGNED_TYPED_DATA_RESPONSE
+>;
+
+export interface AnswerPersonalSignRequest {
+  type: typeof ANSWER_PERSONAL_SIGN_REQUEST;
+  data: {
+    accepted: boolean;
+    request: ExternalPersonalSignRequest;
+  };
+}
+
+export type AnswerPersonalSignResponse = BaseResponse<
+  typeof ANSWER_PERSONAL_SIGN_RESPONSE
+>;
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
@@ -378,7 +418,9 @@ export type Message =
   | AccountBalanceMessage
   | NetworkFeeMessage
   | CheckPermissionForSessionMessage
-  | AnswerSwitchChainRequest;
+  | AnswerSwitchChainRequest
+  | AnswerSignedTypedDataRequest
+  | AnswerPersonalSignRequest;
 
 const mapMessageType: Record<Message["type"], true> = {
   [ANSWER_CONNECTION_REQUEST]: true,
@@ -397,6 +439,8 @@ const mapMessageType: Record<Message["type"], true> = {
   [NETWORK_FEE_REQUEST]: true,
   [CHECK_PERMISSION_FOR_SESSION_REQUEST]: true,
   [ANSWER_SWITCH_CHAIN_REQUEST]: true,
+  [ANSWER_SIGNED_TYPED_DATA_REQUEST]: true,
+  [ANSWER_PERSONAL_SIGN_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -473,6 +517,14 @@ class InternalCommunicationController implements ICommunicationController {
     if (message?.type === ANSWER_SWITCH_CHAIN_REQUEST) {
       return this._answerSwitchChainRequest(message);
     }
+
+    if (message?.type === ANSWER_SIGNED_TYPED_DATA_REQUEST) {
+      return this._answerSignedTypedDataRequest(message);
+    }
+
+    if (message?.type === ANSWER_PERSONAL_SIGN_REQUEST) {
+      return this._answerPersonalSignRequest(message);
+    }
   }
 
   private async _handleOnRemovedWindow(windowId: number) {
@@ -485,7 +537,9 @@ class InternalCommunicationController implements ICommunicationController {
             | InternalTransferResponse
             | InternalConnectionResponse
             | InternalNewAccountResponse
-            | ExternalSwitchChainResponse;
+            | ExternalSwitchChainResponse
+            | ExternalSignTypedDataResponse
+            | ExternalPersonalSignResponse;
 
           if (request.type === CONNECTION_REQUEST_MESSAGE) {
             response = {
@@ -519,6 +573,20 @@ class InternalCommunicationController implements ICommunicationController {
               },
               error: null,
             } as InternalNewAccountResponse;
+          } else if (request.type === SIGN_TYPED_DATA_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: SIGN_TYPED_DATA_RESPONSE,
+              data: null,
+              error: OperationRejected,
+            } as ExternalSignTypedDataResponse;
+          } else if (request.type === PERSONAL_SIGN_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: PERSONAL_SIGN_RESPONSE,
+              data: null,
+              error: OperationRejected,
+            } as ExternalPersonalSignResponse;
           } else {
             response = {
               requestId: request.requestId,
@@ -884,6 +952,140 @@ class InternalCommunicationController implements ICommunicationController {
 
       return {
         type: ANSWER_SWITCH_CHAIN_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _answerSignedTypedDataRequest(
+    message: AnswerSignedTypedDataRequest
+  ): Promise<AnswerSignedTypedDataResponse> {
+    try {
+      const { accepted, request } = message?.data || {};
+      const { origin, tabId, type } = request;
+
+      const promises: Promise<unknown>[] = [];
+      let responseToProxy: InternalSignedTypedDataResponse;
+
+      if (!accepted) {
+        responseToProxy = {
+          requestId: request?.requestId,
+          type: SIGN_TYPED_DATA_RESPONSE,
+          data: null,
+          error: OperationRejected,
+        };
+      } else {
+        responseToProxy = {
+          requestId: request?.requestId,
+          type: SIGN_TYPED_DATA_RESPONSE,
+          data: {
+            // todo: replace sign when sign method is implemented
+            sign: "0x4355c47d63924e8a72e509b65029052eb6c299d53a04e167c5775fd466751c9d07299936d304c153f6443dfa05f40ff007d72911b6f72307f996231605b915621c",
+          },
+          error: null,
+        };
+      }
+
+      promises.push(
+        browser.tabs.sendMessage(tabId, responseToProxy),
+        store.dispatch(
+          removeExternalRequest({ origin, type, protocol: request.protocol })
+        ) as unknown as Promise<unknown>
+      );
+
+      await Promise.all(promises);
+      await this._updateBadgeText();
+
+      return {
+        type: ANSWER_SIGNED_TYPED_DATA_RESPONSE,
+        data: {
+          answered: true,
+        },
+        error: null,
+      };
+    } catch (e) {
+      const tabId = message?.data?.request?.tabId;
+
+      if (tabId) {
+        await browser.tabs
+          .sendMessage(tabId, {
+            type: SIGN_TYPED_DATA_RESPONSE,
+            data: null,
+            error: UnknownError,
+          } as ExternalSignTypedDataResponse)
+          .catch();
+      }
+
+      return {
+        type: ANSWER_SIGNED_TYPED_DATA_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _answerPersonalSignRequest(
+    message: AnswerPersonalSignRequest
+  ): Promise<AnswerPersonalSignResponse> {
+    try {
+      const { accepted, request } = message?.data || {};
+      const { origin, tabId, type } = request;
+
+      const promises: Promise<unknown>[] = [];
+      let responseToProxy: InternalPersonalSignResponse;
+
+      if (!accepted) {
+        responseToProxy = {
+          requestId: request?.requestId,
+          type: PERSONAL_SIGN_RESPONSE,
+          data: null,
+          error: OperationRejected,
+        };
+      } else {
+        responseToProxy = {
+          requestId: request?.requestId,
+          type: PERSONAL_SIGN_RESPONSE,
+          data: {
+            // todo: replace sign when sign method is implemented
+            sign: "0x4355c47d63924e8a72e509b65029052eb6c299d53a04e167c5775fd466751c9d07299936d304c153f6443dfa05f40ff007d72911b6f72307f996231605b915621c",
+          },
+          error: null,
+        };
+      }
+
+      promises.push(
+        browser.tabs.sendMessage(tabId, responseToProxy),
+        store.dispatch(
+          removeExternalRequest({ origin, type, protocol: request.protocol })
+        ) as unknown as Promise<unknown>
+      );
+
+      await Promise.all(promises);
+      await this._updateBadgeText();
+
+      return {
+        type: ANSWER_PERSONAL_SIGN_RESPONSE,
+        data: {
+          answered: true,
+        },
+        error: null,
+      };
+    } catch (e) {
+      const tabId = message?.data?.request?.tabId;
+
+      if (tabId) {
+        await browser.tabs
+          .sendMessage(tabId, {
+            type: PERSONAL_SIGN_RESPONSE,
+            data: null,
+            error: UnknownError,
+          } as ExternalPersonalSignResponse)
+          .catch();
+      }
+
+      return {
+        type: ANSWER_PERSONAL_SIGN_RESPONSE,
         data: null,
         error: UnknownError,
       };

@@ -17,6 +17,8 @@ export const TRANSFER_PAGE = "/transfer";
 export const CONTACTS_PAGE = "/contact";
 export const SAVE_CONTACT_PAGE = "/contact/save";
 export const REMOVE_CONTACT_PAGE = "/contact/remove";
+export const SIGN_TYPED_DATA_PAGE = "/sign/typed_data";
+export const PERSONAL_SIGN_PAGE = "/sign/personal";
 
 export const REIMPORT_SEARCH_PARAM = "?reimport=true";
 

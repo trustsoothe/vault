@@ -26,6 +26,10 @@ import type { GeneralAppSlice } from "../redux/slices/app";
 import type { VaultSlice } from "../redux/slices/vault";
 import type { Runtime } from "webextension-polyfill";
 import MessageSender = Runtime.MessageSender;
+import {
+  ProxyPersonalSignRequest,
+  ProxySignTypedDataRequest,
+} from "./communication";
 
 export type AppSliceBuilder = ActionReducerMapBuilder<GeneralAppSlice>;
 export type VaultSliceBuilder = ActionReducerMapBuilder<VaultSlice>;
@@ -89,7 +93,9 @@ export type BrowserRequest =
   | ProxySelectedChainRequest
   | ProxyBalanceRequest
   | ProxyGetPoktTxRequest
-  | ProxySwitchChainRequest;
+  | ProxySwitchChainRequest
+  | ProxySignTypedDataRequest
+  | ProxyPersonalSignRequest;
 
 export type BrowserResponse =
   | ProxyConnectionRes

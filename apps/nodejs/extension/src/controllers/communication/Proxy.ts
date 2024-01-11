@@ -1,51 +1,64 @@
 import type { AppIsReadyMessage } from "../providers/base";
 import type { BrowserRequest } from "../../types";
 import type {
+  AccountsChangedToProvider,
+  AccountsChangedToProxy,
   AppIsReadyRequest,
+  AppIsReadyResponse,
+  BalanceRequestMessage,
   ConnectionRequestMessage,
   ConnectionResponseFromBack,
   DisconnectBackResponse,
   DisconnectRequestMessage,
+  ExternalBalanceResponse,
   ExternalConnectionResOnProxy,
+  ExternalGetPoktTxResponse,
   ExternalListAccountsResponse,
   ExternalNewAccountResOnProxy,
+  ExternalSelectedChainResponse,
+  ExternalSwitchChainResOnProxy,
   ExternalTransferResOnProxy,
+  GetPoktTxRequestMessage,
   InternalTransferResponse,
   IsSessionValidResponse,
   ListAccountsRequestMessage,
   NewAccountRequestMessage,
   NewAccountResponseFromBack,
+  PartialSession,
+  ProxyBalanceRes,
   ProxyConnectionErrors,
   ProxyConnectionRes,
   ProxyDisconnectErrors,
   ProxyDisconnectRes,
+  ProxyGetPoktTxRes,
   ProxyListAccountsRes,
   ProxyNewAccountRequest,
   ProxyNewAccountRequestErrors,
   ProxyNewAccountRes,
+  ProxyPersonalSignRequest,
+  ProxySelectedChainRes,
+  ProxySignTypedDataRequest,
   ProxySwitchChainRes,
   ProxyTransferError,
   ProxyTransferRequest,
   ProxyTransferRes,
+  SelectedChainRequestMessage,
   SessionValidRequestMessage,
   SwitchChainRequestMessage,
+  SwitchChainResponseFromBack,
   TransferRequestMessage,
   TransferResponseFromBack,
-  AccountsChangedToProvider,
-  AccountsChangedToProxy,
-  AppIsReadyResponse,
-  BalanceRequestMessage,
-  ExternalBalanceResponse,
-  ExternalGetPoktTxResponse,
-  ExternalSelectedChainResponse,
-  ExternalSwitchChainResOnProxy,
-  GetPoktTxRequestMessage,
-  PartialSession,
-  ProxyBalanceRes,
-  ProxyGetPoktTxRes,
-  ProxySelectedChainRes,
-  SelectedChainRequestMessage,
-  SwitchChainResponseFromBack,
+  ExternalPersonalSignResOnProxy,
+  ExternalSignTypedDataResOnProxy,
+  InternalPersonalSignResponse,
+  InternalSignedTypedDataResponse,
+  PersonalSignRequestMessage,
+  PersonalSignResponseFromBack,
+  ProxyPersonalSignRes,
+  ProxySignedTypedDataErrors,
+  ProxySignedTypedDataRes,
+  SignTypedDataRequestMessage,
+  SignTypedDataResponseFromBack,
 } from "../../types/communication";
 import browser from "webextension-polyfill";
 import { z, ZodError } from "zod";
@@ -68,10 +81,14 @@ import {
   LIST_ACCOUNTS_RESPONSE,
   NEW_ACCOUNT_REQUEST,
   NEW_ACCOUNT_RESPONSE,
+  PERSONAL_SIGN_REQUEST,
+  PERSONAL_SIGN_RESPONSE,
   SELECTED_ACCOUNT_CHANGED,
   SELECTED_CHAIN_CHANGED,
   SELECTED_CHAIN_REQUEST,
   SELECTED_CHAIN_RESPONSE,
+  SIGN_TYPED_DATA_REQUEST,
+  SIGN_TYPED_DATA_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
@@ -82,14 +99,18 @@ import {
   AmountNotPresented,
   BlockNotSupported,
   ChainIdNotPresented,
+  ChallengeNotValid,
   FromAddressNotPresented,
-  UnauthorizedError,
   OperationRejected,
   propertyIsNotValid,
   ToAddressNotPresented,
+  UnauthorizedError,
   UnknownError,
 } from "../../errors/communication";
-import { isValidAddress } from "../../utils/networkOperations";
+import {
+  isValidAddress,
+  validateTypedDataPayload,
+} from "../../utils/networkOperations";
 
 interface DisconnectResponse {
   type: typeof DISCONNECT_RESPONSE;
@@ -116,7 +137,9 @@ type ExtensionResponses =
   | DisconnectResponse
   | ChainChangedMessage
   | AccountsChangedToProxy
-  | SwitchChainResponseFromBack;
+  | SwitchChainResponseFromBack
+  | SignTypedDataResponseFromBack
+  | PersonalSignResponseFromBack;
 
 export type TPocketTransferBody = z.infer<typeof PocketTransferBody>;
 
@@ -245,6 +268,22 @@ class ProxyCommunicationController {
               data?.data?.chainId
             );
           }
+
+          if (data?.type === SIGN_TYPED_DATA_REQUEST) {
+            await this._sendSignTypedDataRequest(
+              data.network,
+              data.id,
+              data.data
+            );
+          }
+
+          if (data?.type === PERSONAL_SIGN_REQUEST) {
+            await this._sendPersonalSignRequest(
+              data.network,
+              data.id,
+              data.data
+            );
+          }
         }
       }
     );
@@ -273,6 +312,14 @@ class ProxyCommunicationController {
 
         if (message?.type === SWITCH_CHAIN_RESPONSE) {
           this._sendSwitchChainResponse(message?.requestId, message?.error);
+        }
+
+        if (message?.type === SIGN_TYPED_DATA_RESPONSE) {
+          this._handleSignTypedDataResponse(message);
+        }
+
+        if (message?.type === PERSONAL_SIGN_RESPONSE) {
+          this._handlePersonalSignResponse(message);
         }
 
         if (message?.type === SELECTED_ACCOUNT_CHANGED) {
@@ -1207,6 +1254,226 @@ class ProxyCommunicationController {
       },
     };
     window.postMessage(message, window.location.origin);
+  }
+
+  private async _sendSignTypedDataRequest(
+    network: SupportedProtocols,
+    requestId: string,
+    data: ProxySignTypedDataRequest["data"]
+  ) {
+    try {
+      const sessionId = this._sessionByProtocol[network]?.id;
+
+      if (sessionId) {
+        if (!isValidAddress(data.address, network)) {
+          this._sendSignTypedResponse(requestId, null, AddressNotValid);
+        }
+
+        const err = validateTypedDataPayload(data.data);
+
+        if (err) {
+          return this._sendSignTypedResponse(requestId, null, err);
+        }
+
+        const message: SignTypedDataRequestMessage = {
+          type: SIGN_TYPED_DATA_REQUEST,
+          requestId,
+          data: {
+            ...data,
+            protocol: network,
+            origin: window.location.origin,
+            faviconUrl: this._getFaviconUrl(),
+            sessionId,
+          },
+        };
+
+        const response: ExternalSignTypedDataResOnProxy =
+          await browser.runtime.sendMessage(message);
+
+        if (response?.type === SIGN_TYPED_DATA_RESPONSE) {
+          this._sendSignTypedResponse(
+            response.requestId || requestId,
+            null,
+            response.error
+          );
+
+          if (response.error.code === UnauthorizedError.code) {
+            this._sendDisconnectResponse(true, null, network);
+          }
+        }
+      } else {
+        return this._sendSignTypedResponse(requestId, null, UnauthorizedError);
+      }
+    } catch (e) {
+      this._sendSignTypedResponse(requestId, null, UnknownError);
+    }
+  }
+
+  private _handleSignTypedDataResponse(
+    response: InternalSignedTypedDataResponse
+  ) {
+    try {
+      const { error, data, requestId } = response;
+
+      if (data) {
+        this._sendSignTypedResponse(requestId, data.sign);
+      } else {
+        this._sendSignTypedResponse(requestId, null, error);
+      }
+    } catch (e) {
+      this._sendSignTypedResponse(response?.requestId, null, UnknownError);
+    }
+  }
+
+  private _sendSignTypedResponse(
+    requestId: string,
+    stringSigned: string | null,
+    error?: ProxySignedTypedDataErrors
+  ) {
+    try {
+      let response: ProxySignedTypedDataRes;
+
+      if (error) {
+        response = {
+          id: requestId,
+          type: SIGN_TYPED_DATA_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error,
+        };
+      } else {
+        response = {
+          id: requestId,
+          type: SIGN_TYPED_DATA_RESPONSE,
+          from: "VAULT_KEYRING",
+          error: null,
+          data: stringSigned,
+        };
+      }
+
+      window.postMessage(response, window.location.origin);
+    } catch (e) {
+      window.postMessage(
+        {
+          id: requestId,
+          type: SIGN_TYPED_DATA_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error: UnknownError,
+        } as ProxySignedTypedDataRes,
+        window.location.origin
+      );
+    }
+  }
+
+  private async _sendPersonalSignRequest(
+    protocol: SupportedProtocols,
+    requestId: string,
+    data: ProxyPersonalSignRequest["data"]
+  ) {
+    try {
+      const sessionId = this._sessionByProtocol[protocol]?.id;
+
+      if (sessionId) {
+        if (!isValidAddress(data.address, protocol)) {
+          this._sendPersonalSignResponse(requestId, null, AddressNotValid);
+        }
+
+        if (!stringRegex.test(data?.challenge)) {
+          this._sendPersonalSignResponse(requestId, null, ChallengeNotValid);
+        }
+
+        const message: PersonalSignRequestMessage = {
+          type: PERSONAL_SIGN_REQUEST,
+          requestId,
+          data: {
+            ...data,
+            protocol,
+            sessionId,
+            origin: window.location.origin,
+            faviconUrl: this._getFaviconUrl(),
+          },
+        };
+
+        const response: ExternalPersonalSignResOnProxy =
+          await browser.runtime.sendMessage(message);
+
+        if (response?.type === PERSONAL_SIGN_RESPONSE) {
+          this._sendSignTypedResponse(
+            response.requestId || requestId,
+            null,
+            response.error
+          );
+
+          if (response.error.code === UnauthorizedError.code) {
+            this._sendDisconnectResponse(true, null, protocol);
+          }
+        }
+      } else {
+        return this._sendPersonalSignResponse(
+          requestId,
+          null,
+          UnauthorizedError
+        );
+      }
+    } catch (e) {
+      this._sendPersonalSignResponse(requestId, null, UnknownError);
+    }
+  }
+
+  private _handlePersonalSignResponse(response: InternalPersonalSignResponse) {
+    try {
+      const { error, data, requestId } = response;
+
+      if (data) {
+        this._sendPersonalSignResponse(requestId, data.sign);
+      } else {
+        this._sendPersonalSignResponse(requestId, null, error);
+      }
+    } catch (e) {
+      this._sendPersonalSignResponse(response?.requestId, null, UnknownError);
+    }
+  }
+
+  private _sendPersonalSignResponse(
+    requestId: string,
+    stringSigned: string | null,
+    error?
+  ) {
+    try {
+      let response: ProxyPersonalSignRes;
+
+      if (error) {
+        response = {
+          id: requestId,
+          type: PERSONAL_SIGN_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error,
+        };
+      } else {
+        response = {
+          id: requestId,
+          type: PERSONAL_SIGN_RESPONSE,
+          from: "VAULT_KEYRING",
+          error: null,
+          data: stringSigned,
+        };
+      }
+
+      window.postMessage(response, window.location.origin);
+    } catch (e) {
+      window.postMessage(
+        {
+          id: requestId,
+          type: PERSONAL_SIGN_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error: UnknownError,
+        } as ProxyPersonalSignRes,
+        window.location.origin
+      );
+    }
   }
 }
 

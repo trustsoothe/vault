@@ -5,6 +5,9 @@ import type {
   AnswerConnectionResponse,
   AnswerNewAccountRequest,
   AnswerNewAccountResponse,
+  AnswerPersonalSignRequest,
+  AnswerPersonalSignResponse,
+  AnswerSignedTypedDataResponse,
   AnswerSwitchChainResponse,
   AnswerTransferRequest,
   AnswerTransferResponse,
@@ -30,6 +33,7 @@ import type {
   UpdateAccountResponse,
 } from "./Internal";
 import {
+  AnswerSignedTypedDataRequest,
   AnswerSwitchChainRequest,
   CheckPermissionForSessionMessage,
   CheckPermissionForSessionResponse,
@@ -38,8 +42,10 @@ import browser from "webextension-polyfill";
 import {
   ACCOUNT_BALANCE_REQUEST,
   ANSWER_CONNECTION_REQUEST,
-  ANSWER_SWITCH_CHAIN_REQUEST,
   ANSWER_NEW_ACCOUNT_REQUEST,
+  ANSWER_PERSONAL_SIGN_REQUEST,
+  ANSWER_SIGNED_TYPED_DATA_REQUEST,
+  ANSWER_SWITCH_CHAIN_REQUEST,
   ANSWER_TRANSFER_REQUEST,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
   IMPORT_ACCOUNT_REQUEST,
@@ -209,6 +215,28 @@ export default class AppToBackground {
       type: ANSWER_SWITCH_CHAIN_REQUEST,
       data,
     };
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async answerSignTypedData(
+    data: AnswerSignedTypedDataRequest["data"]
+  ): Promise<AnswerSignedTypedDataResponse> {
+    const message: AnswerSignedTypedDataRequest = {
+      type: ANSWER_SIGNED_TYPED_DATA_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async answerPersonalSign(
+    data: AnswerPersonalSignRequest["data"]
+  ): Promise<AnswerPersonalSignResponse> {
+    const message: AnswerPersonalSignRequest = {
+      data,
+      type: ANSWER_PERSONAL_SIGN_REQUEST,
+    };
+
     return browser.runtime.sendMessage(message);
   }
 }

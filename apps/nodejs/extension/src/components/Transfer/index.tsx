@@ -807,7 +807,13 @@ const Transfer: React.FC = () => {
 
   return (
     <FormProvider {...methods}>
-      {externalRequestInfo && <NetworkAndAccount />}
+      {externalRequestInfo && (
+        <NetworkAndAccount
+          protocol={protocol}
+          chainId={chainId}
+          fromAddress={fromAddress}
+        />
+      )}
       <TransferContextProvider
         transferType={transferType}
         networkFee={networkFee}
@@ -827,7 +833,6 @@ const Transfer: React.FC = () => {
           onSubmit={handleSubmit(onSubmit)}
           alignItems={"center"}
           marginTop={1}
-          marginBottom={externalRequestInfo ? -0.5 : undefined}
         >
           {selectedAccount && (
             <AccountInfo

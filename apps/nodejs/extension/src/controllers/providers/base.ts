@@ -25,10 +25,14 @@ import {
   MINUTES_ALLOWED_FOR_REQ,
   NEW_ACCOUNT_REQUEST,
   NEW_ACCOUNT_RESPONSE,
+  PERSONAL_SIGN_REQUEST,
+  PERSONAL_SIGN_RESPONSE,
   SELECTED_ACCOUNT_CHANGED,
   SELECTED_CHAIN_CHANGED,
   SELECTED_CHAIN_REQUEST,
   SELECTED_CHAIN_RESPONSE,
+  SIGN_TYPED_DATA_REQUEST,
+  SIGN_TYPED_DATA_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
@@ -77,6 +81,8 @@ export enum EthereumMethod {
   SEND_TRANSACTION = "eth_sendTransaction",
   CHAIN = "eth_chainId",
   SWITCH_CHAIN = "wallet_switchEthereumChain",
+  SIGN_TYPED_DATA = "eth_signTypedData_v4",
+  PERSONAL_SIGN = "personal_sign",
 }
 
 export default class BaseProvider extends EventEmitter {
@@ -217,6 +223,14 @@ export default class BaseProvider extends EventEmitter {
         sootheRequestType = GET_POKT_TRANSACTION_REQUEST;
         break;
       }
+      case EthereumMethod.SIGN_TYPED_DATA: {
+        sootheRequestType = SIGN_TYPED_DATA_REQUEST;
+        break;
+      }
+      case EthereumMethod.PERSONAL_SIGN: {
+        sootheRequestType = PERSONAL_SIGN_REQUEST;
+        break;
+      }
       default: {
         throw Error(`method not supported: ${method}`);
       }
@@ -276,6 +290,22 @@ export default class BaseProvider extends EventEmitter {
         responseType = SWITCH_CHAIN_RESPONSE;
         requestData = {
           chainId: params?.[0]?.chainId,
+        };
+        break;
+      }
+      case SIGN_TYPED_DATA_REQUEST: {
+        responseType = SIGN_TYPED_DATA_RESPONSE;
+        requestData = {
+          address: params?.[0],
+          data: params?.[1],
+        };
+        break;
+      }
+      case PERSONAL_SIGN_REQUEST: {
+        responseType = PERSONAL_SIGN_RESPONSE;
+        requestData = {
+          address: params?.[1],
+          challenge: params?.[0],
         };
         break;
       }

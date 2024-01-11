@@ -8,6 +8,7 @@ import type {
   TEthTransferBody,
   TPocketTransferBody,
 } from "../controllers/communication/Proxy";
+import type { SignTypedData } from "./provider";
 import {
   CONNECTION_REQUEST_MESSAGE,
   CHECK_CONNECTION_REQUEST,
@@ -34,6 +35,10 @@ import {
   APP_IS_READY_REQUEST,
   APP_IS_READY_RESPONSE,
   SELECTED_ACCOUNT_CHANGED,
+  SIGN_TYPED_DATA_REQUEST,
+  SIGN_TYPED_DATA_RESPONSE,
+  PERSONAL_SIGN_REQUEST,
+  PERSONAL_SIGN_RESPONSE,
 } from "../constants/communication";
 import {
   AddressNotValid,
@@ -51,6 +56,8 @@ import {
   ProtocolNotPresented,
   RequestConnectionExists,
   RequestNewAccountExists,
+  RequestPersonalSignExists,
+  RequestSignedTypedDataExists,
   RequestSwitchChainExists,
   RequestTimeout,
   RequestTransferExists,
@@ -80,11 +87,6 @@ export type ExternalConnectionRequest = BaseExternalRequest<
   typeof CONNECTION_REQUEST_MESSAGE
 > &
   ConnectionRequestMessage["data"];
-
-export type ExternalSwitchChainRequest = BaseExternalRequest<
-  typeof SWITCH_CHAIN_REQUEST
-> &
-  SwitchChainRequestMessage["data"];
 
 export type ExternalNewAccountRequest = BaseExternalRequestWithSession<
   typeof NEW_ACCOUNT_REQUEST
@@ -143,6 +145,10 @@ export type RequestExistsError<T> = T extends typeof TRANSFER_RESPONSE
   ? typeof RequestConnectionExists
   : T extends typeof NEW_ACCOUNT_RESPONSE
   ? typeof RequestNewAccountExists
+  : T extends typeof SIGN_TYPED_DATA_RESPONSE
+  ? typeof RequestSignedTypedDataExists
+  : T extends typeof PERSONAL_SIGN_RESPONSE
+  ? typeof RequestPersonalSignExists
   : typeof RequestSwitchChainExists;
 
 // Connection
@@ -194,15 +200,6 @@ export type ExternalConnectionResOnProxy =
 export type ConnectionResponseFromBack =
   | Extract<ExternalConnectionResponse, { data: null }>
   | InternalConnectionResponse;
-
-export type ExternalSwitchChainResOnProxy =
-  | Extract<ExternalSwitchChainResponse, { data: null }>
-  | TRequestBeingHandled;
-
-export type SwitchChainResponseFromBack = Extract<
-  ExternalSwitchChainResponse,
-  { data: null }
->;
 
 export interface ProxyValidConnectionRes extends BaseProxyResponse {
   type: typeof CONNECTION_RESPONSE_MESSAGE;
@@ -654,6 +651,11 @@ export type SwitchChainRequestMessage = {
   };
 };
 
+export type ExternalSwitchChainRequest = BaseExternalRequest<
+  typeof SWITCH_CHAIN_REQUEST
+> &
+  SwitchChainRequestMessage["data"];
+
 type ExternalSwitchChainErrors =
   | BaseErrors
   | typeof RequestSwitchChainExists
@@ -666,6 +668,15 @@ export type ExternalSwitchChainResponse = {
   data: null;
   error: ExternalSwitchChainErrors | null;
 } | void;
+
+export type ExternalSwitchChainResOnProxy =
+  | Extract<ExternalSwitchChainResponse, { data: null }>
+  | TRequestBeingHandled;
+
+export type SwitchChainResponseFromBack = Extract<
+  ExternalSwitchChainResponse,
+  { data: null }
+>;
 
 export interface ProxyValidSwitchChainRes extends BaseProxyResponse {
   type: typeof SWITCH_CHAIN_RESPONSE;
@@ -682,6 +693,8 @@ export interface ProxyErrSwitchChainRes extends BaseProxyResponse {
 export type ProxySwitchChainRes =
   | ProxyValidSwitchChainRes
   | ProxyErrSwitchChainRes;
+
+// app is ready
 
 export interface AppIsReadyRequest {
   type: typeof APP_IS_READY_REQUEST;
@@ -709,3 +722,160 @@ export interface AccountsChangedToProxy {
 export interface AccountsChangedToProvider extends AccountsChangedToProxy {
   to: "VAULT_KEYRING";
 }
+
+// sign typed data
+
+export interface ProxySignTypedDataRequest extends BaseProxyRequest {
+  type: typeof SIGN_TYPED_DATA_REQUEST;
+  data: {
+    address: string;
+    data: SignTypedData;
+  };
+}
+
+export type SignTypedDataRequestMessage = {
+  type: typeof SIGN_TYPED_DATA_REQUEST;
+  requestId: string;
+  data: {
+    sessionId: string;
+    protocol: SupportedProtocols;
+    origin: string;
+    faviconUrl: string;
+    address: string;
+    data: SignTypedData;
+  };
+};
+
+export type ExternalSignedTypedDataRequest = BaseExternalRequest<
+  typeof SIGN_TYPED_DATA_REQUEST
+> &
+  SignTypedDataRequestMessage["data"] & { chainId: string };
+
+type ExternalSignTypedDataErrors =
+  | BaseErrors
+  | typeof RequestSignedTypedDataExists
+  | typeof OperationRejected
+  | typeof SessionIdNotPresented
+  | typeof UnrecognizedChainId;
+
+export type ExternalSignTypedDataResponse = {
+  type: typeof SIGN_TYPED_DATA_RESPONSE;
+  requestId: string;
+  data: null;
+  error: ExternalSignTypedDataErrors | null;
+} | void;
+
+export interface InternalSignedTypedDataResponse {
+  type: typeof SIGN_TYPED_DATA_RESPONSE;
+  requestId: string;
+  data: {
+    sign: string;
+  } | null;
+  error: typeof UnknownError | typeof OperationRejected;
+}
+
+export type ExternalSignTypedDataResOnProxy =
+  | Extract<ExternalSignTypedDataResponse, { data: null }>
+  | TRequestBeingHandled;
+
+export type SignTypedDataResponseFromBack =
+  | Extract<ExternalSignTypedDataResponse, { data: null }>
+  | InternalSignedTypedDataResponse;
+
+export type ProxySignedTypedDataErrors =
+  | ExternalSignTypedDataErrors
+  | typeof RequestTimeout;
+
+export interface ProxyValidSignedTypedDataRes extends BaseProxyResponse {
+  type: typeof SIGN_TYPED_DATA_RESPONSE;
+  data: string;
+  error: null;
+}
+
+export interface ProxyErrSignedTypedDataRes extends BaseProxyResponse {
+  type: typeof SIGN_TYPED_DATA_RESPONSE;
+  data: null;
+  error: ProxySignedTypedDataErrors;
+}
+
+export type ProxySignedTypedDataRes =
+  | ProxyValidSignedTypedDataRes
+  | ProxyErrSignedTypedDataRes;
+
+// personal sign
+
+export interface ProxyPersonalSignRequest extends BaseProxyRequest {
+  type: typeof PERSONAL_SIGN_REQUEST;
+  data: {
+    address: string;
+    challenge: string;
+  };
+}
+
+export type PersonalSignRequestMessage = {
+  type: typeof PERSONAL_SIGN_REQUEST;
+  requestId: string;
+  data: {
+    sessionId: string;
+    protocol: SupportedProtocols;
+    origin: string;
+    faviconUrl: string;
+    address: string;
+    challenge: string;
+  };
+};
+
+export type ExternalPersonalSignRequest = BaseExternalRequest<
+  typeof PERSONAL_SIGN_REQUEST
+> &
+  PersonalSignRequestMessage["data"];
+
+type ExternalPersonalSignErrors =
+  | BaseErrors
+  | typeof RequestPersonalSignExists
+  | typeof OperationRejected
+  | typeof SessionIdNotPresented;
+
+export type ExternalPersonalSignResponse = {
+  type: typeof PERSONAL_SIGN_RESPONSE;
+  requestId: string;
+  data: null;
+  error: ExternalPersonalSignErrors | null;
+} | void;
+
+export interface InternalPersonalSignResponse {
+  type: typeof PERSONAL_SIGN_RESPONSE;
+  requestId: string;
+  data: {
+    sign: string;
+  } | null;
+  error: typeof UnknownError | typeof OperationRejected;
+}
+
+export type ExternalPersonalSignResOnProxy =
+  | Extract<ExternalPersonalSignResponse, { data: null }>
+  | TRequestBeingHandled;
+
+export type PersonalSignResponseFromBack =
+  | Extract<ExternalPersonalSignResponse, { data: null }>
+  | InternalSignedTypedDataResponse;
+
+export type ProxyPersonalSignErrors =
+  | ExternalPersonalSignErrors
+  | typeof RequestTimeout;
+
+export interface ProxyValidPersonalSignRes extends BaseProxyResponse {
+  type: typeof PERSONAL_SIGN_RESPONSE;
+  data: string;
+  error: null;
+}
+
+export interface ProxyErrPersonalSignRes extends BaseProxyResponse {
+  type: typeof PERSONAL_SIGN_RESPONSE;
+  data: null;
+  error: ProxyPersonalSignErrors;
+}
+
+export type ProxyPersonalSignRes =
+  | ProxyValidPersonalSignRes
+  | ProxyErrPersonalSignRes;

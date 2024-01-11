@@ -1,12 +1,17 @@
 import type { ICommunicationController } from "../../types";
 import type {
+  BalanceRequestMessage,
   BaseErrors,
   ConnectionRequestMessage,
   DisconnectBackResponse,
   DisconnectRequestMessage,
+  ExternalBalanceResponse,
   ExternalConnectionResponse,
+  ExternalGetPoktTxResponse,
   ExternalListAccountsResponse,
   ExternalNewAccountResponse,
+  ExternalSelectedChainResponse,
+  ExternalSignTypedDataResponse,
   ExternalSwitchChainResponse,
   ExternalTransferResponse,
   GetPoktTxRequestMessage,
@@ -14,14 +19,15 @@ import type {
   ListAccountsRequestMessage,
   NewAccountRequestMessage,
   RequestExistsError,
+  SelectedChainRequestMessage,
   SessionValidRequestMessage,
+  SignTypedDataRequestMessage,
   SwitchChainRequestMessage,
   TransferRequestMessage,
-  BalanceRequestMessage,
-  ExternalBalanceResponse,
-  ExternalGetPoktTxResponse,
-  ExternalSelectedChainResponse,
-  SelectedChainRequestMessage,
+} from "../../types/communication";
+import {
+  ExternalPersonalSignResponse,
+  PersonalSignRequestMessage,
 } from "../../types/communication";
 import { toWei } from "web3-utils";
 import browser, { type Runtime } from "webextension-polyfill";
@@ -32,13 +38,13 @@ import {
   SupportedProtocols,
 } from "@poktscan/keyring";
 import {
-  UnauthorizedError,
   OriginNotPresented,
   RequestConnectionExists,
   RequestNewAccountExists,
   RequestSwitchChainExists,
   RequestTransferExists,
   SessionIdNotPresented,
+  UnauthorizedError,
   UnknownError,
   UnrecognizedChainId,
 } from "../../errors/communication";
@@ -64,9 +70,13 @@ import {
   LIST_ACCOUNTS_RESPONSE,
   NEW_ACCOUNT_REQUEST,
   NEW_ACCOUNT_RESPONSE,
+  PERSONAL_SIGN_REQUEST,
+  PERSONAL_SIGN_RESPONSE,
   REQUEST_BEING_HANDLED,
   SELECTED_CHAIN_REQUEST,
   SELECTED_CHAIN_RESPONSE,
+  SIGN_TYPED_DATA_REQUEST,
+  SIGN_TYPED_DATA_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
@@ -90,7 +100,9 @@ export type Message =
   | SelectedChainRequestMessage
   | BalanceRequestMessage
   | GetPoktTxRequestMessage
-  | SwitchChainRequestMessage;
+  | SwitchChainRequestMessage
+  | SignTypedDataRequestMessage
+  | PersonalSignRequestMessage;
 
 const mapMessageType: Record<Message["type"], true> = {
   [CONNECTION_REQUEST_MESSAGE]: true,
@@ -103,6 +115,8 @@ const mapMessageType: Record<Message["type"], true> = {
   [EXTERNAL_ACCOUNT_BALANCE_REQUEST]: true,
   [SELECTED_CHAIN_REQUEST]: true,
   [GET_POKT_TRANSACTION_REQUEST]: true,
+  [SIGN_TYPED_DATA_REQUEST]: true,
+  [PERSONAL_SIGN_REQUEST]: true,
 };
 
 const ExtensionVaultInstance = getVault();
@@ -210,6 +224,32 @@ class ExternalCommunicationController implements ICommunicationController {
       if (response?.type === GET_POKT_TRANSACTION_RESPONSE) {
         return response;
       }
+    }
+
+    if (message?.type === SIGN_TYPED_DATA_REQUEST) {
+      const response = await this._handleSignTypedDataRequest(message, sender);
+
+      if (response && response.type === SIGN_TYPED_DATA_RESPONSE) {
+        return response;
+      }
+
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
+    }
+
+    if (message?.type === PERSONAL_SIGN_REQUEST) {
+      const response = await this._handlePersonalSignRequest(message, sender);
+
+      if (response && response.type === PERSONAL_SIGN_RESPONSE) {
+        return response;
+      }
+
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
     }
   }
 
@@ -460,12 +500,141 @@ class ExternalCommunicationController implements ICommunicationController {
     }
   }
 
+  private async _handleSignTypedDataRequest(
+    message: SignTypedDataRequestMessage,
+    sender: MessageSender
+  ): Promise<ExternalSignTypedDataResponse> {
+    try {
+      const { sessionId, address, protocol, data } = message.data;
+      if (!sessionId) {
+        return {
+          type: SIGN_TYPED_DATA_RESPONSE,
+          error: SessionIdNotPresented,
+          data: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      try {
+        await ExtensionVaultInstance.validateSessionForPermissions(
+          sessionId,
+          "account",
+          "read",
+          [address]
+        );
+      } catch (error) {
+        return {
+          requestId: message?.requestId,
+          ...returnExtensionErr(error, SIGN_TYPED_DATA_RESPONSE),
+        };
+      }
+
+      const { selectedChainByProtocol, networks } = store.getState().app;
+
+      const chainId =
+        data.domain.chainId?.toString() ||
+        selectedChainByProtocol[protocol].toString();
+
+      if (
+        !networks.some(
+          (network) =>
+            network.protocol === protocol && network.chainId === chainId
+        )
+      ) {
+        return {
+          type: SIGN_TYPED_DATA_RESPONSE,
+          error: UnrecognizedChainId,
+          data: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      return this._addExternalRequest(
+        {
+          type: SIGN_TYPED_DATA_REQUEST,
+          tabId: sender.tab.id,
+          data: message.data.data,
+          origin: message.data.origin,
+          faviconUrl: message.data.faviconUrl,
+          protocol: message.data.protocol,
+          address: message.data.address,
+          requestId: message.requestId,
+          sessionId: message.data.sessionId,
+          chainId,
+        },
+        SIGN_TYPED_DATA_RESPONSE
+      );
+    } catch (e) {
+      return {
+        type: SIGN_TYPED_DATA_RESPONSE,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
+      };
+    }
+  }
+
+  private async _handlePersonalSignRequest(
+    message: PersonalSignRequestMessage,
+    sender: MessageSender
+  ): Promise<ExternalPersonalSignResponse> {
+    try {
+      const { sessionId, address } = message.data;
+      if (!sessionId) {
+        return {
+          type: PERSONAL_SIGN_RESPONSE,
+          error: SessionIdNotPresented,
+          data: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      try {
+        await ExtensionVaultInstance.validateSessionForPermissions(
+          sessionId,
+          "account",
+          "read",
+          [address]
+        );
+      } catch (error) {
+        return {
+          requestId: message?.requestId,
+          ...returnExtensionErr(error, PERSONAL_SIGN_RESPONSE),
+        };
+      }
+
+      return this._addExternalRequest(
+        {
+          type: PERSONAL_SIGN_REQUEST,
+          tabId: sender.tab.id,
+          challenge: message.data.challenge,
+          origin: message.data.origin,
+          faviconUrl: message.data.faviconUrl,
+          protocol: message.data.protocol,
+          address: message.data.address,
+          requestId: message.requestId,
+          sessionId: message.data.sessionId,
+        },
+        PERSONAL_SIGN_RESPONSE
+      );
+    } catch (e) {
+      return {
+        type: PERSONAL_SIGN_RESPONSE,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
+      };
+    }
+  }
+
   private async _addExternalRequest<
     T extends
       | typeof CONNECTION_RESPONSE_MESSAGE
       | typeof NEW_ACCOUNT_RESPONSE
       | typeof TRANSFER_RESPONSE
       | typeof SWITCH_CHAIN_RESPONSE
+      | typeof SIGN_TYPED_DATA_RESPONSE
+      | typeof PERSONAL_SIGN_RESPONSE
   >(
     request: RequestsType,
     responseMessage: T
@@ -863,6 +1032,8 @@ class ExternalCommunicationController implements ICommunicationController {
       | typeof SELECTED_CHAIN_RESPONSE
       | typeof GET_POKT_TRANSACTION_RESPONSE
       | typeof SWITCH_CHAIN_RESPONSE
+      | typeof SIGN_TYPED_DATA_RESPONSE
+      | typeof PERSONAL_SIGN_RESPONSE
   >(
     origin: string,
     responseMessage: T

@@ -4,6 +4,8 @@ import type {
   ExternalTransferRequest,
   AccountsChangedToProxy,
   ExternalSwitchChainRequest,
+  ExternalSignedTypedDataRequest,
+  ExternalPersonalSignRequest,
 } from "../../../types/communication";
 import type { RootState } from "../../store";
 import set from "lodash/set";
@@ -30,6 +32,8 @@ export type RequestsType = (
   | ExternalNewAccountRequest
   | ExternalTransferRequest
   | ExternalSwitchChainRequest
+  | ExternalSignedTypedDataRequest
+  | ExternalPersonalSignRequest
 ) & { requestedAt?: number; requestId: string };
 
 export interface AccountBalanceInfo {

@@ -11,10 +11,12 @@ import {
   DISCONNECT_SITE_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
+  PERSONAL_SIGN_PAGE,
   REMOVE_CONTACT_PAGE,
   REMOVE_NETWORK_PAGE,
   REQUEST_CONNECTION_PAGE,
   SAVE_CONTACT_PAGE,
+  SIGN_TYPED_DATA_PAGE,
   SITES_PAGE,
   TRANSFER_PAGE,
   UNBLOCK_SITE_PAGE,
@@ -39,6 +41,8 @@ import ContactList from "../components/Contact/List";
 import SaveContact from "../components/Contact/SaveContact";
 import RemoveContact from "../components/Contact/RemoveContact";
 import ChangeSelectedChain from "../components/Network/ChangeChain";
+import SignTypedData from "../components/Sign/TypedData";
+import PersonalSign from "../components/Sign/Personal";
 
 export const router = createHashRouter([
   {
@@ -141,6 +145,14 @@ export const requestRouter = createHashRouter([
       {
         path: CHANGE_SELECTED_CHAIN_PAGE,
         element: <ChangeSelectedChain />,
+      },
+      {
+        path: SIGN_TYPED_DATA_PAGE,
+        element: <SignTypedData />,
+      },
+      {
+        path: PERSONAL_SIGN_PAGE,
+        element: <PersonalSign />,
       },
     ],
   },

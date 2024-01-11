@@ -240,7 +240,7 @@ const NewConnect: React.FC = () => {
     const symbolByProtocol = networks.reduce(
       (acc, network) => ({
         ...acc,
-        [network.protocol]: network.currencySymbol,
+        [`${network.protocol}-${network.chainId}`]: network.currencySymbol,
       }),
       {}
     );
@@ -251,7 +251,7 @@ const NewConnect: React.FC = () => {
         .map((item) => ({
           ...item,
           balanceInfo: balancesById?.[item.address] as AccountBalanceInfo,
-          symbol: symbolByProtocol[item.protocol] || "",
+          symbol: symbolByProtocol[`${item.protocol}-${selectedChain}`] || "",
         })),
       ["balanceInfo.amount"],
       ["desc"]
