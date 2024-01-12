@@ -662,7 +662,6 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
           transferData: {
             amount: "",
             toAddress: "",
-            fromAddress: address,
             mintId: tx._id,
             signatures: (tx as MintTransaction).signatures,
             mintInfo: (tx as MintTransaction).data,
@@ -805,7 +804,6 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
       <MintTransactionModal
         onClose={() => setMintInfoOfModal(null)}
         mintInfo={mintInfoOfModal}
-        fromAddress={address}
       />
     </>
   );

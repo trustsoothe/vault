@@ -14,7 +14,6 @@ import {
 import { useAppSelector } from "../../hooks/redux";
 import { TRANSFER_PAGE } from "../../constants/routes";
 import { wPoktAssetSelector } from "../../redux/selectors/asset";
-import {selectedAccountSelector} from "../../redux/selectors/account";
 
 export interface MintTransactionModalProps {
   mintInfo?: {
@@ -22,14 +21,12 @@ export interface MintTransactionModalProps {
     signatures: string[];
     mintInfo: ExternalTransferData["mintInfo"];
   };
-  fromAddress: string;
   onClose: () => void;
 }
 
 const MintTransactionModal: React.FC<MintTransactionModalProps> = ({
   mintInfo,
   onClose,
-  fromAddress,
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -60,7 +57,6 @@ const MintTransactionModal: React.FC<MintTransactionModalProps> = ({
         transferData: {
           amount: "",
           toAddress: "",
-          fromAddress,
           ...mintInfo,
         },
       };
