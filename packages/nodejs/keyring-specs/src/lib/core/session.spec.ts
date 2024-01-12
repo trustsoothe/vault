@@ -113,7 +113,7 @@ describe('session', () => {
       name: 'Test Asset',
       symbol: 'TST',
       isNative: true,
-      protocol: SupportedProtocols.Unspecified
+      protocol: SupportedProtocols.Pocket
     });
 
     const exampleAccountReference: AccountReference

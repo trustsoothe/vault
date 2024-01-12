@@ -1,4 +1,3 @@
-import type { ChainID } from "@poktscan/keyring/dist/lib/core/common/protocols/ChainID";
 import type {
   ExternalConnectionRequest,
   ExternalNewAccountRequest,
@@ -42,11 +41,11 @@ export interface AccountBalanceInfo {
 
 interface IAccountBalances {
   [SupportedProtocols.Ethereum]: Record<
-    ChainID<SupportedProtocols.Ethereum>,
+    string,
     Record<string, AccountBalanceInfo | Record<string, AccountBalanceInfo>>
   >;
   [SupportedProtocols.Pocket]: Record<
-    ChainID<SupportedProtocols.Pocket>,
+    string,
     Record<string, AccountBalanceInfo>
   >;
 }

@@ -307,8 +307,8 @@ const AmountFeeInputs: React.FC = () => {
     transferMinAmountOfNetworkSelector(protocol, chainId)
   );
 
-  const nativeBalance: AccountBalanceInfo = useMemo(() => {
-    return accountBalances[protocol][chainId][fromAddress] || {};
+  const nativeBalance = useMemo(() => {
+    return (accountBalances[protocol][chainId][fromAddress] || {}) as AccountBalanceInfo;
   }, [accountBalances, protocol, chainId, fromAddress]);
 
   const assetBalance: AccountBalanceInfo = useMemo(() => {

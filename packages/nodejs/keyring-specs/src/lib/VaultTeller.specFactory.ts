@@ -77,7 +77,7 @@ export default <
 
     unspecifiedNetworkAsset = new Asset({
       name: 'Example Asset',
-      protocol: SupportedProtocols.Unspecified,
+      protocol: SupportedProtocols.Pocket,
       symbol: 'EXM'
     })
 
