@@ -250,7 +250,7 @@ const NewConnect: React.FC = () => {
         .filter((item) => item.protocol === protocol)
         .map((item) => ({
           ...item,
-          balanceInfo: balancesById?.[item.address],
+          balanceInfo: balancesById?.[item.address] as AccountBalanceInfo,
           symbol: symbolByProtocol[item.protocol] || "",
         })),
       ["balanceInfo.amount"],

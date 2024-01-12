@@ -31,7 +31,6 @@ const MintTransactionModal: React.FC<MintTransactionModalProps> = ({
   const theme = useTheme();
   const navigate = useNavigate();
   const wPoktAsset = useAppSelector(wPoktAssetSelector);
-
   const [stillShowModal, setStillShowModal] = useState(false);
 
   useEffect(() => {

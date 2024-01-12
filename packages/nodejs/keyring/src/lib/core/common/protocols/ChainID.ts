@@ -1,7 +1,7 @@
 import {SupportedProtocols} from "../values";
 
 export type PocketNetworkChainIDList = 'mainnet' | 'testnet';
-export type EthereumChainIDList = '11155111' | '5' | '1';
+export type EthereumChainIDList = '11155111' | '5' | '1' | '80001';
 export type UnspecifiedChainIDList = 'unspecified';
 
 export type ChainID<SupportedProtocolTypes> =

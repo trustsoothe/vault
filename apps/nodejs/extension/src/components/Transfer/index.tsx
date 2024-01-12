@@ -463,21 +463,9 @@ const Transfer: React.FC = () => {
     return accountBalances[protocol][chainId][fromAddress]?.amount || 0;
   }, [accountBalances, protocol, chainId, fromAddress, asset]);
 
-  const amount = useMemo(() => {
-    const chainBalanceMap = accountBalances[protocol][chainId];
-
-    if (asset && protocol === SupportedProtocols.Ethereum) {
-      return (
-        chainBalanceMap?.[asset.contractAddress]?.[fromAddress]?.amount || 0
-      );
-    }
-
-    return chainBalanceMap[fromAddress]?.amount || 0;
-  }, [accountBalances, protocol, chainId, fromAddress, asset]);
-
   const onSubmit = useCallback(
     async (data: FormValues) => {
-      if (!amount || !nativeBalance || feeStatus !== "fetched") return;
+      if (!nativeBalance || feeStatus !== "fetched") return;
 
       if (status === "form") {
         setStatus("summary");
@@ -670,7 +658,6 @@ const Transfer: React.FC = () => {
       status,
       feeStatus,
       accounts,
-      amount,
       nativeBalance,
       transferType,
       externalTransferData,
@@ -794,7 +781,7 @@ const Transfer: React.FC = () => {
               }}
               variant={"contained"}
               fullWidth
-              disabled={(!networkFee && feeStatus !== "fetched") || !amount}
+              disabled={(!networkFee && feeStatus !== "fetched") || !nativeBalance}
               type={onClickPrimary ? "button" : "submit"}
               onClick={onClickPrimary}
             >
@@ -814,7 +801,7 @@ const Transfer: React.FC = () => {
     transferHash,
     sendingStatus,
     networkFee,
-    amount,
+    nativeBalance,
     externalRequestInfo,
   ]);
 

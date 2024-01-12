@@ -248,7 +248,7 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
     const sessionId = state.vault.vaultSession.id;
 
     let result: IProtocolTransactionResult<
-      "Pocket" | "Ethereum" | "Unspecified"
+      "Pocket" | "Ethereum"
     >;
 
     const transactionArg = {
