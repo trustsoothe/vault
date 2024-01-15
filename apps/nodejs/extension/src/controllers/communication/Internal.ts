@@ -50,6 +50,8 @@ import {
   CHECK_PERMISSION_FOR_SESSION_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  EXPORT_VAULT_REQUEST,
+  EXPORT_VAULT_RESPONSE,
   IMPORT_ACCOUNT_REQUEST,
   IMPORT_ACCOUNT_RESPONSE,
   INITIALIZE_VAULT_REQUEST,
@@ -70,6 +72,8 @@ import {
   REVOKE_EXTERNAL_SESSIONS_RESPONSE,
   REVOKE_SESSION_REQUEST,
   REVOKE_SESSION_RESPONSE,
+  SHOULD_EXPORT_VAULT_REQUEST,
+  SHOULD_EXPORT_VAULT_RESPONSE,
   SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
   SWITCH_CHAIN_RESPONSE,
@@ -112,6 +116,11 @@ import {
 } from "../../redux/slices/app/network";
 import { getFee, NetworkForOperations } from "../../utils/networkOperations";
 import { getVault } from "../../utils";
+import {
+  exportVault,
+  hashString,
+  VaultBackupSchema,
+} from "../../redux/slices/vault/backup";
 
 type MessageSender = Runtime.MessageSender;
 type UnknownErrorType = typeof UnknownError;
@@ -402,6 +411,37 @@ export type AnswerPersonalSignResponse = BaseResponse<
   typeof ANSWER_PERSONAL_SIGN_RESPONSE
 >;
 
+export interface ExportVaultRequest {
+  type: typeof EXPORT_VAULT_REQUEST;
+  data?: {
+    encryptionPassword?: string;
+  };
+}
+
+export type ExportVaultResponse = {
+  type: typeof EXPORT_VAULT_RESPONSE;
+} & (
+  | { data: VaultBackupSchema; error: null }
+  | { error: typeof UnknownError; data: null }
+);
+
+export interface ShouldExportVaultRequest {
+  type: typeof SHOULD_EXPORT_VAULT_REQUEST;
+}
+
+export type ShouldExportVaultResponse = {
+  type: typeof SHOULD_EXPORT_VAULT_RESPONSE;
+} & (
+  | {
+      data: {
+        shouldExportVault: boolean;
+        hasVaultBeenExported: boolean;
+      };
+      error: null;
+    }
+  | { error: typeof UnknownError; data: null }
+);
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
@@ -420,7 +460,9 @@ export type Message =
   | CheckPermissionForSessionMessage
   | AnswerSwitchChainRequest
   | AnswerSignedTypedDataRequest
-  | AnswerPersonalSignRequest;
+  | AnswerPersonalSignRequest
+  | ExportVaultRequest
+  | ShouldExportVaultRequest;
 
 const mapMessageType: Record<Message["type"], true> = {
   [ANSWER_CONNECTION_REQUEST]: true,
@@ -441,6 +483,8 @@ const mapMessageType: Record<Message["type"], true> = {
   [ANSWER_SWITCH_CHAIN_REQUEST]: true,
   [ANSWER_SIGNED_TYPED_DATA_REQUEST]: true,
   [ANSWER_PERSONAL_SIGN_REQUEST]: true,
+  [EXPORT_VAULT_REQUEST]: true,
+  [SHOULD_EXPORT_VAULT_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -524,6 +568,14 @@ class InternalCommunicationController implements ICommunicationController {
 
     if (message?.type === ANSWER_PERSONAL_SIGN_REQUEST) {
       return this._answerPersonalSignRequest(message);
+    }
+
+    if (message?.type === EXPORT_VAULT_REQUEST) {
+      return this._exportVault(message);
+    }
+
+    if (message?.type === SHOULD_EXPORT_VAULT_REQUEST) {
+      return this._shouldExportVault();
     }
   }
 
@@ -1624,6 +1676,59 @@ class InternalCommunicationController implements ICommunicationController {
         })
         .catch();
     } catch (e) {}
+  }
+
+  private async _exportVault(
+    message: ExportVaultRequest
+  ): Promise<ExportVaultResponse> {
+    try {
+      const encryptionPassword = message.data?.encryptionPassword;
+      const response = await store
+        .dispatch(exportVault(encryptionPassword))
+        .unwrap();
+
+      return {
+        type: EXPORT_VAULT_RESPONSE,
+        data: response.exportedVault,
+        error: null,
+      };
+    } catch (e) {
+      return {
+        type: EXPORT_VAULT_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _shouldExportVault(): Promise<ShouldExportVaultResponse> {
+    try {
+      const { backupData, dateWhenInitialized } = store.getState().vault;
+      const date = backupData?.lastDate || dateWhenInitialized || 0;
+      const oneWeekInMs = 604800000;
+
+      const vaultContent = await browser.storage.local
+        .get("vault")
+        .then((res) => res["vault"] || "");
+      const vaultContentHashed = await hashString(vaultContent);
+
+      return {
+        type: SHOULD_EXPORT_VAULT_RESPONSE,
+        data: {
+          hasVaultBeenExported: !!backupData,
+          shouldExportVault:
+            vaultContentHashed !== backupData?.vaultHash &&
+            date + oneWeekInMs < Date.now(),
+        },
+        error: null,
+      };
+    } catch (e) {
+      return {
+        type: SHOULD_EXPORT_VAULT_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
   }
 }
 

@@ -11,6 +11,7 @@ import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 import { AssetStorage, getVault, NetworkStorage } from "../../../utils";
 import { addSessionThunksToBuilder } from "./session";
 import { addAccountThunksToBuilder } from "./account";
+import { addBackupThunksToBuilder } from "./backup";
 
 const webEncryptionService = new WebEncryptionService();
 const ExtensionVaultInstance = getVault();
@@ -29,21 +30,32 @@ export interface VaultSlice {
   accounts: SerializedAccountReference[];
   sessions: SerializedSession[];
   dateUntilVaultIsLocked?: number;
+  backupData: {
+    lastDate: number;
+    vaultHash: string;
+  } | null;
+  dateWhenInitialized: number | null;
 }
 
 export const VAULT_HAS_BEEN_INITIALIZED_KEY = "vault_has_been_initialized";
+export const DATE_WHEN_VAULT_INITIALIZED_KEY = "DATE_WHEN_VAULT_INITIALIZED";
 export const PASSPHRASE = v4();
 
 export const initVault = createAsyncThunk<
-  void,
+  number,
   { password: string; remember: boolean }
 >("vault/initVault", async ({ password, remember }, { dispatch }) => {
+  const dateWhenInitialized = Date.now();
+
   await ExtensionVaultInstance.initializeVault(password).then(() => {
     return browser.storage.local.set({
       [VAULT_HAS_BEEN_INITIALIZED_KEY]: "true",
+      [DATE_WHEN_VAULT_INITIALIZED_KEY]: dateWhenInitialized,
     });
   });
   await dispatch(unlockVault({ password, remember })).unwrap();
+
+  return dateWhenInitialized;
 });
 
 const VaultCannotBeUnlockedError = Object.freeze({
@@ -141,6 +153,8 @@ const initialState: VaultSlice = {
   wrongPasswordCounter: {},
   accounts: [],
   sessions: [],
+  backupData: null,
+  dateWhenInitialized: null,
 };
 
 const vaultSlice = createSlice({
@@ -160,6 +174,7 @@ const vaultSlice = createSlice({
   extraReducers: (builder) => {
     addAccountThunksToBuilder(builder);
     addSessionThunksToBuilder(builder);
+    addBackupThunksToBuilder(builder);
 
     builder.addCase(unlockVault.fulfilled, (state, action) => {
       const {
@@ -197,8 +212,9 @@ const vaultSlice = createSlice({
       }
     });
 
-    builder.addCase(initVault.fulfilled, (state) => {
+    builder.addCase(initVault.fulfilled, (state, action) => {
       state.initializeStatus = "exists";
+      state.dateWhenInitialized = action.payload;
     });
 
     builder.addCase(checkInitializeStatus.fulfilled, (state, action) => {

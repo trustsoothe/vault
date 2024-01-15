@@ -1,4 +1,5 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { OutletContext } from "../../types";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -7,6 +8,7 @@ import Stack from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
+import { useOutletContext } from "react-router-dom";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
@@ -30,6 +32,7 @@ interface FormValues {
 
 const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   const theme = useTheme();
+  const { toggleShowExportVault } = useOutletContext() as OutletContext;
   const [wrongPassword, setWrongPassword] = useState(false);
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
@@ -92,7 +95,23 @@ const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
           setWrongPassword(true);
         } else {
           enqueueSnackbar({
-            message: `Account name updated successfully.`,
+            message: (onClickClose) => (
+              <Stack>
+                <span>Account name updated successfully.</span>
+                <span>
+                  The vault content changed.{" "}
+                  <Button
+                    onClick={() => {
+                      toggleShowExportVault();
+                      onClickClose();
+                    }}
+                    sx={{ padding: 0, minWidth: 0 }}
+                  >
+                    Backup now?
+                  </Button>
+                </span>
+              </Stack>
+            ),
             variant: "success",
           });
           onClose();
@@ -100,7 +119,7 @@ const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
         setStatus("normal");
       });
     },
-    [account, passwordRemembered, onClose]
+    [account, passwordRemembered, onClose, toggleShowExportVault]
   );
 
   const onClickAway = useCallback(() => {

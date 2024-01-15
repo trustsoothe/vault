@@ -32,6 +32,7 @@ import {
   initializeStatusSelector,
   vaultSessionExistsSelector,
 } from "./redux/selectors/session";
+import InfoIcon from "./components/common/InfoIcon";
 import OperationFailed from "./components/common/OperationFailed";
 
 const store = new Store();
@@ -216,6 +217,11 @@ const Home: React.FC = () => {
               border: `1px solid ${theme.customColors.dark_green}`,
               boxShadow: "none",
             },
+            "& .notistack-MuiContent-info": {
+              backgroundColor: theme.customColors.primary100,
+              border: `1px solid ${theme.customColors.primary250}`,
+              boxShadow: "none",
+            },
           }}
           elevation={2}
         >
@@ -235,6 +241,7 @@ const Home: React.FC = () => {
             preventDuplicate={true}
             iconVariant={{
               success: <SuccessIcon />,
+              info: <InfoIcon />,
             }}
           />
           {content}

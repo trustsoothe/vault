@@ -12,9 +12,11 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import {
   closeSnackbar,
-  EnqueueSnackbar,
   enqueueSnackbar as enqueueSnackbarNotistack,
+  OptionsWithExtraProps,
   SnackbarKey,
+  SnackbarMessage,
+  VariantType,
 } from "notistack";
 import { removeExternalRequest, RequestsType } from "../redux/slices/app";
 import {
@@ -156,7 +158,15 @@ export const removeRequestWithRes = async (
     .catch();
 };
 
-export const enqueueSnackbar: EnqueueSnackbar = (options) => {
+type Message =
+  | ((onClickClose: () => void) => SnackbarMessage)
+  | SnackbarMessage;
+
+export const enqueueSnackbar = <V extends VariantType>(
+  options: OptionsWithExtraProps<V> & {
+    message?: Message;
+  } & object
+): SnackbarKey => {
   let snackbarKey: SnackbarKey;
 
   const onClickClose = () => {
@@ -164,6 +174,11 @@ export const enqueueSnackbar: EnqueueSnackbar = (options) => {
       closeSnackbar(snackbarKey);
     }
   };
+
+  const message =
+    typeof options.message === "function"
+      ? options.message(onClickClose)
+      : options.message;
 
   snackbarKey = enqueueSnackbarNotistack({
     ...options,
@@ -181,8 +196,9 @@ export const enqueueSnackbar: EnqueueSnackbar = (options) => {
           fontSize={13}
           color={"#152A48"}
           width={280}
+          lineHeight={"18px"}
         >
-          {options.message}
+          {message}
         </Typography>
         <IconButton onClick={onClickClose}>
           <CloseIcon />
@@ -260,4 +276,20 @@ export const secsToText = (secs: number) => {
     const seconds = Math.floor(secs);
     return `0:${pad(seconds)}`;
   }
+};
+
+export const readFile = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const fr = new FileReader();
+
+      fr.onload = (event) => {
+        resolve(event.target.result.toString());
+      };
+
+      fr.readAsText(file);
+    } catch (e) {
+      reject(e);
+    }
+  });
 };

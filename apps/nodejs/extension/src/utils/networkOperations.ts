@@ -456,7 +456,7 @@ const typedDataSchema = z.object({
   domain: z
     .object({
       name: z.string(),
-      version: z.string().or(z.number().int().transform(String)),
+      version: z.string().or(z.number().transform(String)),
       chainId: z.number().int(),
       verifyingContract: z.string(),
       salt: z.string(),

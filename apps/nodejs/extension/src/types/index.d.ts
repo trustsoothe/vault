@@ -31,6 +31,10 @@ import {
   ProxySignTypedDataRequest,
 } from "./communication";
 
+export interface OutletContext {
+  toggleShowExportVault?: () => void;
+}
+
 export type AppSliceBuilder = ActionReducerMapBuilder<GeneralAppSlice>;
 export type VaultSliceBuilder = ActionReducerMapBuilder<VaultSlice>;
 

@@ -20,6 +20,7 @@ import {
 } from "../redux/slices/app";
 import { getVault } from "../utils";
 import {
+  checkInitializeStatus,
   lockVault,
   restoreDateUntilVaultIsLocked,
 } from "../redux/slices/vault";
@@ -27,6 +28,7 @@ import store, { RootState } from "../redux/store";
 import InternalCommunicationController from "./communication/Internal";
 import ExternalCommunicationController from "./communication/External";
 import { AppIsReadyResponse } from "../types/communication";
+import { loadBackupData } from "../redux/slices/vault/backup";
 
 export default class BackgroundController {
   private readonly internal = new InternalCommunicationController();
@@ -192,7 +194,9 @@ export default class BackgroundController {
   private async _initializeExtensionState() {
     try {
       store.dispatch(setAppIsReadyStatus("loading"));
-      await store.dispatch(restoreDateUntilVaultIsLocked());
+      await store.dispatch(restoreDateUntilVaultIsLocked()).unwrap();
+      await store.dispatch(checkInitializeStatus()).unwrap();
+      await store.dispatch(loadBackupData()).unwrap();
       await Promise.all([
         store.dispatch(loadNetworksFromStorage()).unwrap(),
         store.dispatch(loadAssetsFromStorage()).unwrap(),

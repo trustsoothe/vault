@@ -5,12 +5,14 @@ import browser from "webextension-polyfill";
 import Stack from "@mui/material/Stack";
 import Menu from "@mui/material/Menu";
 import { useTheme } from "@mui/material";
+import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import DownloadIcon from "@mui/icons-material/FileDownloadOutlined";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import ContactIcon from "@mui/icons-material/AccountCircleOutlined";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -47,6 +49,8 @@ import LockIcon from "../../assets/img/lock_icon.svg";
 import useShowAccountSelect, {
   ROUTES_TO_HIDE_ACCOUNT_SELECT,
 } from "../../hooks/useShowAccountSelect";
+import ExportModal from "../Vault/ExportModal";
+import { enqueueSnackbar } from "../../utils/ui";
 import { useAppSelector } from "../../hooks/redux";
 import { existsAccountsOfSelectedProtocolSelector } from "../../redux/selectors/account";
 
@@ -104,11 +108,55 @@ const Header = () => {
   const navigate = useNavigate();
   const showAccountSelect = useShowAccountSelect();
   const [showBackdrop, setShowBackdrop] = useState(false);
+  const [showExportVault, setShowExportVault] = useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = !!anchorEl;
   const showSelectors = !ROUTES_WHERE_HIDE_SELECTORS.includes(
     location.pathname
   );
+
+  const closeMenu = useCallback(() => {
+    setAnchorEl(null);
+    setShowBackdrop(false);
+  }, []);
+
+  const toggleShowExportVault = useCallback(() => {
+    setShowExportVault((prevState) => !prevState);
+    closeMenu();
+  }, [closeMenu]);
+
+  useEffect(() => {
+    AppToBackground.shouldExportVault().then((res) => {
+      if (res.data) {
+        const { shouldExportVault, hasVaultBeenExported } = res.data;
+
+        if (shouldExportVault) {
+          const text = hasVaultBeenExported
+            ? "There's been more than a week since you backup the vault."
+            : "You haven't backup your vault yet.";
+
+          enqueueSnackbar({
+            variant: "info",
+            persist: true,
+            message: (onClickClose) => (
+              <span>
+                {text}{" "}
+                <Button
+                  onClick={() => {
+                    toggleShowExportVault();
+                    onClickClose();
+                  }}
+                  sx={{ padding: 0, minWidth: 0 }}
+                >
+                  Backup now?
+                </Button>
+              </span>
+            ),
+          });
+        }
+      }
+    });
+  }, []);
 
   const existsAccountsOfSelectedProtocol = useAppSelector(
     existsAccountsOfSelectedProtocolSelector
@@ -134,11 +182,6 @@ const Header = () => {
     },
     [toggleShowBackdrop]
   );
-
-  const closeMenu = useCallback(() => {
-    setAnchorEl(null);
-    toggleShowBackdrop();
-  }, [toggleShowBackdrop]);
 
   const canGoBack =
     location.key !== "default" && location.pathname !== ACCOUNTS_PAGE;
@@ -345,6 +388,20 @@ const Header = () => {
               hide: !isPopup,
             },
             {
+              key: "export_item",
+              label: "Export Vault",
+              onClick: toggleShowExportVault,
+              icon: () => (
+                <DownloadIcon
+                  sx={{
+                    fontSize: 12,
+                    paddingLeft: 0.3,
+                    "& path": { color: theme.customColors.dark75 },
+                  }}
+                />
+              ),
+            },
+            {
               key: "lock_item",
               label: "Lock Vault",
               onClick: onClickLock,
@@ -452,8 +509,11 @@ const Header = () => {
         paddingX={2}
         position={"relative"}
       >
-        <Outlet />
+        <Outlet context={{ toggleShowExportVault }} />
       </Stack>
+      {showExportVault && (
+        <ExportModal open={showExportVault} onClose={toggleShowExportVault} />
+      )}
     </Stack>
   );
 };

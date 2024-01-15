@@ -2,11 +2,17 @@ import type {
   SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/keyring";
+import type { OutletContext } from "../../types";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useOutletContext,
+  useSearchParams,
+} from "react-router-dom";
 import Typography from "@mui/material/Typography";
-import { styled, useTheme } from "@mui/material";
+import { useTheme } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Divider from "@mui/material/Divider";
@@ -25,7 +31,7 @@ import {
   isValidPPK,
   isValidPrivateKey,
 } from "../../utils/networkOperations";
-import { enqueueSnackbar } from "../../utils/ui";
+import { enqueueSnackbar, readFile } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
@@ -34,18 +40,7 @@ import {
   accountsSelector,
   selectedAccountSelector,
 } from "../../redux/selectors/account";
-
-const VisuallyHiddenInput = styled("input")({
-  clip: "rect(0 0 0 0)",
-  clipPath: "inset(50%)",
-  height: 1,
-  overflow: "hidden",
-  position: "absolute",
-  bottom: 0,
-  left: 0,
-  whiteSpace: "nowrap",
-  width: 1,
-});
+import SelectFile from "../common/SelectFile";
 
 interface FormValues {
   import_type: "private_key" | "json_file";
@@ -59,22 +54,6 @@ interface FormValues {
 }
 
 const INVALID_PPK_MESSAGE = "File is not valid";
-
-const readFile = async (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const fr = new FileReader();
-
-      fr.onload = (event) => {
-        resolve(event.target.result.toString());
-      };
-
-      fr.readAsText(file);
-    } catch (e) {
-      reject(e);
-    }
-  });
-};
 
 const getPrivateKey = async (
   data: FormValues,
@@ -102,6 +81,7 @@ type FormStatus = "normal" | "loading" | "error" | "account_exists";
 const ImportAccount: React.FC = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
+  const { toggleShowExportVault } = useOutletContext() as OutletContext;
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const passwordRemembered = useAppSelector(passwordRememberedSelector);
   const accounts = useAppSelector(accountsSelector);
@@ -275,9 +255,25 @@ const ImportAccount: React.FC = () => {
             ).then(() => {
               setTimeout(() => {
                 enqueueSnackbar({
-                  message: `Account ${
-                    accountToReimport ? "re" : ""
-                  }imported successfully.`,
+                  message: (onClickClose) => (
+                    <Stack>
+                      <span>{`Account ${
+                        accountToReimport ? "re" : ""
+                      }imported successfully.`}</span>
+                      <span>
+                        The vault content changed.{" "}
+                        <Button
+                          onClick={() => {
+                            toggleShowExportVault();
+                            onClickClose();
+                          }}
+                          sx={{ padding: 0, minWidth: 0 }}
+                        >
+                          Backup now?
+                        </Button>
+                      </span>
+                    </Stack>
+                  ),
                   variant: "success",
                 });
                 navigate(ACCOUNTS_PAGE);
@@ -295,6 +291,7 @@ const ImportAccount: React.FC = () => {
       selectedProtocol,
       dispatch,
       accounts,
+      toggleShowExportVault,
     ]
   );
 
@@ -517,67 +514,34 @@ const ImportAccount: React.FC = () => {
                   },
                 }}
                 render={({ field, fieldState: { error } }) => (
-                  <Stack
-                    direction={"row"}
-                    spacing={"5px"}
-                    alignItems={"center"}
-                    height={30}
-                    paddingX={1}
-                    bgcolor={theme.customColors.dark2}
-                    justifyContent={"space-between"}
-                  >
-                    <Typography
-                      fontSize={12}
-                      textOverflow={"ellipsis"}
-                      whiteSpace={"nowrap"}
-                      overflow={"hidden"}
-                      color={
-                        error
-                          ? theme.customColors.red100
-                          : theme.customColors.dark75
-                      }
-                      sx={{
-                        maxWidth: 165,
-                        marginRight: 0.5,
-                      }}
-                    >
-                      {json_file?.name || "None File Selected"}
-                    </Typography>
-                    <Button
-                      variant={"text"}
-                      component={"label"}
-                      disableRipple={true}
-                      disableFocusRipple={true}
-                      sx={{
-                        height: 30,
-                        textDecoration: "underline",
-                        justifyContent: "flex-end",
-                        paddingX: 0,
-                        fontSize: 13,
+                  <SelectFile
+                    filenameProps={{
+                      color: error
+                        ? theme.customColors.red100
+                        : theme.customColors.dark75,
+                    }}
+                    filename={json_file?.name}
+                    buttonProps={{
+                      sx: {
                         color: error
                           ? theme.customColors.red100
                           : theme.customColors.primary500,
-                        "&:hover": {
-                          textDecoration: "underline",
-                          backgroundColor: theme.customColors.dark2,
-                        },
-                      }}
-                    >
-                      {error?.message === INVALID_PPK_MESSAGE
+                      },
+                    }}
+                    selectFileLabel={
+                      error?.message === INVALID_PPK_MESSAGE
                         ? "Wrong File. Select Another"
-                        : "Select File"}
-                      <VisuallyHiddenInput
-                        type={"file"}
-                        accept={"application/json"}
-                        {...field}
-                        //@ts-ignore
-                        value={field?.value?.fileName}
-                        onChange={(event) => {
-                          field.onChange(event.target.files?.[0] || null);
-                        }}
-                      />
-                    </Button>
-                  </Stack>
+                        : "Select File"
+                    }
+                    inputFields={{
+                      ...field,
+                      // @ts-ignore
+                      value: field?.value?.fileName,
+                      onChange: (event) => {
+                        field.onChange(event.target.files?.[0] || null);
+                      },
+                    }}
+                  />
                 )}
               />
 

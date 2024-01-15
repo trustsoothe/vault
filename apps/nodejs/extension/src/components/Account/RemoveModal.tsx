@@ -1,4 +1,5 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { OutletContext } from "../../types";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material";
@@ -6,6 +7,7 @@ import Stack from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
+import { useOutletContext } from "react-router-dom";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
 import { FormProvider, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
@@ -26,6 +28,7 @@ interface FormValues {
 
 const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   const theme = useTheme();
+  const { toggleShowExportVault } = useOutletContext() as OutletContext;
 
   const [wrongPassword, setWrongPassword] = useState(false);
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
@@ -81,14 +84,30 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
           } else {
             onClose();
             enqueueSnackbar({
-              message: `Account removed successfully.`,
+              message: (onClickClose) => (
+                <Stack>
+                  <span>Account removed successfully.</span>
+                  <span>
+                    The vault content changed.{" "}
+                    <Button
+                      onClick={() => {
+                        toggleShowExportVault();
+                        onClickClose();
+                      }}
+                      sx={{ padding: 0, minWidth: 0 }}
+                    >
+                      Backup now?
+                    </Button>
+                  </span>
+                </Stack>
+              ),
               variant: "success",
             });
           }
         }
       });
     },
-    [account]
+    [account, toggleShowExportVault]
   );
 
   const onClickAway = useCallback(() => {

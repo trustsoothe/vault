@@ -11,6 +11,8 @@ import type {
   AnswerSwitchChainResponse,
   AnswerTransferRequest,
   AnswerTransferResponse,
+  ExportVaultRequest,
+  ExportVaultResponse,
   ImportAccountMessage,
   ImportAccountResponse,
   InitializeVaultRequest,
@@ -27,6 +29,8 @@ import type {
   RevokeExternalSessionsResponse,
   RevokeSessionMessage,
   RevokeSessionResponse,
+  ShouldExportVaultRequest,
+  ShouldExportVaultResponse,
   UnlockVaultRequest,
   UnlockVaultResponse,
   UpdateAccountMessage,
@@ -48,6 +52,7 @@ import {
   ANSWER_SWITCH_CHAIN_REQUEST,
   ANSWER_TRANSFER_REQUEST,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
+  EXPORT_VAULT_REQUEST,
   IMPORT_ACCOUNT_REQUEST,
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
@@ -56,6 +61,7 @@ import {
   REMOVE_ACCOUNT_REQUEST,
   REVOKE_EXTERNAL_SESSIONS_REQUEST,
   REVOKE_SESSION_REQUEST,
+  SHOULD_EXPORT_VAULT_REQUEST,
   UNLOCK_VAULT_REQUEST,
   UPDATE_ACCOUNT_REQUEST,
 } from "../../constants/communication";
@@ -235,6 +241,25 @@ export default class AppToBackground {
     const message: AnswerPersonalSignRequest = {
       data,
       type: ANSWER_PERSONAL_SIGN_REQUEST,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async exportVault(
+    data: ExportVaultRequest["data"] = undefined
+  ): Promise<ExportVaultResponse> {
+    const message: ExportVaultRequest = {
+      type: EXPORT_VAULT_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async shouldExportVault(): Promise<ShouldExportVaultResponse> {
+    const message: ShouldExportVaultRequest = {
+      type: SHOULD_EXPORT_VAULT_REQUEST,
     };
 
     return browser.runtime.sendMessage(message);

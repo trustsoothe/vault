@@ -1,3 +1,4 @@
+import type { OutletContext } from "../../types";
 import type { ExternalNewAccountRequest } from "../../types/communication";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Stack from "@mui/material/Stack";
@@ -6,7 +7,7 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { FormProvider, useForm } from "react-hook-form";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import Requester from "../common/Requester";
@@ -45,6 +46,7 @@ type FormStatus = "normal" | "loading" | "error";
 
 const CreateNewAccount: React.FC = () => {
   const theme = useTheme();
+  const { toggleShowExportVault } = (useOutletContext() || {}) as OutletContext;
 
   const protocol = useAppSelector(selectedProtocolSelector);
   const passwordRemembered = useAppSelector(passwordRememberedSelector);
@@ -119,7 +121,25 @@ const CreateNewAccount: React.FC = () => {
             })
           ).then(() => {
             enqueueSnackbar({
-              message: `Account created successfully.`,
+              message: (onClickClose) => (
+                <Stack>
+                  <span>Account created successfully.</span>
+                  <span>
+                    The vault content changed.{" "}
+                    <Button
+                      onClick={() => {
+                        if (toggleShowExportVault) {
+                          toggleShowExportVault();
+                        }
+                        onClickClose();
+                      }}
+                      sx={{ padding: 0, minWidth: 0 }}
+                    >
+                      Backup now?
+                    </Button>
+                  </span>
+                </Stack>
+              ),
               variant: "success",
             });
             navigate(ACCOUNTS_PAGE);
@@ -127,7 +147,14 @@ const CreateNewAccount: React.FC = () => {
         }
       }
     },
-    [currentRequest, dispatch, passwordRemembered, navigate, protocol]
+    [
+      currentRequest,
+      dispatch,
+      passwordRemembered,
+      navigate,
+      protocol,
+      toggleShowExportVault,
+    ]
   );
 
   const content = useMemo(() => {

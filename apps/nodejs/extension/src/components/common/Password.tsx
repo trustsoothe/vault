@@ -295,7 +295,7 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
             tabIndex={-1}
             onClick={toggleRandomPassword}
           >
-            {random ? "Introduce Password" : "Generate Random"}
+            {random ? "Type password" : "Generate random"}
           </Button>
         )}
       </Stack>
