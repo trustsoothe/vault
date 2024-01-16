@@ -25,6 +25,7 @@ import {
   addNetworksExtraReducers,
   setGetAccountPending as setGetAccountPendingFromNetwork,
 } from "./network";
+import { SettingsSchema } from "../vault/backup";
 import { addContactThunksToBuilder } from "./contact";
 
 export type RequestsType = (
@@ -461,6 +462,34 @@ export const toggleBlockWebsite = createAsyncThunk<string[], string>(
   }
 );
 
+export const importAppSettings = createAsyncThunk(
+  "app/importSettings",
+  async (settings: SettingsSchema) => {
+    const settingsParsed = SettingsSchema.parse(settings);
+    const {
+      assetsIdByAccount,
+      selectedAccountByProtocol,
+      selectedChainByProtocol,
+      selectedProtocol,
+      networksCanBeSelected,
+      customRpcs,
+      contacts,
+    } = settingsParsed;
+
+    await browser.storage.local.set({
+      [ASSETS_SELECTED_BY_ACCOUNTS_KEY]: assetsIdByAccount,
+      [SELECTED_ACCOUNTS_KEY]: selectedAccountByProtocol,
+      [SELECTED_CHAINS_KEY]: selectedChainByProtocol,
+      [SELECTED_NETWORK_KEY]: selectedProtocol,
+      [NETWORKS_CAN_BE_SELECTED_KEY]: networksCanBeSelected,
+      [CUSTOM_RPCS_KEY]: customRpcs,
+      [CONTACTS_KEY]: contacts,
+    });
+
+    return settingsParsed;
+  }
+);
+
 const initialState: GeneralAppSlice = {
   requestsWindowId: null,
   showTestNetworks: false,
@@ -637,6 +666,30 @@ const generalAppSlice = createSlice({
     builder.addCase(toggleAssetOfAccount.fulfilled, (state, action) => {
       state.assetsIdByAccount = action.payload;
     });
+
+    builder.addCase(
+      importAppSettings.fulfilled,
+      (state, { payload: settings }) => {
+        const {
+          assetsIdByAccount,
+          selectedAccountByProtocol,
+          selectedChainByProtocol,
+          selectedProtocol,
+          networksCanBeSelected,
+          customRpcs,
+          contacts,
+        } = settings;
+
+        state.assetsIdByAccount = assetsIdByAccount;
+        state.selectedAccountByProtocol = selectedAccountByProtocol;
+        state.selectedChainByProtocol = selectedChainByProtocol;
+        state.selectedProtocol = selectedProtocol;
+        state.networksCanBeSelected =
+          networksCanBeSelected as NetworkCanBeSelectedMap;
+        state.customRpcs = customRpcs as CustomRPC[];
+        state.contacts = contacts as SerializedAccountReference[];
+      }
+    );
   },
 });
 

@@ -1,7 +1,7 @@
 import { FormProvider, useForm } from "react-hook-form";
 import React, { useCallback, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
+import Button, { ButtonProps } from "@mui/material/Button";
 import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
@@ -10,6 +10,7 @@ import RememberPasswordCheckbox from "./common/RememberPassword";
 import SootheLogoHeader from "./common/SootheLogoHeader";
 import CircularLoading from "./common/CircularLoading";
 import OperationFailed from "./common/OperationFailed";
+import ImportModal from "./Vault/ImportModal";
 import Password from "./common/Password";
 
 interface InfoViewProps {
@@ -18,6 +19,7 @@ interface InfoViewProps {
   children: React.ReactNode;
   title: string;
   submitButtonText: string;
+  submitButtonProps?: ButtonProps;
 }
 
 const InfoView: React.FC<InfoViewProps> = ({
@@ -26,6 +28,7 @@ const InfoView: React.FC<InfoViewProps> = ({
   children,
   title,
   submitButtonText,
+  submitButtonProps,
 }) => {
   const theme = useTheme();
   const [hasReachBottom, setHasReachBottom] = useState(false);
@@ -106,15 +109,17 @@ const InfoView: React.FC<InfoViewProps> = ({
           <Button
             variant={"contained"}
             fullWidth
+            disabled={!hasReachBottom}
+            type={"submit"}
+            {...submitButtonProps}
             sx={{
               height: 35,
               backgroundColor: theme.customColors.primary500,
               fontSize: 16,
               fontWeight: 700,
               marginTop: 0.3,
+              ...submitButtonProps?.sx,
             }}
-            disabled={!hasReachBottom}
-            type={"submit"}
           >
             {submitButtonText}
           </Button>
@@ -222,8 +227,9 @@ const InitializeVault: React.FC = () => {
     | "sec_and_priv_to_submit"
     | "passwords_warning"
   >("normal");
-
+  const [showImportModal, setShowImportModal] = useState(false);
   const [rememberPass, setRememberPass] = useState(false);
+
   const methods = useForm<FormValues>({
     defaultValues: {
       password: "",
@@ -274,6 +280,11 @@ const InitializeVault: React.FC = () => {
       }
     });
   }, []);
+
+  const toggleShowImportDialog = useCallback(
+    () => setShowImportModal((prevState) => !prevState),
+    []
+  );
 
   const formContent = useMemo(() => {
     if (status === "loading") {
@@ -361,6 +372,21 @@ const InitializeVault: React.FC = () => {
             fontSize={13}
             fontWeight={500}
             textAlign={"center"}
+            onClick={toggleShowImportDialog}
+            sx={{
+              textDecoration: "underline",
+              userSelect: "none",
+              cursor: "pointer",
+            }}
+          >
+            Import Vault
+          </Typography>
+          <Typography
+            color={theme.customColors.primary500}
+            lineHeight={"20px"}
+            fontSize={13}
+            fontWeight={500}
+            textAlign={"center"}
             onClick={onShowSecurityAndPrivacy}
             sx={{
               textDecoration: "underline",
@@ -380,30 +406,46 @@ const InitializeVault: React.FC = () => {
     theme,
     closeSecurityAndPrivacy,
     onShowSecurityAndPrivacy,
+    toggleShowImportDialog,
   ]);
 
   return (
-    <Stack
-      spacing={"10px"}
-      alignItems={"center"}
-      component={"form"}
-      flexGrow={1}
-      onSubmit={handleSubmit(onSubmit)}
-      position={"relative"}
-    >
-      <SootheLogoHeader
-        compact={false}
-        containerProps={{
-          display: "flex",
-        }}
-      />
-      <SecurityAndPrivacyView
-        show={status === "sec_and_priv_to_submit" || status === "sec_and_priv"}
-        onBack={onBack}
-      />
-      <SavePasswordView show={status === "passwords_warning"} onBack={onBack} />
-      {formContent}
-    </Stack>
+    <>
+      <Stack
+        spacing={"10px"}
+        alignItems={"center"}
+        component={"form"}
+        flexGrow={1}
+        onSubmit={handleSubmit(onSubmit)}
+        position={"relative"}
+      >
+        <SootheLogoHeader
+          compact={false}
+          containerProps={{
+            display: "flex",
+          }}
+        />
+        <SecurityAndPrivacyView
+          show={
+            status === "sec_and_priv_to_submit" || status === "sec_and_priv"
+          }
+          submitButtonProps={{
+            sx: {
+              display: status === "sec_and_priv_to_submit" ? undefined : "none",
+            },
+          }}
+          onBack={onBack}
+        />
+        <SavePasswordView
+          show={status === "passwords_warning"}
+          onBack={onBack}
+        />
+        {formContent}
+      </Stack>
+      {showImportModal && (
+        <ImportModal onClose={toggleShowImportDialog} open={showImportModal} />
+      )}
+    </>
   );
 };
 

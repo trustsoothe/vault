@@ -54,6 +54,8 @@ import {
   EXPORT_VAULT_RESPONSE,
   IMPORT_ACCOUNT_REQUEST,
   IMPORT_ACCOUNT_RESPONSE,
+  IMPORT_VAULT_REQUEST,
+  IMPORT_VAULT_RESPONSE,
   INITIALIZE_VAULT_REQUEST,
   INITIALIZE_VAULT_RESPONSE,
   LOCK_VAULT_REQUEST,
@@ -119,6 +121,7 @@ import { getVault } from "../../utils";
 import {
   exportVault,
   hashString,
+  importVault,
   VaultBackupSchema,
 } from "../../redux/slices/vault/backup";
 
@@ -442,6 +445,19 @@ export type ShouldExportVaultResponse = {
   | { error: typeof UnknownError; data: null }
 );
 
+export interface ImportVaultRequest {
+  type: typeof IMPORT_VAULT_REQUEST;
+  data: {
+    vault: VaultBackupSchema;
+    password: string;
+  };
+}
+
+export type ImportVaultResponse = BaseResponse<
+  typeof IMPORT_VAULT_RESPONSE,
+  UnlockVaultResponseData
+>;
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
@@ -462,7 +478,8 @@ export type Message =
   | AnswerSignedTypedDataRequest
   | AnswerPersonalSignRequest
   | ExportVaultRequest
-  | ShouldExportVaultRequest;
+  | ShouldExportVaultRequest
+  | ImportVaultRequest;
 
 const mapMessageType: Record<Message["type"], true> = {
   [ANSWER_CONNECTION_REQUEST]: true,
@@ -485,6 +502,7 @@ const mapMessageType: Record<Message["type"], true> = {
   [ANSWER_PERSONAL_SIGN_REQUEST]: true,
   [EXPORT_VAULT_REQUEST]: true,
   [SHOULD_EXPORT_VAULT_REQUEST]: true,
+  [IMPORT_VAULT_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -576,6 +594,10 @@ class InternalCommunicationController implements ICommunicationController {
 
     if (message?.type === SHOULD_EXPORT_VAULT_REQUEST) {
       return this._shouldExportVault();
+    }
+
+    if (message?.type === IMPORT_VAULT_REQUEST) {
+      return this._importVault(message);
     }
   }
 
@@ -1710,7 +1732,8 @@ class InternalCommunicationController implements ICommunicationController {
       const vaultContent = await browser.storage.local
         .get("vault")
         .then((res) => res["vault"] || "");
-      const vaultContentHashed = await hashString(vaultContent);
+
+      const vaultContentHashed = await hashString(JSON.stringify(vaultContent));
 
       return {
         type: SHOULD_EXPORT_VAULT_RESPONSE,
@@ -1725,6 +1748,40 @@ class InternalCommunicationController implements ICommunicationController {
     } catch (e) {
       return {
         type: SHOULD_EXPORT_VAULT_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _importVault(
+    message: ImportVaultRequest
+  ): Promise<ImportVaultResponse> {
+    try {
+      await store.dispatch(importVault(message.data)).unwrap();
+
+      return {
+        type: IMPORT_VAULT_RESPONSE,
+        data: {
+          answered: true,
+          isPasswordWrong: false,
+        },
+        error: null,
+      };
+    } catch (e) {
+      if (e?.name === VaultRestoreErrorName) {
+        return {
+          type: IMPORT_VAULT_RESPONSE,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+          },
+          error: null,
+        };
+      }
+
+      return {
+        type: IMPORT_VAULT_RESPONSE,
         data: null,
         error: UnknownError,
       };

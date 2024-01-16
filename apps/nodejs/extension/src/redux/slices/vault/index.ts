@@ -131,19 +131,30 @@ export const unlockVault = createAsyncThunk(
   }
 );
 
+interface CheckInitializeStatusReturn {
+  initializedStatus: InitializeStatus;
+  dateWhenInitialized: number | null;
+}
+
 // todo: move to app
-export const checkInitializeStatus = createAsyncThunk<InitializeStatus>(
-  "vault/checkInitializeStatus",
-  async () => {
-    return browser.storage.local
-      .get(VAULT_HAS_BEEN_INITIALIZED_KEY)
-      .then((result) => {
-        return result[VAULT_HAS_BEEN_INITIALIZED_KEY] === "true"
-          ? "exists"
-          : "none";
-      });
-  }
-);
+export const checkInitializeStatus =
+  createAsyncThunk<CheckInitializeStatusReturn>(
+    "vault/checkInitializeStatus",
+    async () => {
+      return browser.storage.local
+        .get([VAULT_HAS_BEEN_INITIALIZED_KEY, DATE_WHEN_VAULT_INITIALIZED_KEY])
+        .then((result) => {
+          return {
+            initializedStatus:
+              result[VAULT_HAS_BEEN_INITIALIZED_KEY] === "true"
+                ? "exists"
+                : "none",
+            dateWhenInitialized:
+              result[DATE_WHEN_VAULT_INITIALIZED_KEY] || null,
+          };
+        });
+    }
+  );
 
 const initialState: VaultSlice = {
   vaultSession: null,
@@ -218,7 +229,8 @@ const vaultSlice = createSlice({
     });
 
     builder.addCase(checkInitializeStatus.fulfilled, (state, action) => {
-      state.initializeStatus = action.payload;
+      state.initializeStatus = action.payload.initializedStatus;
+      state.dateWhenInitialized = action.payload.dateWhenInitialized;
     });
 
     builder.addCase(

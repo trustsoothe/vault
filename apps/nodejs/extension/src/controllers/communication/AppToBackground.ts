@@ -15,6 +15,8 @@ import type {
   ExportVaultResponse,
   ImportAccountMessage,
   ImportAccountResponse,
+  ImportVaultRequest,
+  ImportVaultResponse,
   InitializeVaultRequest,
   InitializeVaultResponse,
   LockVaultMessage,
@@ -54,6 +56,7 @@ import {
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
   EXPORT_VAULT_REQUEST,
   IMPORT_ACCOUNT_REQUEST,
+  IMPORT_VAULT_REQUEST,
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
   NETWORK_FEE_REQUEST,
@@ -260,6 +263,17 @@ export default class AppToBackground {
   static async shouldExportVault(): Promise<ShouldExportVaultResponse> {
     const message: ShouldExportVaultRequest = {
       type: SHOULD_EXPORT_VAULT_REQUEST,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async importVault(
+    data: ImportVaultRequest["data"]
+  ): Promise<ImportVaultResponse> {
+    const message: ImportVaultRequest = {
+      type: IMPORT_VAULT_REQUEST,
+      data,
     };
 
     return browser.runtime.sendMessage(message);
