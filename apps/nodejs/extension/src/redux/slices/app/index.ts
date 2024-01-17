@@ -130,6 +130,11 @@ export interface GeneralAppSlice {
   contacts: SerializedAccountReference[];
   isReadyStatus: "yes" | "no" | "loading" | "error";
   idOfMintsSent: string[];
+  sessionsMaxAge: {
+    enabled: boolean;
+    maxAgeInSecs: number;
+  };
+  requirePasswordForSensitiveOpts: boolean;
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -138,6 +143,9 @@ const SELECTED_CHAINS_KEY = "SELECTED_CHAINS_KEY";
 const SHOW_TEST_NETWORKS_KEY = "SHOW_TEST_NETWORKS";
 const NETWORKS_CAN_BE_SELECTED_KEY = "NETWORKS_CAN_BE_SELECTED";
 const ASSETS_SELECTED_BY_ACCOUNTS_KEY = "ASSETS_SELECTED_BY_ACCOUNTS";
+const SESSION_MAX_AGE_KEY = "SESSION_MAX_AGE";
+const REQUIRE_PASS_SENSITIVE_OPTS_KEY = "REQUIRE_PASS_SENSITIVE_OPTS";
+
 export const CUSTOM_RPCS_KEY = "CUSTOM_RPCS";
 export const CONTACTS_KEY = "CONTACTS";
 
@@ -155,6 +163,8 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       ASSETS_SELECTED_BY_ACCOUNTS_KEY,
       CUSTOM_RPCS_KEY,
       CONTACTS_KEY,
+      SESSION_MAX_AGE_KEY,
+      REQUIRE_PASS_SENSITIVE_OPTS_KEY,
     ]);
 
     const selectedProtocol =
@@ -175,6 +185,10 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       [SupportedProtocols.Ethereum]: "1",
     };
     const savedSelectedChain = response[SELECTED_CHAINS_KEY] || {};
+    const sessionMaxAge =
+      response[SESSION_MAX_AGE_KEY] || initialState.sessionsMaxAge;
+    const requirePasswordForSensitiveOpts =
+      response[REQUIRE_PASS_SENSITIVE_OPTS_KEY] || false;
 
     for (const protocol in savedSelectedChain) {
       const chainId = savedSelectedChain[protocol];
@@ -196,6 +210,8 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       assetsIdByAccount,
       customRpcs,
       contacts,
+      sessionMaxAge,
+      requirePasswordForSensitiveOpts,
     };
   }
 );
@@ -462,6 +478,26 @@ export const toggleBlockWebsite = createAsyncThunk<string[], string>(
   }
 );
 
+export const setSessionMaxAgeData = createAsyncThunk(
+  "app/setSessionMaxAgeData",
+  async (data: GeneralAppSlice["sessionsMaxAge"]) => {
+    await browser.storage.local.set({ [SESSION_MAX_AGE_KEY]: data });
+
+    return data;
+  }
+);
+
+export const setRequirePasswordSensitiveOpts = createAsyncThunk(
+  "app/setRequirePasswordSensitiveOpts",
+  async (enabled: boolean) => {
+    await browser.storage.local.set({
+      [REQUIRE_PASS_SENSITIVE_OPTS_KEY]: enabled,
+    });
+
+    return enabled;
+  }
+);
+
 export const importAppSettings = createAsyncThunk(
   "app/importSettings",
   async (settings: SettingsSchema) => {
@@ -474,6 +510,8 @@ export const importAppSettings = createAsyncThunk(
       networksCanBeSelected,
       customRpcs,
       contacts,
+      sessionsMaxAge,
+      requirePasswordForSensitiveOpts,
     } = settingsParsed;
 
     await browser.storage.local.set({
@@ -484,6 +522,8 @@ export const importAppSettings = createAsyncThunk(
       [NETWORKS_CAN_BE_SELECTED_KEY]: networksCanBeSelected,
       [CUSTOM_RPCS_KEY]: customRpcs,
       [CONTACTS_KEY]: contacts,
+      [SESSION_MAX_AGE_KEY]: sessionsMaxAge,
+      [REQUIRE_PASS_SENSITIVE_OPTS_KEY]: requirePasswordForSensitiveOpts,
     });
 
     return settingsParsed;
@@ -530,6 +570,11 @@ const initialState: GeneralAppSlice = {
   contacts: [],
   isReadyStatus: "no",
   idOfMintsSent: [],
+  sessionsMaxAge: {
+    enabled: false,
+    maxAgeInSecs: 3600,
+  },
+  requirePasswordForSensitiveOpts: false,
 };
 
 const generalAppSlice = createSlice({
@@ -624,6 +669,8 @@ const generalAppSlice = createSlice({
           assetsIdByAccount,
           customRpcs,
           contacts,
+          sessionMaxAge,
+          requirePasswordForSensitiveOpts,
         } = action.payload;
 
         state.selectedProtocol = selectedProtocol;
@@ -634,6 +681,8 @@ const generalAppSlice = createSlice({
         state.assetsIdByAccount = assetsIdByAccount;
         state.customRpcs = customRpcs;
         state.contacts = contacts;
+        state.sessionsMaxAge = sessionMaxAge;
+        state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
         state.isReadyStatus = "yes";
       }
     );
@@ -667,6 +716,17 @@ const generalAppSlice = createSlice({
       state.assetsIdByAccount = action.payload;
     });
 
+    builder.addCase(setSessionMaxAgeData.fulfilled, (state, action) => {
+      state.sessionsMaxAge = action.payload;
+    });
+
+    builder.addCase(
+      setRequirePasswordSensitiveOpts.fulfilled,
+      (state, action) => {
+        state.requirePasswordForSensitiveOpts = action.payload;
+      }
+    );
+
     builder.addCase(
       importAppSettings.fulfilled,
       (state, { payload: settings }) => {
@@ -678,6 +738,8 @@ const generalAppSlice = createSlice({
           networksCanBeSelected,
           customRpcs,
           contacts,
+          sessionsMaxAge,
+          requirePasswordForSensitiveOpts,
         } = settings;
 
         state.assetsIdByAccount = assetsIdByAccount;
@@ -688,6 +750,9 @@ const generalAppSlice = createSlice({
           networksCanBeSelected as NetworkCanBeSelectedMap;
         state.customRpcs = customRpcs as CustomRPC[];
         state.contacts = contacts as SerializedAccountReference[];
+        state.sessionsMaxAge =
+          sessionsMaxAge as GeneralAppSlice["sessionsMaxAge"];
+        state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
       }
     );
   },

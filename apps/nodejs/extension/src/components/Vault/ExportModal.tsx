@@ -179,6 +179,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ open, onClose }) => {
                     spacing: 0.5,
                     marginTop: 1,
                   }}
+                  randomKey={"export_vault_random"}
                   autofocusPassword={true}
                   passwordName={"anotherPassword"}
                   labelPassword={"Encryption Password"}

@@ -1,3 +1,4 @@
+import { generate } from "random-words";
 import {
   ForbiddenSessionErrorName,
   InvalidSessionErrorName,
@@ -78,14 +79,21 @@ export const verifyPassword = (password: string): true => {
   return true;
 };
 
-export const generateRandomPassword = (passwordLength = 12): string => {
+export const generateRandomPassword = (
+  passwordLength = 12,
+  words = false
+): string => {
   const chars =
     "0123456789abcdefghijklmnopqrstuvwxyz!@#$%^&*()ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let password = "";
 
-  for (let i = 0; i <= passwordLength; i++) {
-    const randomNumber = Math.floor(Math.random() * chars.length);
-    password += chars.substring(randomNumber, randomNumber + 1);
+  if (words) {
+    password = generate({ minLength: 3, exactly: passwordLength, join: " " });
+  } else {
+    for (let i = 0; i <= passwordLength; i++) {
+      const randomNumber = Math.floor(Math.random() * chars.length);
+      password += chars.substring(randomNumber, randomNumber + 1);
+    }
   }
 
   try {

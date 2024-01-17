@@ -16,6 +16,7 @@ import DownloadIcon from "@mui/icons-material/FileDownloadOutlined";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import ContactIcon from "@mui/icons-material/AccountCircleOutlined";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import PreferencesIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import {
   ACCOUNT_PK_PAGE,
@@ -27,6 +28,7 @@ import {
   CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
+  PREFERENCES_PAGE,
   REMOVE_CONTACT_PAGE,
   REMOVE_NETWORK_PAGE,
   SAVE_CONTACT_PAGE,
@@ -71,6 +73,7 @@ const titleMap = {
   [CONTACTS_PAGE]: "Contacts",
   [SAVE_CONTACT_PAGE]: "Add Contact",
   [REMOVE_CONTACT_PAGE]: "Remove Contact",
+  [PREFERENCES_PAGE]: "Preferences",
 };
 
 const getTitle = (path: string, search: string) => {
@@ -94,6 +97,7 @@ const ROUTES_WHERE_HIDE_SELECTORS = [
   CONTACTS_PAGE,
   REMOVE_CONTACT_PAGE,
   SAVE_CONTACT_PAGE,
+  PREFERENCES_PAGE,
 ];
 
 const routesWhereAccountNotNeeded = [
@@ -393,6 +397,20 @@ const Header = () => {
               onClick: toggleShowExportVault,
               icon: () => (
                 <DownloadIcon
+                  sx={{
+                    fontSize: 12,
+                    paddingLeft: 0.3,
+                    "& path": { color: theme.customColors.dark75 },
+                  }}
+                />
+              ),
+            },
+            {
+              key: "preferences_item",
+              label: "Preferences",
+              route: PREFERENCES_PAGE,
+              icon: () => (
+                <PreferencesIcon
                   sx={{
                     fontSize: 12,
                     paddingLeft: 0.3,

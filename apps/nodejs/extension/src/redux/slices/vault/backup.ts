@@ -73,6 +73,16 @@ export const SettingsSchema = z.object({
   assetsIdByAccount: z.record(z.string(), z.string().array()),
   customRpcs: CustomRpcSchema.array(),
   contacts: AccountReferenceSchema.array(),
+  sessionsMaxAge: z
+    .object({
+      enabled: z.boolean().default(false),
+      maxAgeInSecs: z.number().min(900).max(3.154e7).default(3600),
+    })
+    .default({
+      enabled: false,
+      maxAgeInSecs: 3600,
+    }),
+  requirePasswordForSensitiveOpts: z.boolean().default(false),
 });
 export type SettingsSchema = z.infer<typeof SettingsSchema>;
 
@@ -124,6 +134,9 @@ export const exportVault = createAsyncThunk(
         networksCanBeSelected: currentAppState.networksCanBeSelected,
         selectedChainByProtocol: currentAppState.selectedChainByProtocol,
         selectedAccountByProtocol: currentAppState.selectedAccountByProtocol,
+        sessionsMaxAge: currentAppState.sessionsMaxAge,
+        requirePasswordForSensitiveOpts:
+          currentAppState.requirePasswordForSensitiveOpts,
       },
     };
 

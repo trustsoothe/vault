@@ -525,6 +525,14 @@ const TransferForm: React.FC<TransferFormProps> = ({
                   ...(baseTextFieldSx["& .MuiInputBase-root"] as {}),
                   fontWeight: 700,
                 },
+                "& input[type=number]": {
+                  "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
+                    {
+                      WebkitAppearance: "none",
+                      margin: 0,
+                    },
+                  MozAppearance: "textfield",
+                },
               }}
               InputProps={{
                 endAdornment: (

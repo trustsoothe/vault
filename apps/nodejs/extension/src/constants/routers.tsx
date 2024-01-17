@@ -12,6 +12,7 @@ import {
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
   PERSONAL_SIGN_PAGE,
+  PREFERENCES_PAGE,
   REMOVE_CONTACT_PAGE,
   REMOVE_NETWORK_PAGE,
   REQUEST_CONNECTION_PAGE,
@@ -43,6 +44,7 @@ import RemoveContact from "../components/Contact/RemoveContact";
 import ChangeSelectedChain from "../components/Network/ChangeChain";
 import SignTypedData from "../components/Sign/TypedData";
 import PersonalSign from "../components/Sign/Personal";
+import Preferences from "../components/Preferences";
 
 export const router = createHashRouter([
   {
@@ -112,6 +114,10 @@ export const router = createHashRouter([
       {
         path: REMOVE_CONTACT_PAGE,
         element: <RemoveContact />,
+      },
+      {
+        path: PREFERENCES_PAGE,
+        element: <Preferences />,
       },
     ],
   },

@@ -430,6 +430,14 @@ const AmountFeeInputs: React.FC = () => {
                   fontSize: 16,
                   fontWeight: 700,
                 },
+                "& input[type=number]": {
+                  "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
+                    {
+                      WebkitAppearance: "none",
+                      margin: 0,
+                    },
+                  MozAppearance: "textfield",
+                },
               }}
               InputProps={{
                 endAdornment: (

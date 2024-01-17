@@ -23,3 +23,5 @@ export const PERSONAL_SIGN_PAGE = "/sign/personal";
 export const REIMPORT_SEARCH_PARAM = "?reimport=true";
 
 export const CHANGE_SELECTED_CHAIN_PAGE = "/network/change_chain";
+
+export const PREFERENCES_PAGE = "/preferences";
