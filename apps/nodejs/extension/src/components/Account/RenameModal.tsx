@@ -1,5 +1,4 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
-import type { OutletContext } from "../../types";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -7,18 +6,15 @@ import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
 import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
-import { useOutletContext } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { Controller, useForm } from "react-hook-form";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
-import { Controller, FormProvider, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import { enqueueSnackbar } from "../../utils/ui";
-import Password from "../common/Password";
 import { nameRules } from "./CreateNew";
-import { useAppSelector } from "../../hooks/redux";
-import { passwordRememberedSelector } from "../../redux/selectors/session";
+import { EXPORT_VAULT_PAGE } from "../../constants/routes";
 
 interface RenameModalProps {
   account?: SerializedAccountReference;
@@ -32,14 +28,12 @@ interface FormValues {
 
 const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   const theme = useTheme();
-  const { toggleShowExportVault } = useOutletContext() as OutletContext;
+  const navigate = useNavigate();
   const [wrongPassword, setWrongPassword] = useState(false);
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
   );
   const [stillShowModal, setStillShowModal] = useState(false);
-
-  const passwordRemembered = useAppSelector(passwordRememberedSelector);
 
   const methods = useForm<FormValues>({
     defaultValues: {
@@ -84,7 +78,6 @@ const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
       AppToBackground.updateAccount({
         id: account.id,
         name: data.account_name,
-        vaultPassword: !passwordRemembered ? data?.vault_password : undefined,
       }).then((result) => {
         if (result.error) {
           setStatus("error");
@@ -102,8 +95,8 @@ const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
                   The vault content changed.{" "}
                   <Button
                     onClick={() => {
-                      toggleShowExportVault();
                       onClickClose();
+                      navigate(EXPORT_VAULT_PAGE);
                     }}
                     sx={{ padding: 0, minWidth: 0 }}
                   >
@@ -119,7 +112,7 @@ const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
         setStatus("normal");
       });
     },
-    [account, passwordRemembered, onClose, toggleShowExportVault]
+    [account, onClose, navigate]
   );
 
   const onClickAway = useCallback(() => {
@@ -188,39 +181,6 @@ const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
                 />
               )}
             />
-            {!passwordRemembered && (
-              <>
-                <Divider
-                  sx={{
-                    borderColor: theme.customColors.dark15,
-                    marginTop: "25px!important",
-                  }}
-                />
-                <Typography
-                  fontSize={14}
-                  width={1}
-                  fontWeight={500}
-                  lineHeight={"30px"}
-                  sx={{ userSelect: "none" }}
-                >
-                  To continue, introduce the vault's password:
-                </Typography>
-                <FormProvider {...methods}>
-                  <Password
-                    passwordName={"vault_password"}
-                    labelPassword={"Vault Password"}
-                    canGenerateRandom={false}
-                    justRequire={true}
-                    hidePasswordStrong={true}
-                    containerProps={{
-                      marginTop: "15px!important",
-                      spacing: 0.5,
-                    }}
-                    errorPassword={wrongPassword ? "Wrong password" : undefined}
-                  />
-                </FormProvider>
-              </>
-            )}
           </Stack>
           <Stack direction={"row"} spacing={2} width={1}>
             <Button
@@ -283,7 +243,6 @@ const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
     onSubmit,
     theme,
     wrongPassword,
-    passwordRemembered,
     methods,
     control,
     stillShowModal,

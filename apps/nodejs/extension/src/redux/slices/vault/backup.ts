@@ -11,6 +11,7 @@ import { RootState } from "../../store";
 import { importAppSettings } from "../app";
 import {
   DATE_WHEN_VAULT_INITIALIZED_KEY,
+  getVaultPassword,
   unlockVault,
   VAULT_HAS_BEEN_INITIALIZED_KEY,
 } from "./index";
@@ -116,8 +117,20 @@ export const hashString = async (message: string) => {
 
 export const exportVault = createAsyncThunk(
   "vault/exportVault",
-  async (encryptionPassword: string, context) => {
-    const currentAppState = (context.getState() as RootState).app;
+  async (
+    {
+      encryptionPassword,
+      vaultPassword: passwordFromArg,
+    }: { encryptionPassword: string; vaultPassword?: string },
+    context
+  ) => {
+    const state = context.getState() as RootState;
+    const currentAppState = state.app;
+
+    const vaultPassword =
+      passwordFromArg || currentAppState.requirePasswordForSensitiveOpts
+        ? passwordFromArg
+        : await getVaultPassword(state.vault.vaultSession.id);
 
     const vault = await browser.storage.local
       .get("vault")
@@ -173,9 +186,7 @@ export const importVault = createAsyncThunk(
         [DATE_WHEN_VAULT_INITIALIZED_KEY]: dateWhenInitialized,
       });
       await context.dispatch(importAppSettings(vault.settings)).unwrap();
-      await context
-        .dispatch(unlockVault({ password, remember: true }))
-        .unwrap();
+      await context.dispatch(unlockVault(password)).unwrap();
 
       return dateWhenInitialized;
     } catch (e) {

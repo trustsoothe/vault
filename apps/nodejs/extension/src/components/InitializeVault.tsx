@@ -6,7 +6,6 @@ import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
 import AppToBackground from "../controllers/communication/AppToBackground";
-import RememberPasswordCheckbox from "./common/RememberPassword";
 import SootheLogoHeader from "./common/SootheLogoHeader";
 import CircularLoading from "./common/CircularLoading";
 import OperationFailed from "./common/OperationFailed";
@@ -228,7 +227,6 @@ const InitializeVault: React.FC = () => {
     | "passwords_warning"
   >("normal");
   const [showImportModal, setShowImportModal] = useState(false);
-  const [rememberPass, setRememberPass] = useState(false);
 
   const methods = useForm<FormValues>({
     defaultValues: {
@@ -250,8 +248,8 @@ const InitializeVault: React.FC = () => {
     (data: FormValues) => {
       if (status === "sec_and_priv_to_submit") {
         setStatus("loading");
-        AppToBackground.initializeVault(data.password, rememberPass).then(
-          (result) => setStatus(result.error ? "error" : "normal")
+        AppToBackground.initializeVault(data.password).then((result) =>
+          setStatus(result.error ? "error" : "normal")
         );
       } else if (status === "normal") {
         setStatus("passwords_warning");
@@ -261,14 +259,7 @@ const InitializeVault: React.FC = () => {
         setStatus("normal");
       }
     },
-    [rememberPass, status]
-  );
-
-  const onChangeRemember = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setRememberPass(event.target.checked);
-    },
-    []
+    [status]
   );
 
   const onBack = useCallback(() => {
@@ -340,13 +331,6 @@ const InitializeVault: React.FC = () => {
               }}
             />
           </FormProvider>
-          <RememberPasswordCheckbox
-            checked={rememberPass}
-            onChange={onChangeRemember}
-            containerProps={{
-              marginTop: 0.5,
-            }}
-          />
         </Stack>
         <Stack spacing={1.5}>
           <Button
@@ -401,8 +385,6 @@ const InitializeVault: React.FC = () => {
     );
   }, [
     status,
-    onChangeRemember,
-    rememberPass,
     theme,
     closeSecurityAndPrivacy,
     onShowSecurityAndPrivacy,

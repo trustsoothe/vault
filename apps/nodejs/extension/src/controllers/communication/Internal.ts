@@ -74,6 +74,8 @@ import {
   REVOKE_EXTERNAL_SESSIONS_RESPONSE,
   REVOKE_SESSION_REQUEST,
   REVOKE_SESSION_RESPONSE,
+  SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST,
+  SET_REQUIRE_PASSWORD_FOR_OPTS_RESPONSE,
   SHOULD_EXPORT_VAULT_REQUEST,
   SHOULD_EXPORT_VAULT_RESPONSE,
   SIGN_TYPED_DATA_REQUEST,
@@ -94,8 +96,14 @@ import {
   removeExternalRequest,
   RequestsType,
   resetRequestsState,
+  setRequirePasswordSensitiveOpts,
 } from "../../redux/slices/app";
-import { initVault, lockVault, unlockVault } from "../../redux/slices/vault";
+import {
+  getVaultPassword,
+  initVault,
+  lockVault,
+  unlockVault,
+} from "../../redux/slices/vault";
 import {
   addNewAccount,
   getPrivateKeyOfAccount,
@@ -157,10 +165,8 @@ export interface AnswerNewAccountRequest {
   type: typeof ANSWER_NEW_ACCOUNT_REQUEST;
   data: {
     rejected?: boolean;
-    vaultPassword?: string;
     accountData: {
       name: string;
-      password: string;
       protocol: SupportedProtocols;
     } | null;
     request?: ExternalNewAccountRequest | null;
@@ -206,7 +212,6 @@ export interface VaultRequestWithPass<T extends string> {
   type: T;
   data: {
     password: string;
-    remember: boolean;
   };
 }
 
@@ -258,7 +263,6 @@ export type RevokeExternalSessionsResponse = BaseResponse<
 export interface UpdateAccountMessage {
   type: typeof UPDATE_ACCOUNT_REQUEST;
   data: {
-    vaultPassword?: string;
     id: string;
     name: string;
   };
@@ -277,7 +281,7 @@ export interface RemoveAccountMessage {
   type: typeof REMOVE_ACCOUNT_REQUEST;
   data: {
     serializedAccount: SerializedAccountReference;
-    vaultPassword: string;
+    vaultPassword?: string;
   };
 }
 
@@ -310,8 +314,7 @@ export interface PrivateKeyAccountMessage {
   type: typeof PK_ACCOUNT_REQUEST;
   data: {
     account: SerializedAccountReference;
-    vaultPassword: string;
-    accountPassword: string;
+    vaultPassword?: string;
   };
 }
 
@@ -416,7 +419,8 @@ export type AnswerPersonalSignResponse = BaseResponse<
 
 export interface ExportVaultRequest {
   type: typeof EXPORT_VAULT_REQUEST;
-  data?: {
+  data: {
+    currentVaultPassword?: string;
     encryptionPassword?: string;
   };
 }
@@ -424,7 +428,13 @@ export interface ExportVaultRequest {
 export type ExportVaultResponse = {
   type: typeof EXPORT_VAULT_RESPONSE;
 } & (
-  | { data: VaultBackupSchema; error: null }
+  | {
+      data: {
+        vault: VaultBackupSchema | null;
+        isPasswordWrong?: boolean;
+      };
+      error: null;
+    }
   | { error: typeof UnknownError; data: null }
 );
 
@@ -458,6 +468,22 @@ export type ImportVaultResponse = BaseResponse<
   UnlockVaultResponseData
 >;
 
+export interface SetRequirePasswordForOptsRequest {
+  type: typeof SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST;
+  data: {
+    vaultPassword: string;
+    enabled: boolean;
+  };
+}
+
+export type SetRequirePasswordForOptsResponse = BaseResponse<
+  typeof SET_REQUIRE_PASSWORD_FOR_OPTS_RESPONSE,
+  {
+    isPasswordWrong: boolean;
+    answered: true;
+  }
+>;
+
 export type Message =
   | AnswerConnectionRequest
   | AnswerNewAccountRequest
@@ -479,7 +505,8 @@ export type Message =
   | AnswerPersonalSignRequest
   | ExportVaultRequest
   | ShouldExportVaultRequest
-  | ImportVaultRequest;
+  | ImportVaultRequest
+  | SetRequirePasswordForOptsRequest;
 
 const mapMessageType: Record<Message["type"], true> = {
   [ANSWER_CONNECTION_REQUEST]: true,
@@ -503,6 +530,7 @@ const mapMessageType: Record<Message["type"], true> = {
   [EXPORT_VAULT_REQUEST]: true,
   [SHOULD_EXPORT_VAULT_REQUEST]: true,
   [IMPORT_VAULT_REQUEST]: true,
+  [SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -599,6 +627,10 @@ class InternalCommunicationController implements ICommunicationController {
     if (message?.type === IMPORT_VAULT_REQUEST) {
       return this._importVault(message);
     }
+
+    if (message?.type === SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST) {
+      return this._setRequirePasswordForOpts(message);
+    }
   }
 
   private async _handleOnRemovedWindow(windowId: number) {
@@ -685,7 +717,7 @@ class InternalCommunicationController implements ICommunicationController {
     data: InitializeVaultRequest["data"]
   ): Promise<InitializeVaultResponse> {
     try {
-      await store.dispatch(initVault(data)).unwrap();
+      await store.dispatch(initVault(data.password)).unwrap();
 
       return {
         type: INITIALIZE_VAULT_RESPONSE,
@@ -707,7 +739,7 @@ class InternalCommunicationController implements ICommunicationController {
     data: UnlockVaultRequest["data"]
   ): Promise<UnlockVaultResponse> {
     try {
-      await store.dispatch(unlockVault(data)).unwrap();
+      await store.dispatch(unlockVault(data.password)).unwrap();
 
       return {
         type: UNLOCK_VAULT_RESPONSE,
@@ -1170,8 +1202,7 @@ class InternalCommunicationController implements ICommunicationController {
     message: AnswerNewAccountRequest
   ): Promise<AnswerNewAccountResponse> {
     try {
-      const { rejected, request, accountData, vaultPassword } =
-        message?.data || {};
+      const { rejected, request, accountData } = message?.data || {};
       let address: string | null = null,
         accountId: string = null;
       let response: InternalNewAccountResponse;
@@ -1203,9 +1234,7 @@ class InternalCommunicationController implements ICommunicationController {
             addNewAccount({
               sessionId: request?.sessionId,
               protocol: accountData.protocol,
-              password: accountData.password,
               name: accountData.name,
-              vaultPassword,
             })
           )
           .unwrap();
@@ -1704,17 +1733,36 @@ class InternalCommunicationController implements ICommunicationController {
     message: ExportVaultRequest
   ): Promise<ExportVaultResponse> {
     try {
-      const encryptionPassword = message.data?.encryptionPassword;
+      const encryptionPassword = message.data.encryptionPassword;
       const response = await store
-        .dispatch(exportVault(encryptionPassword))
+        .dispatch(
+          exportVault({
+            encryptionPassword,
+            vaultPassword: message.data.currentVaultPassword,
+          })
+        )
         .unwrap();
 
       return {
         type: EXPORT_VAULT_RESPONSE,
-        data: response.exportedVault,
+        data: {
+          vault: response.exportedVault,
+          isPasswordWrong: false,
+        },
         error: null,
       };
     } catch (e) {
+      if (e?.name === VaultRestoreErrorName) {
+        return {
+          type: EXPORT_VAULT_RESPONSE,
+          data: {
+            isPasswordWrong: true,
+            vault: null,
+          },
+          error: null,
+        };
+      }
+
       return {
         type: EXPORT_VAULT_RESPONSE,
         data: null,
@@ -1782,6 +1830,45 @@ class InternalCommunicationController implements ICommunicationController {
 
       return {
         type: IMPORT_VAULT_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _setRequirePasswordForOpts(
+    message: SetRequirePasswordForOptsRequest
+  ): Promise<SetRequirePasswordForOptsResponse> {
+    try {
+      const { id } = store.getState().vault.vaultSession;
+      const password = await getVaultPassword(id);
+
+      const { vaultPassword, enabled } = message.data;
+
+      if (password !== vaultPassword) {
+        return {
+          type: SET_REQUIRE_PASSWORD_FOR_OPTS_RESPONSE,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+          },
+          error: null,
+        };
+      }
+
+      await store.dispatch(setRequirePasswordSensitiveOpts(enabled)).unwrap();
+
+      return {
+        type: SET_REQUIRE_PASSWORD_FOR_OPTS_RESPONSE,
+        data: {
+          answered: true,
+          isPasswordWrong: false,
+        },
+        error: null,
+      };
+    } catch (e) {
+      return {
+        type: SET_REQUIRE_PASSWORD_FOR_OPTS_RESPONSE,
         data: null,
         error: UnknownError,
       };

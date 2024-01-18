@@ -1,5 +1,4 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
-import type { OutletContext } from "../../types";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material";
@@ -7,7 +6,7 @@ import Stack from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
-import { useOutletContext } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
 import { FormProvider, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
@@ -16,6 +15,9 @@ import OperationFailed from "../common/OperationFailed";
 import { enqueueSnackbar } from "../../utils/ui";
 import Password from "../common/Password";
 import AccountInfo from "./AccountInfo";
+import { useAppSelector } from "../../hooks/redux";
+import { EXPORT_VAULT_PAGE } from "../../constants/routes";
+import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 
 interface RenameModalProps {
   account?: SerializedAccountReference;
@@ -28,8 +30,10 @@ interface FormValues {
 
 const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   const theme = useTheme();
-  const { toggleShowExportVault } = useOutletContext() as OutletContext;
-
+  const navigate = useNavigate();
+  const requirePassword = useAppSelector(
+    requirePasswordForSensitiveOptsSelector
+  );
   const [wrongPassword, setWrongPassword] = useState(false);
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
@@ -73,7 +77,7 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
       setStatus("loading");
       AppToBackground.removeAccount({
         serializedAccount: account,
-        vaultPassword: data.vault_password,
+        vaultPassword: requirePassword ? data.vault_password : undefined,
       }).then((response) => {
         if (response.error) {
           setStatus("error");
@@ -91,8 +95,8 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
                     The vault content changed.{" "}
                     <Button
                       onClick={() => {
-                        toggleShowExportVault();
                         onClickClose();
+                        navigate(EXPORT_VAULT_PAGE);
                       }}
                       sx={{ padding: 0, minWidth: 0 }}
                     >
@@ -107,7 +111,7 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
         }
       });
     },
-    [account, toggleShowExportVault]
+    [account, navigate, requirePassword]
   );
 
   const onClickAway = useCallback(() => {
@@ -170,38 +174,40 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
               Are you sure you want to remove the following account?
             </Typography>
             {account && <AccountInfo account={account} compact={true} />}
-            <>
-              <Divider
-                sx={{
-                  borderColor: theme.customColors.dark15,
-                  marginTop: "22px!important",
-                  marginBottom: "15px!important",
-                }}
-              />
-              <Typography
-                fontSize={14}
-                width={1}
-                fontWeight={500}
-                lineHeight={"30px"}
-                sx={{ userSelect: "none" }}
-              >
-                To continue, introduce the vault's password:
-              </Typography>
-              <FormProvider {...methods}>
-                <Password
-                  passwordName={"vault_password"}
-                  labelPassword={"Vault Password"}
-                  canGenerateRandom={false}
-                  justRequire={true}
-                  hidePasswordStrong={true}
-                  containerProps={{
-                    marginTop: "5px!important",
-                    spacing: 0.5,
+            {requirePassword && (
+              <>
+                <Divider
+                  sx={{
+                    borderColor: theme.customColors.dark15,
+                    marginTop: "22px!important",
+                    marginBottom: "15px!important",
                   }}
-                  errorPassword={wrongPassword ? "Wrong password" : undefined}
                 />
-              </FormProvider>
-            </>
+                <Typography
+                  fontSize={14}
+                  width={1}
+                  fontWeight={500}
+                  lineHeight={"30px"}
+                  sx={{ userSelect: "none" }}
+                >
+                  To continue, introduce the vault's password:
+                </Typography>
+                <FormProvider {...methods}>
+                  <Password
+                    passwordName={"vault_password"}
+                    labelPassword={"Vault Password"}
+                    canGenerateRandom={false}
+                    justRequire={true}
+                    hidePasswordStrong={true}
+                    containerProps={{
+                      marginTop: "5px!important",
+                      spacing: 0.5,
+                    }}
+                    errorPassword={wrongPassword ? "Wrong password" : undefined}
+                  />
+                </FormProvider>
+              </>
+            )}
           </Stack>
           <Stack direction={"row"} spacing={2} width={1}>
             <Button

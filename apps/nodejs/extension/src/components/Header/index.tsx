@@ -26,6 +26,7 @@ import {
   BLOCKED_SITES_PAGE,
   CONTACTS_PAGE,
   CREATE_ACCOUNT_PAGE,
+  EXPORT_VAULT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
   PREFERENCES_PAGE,
@@ -51,7 +52,6 @@ import LockIcon from "../../assets/img/lock_icon.svg";
 import useShowAccountSelect, {
   ROUTES_TO_HIDE_ACCOUNT_SELECT,
 } from "../../hooks/useShowAccountSelect";
-import ExportModal from "../Vault/ExportModal";
 import { enqueueSnackbar } from "../../utils/ui";
 import { useAppSelector } from "../../hooks/redux";
 import { existsAccountsOfSelectedProtocolSelector } from "../../redux/selectors/account";
@@ -74,6 +74,7 @@ const titleMap = {
   [SAVE_CONTACT_PAGE]: "Add Contact",
   [REMOVE_CONTACT_PAGE]: "Remove Contact",
   [PREFERENCES_PAGE]: "Preferences",
+  [EXPORT_VAULT_PAGE]: "Export Vault",
 };
 
 const getTitle = (path: string, search: string) => {
@@ -98,6 +99,7 @@ const ROUTES_WHERE_HIDE_SELECTORS = [
   REMOVE_CONTACT_PAGE,
   SAVE_CONTACT_PAGE,
   PREFERENCES_PAGE,
+  EXPORT_VAULT_PAGE,
 ];
 
 const routesWhereAccountNotNeeded = [
@@ -112,7 +114,6 @@ const Header = () => {
   const navigate = useNavigate();
   const showAccountSelect = useShowAccountSelect();
   const [showBackdrop, setShowBackdrop] = useState(false);
-  const [showExportVault, setShowExportVault] = useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = !!anchorEl;
   const showSelectors = !ROUTES_WHERE_HIDE_SELECTORS.includes(
@@ -124,10 +125,10 @@ const Header = () => {
     setShowBackdrop(false);
   }, []);
 
-  const toggleShowExportVault = useCallback(() => {
-    setShowExportVault((prevState) => !prevState);
+  const goToExportVault = useCallback(() => {
+    navigate(EXPORT_VAULT_PAGE);
     closeMenu();
-  }, [closeMenu]);
+  }, [navigate, closeMenu]);
 
   useEffect(() => {
     AppToBackground.shouldExportVault().then((res) => {
@@ -147,8 +148,8 @@ const Header = () => {
                 {text}{" "}
                 <Button
                   onClick={() => {
-                    toggleShowExportVault();
                     onClickClose();
+                    navigate(EXPORT_VAULT_PAGE);
                   }}
                   sx={{ padding: 0, minWidth: 0 }}
                 >
@@ -394,7 +395,7 @@ const Header = () => {
             {
               key: "export_item",
               label: "Export Vault",
-              onClick: toggleShowExportVault,
+              onClick: goToExportVault,
               icon: () => (
                 <DownloadIcon
                   sx={{
@@ -527,11 +528,8 @@ const Header = () => {
         paddingX={2}
         position={"relative"}
       >
-        <Outlet context={{ toggleShowExportVault }} />
+        <Outlet />
       </Stack>
-      {showExportVault && (
-        <ExportModal open={showExportVault} onClose={toggleShowExportVault} />
-      )}
     </Stack>
   );
 };

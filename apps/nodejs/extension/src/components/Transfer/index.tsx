@@ -84,7 +84,7 @@ export interface FormValues {
   amount: string;
   memo?: string;
   rpcUrl: string | null;
-  accountPassword: string;
+  vaultPassword: string;
   fee: string;
   feeSpeed: FeeSpeed;
   protocol: SupportedProtocols;
@@ -150,7 +150,7 @@ const Transfer: React.FC = () => {
       toAddress: externalTransferData?.toAddress || "",
       amount: externalTransferData?.amount || "",
       fee: "",
-      accountPassword: "",
+      vaultPassword: "",
       feeSpeed: useSiteFee
         ? "site"
         : (externalRequestInfo?.protocol || selectedProtocolOnApp) ===
@@ -172,11 +172,11 @@ const Transfer: React.FC = () => {
   const [sendingStatus, setSendingStatus] = useState<
     "check_network" | "sending"
   >(null);
-  const [protocol, chainId, accountPassword, fromAddress, toAddress, asset] =
+  const [protocol, chainId, vaultPassword, fromAddress, toAddress, asset] =
     watch([
       "protocol",
       "chainId",
-      "accountPassword",
+      "vaultPassword",
       "from",
       "toAddress",
       "asset",
@@ -193,7 +193,7 @@ const Transfer: React.FC = () => {
     if (wrongPassword) {
       setWrongPassword(false);
     }
-  }, [accountPassword]);
+  }, [vaultPassword]);
 
   const checkedNetwork = useRef(false);
 
@@ -268,7 +268,7 @@ const Transfer: React.FC = () => {
       toAddress: "",
       amount: "",
       fee: "",
-      accountPassword: "",
+      vaultPassword: "",
       feeSpeed: useSiteFee
         ? "site"
         : (externalRequestInfo?.protocol || selectedProtocolOnApp) ===
@@ -495,7 +495,7 @@ const Transfer: React.FC = () => {
       const baseTransferParam = {
         from: {
           type: SupportedTransferOrigins.VaultAccountId,
-          passphrase: data.accountPassword,
+          passphrase: data.vaultPassword,
           value: accountId,
         },
         network,

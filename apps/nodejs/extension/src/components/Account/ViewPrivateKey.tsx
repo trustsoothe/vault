@@ -20,9 +20,9 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 import { useAppSelector } from "../../hooks/redux";
 import AccountInfo from "./AccountInfo";
 import { selectedAccountSelector } from "../../redux/selectors/account";
+import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 
 interface PrivateKeyFormValues {
-  account_password: string;
   vault_password: string;
 }
 
@@ -30,32 +30,24 @@ const ViewPrivateKey: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const account = useAppSelector(selectedAccountSelector, shallowEqual);
+  const requirePassword = useAppSelector(
+    requirePasswordForSensitiveOptsSelector
+  );
 
   const methods = useForm<PrivateKeyFormValues>({
     defaultValues: {
-      account_password: "",
       vault_password: "",
     },
   });
 
   const { watch, handleSubmit, reset } = methods;
 
-  const [accountPassword, vaultPassword] = watch([
-    "account_password",
-    "vault_password",
-  ]);
+  const [vaultPassword] = watch(["vault_password"]);
   const [showCopyKeyTooltip, setShowCopyKeyTooltip] = useState(false);
-  const [wrongAccountPassphrase, setWrongAccountPassphrase] = useState(false);
   const [wrongVaultPassphrase, setWrongVaultPassphrase] = useState(false);
   const [loadingPrivateKey, setLoadingPrivateKey] = useState(false);
   const [privateKey, setPrivateKey] = useState<string>(null);
   const [errorPrivateKey, setErrorPrivateKey] = useState(false);
-
-  useEffect(() => {
-    if (wrongAccountPassphrase) {
-      setWrongAccountPassphrase(false);
-    }
-  }, [accountPassword]);
 
   useEffect(() => {
     if (wrongVaultPassphrase) {
@@ -68,11 +60,9 @@ const ViewPrivateKey: React.FC = () => {
       navigate(ACCOUNTS_PAGE);
     } else {
       reset({
-        account_password: "",
         vault_password: "",
       });
       setShowCopyKeyTooltip(false);
-      setWrongAccountPassphrase(false);
       setWrongVaultPassphrase(false);
       setLoadingPrivateKey(false);
       setErrorPrivateKey(false);
@@ -82,21 +72,18 @@ const ViewPrivateKey: React.FC = () => {
 
   const loadPrivateKey = useCallback(
     (data: PrivateKeyFormValues) => {
-      const { account_password, vault_password } = data;
+      const { vault_password } = data;
       setLoadingPrivateKey(true);
 
       AppToBackground.getAccountPrivateKey({
         account,
-        accountPassword: account_password,
-        vaultPassword: vault_password,
+        vaultPassword: requirePassword ? vault_password : undefined,
       }).then((response) => {
         if (response.error) {
           setErrorPrivateKey(true);
         } else {
           const data = response.data;
-          if (data.isAccountPasswordWrong) {
-            setWrongAccountPassphrase(true);
-          } else if (data.isVaultPasswordWrong) {
+          if (data.isVaultPasswordWrong) {
             setWrongVaultPassphrase(true);
           } else if (data.privateKey) {
             setPrivateKey(data.privateKey);
@@ -105,12 +92,13 @@ const ViewPrivateKey: React.FC = () => {
         setLoadingPrivateKey(false);
       });
     },
-    [account]
+    [account, requirePassword]
   );
 
   const exportPortableWallet = useCallback(() => {
-    if (privateKey && accountPassword) {
-      getPortableWalletContent(privateKey, accountPassword, account.protocol)
+    if (privateKey) {
+      // todo: see how to manage this with the vault password
+      getPortableWalletContent(privateKey, vaultPassword, account.protocol)
         .then((json) => {
           const blob = new Blob([json], {
             type: "application/json",
@@ -121,7 +109,7 @@ const ViewPrivateKey: React.FC = () => {
           console.log(e);
         });
     }
-  }, [privateKey, accountPassword]);
+  }, [privateKey, vaultPassword]);
 
   const handleCopyPrivateKey = useCallback(() => {
     if (privateKey) {
@@ -274,37 +262,35 @@ const ViewPrivateKey: React.FC = () => {
     return (
       <>
         {title}
-        <FormProvider {...methods}>
-          <Password
-            passwordName={"account_password"}
-            confirmPasswordName={"vault_password"}
-            labelPassword={"Account Password"}
-            labelConfirm={"Vault Password"}
-            canGenerateRandom={false}
-            hidePasswordStrong={true}
-            passwordAndConfirmEquals={false}
-            justRequire={true}
-            errorPassword={
-              wrongAccountPassphrase ? "Wrong Password" : undefined
-            }
-            errorConfirm={wrongVaultPassphrase ? "Wrong Password" : undefined}
-            containerProps={{ spacing: 0.5, marginTop: "15px!important" }}
-            inputsContainerProps={{ spacing: 2 }}
-          />
-        </FormProvider>
+        {requirePassword && (
+          <FormProvider {...methods}>
+            <Password
+              passwordName={"vault_password"}
+              labelPassword={"Vault Password"}
+              canGenerateRandom={false}
+              hidePasswordStrong={true}
+              justRequire={true}
+              errorPassword={
+                wrongVaultPassphrase ? "Wrong Password" : undefined
+              }
+              containerProps={{ spacing: 0.5, marginTop: "15px!important" }}
+              inputsContainerProps={{ spacing: 2 }}
+            />
+          </FormProvider>
+        )}
       </>
     );
   }, [
     theme,
     methods,
     showingPk,
-    wrongAccountPassphrase,
     wrongVaultPassphrase,
     privateKey,
     errorPrivateKey,
     loadingPrivateKey,
     showCopyKeyTooltip,
     exportPortableWallet,
+    requirePassword,
     handleCopyPrivateKey,
   ]);
 

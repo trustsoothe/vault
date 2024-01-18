@@ -9,6 +9,7 @@ import {
   CONTACTS_PAGE,
   CREATE_ACCOUNT_PAGE,
   DISCONNECT_SITE_PAGE,
+  EXPORT_VAULT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
   PERSONAL_SIGN_PAGE,
@@ -45,6 +46,7 @@ import ChangeSelectedChain from "../components/Network/ChangeChain";
 import SignTypedData from "../components/Sign/TypedData";
 import PersonalSign from "../components/Sign/Personal";
 import Preferences from "../components/Preferences";
+import ExportVault from "../components/Vault/Export";
 
 export const router = createHashRouter([
   {
@@ -118,6 +120,10 @@ export const router = createHashRouter([
       {
         path: PREFERENCES_PAGE,
         element: <Preferences />,
+      },
+      {
+        path: EXPORT_VAULT_PAGE,
+        element: <ExportVault />,
       },
     ],
   },

@@ -31,6 +31,8 @@ import type {
   RevokeExternalSessionsResponse,
   RevokeSessionMessage,
   RevokeSessionResponse,
+  SetRequirePasswordForOptsRequest,
+  SetRequirePasswordForOptsResponse,
   ShouldExportVaultRequest,
   ShouldExportVaultResponse,
   UnlockVaultRequest,
@@ -64,6 +66,7 @@ import {
   REMOVE_ACCOUNT_REQUEST,
   REVOKE_EXTERNAL_SESSIONS_REQUEST,
   REVOKE_SESSION_REQUEST,
+  SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST,
   SHOULD_EXPORT_VAULT_REQUEST,
   UNLOCK_VAULT_REQUEST,
   UPDATE_ACCOUNT_REQUEST,
@@ -139,27 +142,21 @@ export default class AppToBackground {
   }
 
   static async initializeVault(
-    password: string,
-    rememberPass: boolean
+    password: string
   ): Promise<InitializeVaultResponse> {
     return browser.runtime.sendMessage({
       type: INITIALIZE_VAULT_REQUEST,
       data: {
         password,
-        remember: rememberPass,
       },
     } as InitializeVaultRequest);
   }
 
-  static async unlockVault(
-    password: string,
-    rememberPass: boolean
-  ): Promise<UnlockVaultResponse> {
+  static async unlockVault(password: string): Promise<UnlockVaultResponse> {
     return browser.runtime.sendMessage({
       type: UNLOCK_VAULT_REQUEST,
       data: {
         password,
-        remember: rememberPass,
       },
     } as UnlockVaultRequest);
   }
@@ -250,7 +247,7 @@ export default class AppToBackground {
   }
 
   static async exportVault(
-    data: ExportVaultRequest["data"] = undefined
+    data: ExportVaultRequest["data"]
   ): Promise<ExportVaultResponse> {
     const message: ExportVaultRequest = {
       type: EXPORT_VAULT_REQUEST,
@@ -273,6 +270,17 @@ export default class AppToBackground {
   ): Promise<ImportVaultResponse> {
     const message: ImportVaultRequest = {
       type: IMPORT_VAULT_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async setRequirePasswordForOpts(
+    data: SetRequirePasswordForOptsRequest["data"]
+  ): Promise<SetRequirePasswordForOptsResponse> {
+    const message: SetRequirePasswordForOptsRequest = {
+      type: SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST,
       data,
     };
 

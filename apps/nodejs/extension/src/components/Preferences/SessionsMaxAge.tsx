@@ -30,14 +30,10 @@ const SessionsMaxAge: React.FC = () => {
   });
 
   useEffect(() => {
-    setTimeout(
-      () =>
-        reset({
-          enabled: sessionsMaxAge.enabled,
-          maxAge: sessionsMaxAge.maxAgeInSecs / hourInSecs,
-        }),
-      0
-    );
+    reset({
+      enabled: sessionsMaxAge.enabled,
+      maxAge: sessionsMaxAge.maxAgeInSecs / hourInSecs,
+    });
   }, [sessionsMaxAge]);
 
   const [enabled, maxAge] = watch(["enabled", "maxAge"]);
@@ -133,7 +129,7 @@ const SessionsMaxAge: React.FC = () => {
       </Stack>
       <Typography fontSize={10} color={theme.customColors.dark75}>
         When enabled the vault and websites will keep their sessions open for
-        the amount of time you specify.
+        the hours you specify.
       </Typography>
       <Collapse in={showButtons}>
         <Stack

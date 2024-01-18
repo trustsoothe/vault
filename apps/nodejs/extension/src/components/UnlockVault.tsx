@@ -9,7 +9,6 @@ import CircularLoading from "./common/CircularLoading";
 import OperationFailed from "./common/OperationFailed";
 import Password from "./common/Password";
 import SootheLogoHeader from "./common/SootheLogoHeader";
-import RememberPasswordCheckbox from "./common/RememberPassword";
 import { OperationRejected } from "../errors/communication";
 import { removeRequestWithRes, secsToText } from "../utils/ui";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
@@ -34,7 +33,6 @@ const UnlockVault: React.FC = () => {
   });
   const { handleSubmit, watch } = methods;
   const [password] = watch(["password"]);
-  const [rememberPass, setRememberPass] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [wrongPassword, setWrongPassword] = useState(false);
   const [secsToExpire, setSecsToExpire] = useState(0);
@@ -79,31 +77,19 @@ const UnlockVault: React.FC = () => {
     }
   }, [password]);
 
-  const onChangeRemember = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setRememberPass(event.target.checked);
-    },
-    []
-  );
-
-  const onSubmit = useCallback(
-    (data) => {
-      setStatus("loading");
-      AppToBackground.unlockVault(data.password, rememberPass).then(
-        (response) => {
-          if (response.error) {
-            setStatus("error");
-          } else {
-            setStatus("normal");
-            if (response?.data?.isPasswordWrong) {
-              setWrongPassword(true);
-            }
-          }
+  const onSubmit = useCallback((data) => {
+    setStatus("loading");
+    AppToBackground.unlockVault(data.password).then((response) => {
+      if (response.error) {
+        setStatus("error");
+      } else {
+        setStatus("normal");
+        if (response?.data?.isPasswordWrong) {
+          setWrongPassword(true);
         }
-      );
-    },
-    [rememberPass]
-  );
+      }
+    });
+  }, []);
 
   const onClickReject = useCallback(() => {
     if (currentRequest) {
@@ -133,6 +119,14 @@ const UnlockVault: React.FC = () => {
         break;
       case "TRANSFER_REQUEST":
         description = "Is trying to request a new transfer.";
+        break;
+      case "SWITCH_CHAIN_REQUEST":
+        description = "Is trying to change the network.";
+        break;
+
+      case "SIGN_TYPED_DATA_REQUEST":
+      case "PERSONAL_SIGN_REQUEST":
+        description = "Is trying to sign data.";
         break;
     }
 
@@ -299,15 +293,6 @@ const UnlockVault: React.FC = () => {
               }
             />
           </FormProvider>
-          <RememberPasswordCheckbox
-            checked={rememberPass}
-            disabled={!!secsToExpire}
-            onChange={onChangeRemember}
-            containerProps={{
-              marginLeft: 0,
-              marginTop: wrongPassword ? 1 : 0.5,
-            }}
-          />
         </Stack>
       </Stack>
       <Stack>{buttonsComponent}</Stack>

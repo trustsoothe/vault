@@ -170,6 +170,7 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
   }, [asset]);
 
   useEffect(() => {
+    setShowLoading(true);
     getAccountBalance();
     const interval = setInterval(getAccountBalance, 30 * 1000);
 

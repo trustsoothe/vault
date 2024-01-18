@@ -2,15 +2,9 @@ import type {
   SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/keyring";
-import type { OutletContext } from "../../types";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
-import {
-  useLocation,
-  useNavigate,
-  useOutletContext,
-  useSearchParams,
-} from "react-router-dom";
+import { Controller, useForm } from "react-hook-form";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material";
 import TextField from "@mui/material/TextField";
@@ -22,9 +16,8 @@ import Stack from "@mui/material/Stack";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import { nameRules } from "./CreateNew";
-import AccountAndVaultPasswords from "../common/AccountAndVaultPasswords";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { ACCOUNTS_PAGE } from "../../constants/routes";
+import { ACCOUNTS_PAGE, EXPORT_VAULT_PAGE } from "../../constants/routes";
 import {
   getAddressFromPrivateKey,
   getPrivateKeyFromPPK,
@@ -35,7 +28,6 @@ import { enqueueSnackbar, readFile } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
-import { passwordRememberedSelector } from "../../redux/selectors/session";
 import {
   accountsSelector,
   selectedAccountSelector,
@@ -81,9 +73,7 @@ type FormStatus = "normal" | "loading" | "error" | "account_exists";
 const ImportAccount: React.FC = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const { toggleShowExportVault } = useOutletContext() as OutletContext;
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
-  const passwordRemembered = useAppSelector(passwordRememberedSelector);
   const accounts = useAppSelector(accountsSelector);
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
 
@@ -191,11 +181,6 @@ const ImportAccount: React.FC = () => {
 
   const onClickCreate = useCallback(
     async (data: FormValues) => {
-      if (!passwordRemembered && passwordStep === "account") {
-        setPasswordStep("vault");
-        return;
-      }
-
       setStatus("loading");
 
       let privateKey: string;
@@ -215,14 +200,9 @@ const ImportAccount: React.FC = () => {
       }
 
       AppToBackground.importAccount({
-        accountData: {
-          protocol: selectedProtocol,
-          name: data.account_name,
-          accountPassword: data.account_password,
-          privateKey,
-        },
-        replace: !!accountToReimport,
-        vaultPassword: passwordRemembered ? undefined : data.vault_password,
+        protocol: selectedProtocol,
+        name: data.account_name,
+        privateKey,
       }).then(async (response) => {
         if (response.error) {
           setStatus("error");
@@ -264,8 +244,8 @@ const ImportAccount: React.FC = () => {
                         The vault content changed.{" "}
                         <Button
                           onClick={() => {
-                            toggleShowExportVault();
                             onClickClose();
+                            navigate(EXPORT_VAULT_PAGE);
                           }}
                           sx={{ padding: 0, minWidth: 0 }}
                         >
@@ -287,11 +267,9 @@ const ImportAccount: React.FC = () => {
       navigate,
       accountToReimport,
       passwordStep,
-      passwordRemembered,
       selectedProtocol,
       dispatch,
       accounts,
-      toggleShowExportVault,
     ]
   );
 
@@ -559,34 +537,6 @@ const ImportAccount: React.FC = () => {
               />
             </Stack>
           )}
-
-          <FormProvider {...methods}>
-            <AccountAndVaultPasswords
-              introduceVaultPassword={passwordStep === "vault"}
-              vaultPasswordTitle={`To save the account, introduce the vault’s password:`}
-              accountRandomKey={"import-acc"}
-              vaultTitleProps={{
-                marginTop: `20px!important`,
-                marginBottom: "5px!important",
-              }}
-              vaultPasswordIsWrong={wrongPassword}
-              dividerProps={{
-                sx: {
-                  marginTop: `15px!important`,
-                },
-              }}
-              passwordContainerProps={{
-                marginTop: "10px!important",
-                sx: {
-                  ...(type === "json_file" && {
-                    "& #password-strength-bar-container": {
-                      marginBottom: "-11px!important",
-                    },
-                  }),
-                },
-              }}
-            />
-          </FormProvider>
         </Stack>
         <Stack direction={"row"} spacing={2} width={1} marginTop={2}>
           <Button
@@ -602,9 +552,7 @@ const ImportAccount: React.FC = () => {
             variant={"outlined"}
             fullWidth
           >
-            {!passwordRemembered && passwordStep === "vault"
-              ? "Back"
-              : "Cancel"}
+            Cancel
           </Button>
           <Button
             sx={{
@@ -617,9 +565,7 @@ const ImportAccount: React.FC = () => {
             type={"submit"}
             disabled={isValidating}
           >
-            {!passwordRemembered && passwordStep === "account"
-              ? "Next"
-              : "Import"}
+            Import
           </Button>
         </Stack>
       </Stack>
@@ -637,7 +583,6 @@ const ImportAccount: React.FC = () => {
     getValues,
     formState,
     methods,
-    passwordRemembered,
     navigate,
     isValidating,
     onClickAccountExists,

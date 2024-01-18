@@ -2,7 +2,6 @@ import type { IProtocolTransactionResult } from "@poktscan/keyring/dist/lib/core
 import type { RootState } from "../../store";
 import type { VaultSliceBuilder } from "../../../types";
 import { SerializedError, createAsyncThunk } from "@reduxjs/toolkit";
-import browser from "webextension-polyfill";
 import {
   AccountReference,
   AccountUpdateOptions,
@@ -15,13 +14,11 @@ import {
   TransferOptions,
   VaultRestoreErrorName,
 } from "@poktscan/keyring";
-import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
-import { PASSPHRASE, VaultSlice } from "./index";
+import { getVaultPassword, VaultSlice } from "./index";
 import { getVault } from "../../../utils";
 
 const MAX_PASSWORDS_TRIES = 4;
 const VAULT_PASSWORD_ID = "vault";
-const webEncryptionService = new WebEncryptionService();
 const ExtensionVaultInstance = getVault();
 
 export const addNewAccount = createAsyncThunk<
@@ -31,38 +28,16 @@ export const addNewAccount = createAsyncThunk<
   },
   {
     sessionId?: string;
-    password: string;
     name: string;
     protocol: SupportedProtocols;
-    vaultPassword?: string;
   }
 >("vault/addNewAccount", async (args, context) => {
   const state = context.getState() as RootState;
-  const { vaultSession, passwordRemembered } = state.vault;
-  let vaultPassword: string;
-  if (passwordRemembered) {
-    const passwordEncryptedObj = await browser.storage.session.get(
-      vaultSession.id
-    );
+  const { vaultSession } = state.vault;
 
-    const passphraseEncrypted: string = passwordEncryptedObj[vaultSession.id];
-
-    if (!passphraseEncrypted) {
-      throw Error("Password not found");
-    }
-
-    const decryptPassphrase = new Passphrase(PASSPHRASE);
-    vaultPassword = await webEncryptionService.decrypt(
-      decryptPassphrase,
-      passphraseEncrypted
-    );
-  } else {
-    vaultPassword = args.vaultPassword;
-  }
-
+  const vaultPassword = await getVaultPassword(vaultSession.id);
   const vaultPassphrase = new Passphrase(vaultPassword);
   const session = args.sessionId || vaultSession.id;
-  const accountPassphrase = new Passphrase(args.password);
 
   const accountReference = await ExtensionVaultInstance.createAccount(
     session,
@@ -70,7 +45,6 @@ export const addNewAccount = createAsyncThunk<
     {
       name: args.name.trim(),
       protocol: args.protocol,
-      passphrase: accountPassphrase,
     }
   );
 
@@ -83,57 +57,25 @@ export const addNewAccount = createAsyncThunk<
 });
 
 export interface ImportAccountParam {
-  accountData: {
-    protocol: SupportedProtocols;
-    name: string;
-    accountPassword: string;
-    privateKey: string;
-  };
-  replace: boolean;
-  vaultPassword?: string;
+  protocol: SupportedProtocols;
+  name: string;
+  privateKey: string;
 }
 
 export const importAccount = createAsyncThunk<
   SerializedAccountReference,
   ImportAccountParam
->("vault/importAccount", async (args, context) => {
+>("vault/importAccount", async (importOptions, context) => {
   const state = context.getState() as RootState;
-  const { vaultSession, passwordRemembered } = state.vault;
-  let vaultPassword: string;
-  if (passwordRemembered) {
-    const passwordEncryptedObj = await browser.storage.session.get(
-      vaultSession.id
-    );
-
-    const passphraseEncrypted: string = passwordEncryptedObj[vaultSession.id];
-
-    if (!passphraseEncrypted) {
-      throw Error("Password not found");
-    }
-
-    const decryptPassphrase = new Passphrase(PASSPHRASE);
-    vaultPassword = await webEncryptionService.decrypt(
-      decryptPassphrase,
-      passphraseEncrypted
-    );
-  } else {
-    vaultPassword = args.vaultPassword;
-  }
-
+  const { vaultSession } = state.vault;
+  const vaultPassword = await getVaultPassword(vaultSession.id);
   const vaultPassphrase = new Passphrase(vaultPassword);
-  const accountPassphrase = new Passphrase(args.accountData.accountPassword);
 
   const accountReference =
     await ExtensionVaultInstance.createAccountFromPrivateKey(
       vaultSession.id,
       vaultPassphrase,
-      {
-        protocol: args.accountData.protocol,
-        passphrase: accountPassphrase,
-        name: args.accountData.name,
-        privateKey: args.accountData.privateKey,
-      },
-      args.replace
+      importOptions
     );
 
   return accountReference.serialize();
@@ -141,32 +83,12 @@ export const importAccount = createAsyncThunk<
 
 export const updateAccount = createAsyncThunk<
   SerializedAccountReference,
-  AccountUpdateOptions & { vaultPassword?: string }
+  AccountUpdateOptions
 >("vault/updateAccount", async (arg, context) => {
   const {
-    vault: { vaultSession, passwordRemembered },
+    vault: { vaultSession },
   } = context.getState() as RootState;
-  let vaultPassword: string;
-  if (passwordRemembered) {
-    const passwordEncryptedObj = await browser.storage.session.get(
-      vaultSession.id
-    );
-
-    const passphraseEncrypted: string = passwordEncryptedObj[vaultSession.id];
-
-    if (!passphraseEncrypted) {
-      throw Error("Password not found");
-    }
-
-    const decryptPassphrase = new Passphrase(PASSPHRASE);
-    vaultPassword = await webEncryptionService.decrypt(
-      decryptPassphrase,
-      passphraseEncrypted
-    );
-  } else {
-    vaultPassword = arg.vaultPassword;
-  }
-
+  const vaultPassword = await getVaultPassword(vaultSession.id);
   const vaultPassphrase = new Passphrase(vaultPassword);
 
   const accountReference = await ExtensionVaultInstance.updateAccountName(
@@ -186,15 +108,20 @@ export const removeAccount = createAsyncThunk(
   async (
     args: {
       serializedAccount: SerializedAccountReference;
-      vaultPassword: string;
+      vaultPassword?: string;
     },
     context
   ) => {
     const {
       vault: { vaultSession },
+      app: { requirePasswordForSensitiveOpts },
     } = context.getState() as RootState;
-    const { vaultPassword, serializedAccount } = args;
+    const { vaultPassword: passwordFromArg, serializedAccount } = args;
     const account = AccountReference.deserialize(serializedAccount);
+    const vaultPassword =
+      passwordFromArg || requirePasswordForSensitiveOpts
+        ? passwordFromArg
+        : await getVaultPassword(vaultSession.id);
     const vaultPassphrase = new Passphrase(vaultPassword);
 
     return await ExtensionVaultInstance.removeAccount(
@@ -207,8 +134,7 @@ export const removeAccount = createAsyncThunk(
 
 export interface GetPrivateKeyParam {
   account: SerializedAccountReference;
-  vaultPassword: string;
-  accountPassword: string;
+  vaultPassword?: string;
 }
 
 export const getPrivateKeyOfAccount = createAsyncThunk<
@@ -218,13 +144,17 @@ export const getPrivateKeyOfAccount = createAsyncThunk<
   const state = context.getState() as RootState;
   const sessionId = state.vault.vaultSession.id;
 
-  const accountPassphrase = new Passphrase(arg.accountPassword);
-  const vaultPassphrase = new Passphrase(arg.vaultPassword);
+  const vaultPassword =
+    arg.vaultPassword || state.app.requirePasswordForSensitiveOpts
+      ? arg.vaultPassword
+      : await getVaultPassword(sessionId);
+  const vaultPassphrase = new Passphrase(vaultPassword);
   return await ExtensionVaultInstance.getAccountPrivateKey(
     sessionId,
     vaultPassphrase,
     AccountReference.deserialize(arg.account),
-    accountPassphrase
+    // todo: remove this?
+    vaultPassphrase
   );
 });
 
@@ -306,16 +236,7 @@ const addImportAccountToBuilder = (builder: VaultSliceBuilder) => {
   builder.addCase(importAccount.fulfilled, (state, action) => {
     const accountReference = action.payload;
 
-    if (!action.meta.arg.replace) {
-      state.accounts.push(accountReference);
-    } else {
-      state.accounts = state.accounts.map((a) =>
-        a.address === accountReference.address &&
-        a.protocol === accountReference.protocol
-          ? accountReference
-          : a
-      );
-    }
+    state.accounts.push(accountReference);
 
     resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
   });
@@ -354,16 +275,10 @@ const addRemoveAccountToBuilder = (builder: VaultSliceBuilder) => {
 };
 
 const addGetPrivateKeyToBuilder = (builder: VaultSliceBuilder) => {
-  builder.addCase(getPrivateKeyOfAccount.fulfilled, (state, action) => {
-    resetWrongPasswordCounter(action.meta.arg.account.id, state);
+  builder.addCase(getPrivateKeyOfAccount.fulfilled, (state) => {
     resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
   });
   builder.addCase(getPrivateKeyOfAccount.rejected, (state, action) => {
-    increaseWrongPasswordCounter(
-      action.meta.arg.account.id,
-      state,
-      action.error
-    );
     increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
   });
 };
@@ -371,17 +286,13 @@ const addGetPrivateKeyToBuilder = (builder: VaultSliceBuilder) => {
 const addSendTransferToBuilder = (builder: VaultSliceBuilder) => {
   builder.addCase(sendTransfer.fulfilled, (state, action) => {
     if (action.meta.arg.from.type === SupportedTransferOrigins.VaultAccountId) {
-      resetWrongPasswordCounter(action.meta.arg.from.value, state);
+      resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
     }
   });
 
   builder.addCase(sendTransfer.rejected, (state, action) => {
     if (action.meta.arg.from.type === SupportedTransferOrigins.VaultAccountId) {
-      increaseWrongPasswordCounter(
-        action.meta.arg.from.value,
-        state,
-        action.error
-      );
+      increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
     }
   });
 };
@@ -414,7 +325,6 @@ function increaseWrongPasswordCounter(
       ExtensionVaultInstance.lockVault();
       state.vaultSession = null;
       state.isUnlockedStatus = "locked_due_wrong_password";
-      state.passwordRemembered = false;
       state.accounts = [];
       state.sessions = [];
       state.wrongPasswordCounter = {};

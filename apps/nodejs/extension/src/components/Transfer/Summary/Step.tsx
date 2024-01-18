@@ -4,6 +4,8 @@ import { useTheme } from "@mui/material";
 import Typography from "@mui/material/Typography";
 import Password from "../../common/Password";
 import Summary from "./Component";
+import { useAppSelector } from "../../../hooks/redux";
+import { requirePasswordForSensitiveOptsSelector } from "../../../redux/selectors/preferences";
 
 interface SummaryStepProps {
   wrongPassword?: boolean;
@@ -15,34 +17,39 @@ const SummaryStep: React.FC<SummaryStepProps> = ({
   compact = false,
 }) => {
   const theme = useTheme();
+  const requirePassword = useAppSelector(
+    requirePasswordForSensitiveOptsSelector
+  );
 
   return (
     <Stack flexGrow={1} justifyContent={"space-between"} maxHeight={260}>
       <Summary compact={compact} />
 
-      <Stack
-        spacing={compact ? 0.2 : 0.2}
-        marginTop={`${compact ? 12 : 0}px!important`}
-      >
-        <Typography
-          fontSize={13}
-          fontWeight={500}
-          lineHeight={"30px"}
-          letterSpacing={"0.5px"}
-          sx={{ userSelect: "none" }}
-          color={theme.customColors.dark100}
+      {requirePassword && (
+        <Stack
+          spacing={compact ? 0.2 : 0.2}
+          marginTop={`${compact ? 12 : 0}px!important`}
         >
-          To confirm, introduce the account password:
-        </Typography>
-        <Password
-          justRequire={true}
-          hidePasswordStrong={true}
-          canGenerateRandom={false}
-          passwordName={"accountPassword"}
-          labelPassword={"Account Password"}
-          errorPassword={wrongPassword ? "Wrong password" : undefined}
-        />
-      </Stack>
+          <Typography
+            fontSize={13}
+            fontWeight={500}
+            lineHeight={"30px"}
+            letterSpacing={"0.5px"}
+            sx={{ userSelect: "none" }}
+            color={theme.customColors.dark100}
+          >
+            To confirm, enter the vault password:
+          </Typography>
+          <Password
+            justRequire={true}
+            hidePasswordStrong={true}
+            canGenerateRandom={false}
+            passwordName={"vaultPassword"}
+            labelPassword={"Vault Password"}
+            errorPassword={wrongPassword ? "Wrong password" : undefined}
+          />
+        </Stack>
+      )}
     </Stack>
   );
 };

@@ -1,4 +1,3 @@
-import type { OutletContext } from "../../types";
 import type { ExternalNewAccountRequest } from "../../types/communication";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Stack from "@mui/material/Stack";
@@ -6,19 +5,17 @@ import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { FormProvider, useForm } from "react-hook-form";
-import { useNavigate, useLocation, useOutletContext } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { useNavigate, useLocation } from "react-router-dom";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import Requester from "../common/Requester";
 import { enqueueSnackbar } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
-import { ACCOUNTS_PAGE } from "../../constants/routes";
-import AccountAndVaultPasswords from "../common/AccountAndVaultPasswords";
+import { ACCOUNTS_PAGE, EXPORT_VAULT_PAGE } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
-import { passwordRememberedSelector } from "../../redux/selectors/session";
 
 interface FormValues {
   account_name: string;
@@ -46,10 +43,7 @@ type FormStatus = "normal" | "loading" | "error";
 
 const CreateNewAccount: React.FC = () => {
   const theme = useTheme();
-  const { toggleShowExportVault } = (useOutletContext() || {}) as OutletContext;
-
   const protocol = useAppSelector(selectedProtocolSelector);
-  const passwordRemembered = useAppSelector(passwordRememberedSelector);
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -98,11 +92,9 @@ const CreateNewAccount: React.FC = () => {
       setStatus("loading");
       const result = await AppToBackground.answerNewAccount({
         rejected: false,
-        vaultPassword: !passwordRemembered ? data.vault_password : undefined,
         accountData: {
           name: data.account_name,
           protocol,
-          password: data.account_password,
         },
         request: currentRequest || null,
       });
@@ -128,9 +120,7 @@ const CreateNewAccount: React.FC = () => {
                     The vault content changed.{" "}
                     <Button
                       onClick={() => {
-                        if (toggleShowExportVault) {
-                          toggleShowExportVault();
-                        }
+                        navigate(EXPORT_VAULT_PAGE);
                         onClickClose();
                       }}
                       sx={{ padding: 0, minWidth: 0 }}
@@ -147,14 +137,7 @@ const CreateNewAccount: React.FC = () => {
         }
       }
     },
-    [
-      currentRequest,
-      dispatch,
-      passwordRemembered,
-      navigate,
-      protocol,
-      toggleShowExportVault,
-    ]
+    [currentRequest, dispatch, navigate, protocol]
   );
 
   const content = useMemo(() => {
@@ -208,19 +191,6 @@ const CreateNewAccount: React.FC = () => {
             helperText={errors?.account_name?.message}
             {...register("account_name", nameRules)}
           />
-          <FormProvider {...methods}>
-            <AccountAndVaultPasswords
-              showAll={true}
-              requireVaultPassword={!passwordRemembered}
-              vaultPasswordTitle={`To save the account, introduce the vault’s password:`}
-              accountRandomKey={"new-acc"}
-              vaultTitleProps={{
-                marginTop: "31px!important",
-                marginBottom: "5px!important",
-              }}
-              vaultPasswordIsWrong={wrongPassword}
-            />
-          </FormProvider>
         </Stack>
         <Stack direction={"row"} spacing={2} width={1}>
           <Button
@@ -253,15 +223,7 @@ const CreateNewAccount: React.FC = () => {
         </Stack>
       </Stack>
     );
-  }, [
-    status,
-    onClickCancel,
-    register,
-    formState,
-    getValues,
-    methods,
-    passwordRemembered,
-  ]);
+  }, [status, onClickCancel, register, formState, getValues, methods]);
 
   return (
     <Stack
