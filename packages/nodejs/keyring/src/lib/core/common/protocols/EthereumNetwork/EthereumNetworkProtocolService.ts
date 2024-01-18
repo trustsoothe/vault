@@ -92,6 +92,7 @@ export class EthereumNetworkProtocolService
       name: options.name || "",
       address: account.address,
       publicKey: privateKeyToPublicKey(account.privateKey, false),
+      secure: !options.skipEncryption,
       privateKey,
     });
   }
@@ -129,6 +130,7 @@ export class EthereumNetworkProtocolService
       name: options.name || "",
       address: account.address,
       publicKey: privateKeyToPublicKey(account.privateKey, false),
+      secure: !options.skipEncryption,
       privateKey,
     });
   }

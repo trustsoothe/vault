@@ -82,6 +82,12 @@ describe('session', () => {
       session.invalidate()
       expect(session.isValid()).toBe(false)
     })
+
+    test('session does not expire when maxAge is zero', () => {
+      const session = new Session({ permissions: [], maxAge: 0 })
+      clock.tick(2000) // Simulate 2 seconds has passed
+      expect(session.isValid()).toBe(true)
+    });
   })
 
   describe('lastActivity', () => {
