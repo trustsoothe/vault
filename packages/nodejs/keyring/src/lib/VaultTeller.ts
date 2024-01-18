@@ -289,7 +289,7 @@ export class VaultTeller {
     ]);
 
     if (!this.isUnlocked) {
-      throw new VaultIsLockedError();
+      throw new VaultIsLockedError();``
     }
 
     const account = await this.getVaultAccountById(
