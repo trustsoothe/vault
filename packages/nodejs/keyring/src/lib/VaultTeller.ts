@@ -17,7 +17,6 @@ import {
   AccountNotFoundError,
   ArgumentError,
   ForbiddenSessionError,
-  InvalidPrivateKeyError,
   InvalidSessionError,
   PrivateKeyRestoreError,
   SessionIdRequiredError,
@@ -69,6 +68,10 @@ export interface TransferOptions {
   asset?: IAsset;
 }
 
+export interface VaultOptions {
+  sessionMaxAge?: number;
+}
+
 export class VaultTeller {
   private _isUnlocked = false;
   private _vault: Vault | null = null;
@@ -79,7 +82,7 @@ export class VaultTeller {
     private readonly encryptionService: IEncryptionService
   ) {}
 
-  async unlockVault(passphrase: string): Promise<Session> {
+  async unlockVault(passphrase: string, vaultOptions: VaultOptions = {}): Promise<Session> {
     const passphraseValue = new Passphrase(passphrase);
     const serializedEncryptedVault = await this.vaultStore.get();
 
@@ -111,7 +114,13 @@ export class VaultTeller {
       .onAny()
       .build();
 
-    const session = new Session({ permissions });
+    const sessionOptions: SessionOptions = { permissions };
+
+    if (vaultOptions?.sessionMaxAge !== null && vaultOptions?.sessionMaxAge !== undefined) {
+      sessionOptions.maxAge = vaultOptions?.sessionMaxAge;
+    }
+
+    const session = new Session(sessionOptions);
     await this.sessionStore.save(session.serialize());
 
     this._vault = vault;
@@ -200,6 +209,10 @@ export class VaultTeller {
       this.encryptionService
     );
 
+    if (!options.passphrase) {
+      options.skipEncryption = true;
+    }
+
     const account = await protocolService.createAccount(options);
 
     await this.addVaultAccount(account, vaultPassphrase);
@@ -223,6 +236,10 @@ export class VaultTeller {
       options.protocol,
       this.encryptionService
     );
+
+    if (!options.passphrase) {
+      options.skipEncryption = true;
+    }
 
     const account = await protocolService.createAccountFromPrivateKey(options);
 
@@ -265,7 +282,7 @@ export class VaultTeller {
     sessionId: string,
     vaultPassphrase: Passphrase,
     accountReference: AccountReference,
-    accountPassphrase: Passphrase
+    accountPassphrase?: Passphrase
   ): Promise<string> {
     await this.validateSessionForPermissions(sessionId, "account", "read", [
       accountReference.id,
@@ -284,9 +301,13 @@ export class VaultTeller {
       throw new AccountNotFoundError();
     }
 
+    if (!account.isSecure) {
+      return account.privateKey;
+    }
+
     try {
       return await this.encryptionService.decrypt(
-        accountPassphrase,
+        accountPassphrase!,
         account.privateKey
       );
     } catch {

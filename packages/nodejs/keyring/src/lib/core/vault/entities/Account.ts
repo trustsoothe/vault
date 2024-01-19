@@ -10,6 +10,7 @@ export interface SerializedAccount extends IEntity {
   privateKey: string
   address: string
   protocol: SupportedProtocols
+  isSecure: boolean;
   createdAt: number
   updatedAt: number
 }
@@ -20,6 +21,7 @@ export interface AccountOptions {
   privateKey: string
   address: string
   protocol: SupportedProtocols
+  secure: boolean
 }
 
 export interface AccountUpdateOptions {
@@ -34,6 +36,7 @@ export class Account implements IEntity {
   private readonly _privateKey: string
   private readonly _address: string
   private readonly _protocol: SupportedProtocols
+  private readonly _secure: boolean;
   private _createdAt: number
   private _updatedAt: number
 
@@ -64,6 +67,7 @@ export class Account implements IEntity {
     this._privateKey = options.privateKey
     this._address = options.address
     this._protocol = options.protocol
+    this._secure = options.secure
     this._createdAt = Date.now()
     this._updatedAt = Date.now()
   }
@@ -100,6 +104,10 @@ export class Account implements IEntity {
     return this._protocol
   }
 
+  get isSecure(): boolean {
+    return this._secure;
+  }
+
   updateName(name: string): void {
     this._name = name
     this._updatedAt = Date.now()
@@ -114,7 +122,8 @@ export class Account implements IEntity {
       address: this.address,
       protocol: this.protocol,
       createdAt: this.createdAt,
-      updatedAt: this.updatedAt
+      updatedAt: this.updatedAt,
+      isSecure: this.isSecure,
     }
   }
 
@@ -125,6 +134,7 @@ export class Account implements IEntity {
       privateKey: serializedAccount.privateKey,
       address: serializedAccount.address,
       protocol: serializedAccount.protocol,
+      secure: serializedAccount.isSecure,
     }
 
     const deserializedAccount =  new Account(options, serializedAccount.id)

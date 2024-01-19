@@ -76,6 +76,7 @@ export class PocketNetworkProtocolService
       address,
       publicKey: Buffer.from(publicKey).toString("hex"),
       privateKey: finalPrivateKey,
+      secure: !options.skipEncryption,
     });
   }
 
@@ -114,6 +115,7 @@ export class PocketNetworkProtocolService
       address,
       publicKey,
       privateKey: finalPrivateKey,
+      secure: !options.skipEncryption,
     });
   }
 

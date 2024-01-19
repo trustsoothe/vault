@@ -133,6 +133,10 @@ export class Session implements IEntity {
       return false;
     }
 
+    if (this.maxAge === 0) {
+      return true;
+    }
+
     return this.lastActivity + this.maxAge * 1000 > Date.now();
   }
 
