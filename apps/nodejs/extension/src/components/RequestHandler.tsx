@@ -7,7 +7,6 @@ import React, { useEffect, useMemo } from "react";
 import { closeCurrentWindow } from "../utils/ui";
 import {
   CONNECTION_REQUEST_MESSAGE,
-  NEW_ACCOUNT_REQUEST,
   PERSONAL_SIGN_REQUEST,
   SIGN_TYPED_DATA_REQUEST,
   SWITCH_CHAIN_REQUEST,
@@ -15,7 +14,6 @@ import {
 } from "../constants/communication";
 import {
   CHANGE_SELECTED_CHAIN_PAGE,
-  CREATE_ACCOUNT_PAGE,
   REQUEST_CONNECTION_PAGE,
   TRANSFER_PAGE,
   SIGN_TYPED_DATA_PAGE,
@@ -41,10 +39,6 @@ const RequestHandler: React.FC = () => {
       switch (currentRequest.type) {
         case CONNECTION_REQUEST_MESSAGE: {
           navigate(REQUEST_CONNECTION_PAGE, { state: currentRequest });
-          break;
-        }
-        case NEW_ACCOUNT_REQUEST: {
-          navigate(CREATE_ACCOUNT_PAGE, { state: currentRequest });
           break;
         }
         case SWITCH_CHAIN_REQUEST: {

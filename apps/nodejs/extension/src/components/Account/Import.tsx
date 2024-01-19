@@ -1,23 +1,24 @@
-import type {
-  SerializedAccountReference,
-  SupportedProtocols,
-} from "@poktscan/keyring";
+import type { SupportedProtocols } from "@poktscan/keyring";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material";
+import browser from "webextension-polyfill";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Divider from "@mui/material/Divider";
-import { shallowEqual } from "react-redux";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+import { nameRules } from "./CreateModal";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import { nameRules } from "./CreateNew";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { ACCOUNTS_PAGE, EXPORT_VAULT_PAGE } from "../../constants/routes";
+import {
+  ACCOUNTS_PAGE,
+  EXPORT_VAULT_PAGE,
+  IMPORT_ACCOUNT_PAGE,
+} from "../../constants/routes";
 import {
   getAddressFromPrivateKey,
   getPrivateKeyFromPPK,
@@ -28,11 +29,8 @@ import { enqueueSnackbar, readFile } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
-import {
-  accountsSelector,
-  selectedAccountSelector,
-} from "../../redux/selectors/account";
 import SelectFile from "../common/SelectFile";
+import useIsPopup from "../../hooks/useIsPopup";
 
 interface FormValues {
   import_type: "private_key" | "json_file";
@@ -40,9 +38,6 @@ interface FormValues {
   json_file?: File | null;
   file_password?: string;
   account_name: string;
-  account_password: string;
-  confirm_account_password: string;
-  vault_password: string;
 }
 
 const INVALID_PPK_MESSAGE = "File is not valid";
@@ -74,20 +69,16 @@ const ImportAccount: React.FC = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
-  const accounts = useAppSelector(accountsSelector);
-  const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
 
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [accountToReimport, setAccountToReImport] =
-    useState<SerializedAccountReference>(null);
+  const isPopup = useIsPopup();
+  const [searchParams] = useSearchParams();
 
   const [status, setStatus] = useState<FormStatus>("normal");
   const [passwordStep, setPasswordStep] = useState<"account" | "vault">(
     "account"
   );
-  const [wrongPassword, setWrongPassword] = useState(false);
   const [wrongFilePassword, setWrongFilePassword] = useState(false);
   const [errorPpk, setErrorPpk] = useState(false);
 
@@ -98,9 +89,6 @@ const ImportAccount: React.FC = () => {
       json_file: null,
       file_password: "",
       account_name: "",
-      account_password: "",
-      confirm_account_password: "",
-      vault_password: "",
     },
   });
   const {
@@ -112,34 +100,29 @@ const ImportAccount: React.FC = () => {
     clearErrors,
     setValue,
     getValues,
+    reset,
   } = methods;
 
   const { isValidating } = formState;
 
-  useEffect(() => {
-    const isReimporting = searchParams.get("reimport") === "true";
-    if (
-      isReimporting &&
-      selectedAccount &&
-      accountToReimport?.id !== selectedAccount.id
-    ) {
-      setAccountToReImport({ ...selectedAccount });
-
-      setValue("account_name", selectedAccount.name);
-      return;
-    }
-
-    if (!selectedAccount || !isReimporting) {
-      setAccountToReImport(null);
-    }
-  }, [selectedAccount]);
-
-  const [type, file_password, json_file, vault_password] = watch([
+  const [type, file_password, json_file] = watch([
     "import_type",
     "file_password",
     "json_file",
-    "vault_password",
   ]);
+
+  useEffect(() => {
+    const wasOpenToImportFile = searchParams.get("openToImportFile") === "true";
+
+    if (wasOpenToImportFile) {
+      setValue("import_type", "json_file");
+      enqueueSnackbar({
+        variant: "info",
+        message:
+          "This page was open because you cannot import files in the popup.",
+      });
+    }
+  }, []);
 
   useEffect(() => {
     setValue("private_key", "");
@@ -148,12 +131,6 @@ const ImportAccount: React.FC = () => {
     clearErrors(["private_key", "json_file"]);
     setWrongFilePassword(false);
   }, [type, selectedProtocol]);
-
-  useEffect(() => {
-    if (wrongPassword) {
-      setWrongPassword(false);
-    }
-  }, [vault_password]);
 
   useEffect(() => {
     if (wrongFilePassword) {
@@ -166,6 +143,15 @@ const ImportAccount: React.FC = () => {
       setErrorPpk(false);
     }
   }, [json_file]);
+
+  useEffect(() => {
+    if (isPopup && type === "json_file") {
+      browser.tabs.create({
+        active: true,
+        url: `home.html#${IMPORT_ACCOUNT_PAGE}?openToImportFile=true`,
+      });
+    }
+  }, [type]);
 
   const onClickCancel = useCallback(() => {
     if (passwordStep === "vault") {
@@ -207,20 +193,7 @@ const ImportAccount: React.FC = () => {
         if (response.error) {
           setStatus("error");
         } else {
-          if (response.data.isPasswordWrong) {
-            setWrongPassword(true);
-            setStatus("normal");
-          } else if (response.data.accountAlreadyExists) {
-            const address = await getAddressFromPrivateKey(
-              privateKey,
-              selectedProtocol
-            );
-
-            const account = accounts.find(
-              (item) =>
-                item.address === address && item.protocol === selectedProtocol
-            );
-            setAccountToReImport(account);
+          if (response.data.accountAlreadyExists) {
             setStatus("account_exists");
           } else {
             const address = await getAddressFromPrivateKey(
@@ -237,9 +210,7 @@ const ImportAccount: React.FC = () => {
                 enqueueSnackbar({
                   message: (onClickClose) => (
                     <Stack>
-                      <span>{`Account ${
-                        accountToReimport ? "re" : ""
-                      }imported successfully.`}</span>
+                      <span>{`Account imported successfully.`}</span>
                       <span>
                         The vault content changed.{" "}
                         <Button
@@ -263,23 +234,19 @@ const ImportAccount: React.FC = () => {
         }
       });
     },
-    [
-      navigate,
-      accountToReimport,
-      passwordStep,
-      selectedProtocol,
-      dispatch,
-      accounts,
-    ]
+    [navigate, passwordStep, selectedProtocol, dispatch]
   );
 
-  const onClickAccountExists = useCallback(async () => {
-    navigate(ACCOUNTS_PAGE);
-  }, [navigate]);
-
-  const onClickReimport = useCallback(() => {
-    handleSubmit(onClickCreate)();
-  }, [handleSubmit, onClickCreate]);
+  const onClickOkAccountExists = useCallback(() => {
+    setStatus("normal");
+    reset({
+      import_type: getValues("import_type"),
+      account_name: "",
+      json_file: null,
+      private_key: "",
+      file_password: "",
+    });
+  }, [reset, getValues]);
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -298,24 +265,28 @@ const ImportAccount: React.FC = () => {
     if (status === "account_exists") {
       return (
         <OperationFailed
-          text={"This account already exists."}
+          text={
+            "This account already exists and cannot be imported again. Import another one."
+          }
           retryBtnProps={{
             type: "button",
-            sx: {
-              width: 130,
-            },
           }}
-          cancelBtnProps={{
-            sx: {
-              width: 130,
-            },
+          textProps={{
+            width: 300,
+            fontSize: 15,
           }}
-          onCancel={onClickAccountExists}
-          cancelBtnText={"Cancel"}
-          retryBtnText={"Reimport"}
-          onRetry={onClickReimport}
+          retryBtnText={"Ok"}
+          onCancel={onClickCancel}
+          onRetry={onClickOkAccountExists}
           buttonsContainerProps={{
             width: 275,
+            marginTop: "20px!important",
+            sx: {
+              "& button": {
+                width: 130,
+                height: 30,
+              },
+            },
           }}
         />
       );
@@ -339,20 +310,16 @@ const ImportAccount: React.FC = () => {
           boxSizing={"border-box"}
           overflow={"hidden"}
         >
-          {!accountToReimport && (
-            <>
-              <TextField
-                fullWidth
-                label={"Account Name"}
-                autoComplete={"off"}
-                size={"small"}
-                {...register("account_name", nameRules)}
-                error={!!formState?.errors?.account_name}
-                helperText={formState?.errors?.account_name?.message}
-              />
-              <Divider />
-            </>
-          )}
+          <TextField
+            fullWidth
+            label={"Account Name"}
+            autoComplete={"off"}
+            size={"small"}
+            {...register("account_name", nameRules)}
+            error={!!formState?.errors?.account_name}
+            helperText={formState?.errors?.account_name?.message}
+          />
+          <Divider />
 
           <Stack
             direction={"row"}
@@ -360,7 +327,7 @@ const ImportAccount: React.FC = () => {
             alignItems={"center"}
             width={1}
             height={30}
-            marginTop={accountToReimport ? undefined : "15px!important"}
+            marginTop={"15px!important"}
           >
             <Typography fontSize={14} fontWeight={500} letterSpacing={"0.5px"}>
               Import from
@@ -428,15 +395,6 @@ const ImportAccount: React.FC = () => {
                     if (!isValidPrivateKey(value, selectedProtocol)) {
                       return "Invalid Private Key";
                     }
-
-                    if (accountToReimport) {
-                      const addressOfPrivateKey =
-                        await getAddressFromPrivateKey(value, selectedProtocol);
-
-                      if (accountToReimport.address !== addressOfPrivateKey) {
-                        return "This is not the PK of the account to reimport";
-                      }
-                    }
                   }
 
                   return true;
@@ -464,27 +422,6 @@ const ImportAccount: React.FC = () => {
 
                       if (!isValidPPK(content, selectedProtocol)) {
                         return INVALID_PPK_MESSAGE;
-                      }
-
-                      if (accountToReimport) {
-                        try {
-                          const privateKey = await getPrivateKeyFromPPK(
-                            content,
-                            formValues.file_password,
-                            selectedProtocol
-                          );
-                          const addressOfPrivateKey =
-                            await getAddressFromPrivateKey(
-                              privateKey,
-                              selectedProtocol
-                            );
-
-                          if (
-                            accountToReimport.address !== addressOfPrivateKey
-                          ) {
-                            return INVALID_PPK_MESSAGE;
-                          }
-                        } catch (e) {}
                       }
                     }
 
@@ -574,7 +511,6 @@ const ImportAccount: React.FC = () => {
     theme,
     errorPpk,
     wrongFilePassword,
-    accountToReimport,
     register,
     control,
     onClickCancel,
@@ -585,9 +521,8 @@ const ImportAccount: React.FC = () => {
     methods,
     navigate,
     isValidating,
-    onClickAccountExists,
-    wrongPassword,
     passwordStep,
+    onClickOkAccountExists,
   ]);
 
   return (

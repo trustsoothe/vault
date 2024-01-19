@@ -135,6 +135,7 @@ export interface GeneralAppSlice {
     maxAgeInSecs: number;
   };
   requirePasswordForSensitiveOpts: boolean;
+  accountsImported: string[];
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -148,6 +149,7 @@ const REQUIRE_PASS_SENSITIVE_OPTS_KEY = "REQUIRE_PASS_SENSITIVE_OPTS";
 
 export const CUSTOM_RPCS_KEY = "CUSTOM_RPCS";
 export const CONTACTS_KEY = "CONTACTS";
+export const ACCOUNTS_IMPORTED_KEY = "ACCOUNTS_IMPORTED";
 
 export const loadSelectedNetworkAndAccount = createAsyncThunk(
   "app/loadSelectedNetworkAndAccount",
@@ -165,6 +167,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       CONTACTS_KEY,
       SESSION_MAX_AGE_KEY,
       REQUIRE_PASS_SENSITIVE_OPTS_KEY,
+      ACCOUNTS_IMPORTED_KEY,
     ]);
 
     const selectedProtocol =
@@ -189,6 +192,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       response[SESSION_MAX_AGE_KEY] || initialState.sessionsMaxAge;
     const requirePasswordForSensitiveOpts =
       response[REQUIRE_PASS_SENSITIVE_OPTS_KEY] || false;
+    const accountsImported = response[ACCOUNTS_IMPORTED_KEY] || [];
 
     for (const protocol in savedSelectedChain) {
       const chainId = savedSelectedChain[protocol];
@@ -212,6 +216,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       contacts,
       sessionMaxAge,
       requirePasswordForSensitiveOpts,
+      accountsImported,
     };
   }
 );
@@ -498,6 +503,38 @@ export const setRequirePasswordSensitiveOpts = createAsyncThunk(
   }
 );
 
+export const addImportedAccountAddress = createAsyncThunk(
+  "app/addImportedAccountAddress",
+  async (address: string, context) => {
+    const currentAccountsImported = (context.getState() as RootState).app
+      .accountsImported;
+    const newAccountsImported = [...currentAccountsImported, address];
+
+    await browser.storage.local.set({
+      [ACCOUNTS_IMPORTED_KEY]: newAccountsImported,
+    });
+
+    return newAccountsImported;
+  }
+);
+
+export const removeImportedAccountAddress = createAsyncThunk(
+  "app/removeImportedAccountAddress",
+  async (address: string, context) => {
+    const currentAccountsImported = (context.getState() as RootState).app
+      .accountsImported;
+    const newAccountsImported = currentAccountsImported.filter(
+      (addressItem) => addressItem !== address
+    );
+
+    await browser.storage.local.set({
+      [ACCOUNTS_IMPORTED_KEY]: newAccountsImported,
+    });
+
+    return newAccountsImported;
+  }
+);
+
 export const importAppSettings = createAsyncThunk(
   "app/importSettings",
   async (settings: SettingsSchema) => {
@@ -512,6 +549,7 @@ export const importAppSettings = createAsyncThunk(
       contacts,
       sessionsMaxAge,
       requirePasswordForSensitiveOpts,
+      accountsImported,
     } = settingsParsed;
 
     await browser.storage.local.set({
@@ -524,6 +562,7 @@ export const importAppSettings = createAsyncThunk(
       [CONTACTS_KEY]: contacts,
       [SESSION_MAX_AGE_KEY]: sessionsMaxAge,
       [REQUIRE_PASS_SENSITIVE_OPTS_KEY]: requirePasswordForSensitiveOpts,
+      [ACCOUNTS_IMPORTED_KEY]: accountsImported,
     });
 
     return settingsParsed;
@@ -575,6 +614,7 @@ const initialState: GeneralAppSlice = {
     maxAgeInSecs: 3600,
   },
   requirePasswordForSensitiveOpts: false,
+  accountsImported: [],
 };
 
 const generalAppSlice = createSlice({
@@ -727,6 +767,14 @@ const generalAppSlice = createSlice({
       }
     );
 
+    builder.addCase(addImportedAccountAddress.fulfilled, (state, action) => {
+      state.accountsImported = action.payload;
+    });
+
+    builder.addCase(removeImportedAccountAddress.fulfilled, (state, action) => {
+      state.accountsImported = action.payload;
+    });
+
     builder.addCase(
       importAppSettings.fulfilled,
       (state, { payload: settings }) => {
@@ -740,6 +788,7 @@ const generalAppSlice = createSlice({
           contacts,
           sessionsMaxAge,
           requirePasswordForSensitiveOpts,
+          accountsImported,
         } = settings;
 
         state.assetsIdByAccount = assetsIdByAccount;
@@ -753,6 +802,7 @@ const generalAppSlice = createSlice({
         state.sessionsMaxAge =
           sessionsMaxAge as GeneralAppSlice["sessionsMaxAge"];
         state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
+        state.accountsImported = accountsImported;
       }
     );
   },

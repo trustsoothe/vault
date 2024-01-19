@@ -1,10 +1,17 @@
-import { FormProvider, useForm } from "react-hook-form";
+import {
+  Controller,
+  FormProvider,
+  useForm,
+  useFormContext,
+} from "react-hook-form";
 import React, { useCallback, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import Button, { ButtonProps } from "@mui/material/Button";
 import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
+import Switch from "@mui/material/Switch";
+import TextField from "@mui/material/TextField";
 import AppToBackground from "../controllers/communication/AppToBackground";
 import SootheLogoHeader from "./common/SootheLogoHeader";
 import CircularLoading from "./common/CircularLoading";
@@ -76,7 +83,10 @@ const InfoView: React.FC<InfoViewProps> = ({
           width={353}
           overflow={"auto"}
           sx={{
-            "*": { color: theme.customColors.dark100, lineHeight: "19px" },
+            "*": {
+              color: theme.customColors.dark100,
+              lineHeight: "19px",
+            },
           }}
           onScroll={onScroll}
         >
@@ -171,41 +181,172 @@ const SecurityAndPrivacyView: React.FC<SavePasswordViewProps> = (infoProps) => {
 };
 
 const SavePasswordView: React.FC<SavePasswordViewProps> = (infoProps) => {
+  const theme = useTheme();
+  const { control, watch } = useFormContext<FormValues>();
+  const [enabled] = watch(["sessionsMaxAge.enabled"]);
   return (
     <InfoView
       {...infoProps}
-      title={"SAVE YOUR PASSWORDS!"}
+      title={"BACK UP YOUR VAULT REGULARLY!"}
       submitButtonText={"Next"}
     >
       <Typography fontSize={13}>
-        Your vault and every account have a password. If you do not save or
-        remember it, we are unable to restore your vault or account.
+        We recommend you to backup (export) your vault everytime you make
+        changes to your list of accounts. To help you with this, everytime your
+        list of account changes we are going to display a toast to remind you to
+        backup your vault.
         <br />
         <br />
-        Make sure you saved or remember the vault password you just introduce,
-        because it is the entry point to access your accounts and if you are not
-        able to introduce the correct vault password you would lose all your
-        accounts.
+        Exporting your vault will allow you to have a backup and allow you to
+        import it in another PC or browser.
+        <br />
+        <br />
+        We recommend you save your backup in another device or in a cloud
+        storage service to prevent the case where you lose access to your vault
+        because you cannot access anymore your PC.
       </Typography>
       <br />
       <br />
-      <Typography fontSize={14} fontWeight={500}>
-        Save the private key of your accounts
-      </Typography>
-      <Typography fontSize={13}>
-        We encourage you to save your accounts passwords, its private keys and
-        portable wallets (PPK file). With that, you wont lose your accounts
-        (wallets) if you forget the vault and/or account password.
-      </Typography>
-      <br />
-      <br />
-      <Typography fontSize={14} fontWeight={500}>
+      <Typography fontSize={15} fontWeight={500}>
         Your vault is saved only in your PC
       </Typography>
       <Typography fontSize={13}>
-        If you can't access your PC, you won't be able to access your vault. For
-        that reason, we encourage you again to save the accounts private keys
-        and portable wallet (PPK file).
+        If you can't access your PC, you won't be able to access your vault
+        unless you have a backup. For that reason, we encourage you to backup
+        (export) your vault and to save the accounts private keys and portable
+        wallet (PPK file).
+      </Typography>
+      <br />
+      <br />
+      <Typography fontSize={15} fontWeight={500}>
+        Vault Preferences
+      </Typography>
+      <Typography fontSize={13}>
+        To help you secure your vault, we give you the following settings:
+      </Typography>
+      <Typography fontSize={13} fontWeight={500} marginTop={1.5}>
+        Sessions Max Age
+      </Typography>
+      <Stack
+        direction={"row"}
+        alignItems={"center"}
+        spacing={1.5}
+        marginTop={"10px!important"}
+      >
+        <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
+          <Typography fontSize={12}>Enabled:</Typography>
+          <Controller
+            control={control}
+            name={"sessionsMaxAge.enabled"}
+            render={({ field }) => (
+              <Switch
+                size={"small"}
+                {...field}
+                checked={field.value}
+                sx={{
+                  "& .Mui-checked": {
+                    "& .MuiSwitch-thumb": {
+                      color: `${theme.customColors.primary500}!important`,
+                    },
+                  },
+                  "& .MuiSwitch-thumb": {
+                    color: `${theme.customColors.white}`,
+                  },
+                }}
+              />
+            )}
+          />
+        </Stack>
+        <Controller
+          name={"sessionsMaxAge.maxAge"}
+          control={control}
+          rules={{
+            validate: (value) => {
+              const num = Number(value);
+
+              if (isNaN(num)) {
+                return "Invalid number";
+              }
+
+              // equals to 15 minutes
+              if (num < 0.25) {
+                return "Min amount allowed is 0.25";
+              }
+
+              // equals to 1 year
+              if (num > 8760) {
+                return "Max amount allowed is 8760";
+              }
+
+              return true;
+            },
+            required: "Required",
+          }}
+          render={({ field, fieldState: { error } }) => (
+            <TextField
+              fullWidth
+              label={"Amount (hours)"}
+              sx={{
+                height: 30,
+                marginBottom: !!error?.message ? 0.5 : undefined,
+                "& .MuiFormLabel-root": {
+                  top: -4,
+                },
+                "& .MuiInputBase-root": {
+                  height: 30,
+                },
+                "& input": {
+                  height: "20px!important",
+                  fontSize: "13px!important",
+                },
+              }}
+              {...field}
+              disabled={!enabled}
+              error={!!error?.message}
+              helperText={error?.message}
+            />
+          )}
+        />
+      </Stack>
+      <Typography fontSize={10} color={theme.customColors.dark75}>
+        When enabled the vault and websites will keep their sessions open for
+        the hours you specify.
+      </Typography>
+      <Stack
+        direction={"row"}
+        alignItems={"center"}
+        spacing={0.7}
+        marginTop={1}
+      >
+        <Typography fontSize={13} fontWeight={500}>
+          Ask for password on sensitive operations:{" "}
+        </Typography>
+        <Controller
+          control={control}
+          name={"requirePasswordForOpts"}
+          render={({ field }) => (
+            <Switch
+              size={"small"}
+              {...field}
+              checked={field.value}
+              sx={{
+                "& .Mui-checked": {
+                  "& .MuiSwitch-thumb": {
+                    color: `${theme.customColors.primary500}!important`,
+                  },
+                },
+                "& .MuiSwitch-thumb": {
+                  color: `${theme.customColors.white}`,
+                },
+              }}
+            />
+          )}
+        />
+      </Stack>
+      <Typography fontSize={10} color={theme.customColors.dark75}>
+        When this is enabled you will be required to insert the vault password
+        for the following operations: transactions, backup (export) vault and
+        remove account.
       </Typography>
     </InfoView>
   );
@@ -214,6 +355,11 @@ const SavePasswordView: React.FC<SavePasswordViewProps> = (infoProps) => {
 interface FormValues {
   password: string;
   confirmPassword: string;
+  sessionsMaxAge: {
+    enabled: boolean;
+    maxAge: number;
+  };
+  requirePasswordForOpts: boolean;
 }
 
 const InitializeVault: React.FC = () => {
@@ -232,6 +378,11 @@ const InitializeVault: React.FC = () => {
     defaultValues: {
       password: "",
       confirmPassword: "",
+      sessionsMaxAge: {
+        enabled: false,
+        maxAge: 1,
+      },
+      requirePasswordForOpts: true,
     },
   });
   const { handleSubmit } = methods;
@@ -246,15 +397,20 @@ const InitializeVault: React.FC = () => {
 
   const onSubmit = useCallback(
     (data: FormValues) => {
-      if (status === "sec_and_priv_to_submit") {
+      if (status === "passwords_warning") {
         setStatus("loading");
-        AppToBackground.initializeVault(data.password).then((result) =>
-          setStatus(result.error ? "error" : "normal")
-        );
+        AppToBackground.initializeVault({
+          password: data.password,
+          sessionsMaxAge: {
+            enabled: data.sessionsMaxAge.enabled,
+            maxAge: data.sessionsMaxAge.maxAge * 3600,
+          },
+          requirePasswordForSensitiveOpts: data.requirePasswordForOpts,
+        }).then((result) => setStatus(result.error ? "error" : "normal"));
       } else if (status === "normal") {
-        setStatus("passwords_warning");
-      } else if (status === "passwords_warning") {
         setStatus("sec_and_priv_to_submit");
+      } else if (status === "sec_and_priv_to_submit") {
+        setStatus("passwords_warning");
       } else if (status === "sec_and_priv") {
         setStatus("normal");
       }
@@ -320,17 +476,15 @@ const InitializeVault: React.FC = () => {
               password. Keep in mind that the password cannot be recovered.
             </Typography>
           </Stack>
-          <FormProvider {...methods}>
-            <Password
-              autofocusPassword={true}
-              passwordName={"password"}
-              confirmPasswordName={"confirmPassword"}
-              containerProps={{
-                width: 360,
-                spacing: "5px",
-              }}
-            />
-          </FormProvider>
+          <Password
+            autofocusPassword={true}
+            passwordName={"password"}
+            confirmPasswordName={"confirmPassword"}
+            containerProps={{
+              width: 360,
+              spacing: "5px",
+            }}
+          />
         </Stack>
         <Stack spacing={1.5}>
           <Button
@@ -350,25 +504,25 @@ const InitializeVault: React.FC = () => {
           >
             Initialize Vault
           </Button>
-          <Typography
-            color={theme.customColors.primary500}
-            lineHeight={"20px"}
-            fontSize={13}
-            fontWeight={500}
-            textAlign={"center"}
-            onClick={toggleShowImportDialog}
-            sx={{
-              textDecoration: "underline",
-              userSelect: "none",
-              cursor: "pointer",
-            }}
-          >
-            Import Vault
+          <Typography lineHeight={"20px"} fontSize={13} textAlign={"center"}>
+            Already have a vault?{" "}
+            <span
+              onClick={toggleShowImportDialog}
+              style={{
+                fontWeight: 500,
+                color: theme.customColors.primary500,
+                textDecoration: "underline",
+                userSelect: "none",
+                cursor: "pointer",
+              }}
+            >
+              Import it
+            </span>
           </Typography>
           <Typography
             color={theme.customColors.primary500}
             lineHeight={"20px"}
-            fontSize={13}
+            fontSize={12}
             fontWeight={500}
             textAlign={"center"}
             onClick={onShowSecurityAndPrivacy}
@@ -418,11 +572,14 @@ const InitializeVault: React.FC = () => {
           }}
           onBack={onBack}
         />
-        <SavePasswordView
-          show={status === "passwords_warning"}
-          onBack={onBack}
-        />
-        {formContent}
+        <FormProvider {...methods}>
+          <SavePasswordView
+            show={status === "passwords_warning"}
+            onBack={onBack}
+          />
+
+          {formContent}
+        </FormProvider>
       </Stack>
       {showImportModal && (
         <ImportModal onClose={toggleShowImportDialog} open={showImportModal} />

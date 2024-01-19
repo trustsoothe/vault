@@ -25,7 +25,6 @@ import {
   BLOCK_SITE_PAGE,
   BLOCKED_SITES_PAGE,
   CONTACTS_PAGE,
-  CREATE_ACCOUNT_PAGE,
   EXPORT_VAULT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
@@ -55,11 +54,11 @@ import useShowAccountSelect, {
 import { enqueueSnackbar } from "../../utils/ui";
 import { useAppSelector } from "../../hooks/redux";
 import { existsAccountsOfSelectedProtocolSelector } from "../../redux/selectors/account";
+import CreateModal from "../Account/CreateModal";
 
 const titleMap = {
   [ACCOUNTS_PAGE]: "Account Details",
   [ACCOUNT_PK_PAGE]: "View Private Key",
-  [CREATE_ACCOUNT_PAGE]: "Create Account",
   [IMPORT_ACCOUNT_PAGE]: "Import Account",
   [NETWORKS_PAGE]: "Networks",
   [ADD_NETWORK_PAGE]: "New RPC",
@@ -113,6 +112,7 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const showAccountSelect = useShowAccountSelect();
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [showBackdrop, setShowBackdrop] = useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = !!anchorEl;
@@ -124,11 +124,6 @@ const Header = () => {
     setAnchorEl(null);
     setShowBackdrop(false);
   }, []);
-
-  const goToExportVault = useCallback(() => {
-    navigate(EXPORT_VAULT_PAGE);
-    closeMenu();
-  }, [navigate, closeMenu]);
 
   useEffect(() => {
     AppToBackground.shouldExportVault().then((res) => {
@@ -196,6 +191,11 @@ const Header = () => {
       navigate(ACCOUNTS_PAGE);
     }
   }, [navigate, canGoBack]);
+
+  const toggleShowCreateAccount = useCallback(() => {
+    setShowCreateAccount((prevState) => !prevState);
+    closeMenu();
+  }, [closeMenu]);
 
   const onClickLock = useCallback(() => {
     AppToBackground.lockVault();
@@ -326,8 +326,8 @@ const Header = () => {
             {
               key: "new_account_item",
               label: "New Account",
-              route: CREATE_ACCOUNT_PAGE,
               icon: NewIcon,
+              onClick: toggleShowCreateAccount,
             },
             {
               key: "import_account_item",
@@ -395,7 +395,7 @@ const Header = () => {
             {
               key: "export_item",
               label: "Export Vault",
-              onClick: goToExportVault,
+              route: EXPORT_VAULT_PAGE,
               icon: () => (
                 <DownloadIcon
                   sx={{
@@ -528,8 +528,9 @@ const Header = () => {
         paddingX={2}
         position={"relative"}
       >
-        <Outlet />
+        <Outlet context={{ toggleShowCreateAccount }} />
       </Stack>
+      <CreateModal open={showCreateAccount} onClose={toggleShowCreateAccount} />
     </Stack>
   );
 };

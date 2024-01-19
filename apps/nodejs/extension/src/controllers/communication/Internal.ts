@@ -97,6 +97,7 @@ import {
   RequestsType,
   resetRequestsState,
   setRequirePasswordSensitiveOpts,
+  setSessionMaxAgeData,
 } from "../../redux/slices/app";
 import {
   getVaultPassword,
@@ -176,7 +177,6 @@ export interface AnswerNewAccountRequest {
 type AnswerNewAccountResponseData = BaseData & {
   address: string;
   accountId: string;
-  isPasswordWrong?: boolean;
 };
 
 export type AnswerNewAccountResponse = BaseResponse<
@@ -215,9 +215,18 @@ export interface VaultRequestWithPass<T extends string> {
   };
 }
 
-export type InitializeVaultRequest = VaultRequestWithPass<
-  typeof INITIALIZE_VAULT_REQUEST
->;
+export interface InitializeVaultRequest {
+  type: typeof INITIALIZE_VAULT_REQUEST;
+  data: {
+    password: string;
+    sessionsMaxAge: {
+      enabled: boolean;
+      maxAge: number;
+    };
+    requirePasswordForSensitiveOpts: boolean;
+  };
+}
+
 export type InitializeVaultResponse = BaseResponse<
   typeof INITIALIZE_VAULT_RESPONSE
 >;
@@ -304,7 +313,6 @@ export interface ImportAccountResponse {
   data: {
     answered: true;
     accountId: string;
-    isPasswordWrong?: boolean;
     accountAlreadyExists?: boolean;
   } | null;
   error: UnknownErrorType | null;
@@ -314,7 +322,7 @@ export interface PrivateKeyAccountMessage {
   type: typeof PK_ACCOUNT_REQUEST;
   data: {
     account: SerializedAccountReference;
-    vaultPassword?: string;
+    vaultPassword: string;
   };
 }
 
@@ -717,8 +725,20 @@ class InternalCommunicationController implements ICommunicationController {
     data: InitializeVaultRequest["data"]
   ): Promise<InitializeVaultResponse> {
     try {
+      await store
+        .dispatch(
+          setRequirePasswordSensitiveOpts(data.requirePasswordForSensitiveOpts)
+        )
+        .unwrap();
+      await store
+        .dispatch(
+          setSessionMaxAgeData({
+            maxAgeInSecs: data.sessionsMaxAge.maxAge,
+            enabled: data.sessionsMaxAge.enabled,
+          })
+        )
+        .unwrap();
       await store.dispatch(initVault(data.password)).unwrap();
-
       return {
         type: INITIALIZE_VAULT_RESPONSE,
         data: {
@@ -870,7 +890,10 @@ class InternalCommunicationController implements ICommunicationController {
           .on(...selectedAccounts);
 
         const permissions = permissionBuilder.build();
-        const maxAge = 3600;
+        const { sessionsMaxAge } = store.getState().app;
+        const maxAge = sessionsMaxAge.enabled
+          ? sessionsMaxAge.maxAgeInSecs || 3600
+          : 0;
         const originReference = new OriginReference(origin);
         const requestReference = new ExternalAccessRequest(
           permissions,
@@ -1276,7 +1299,6 @@ class InternalCommunicationController implements ICommunicationController {
           answered: true,
           address,
           accountId,
-          isPasswordWrong: false,
         },
         error: null,
       };
@@ -1286,7 +1308,6 @@ class InternalCommunicationController implements ICommunicationController {
           type: ANSWER_NEW_ACCOUNT_RESPONSE,
           data: {
             answered: true,
-            isPasswordWrong: true,
             address: null,
             accountId: null,
           },
@@ -1345,6 +1366,27 @@ class InternalCommunicationController implements ICommunicationController {
           ),
         ]);
       } else if (!rejected) {
+        const {
+          app: { requirePasswordForSensitiveOpts },
+          vault: { vaultSession },
+        } = store.getState();
+
+        if (requirePasswordForSensitiveOpts) {
+          const vaultPassword = await getVaultPassword(vaultSession.id);
+
+          if (vaultPassword !== transferData.from.passphrase) {
+            return {
+              type: ANSWER_TRANSFER_RESPONSE,
+              data: {
+                answered: true,
+                hash: null,
+                isPasswordWrong: true,
+              },
+              error: null,
+            };
+          }
+        }
+
         hash = await store.dispatch(sendTransfer(transferData)).unwrap();
 
         if (request) {
@@ -1504,7 +1546,6 @@ class InternalCommunicationController implements ICommunicationController {
           type: IMPORT_ACCOUNT_RESPONSE,
           data: {
             answered: true,
-            isPasswordWrong: true,
             accountId: null,
           },
           error: null,

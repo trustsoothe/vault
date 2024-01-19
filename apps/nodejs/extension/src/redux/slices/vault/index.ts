@@ -87,7 +87,7 @@ export const unlockVault = createAsyncThunk(
   async (password: string, context) => {
     const state = context.getState() as RootState;
     const dateUntilVaultIsLocked = state.vault.dateUntilVaultIsLocked;
-
+    const sessionsMaxAge = state.app.sessionsMaxAge;
     if (
       dateUntilVaultIsLocked &&
       dateUntilVaultIsLocked > new Date().getTime()
@@ -95,7 +95,11 @@ export const unlockVault = createAsyncThunk(
       throw VaultCannotBeUnlockedError;
     }
 
-    const session = await ExtensionVaultInstance.unlockVault(password);
+    const session = await ExtensionVaultInstance.unlockVault(password, {
+      sessionMaxAge: sessionsMaxAge.enabled
+        ? sessionsMaxAge.maxAgeInSecs || 3600
+        : 0,
+    });
 
     const passwordEncrypted: string = await webEncryptionService.encrypt(
       new Passphrase(PASSPHRASE),

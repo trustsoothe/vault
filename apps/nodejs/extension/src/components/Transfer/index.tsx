@@ -55,6 +55,7 @@ import {
 import { assetsIdByAccountSelector } from "../../redux/selectors/asset";
 import NetworkAndAccount from "./NetworkAndAccount";
 import { addMintIdSent } from "../../redux/slices/app";
+import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 
 export type FeeSpeed = "n/a" | "low" | "medium" | "high" | "site";
 
@@ -115,6 +116,9 @@ const Transfer: React.FC = () => {
   const accounts = useAppSelector(accountsSelector);
   const accountBalances = useAppSelector(accountBalancesSelector);
   const selectedChainOnApp = useAppSelector(selectedChainSelector);
+  const requirePassword = useAppSelector(
+    requirePasswordForSensitiveOptsSelector
+  );
   const selectedProtocolOnApp = useAppSelector(selectedProtocolSelector);
   const assetsIdByAccount = useAppSelector(assetsIdByAccountSelector);
   const addressOfSelectedAccountOnApp = useAppSelector(
@@ -495,7 +499,7 @@ const Transfer: React.FC = () => {
       const baseTransferParam = {
         from: {
           type: SupportedTransferOrigins.VaultAccountId,
-          passphrase: data.vaultPassword,
+          passphrase: requirePassword ? data.vaultPassword : "",
           value: accountId,
         },
         network,
@@ -664,6 +668,7 @@ const Transfer: React.FC = () => {
       externalRequestInfo,
       networkFee,
       dispatch,
+      requirePassword,
     ]
   );
 
@@ -781,7 +786,9 @@ const Transfer: React.FC = () => {
               }}
               variant={"contained"}
               fullWidth
-              disabled={(!networkFee && feeStatus !== "fetched") || !nativeBalance}
+              disabled={
+                (!networkFee && feeStatus !== "fetched") || !nativeBalance
+              }
               type={onClickPrimary ? "button" : "submit"}
               onClick={onClickPrimary}
             >

@@ -7,6 +7,7 @@ import Collapse from "@mui/material/Collapse";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
+import { enqueueSnackbar } from "../../utils/ui";
 import { setSessionMaxAgeData } from "../../redux/slices/app";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { sessionsMaxAgeSelector } from "../../redux/selectors/preferences";
@@ -46,7 +47,14 @@ const SessionsMaxAge: React.FC = () => {
           maxAgeInSecs: data.maxAge * hourInSecs,
           enabled: data.enabled,
         })
-      ).finally(() => setLoading(false));
+      )
+        .then(() => {
+          enqueueSnackbar({
+            variant: "success",
+            message: "Changes applied successfully!",
+          });
+        })
+        .finally(() => setLoading(false));
     },
     [dispatch]
   );

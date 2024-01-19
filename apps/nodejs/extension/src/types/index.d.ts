@@ -34,6 +34,10 @@ import {
 export type AppSliceBuilder = ActionReducerMapBuilder<GeneralAppSlice>;
 export type VaultSliceBuilder = ActionReducerMapBuilder<VaultSlice>;
 
+export interface OutletContext {
+  toggleShowCreateAccount: () => void;
+}
+
 interface SessionStorage extends OriginalStorage.StorageArea {
   /**
    * The maximum amount (in bytes) of data that can be stored in local storage, as measured by the

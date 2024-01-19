@@ -237,7 +237,7 @@ const Home: React.FC = () => {
               maxWidth: "380px!important",
             }}
             maxSnack={1}
-            autoHideDuration={4000}
+            autoHideDuration={6000}
             preventDuplicate={true}
             iconVariant={{
               success: <SuccessIcon />,

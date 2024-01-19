@@ -1,15 +1,67 @@
 import type { ExternalSignedTypedDataRequest } from "../../types/communication";
 import Stack from "@mui/material/Stack";
-import ReactJson from "react-json-view";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import React, { useCallback } from "react";
+import capitalize from "lodash/capitalize";
 import Divider from "@mui/material/Divider";
 import { useLocation } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import TooltipOverflow from "../common/TooltipOverflow";
 import NetworkAndAccount from "../Transfer/NetworkAndAccount";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+
+interface RenderMessageProps {
+  message: object | object[];
+  marginLeft?: number;
+}
+
+const RenderMessage: React.FC<RenderMessageProps> = ({
+  message,
+  marginLeft = 0.5,
+}) => {
+  const children: React.ReactNode[] = [];
+
+  for (const key in message) {
+    const value = message[key];
+
+    if (typeof value === "object") {
+      children.push(
+        <Stack
+          marginLeft={`${marginLeft * 10}px!important`}
+          key={key + marginLeft.toString()}
+          marginTop={"5px!important"}
+        >
+          <Typography fontSize={13} fontWeight={500} marginBottom={0.4}>
+            {capitalize(key)}:
+          </Typography>
+          <RenderMessage message={value} marginLeft={marginLeft + 0.5} />
+        </Stack>
+      );
+    } else {
+      children.push(
+        <Stack
+          direction={"row"}
+          marginLeft={`${marginLeft * 10}px!important`}
+          key={key + marginLeft.toString()}
+          spacing={0.7}
+          marginBottom={0.3}
+        >
+          <Typography fontSize={12}>{capitalize(key)}:</Typography>
+          <TooltipOverflow
+            text={value}
+            textProps={{
+              fontSize: 12,
+            }}
+            enableTextCopy={false}
+          />
+        </Stack>
+      );
+    }
+  }
+
+  return <>{children}</>;
+};
 
 const SignTypedData: React.FC = () => {
   const theme = useTheme();
@@ -35,7 +87,7 @@ const SignTypedData: React.FC = () => {
           width={300}
           height={60}
           fontSize={18}
-          marginTop={2.5}
+          marginTop={1.5}
           fontWeight={700}
           lineHeight={"28px"}
           textAlign={"center"}
@@ -51,6 +103,7 @@ const SignTypedData: React.FC = () => {
           textAlign={"left"}
           sx={{ userSelect: "none" }}
           marginLeft={5.3}
+          marginTop={-0.5}
           width={1}
           color={theme.customColors.primary999}
         >
@@ -130,36 +183,17 @@ const SignTypedData: React.FC = () => {
           marginX={2}
           padding={1}
           width={360}
-          height={183}
+          height={198}
           spacing={0.5}
           boxSizing={"border-box"}
           border={`1px solid ${theme.customColors.dark25}`}
           marginBottom={2}
           overflow={"auto"}
         >
-          <ReactJson
-            src={request?.data?.message || {}}
-            style={{
-              fontSize: 10,
-              width: "100%",
-              height: 155,
-              overflowY: "auto",
-              overflowX: "hidden",
-            }}
-            displayDataTypes={false}
-            displayObjectSize={false}
-            enableClipboard={false}
-            name={false}
-            onAdd={false}
-            onDelete={false}
-            onEdit={false}
-            shouldCollapse={(field) => {
-              return (
-                field.type === "array" && (field?.src as unknown[])?.length > 1
-              );
-            }}
-            collapseStringsAfterLength={30}
-          />
+          <Typography fontWeight={500}>
+            {capitalize(request?.data?.primaryType || "")}
+          </Typography>
+          <RenderMessage message={request?.data?.message || {}} />
         </Stack>
       </Stack>
       <Stack

@@ -13,7 +13,7 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import { enqueueSnackbar } from "../../utils/ui";
-import { nameRules } from "./CreateNew";
+import { nameRules } from "./CreateModal";
 import { EXPORT_VAULT_PAGE } from "../../constants/routes";
 
 interface RenameModalProps {
@@ -219,7 +219,7 @@ const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
       <ClickAwayListener onClickAway={onClickAway}>
         <Stack
           width={1}
-          height={510}
+          height={180}
           paddingX={2.5}
           paddingTop={1.5}
           paddingBottom={2}

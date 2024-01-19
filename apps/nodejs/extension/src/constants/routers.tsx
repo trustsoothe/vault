@@ -7,7 +7,6 @@ import {
   BLOCK_SITE_PAGE,
   CHANGE_SELECTED_CHAIN_PAGE,
   CONTACTS_PAGE,
-  CREATE_ACCOUNT_PAGE,
   DISCONNECT_SITE_PAGE,
   EXPORT_VAULT_PAGE,
   IMPORT_ACCOUNT_PAGE,
@@ -32,7 +31,6 @@ import { ToggleBlockSiteFromRouter } from "../components/Session/ToggleBlockSite
 import Network from "../components/Network";
 import AddUpdateNetwork from "../components/Network/AddUpdate";
 import RemoveNetwork from "../components/Network/Remove";
-import CreateNewAccount from "../components/Account/CreateNew";
 import ImportAccount from "../components/Account/Import";
 import Transfer from "../components/Transfer";
 import RequestHandler from "../components/RequestHandler";
@@ -94,10 +92,6 @@ export const router = createHashRouter([
         element: <RemoveNetwork />,
       },
       {
-        path: CREATE_ACCOUNT_PAGE,
-        element: <CreateNewAccount />,
-      },
-      {
         path: IMPORT_ACCOUNT_PAGE,
         element: <ImportAccount />,
       },
@@ -141,10 +135,6 @@ export const requestRouter = createHashRouter([
       {
         path: REQUEST_CONNECTION_PAGE,
         element: <NewConnect />,
-      },
-      {
-        path: CREATE_ACCOUNT_PAGE,
-        element: <CreateNewAccount />,
       },
       {
         path: IMPORT_ACCOUNT_PAGE,

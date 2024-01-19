@@ -16,7 +16,7 @@ import {
   SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/keyring";
-import { nameRules } from "../Account/CreateNew";
+import { nameRules } from "../Account/CreateModal";
 import { enqueueSnackbar } from "../../utils/ui";
 import { CONTACTS_PAGE } from "../../constants/routes";
 import CircularLoading from "../common/CircularLoading";

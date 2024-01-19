@@ -9,6 +9,7 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
 import Password from "../common/Password";
+import { enqueueSnackbar } from "../../utils/ui";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 
@@ -56,6 +57,11 @@ const PasswordForSensitiveOpts: React.FC = () => {
             const { isPasswordWrong } = res.data;
             if (isPasswordWrong) {
               setWrongPassword(true);
+            } else {
+              enqueueSnackbar({
+                variant: "success",
+                message: "Changes applied successfully!",
+              });
             }
           }
         })
@@ -87,8 +93,8 @@ const PasswordForSensitiveOpts: React.FC = () => {
       </Stack>
       <Typography fontSize={10} color={theme.customColors.dark75}>
         When this is enabled you will be required to insert the vault password
-        for the following operations: transactions, reveal private key and
-        remove account.
+        for the following operations: transactions, export vault and remove
+        account.
       </Typography>
       <Collapse in={showPassAndButtons}>
         <Typography fontSize={12} marginTop={0.5}>

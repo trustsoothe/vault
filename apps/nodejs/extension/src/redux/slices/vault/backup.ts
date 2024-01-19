@@ -74,6 +74,7 @@ export const SettingsSchema = z.object({
   assetsIdByAccount: z.record(z.string(), z.string().array()),
   customRpcs: CustomRpcSchema.array(),
   contacts: AccountReferenceSchema.array(),
+  accountsImported: z.string().array().default([]),
   sessionsMaxAge: z
     .object({
       enabled: z.boolean().default(false),
@@ -150,6 +151,7 @@ export const exportVault = createAsyncThunk(
         sessionsMaxAge: currentAppState.sessionsMaxAge,
         requirePasswordForSensitiveOpts:
           currentAppState.requirePasswordForSensitiveOpts,
+        accountsImported: currentAppState.accountsImported,
       },
     };
 

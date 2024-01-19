@@ -82,7 +82,10 @@ export class VaultTeller {
     private readonly encryptionService: IEncryptionService
   ) {}
 
-  async unlockVault(passphrase: string, vaultOptions: VaultOptions = {}): Promise<Session> {
+  async unlockVault(
+    passphrase: string,
+    vaultOptions: VaultOptions = {}
+  ): Promise<Session> {
     const passphraseValue = new Passphrase(passphrase);
     const serializedEncryptedVault = await this.vaultStore.get();
 
@@ -112,7 +115,10 @@ export class VaultTeller {
 
     const sessionOptions: SessionOptions = { permissions };
 
-    if (vaultOptions?.sessionMaxAge !== null && vaultOptions?.sessionMaxAge !== undefined) {
+    if (
+      vaultOptions?.sessionMaxAge !== null &&
+      vaultOptions?.sessionMaxAge !== undefined
+    ) {
       sessionOptions.maxAge = vaultOptions?.sessionMaxAge;
     }
 
@@ -573,10 +579,6 @@ export class VaultTeller {
       throw new ArgumentError("from.value");
     }
 
-    if (!options.from.passphrase) {
-      throw new ArgumentError("from.passphrase");
-    }
-
     const account = this._vault?.accounts.find(
       (account) => account.id === options.from.value
     );
@@ -585,16 +587,25 @@ export class VaultTeller {
       throw new AccountNotFoundError();
     }
 
+    if (!options.from.passphrase && account.isSecure) {
+      throw new ArgumentError("from.passphrase");
+    }
+
     let privateKey: string;
 
-    try {
-      privateKey = await this.encryptionService.decrypt(
-        new Passphrase(options.from.passphrase || ""),
-        account.privateKey
-      );
-    } catch (e) {
-      throw new PrivateKeyRestoreError();
+    if (account.isSecure) {
+      try {
+        privateKey = await this.encryptionService.decrypt(
+          new Passphrase(options.from.passphrase || ""),
+          account.privateKey
+        );
+      } catch (e) {
+        throw new PrivateKeyRestoreError();
+      }
+    } else {
+      privateKey = account.privateKey;
     }
+
     return { account, privateKey };
   }
 

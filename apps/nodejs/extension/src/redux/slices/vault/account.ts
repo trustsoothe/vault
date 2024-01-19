@@ -2,6 +2,7 @@ import type { IProtocolTransactionResult } from "@poktscan/keyring/dist/lib/core
 import type { RootState } from "../../store";
 import type { VaultSliceBuilder } from "../../../types";
 import { SerializedError, createAsyncThunk } from "@reduxjs/toolkit";
+import set from "lodash/set";
 import {
   AccountReference,
   AccountUpdateOptions,
@@ -10,12 +11,16 @@ import {
   SerializedAccountReference,
   SerializedSession,
   SupportedProtocols,
-  SupportedTransferOrigins,
   TransferOptions,
   VaultRestoreErrorName,
 } from "@poktscan/keyring";
 import { getVaultPassword, VaultSlice } from "./index";
 import { getVault } from "../../../utils";
+import { ACCOUNT_CANNOT_BE_REMOVED } from "../../../errors/account";
+import {
+  addImportedAccountAddress,
+  removeImportedAccountAddress,
+} from "../app";
 
 const MAX_PASSWORDS_TRIES = 4;
 const VAULT_PASSWORD_ID = "vault";
@@ -62,24 +67,26 @@ export interface ImportAccountParam {
   privateKey: string;
 }
 
-export const importAccount = createAsyncThunk<
-  SerializedAccountReference,
-  ImportAccountParam
->("vault/importAccount", async (importOptions, context) => {
-  const state = context.getState() as RootState;
-  const { vaultSession } = state.vault;
-  const vaultPassword = await getVaultPassword(vaultSession.id);
-  const vaultPassphrase = new Passphrase(vaultPassword);
+export const importAccount = createAsyncThunk(
+  "vault/importAccount",
+  async (importOptions: ImportAccountParam, context) => {
+    const state = context.getState() as RootState;
+    const { vaultSession } = state.vault;
+    const vaultPassword = await getVaultPassword(vaultSession.id);
+    const vaultPassphrase = new Passphrase(vaultPassword);
 
-  const accountReference =
-    await ExtensionVaultInstance.createAccountFromPrivateKey(
-      vaultSession.id,
-      vaultPassphrase,
-      importOptions
-    );
+    const accountReference =
+      await ExtensionVaultInstance.createAccountFromPrivateKey(
+        vaultSession.id,
+        vaultPassphrase,
+        importOptions
+      );
 
-  return accountReference.serialize();
-});
+    await context.dispatch(addImportedAccountAddress(accountReference.address));
+
+    return accountReference.serialize();
+  }
+);
 
 export const updateAccount = createAsyncThunk<
   SerializedAccountReference,
@@ -114,8 +121,13 @@ export const removeAccount = createAsyncThunk(
   ) => {
     const {
       vault: { vaultSession },
-      app: { requirePasswordForSensitiveOpts },
+      app: { requirePasswordForSensitiveOpts, accountsImported },
     } = context.getState() as RootState;
+
+    if (!accountsImported.includes(args.serializedAccount.address)) {
+      throw ACCOUNT_CANNOT_BE_REMOVED;
+    }
+
     const { vaultPassword: passwordFromArg, serializedAccount } = args;
     const account = AccountReference.deserialize(serializedAccount);
     const vaultPassword =
@@ -124,17 +136,19 @@ export const removeAccount = createAsyncThunk(
         : await getVaultPassword(vaultSession.id);
     const vaultPassphrase = new Passphrase(vaultPassword);
 
-    return await ExtensionVaultInstance.removeAccount(
+    await ExtensionVaultInstance.removeAccount(
       vaultSession.id,
       vaultPassphrase,
       account
     );
+
+    await context.dispatch(removeImportedAccountAddress(account.address));
   }
 );
 
 export interface GetPrivateKeyParam {
   account: SerializedAccountReference;
-  vaultPassword?: string;
+  vaultPassword: string;
 }
 
 export const getPrivateKeyOfAccount = createAsyncThunk<
@@ -144,17 +158,11 @@ export const getPrivateKeyOfAccount = createAsyncThunk<
   const state = context.getState() as RootState;
   const sessionId = state.vault.vaultSession.id;
 
-  const vaultPassword =
-    arg.vaultPassword || state.app.requirePasswordForSensitiveOpts
-      ? arg.vaultPassword
-      : await getVaultPassword(sessionId);
-  const vaultPassphrase = new Passphrase(vaultPassword);
+  const vaultPassphrase = new Passphrase(arg.vaultPassword);
   return await ExtensionVaultInstance.getAccountPrivateKey(
     sessionId,
     vaultPassphrase,
-    AccountReference.deserialize(arg.account),
-    // todo: remove this?
-    vaultPassphrase
+    AccountReference.deserialize(arg.account)
   );
 });
 
@@ -177,9 +185,7 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
     const state = context.getState() as RootState;
     const sessionId = state.vault.vaultSession.id;
 
-    let result: IProtocolTransactionResult<
-      "Pocket" | "Ethereum"
-    >;
+    let result: IProtocolTransactionResult<"Pocket" | "Ethereum">;
 
     const transactionArg = {
       ...transferOptions,
@@ -190,6 +196,13 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
         ...transferOptions.transactionParams,
       },
     };
+
+    if (
+      !state.app.requirePasswordForSensitiveOpts &&
+      !transactionArg.from.passphrase
+    ) {
+      set(transactionArg, "from.passphrase", await getVaultPassword(sessionId));
+    }
 
     if (transferOptions.isRawTransaction) {
       result = await ExtensionVaultInstance.sendRawTransaction(
@@ -227,26 +240,14 @@ const addAddNewAccountToBuilder = (builder: VaultSliceBuilder) => {
 };
 
 const addImportAccountToBuilder = (builder: VaultSliceBuilder) => {
-  builder.addCase(importAccount.rejected, (state, action) => {
-    console.log("IMPORT ACCOUNT ERR:", action.error);
-
-    increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
-  });
-
   builder.addCase(importAccount.fulfilled, (state, action) => {
-    const accountReference = action.payload;
+    const account = action.payload;
 
-    state.accounts.push(accountReference);
-
-    resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+    state.accounts.push(account);
   });
 };
 
 const addUpdateAccountToBuilder = (builder: VaultSliceBuilder) => {
-  builder.addCase(updateAccount.rejected, (state, action) => {
-    increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
-  });
-
   builder.addCase(updateAccount.fulfilled, (state, action) => {
     const account = action.payload;
 
@@ -255,18 +256,19 @@ const addUpdateAccountToBuilder = (builder: VaultSliceBuilder) => {
     if (index !== -1) {
       state.accounts.splice(index, 1, account);
     }
-
-    resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
   });
 };
 
 const addRemoveAccountToBuilder = (builder: VaultSliceBuilder) => {
   builder.addCase(removeAccount.fulfilled, (state, action) => {
     const accountId = action.meta.arg.serializedAccount.id;
+    const wasVaultPasswordPassed = !!action.meta.arg.vaultPassword;
 
     state.accounts = state.accounts.filter((item) => item.id !== accountId);
 
-    resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+    if (wasVaultPasswordPassed) {
+      resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+    }
   });
 
   builder.addCase(removeAccount.rejected, (state, action) => {
@@ -285,13 +287,13 @@ const addGetPrivateKeyToBuilder = (builder: VaultSliceBuilder) => {
 
 const addSendTransferToBuilder = (builder: VaultSliceBuilder) => {
   builder.addCase(sendTransfer.fulfilled, (state, action) => {
-    if (action.meta.arg.from.type === SupportedTransferOrigins.VaultAccountId) {
+    if (!!action.meta.arg.from.passphrase) {
       resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
     }
   });
 
   builder.addCase(sendTransfer.rejected, (state, action) => {
-    if (action.meta.arg.from.type === SupportedTransferOrigins.VaultAccountId) {
+    if (!!action.meta.arg.from.passphrase) {
       increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
     }
   });

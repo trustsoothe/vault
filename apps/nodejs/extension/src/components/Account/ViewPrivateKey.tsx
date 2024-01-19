@@ -20,7 +20,6 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 import { useAppSelector } from "../../hooks/redux";
 import AccountInfo from "./AccountInfo";
 import { selectedAccountSelector } from "../../redux/selectors/account";
-import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 
 interface PrivateKeyFormValues {
   vault_password: string;
@@ -30,9 +29,6 @@ const ViewPrivateKey: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const account = useAppSelector(selectedAccountSelector, shallowEqual);
-  const requirePassword = useAppSelector(
-    requirePasswordForSensitiveOptsSelector
-  );
 
   const methods = useForm<PrivateKeyFormValues>({
     defaultValues: {
@@ -77,7 +73,7 @@ const ViewPrivateKey: React.FC = () => {
 
       AppToBackground.getAccountPrivateKey({
         account,
-        vaultPassword: requirePassword ? vault_password : undefined,
+        vaultPassword: vault_password,
       }).then((response) => {
         if (response.error) {
           setErrorPrivateKey(true);
@@ -92,12 +88,11 @@ const ViewPrivateKey: React.FC = () => {
         setLoadingPrivateKey(false);
       });
     },
-    [account, requirePassword]
+    [account]
   );
 
   const exportPortableWallet = useCallback(() => {
     if (privateKey) {
-      // todo: see how to manage this with the vault password
       getPortableWalletContent(privateKey, vaultPassword, account.protocol)
         .then((json) => {
           const blob = new Blob([json], {
@@ -128,7 +123,7 @@ const ViewPrivateKey: React.FC = () => {
   const privateKeyComponent = useMemo(() => {
     const text = showingPk
       ? "Private Key"
-      : "To continue, introduce Account & Vault Passwords";
+      : "To continue, enter your vault password:";
 
     const title = (
       <Typography
@@ -262,22 +257,18 @@ const ViewPrivateKey: React.FC = () => {
     return (
       <>
         {title}
-        {requirePassword && (
-          <FormProvider {...methods}>
-            <Password
-              passwordName={"vault_password"}
-              labelPassword={"Vault Password"}
-              canGenerateRandom={false}
-              hidePasswordStrong={true}
-              justRequire={true}
-              errorPassword={
-                wrongVaultPassphrase ? "Wrong Password" : undefined
-              }
-              containerProps={{ spacing: 0.5, marginTop: "15px!important" }}
-              inputsContainerProps={{ spacing: 2 }}
-            />
-          </FormProvider>
-        )}
+        <FormProvider {...methods}>
+          <Password
+            passwordName={"vault_password"}
+            labelPassword={"Vault Password"}
+            canGenerateRandom={false}
+            hidePasswordStrong={true}
+            justRequire={true}
+            errorPassword={wrongVaultPassphrase ? "Wrong Password" : undefined}
+            containerProps={{ spacing: 0.5, marginTop: "15px!important" }}
+            inputsContainerProps={{ spacing: 2 }}
+          />
+        </FormProvider>
       </>
     );
   }, [
@@ -290,7 +281,6 @@ const ViewPrivateKey: React.FC = () => {
     loadingPrivateKey,
     showCopyKeyTooltip,
     exportPortableWallet,
-    requirePassword,
     handleCopyPrivateKey,
   ]);
 
