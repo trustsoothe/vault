@@ -657,15 +657,20 @@ export class VaultTeller {
   async getSession(sessionId: string): Promise<Session | null> {
     const serializedSession = await this.sessionStore.getById(sessionId);
     if (serializedSession) {
-      return Session.deserialize(serializedSession);
+      return Session.deserialize(serializedSession)
     }
     return null;
   }
 
   async exportVault(vaultPassphraseValue: string, newPassphraseValue: string = vaultPassphraseValue) {
-    const vaultPassphrase = new Passphrase(vaultPassphraseValue);
-    await this.getVault(vaultPassphrase);
-    return this.getEncryptedVault();
+    const vaultPassphrase = new Passphrase(vaultPassphraseValue)
+    const vault = await this.getVault(vaultPassphrase)
+    if (newPassphraseValue === vaultPassphraseValue) {
+      return this.getEncryptedVault();
+    }
+
+    const newPassphrase = new Passphrase(newPassphraseValue)
+    return this.encryptVault(newPassphrase, vault);
   }
 
   private async updateSessionLastActivity(sessionId: string): Promise<void> {

@@ -1127,19 +1127,36 @@ export default <
     })
 
     describe('when new passphrase is provided', () => {
-      test('encrypts the returned vault with the new passphrase', () => {
-        throw new Error('Not Implemented')
+      test('encrypts the returned vault with the new passphrase', async () => {
+        const passphraseValue = 'passphrase'
+        const passphrase = new Passphrase(passphraseValue)
+        const newPassphraseValue = 'new-passphrase'
+        const newPassphrase = new Passphrase(newPassphraseValue);
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+        await vaultTeller.initializeVault(passphraseValue)
+        const encryptedVault = await vaultTeller.exportVault(passphraseValue, newPassphraseValue)
+
+        const decryptWithNewPassphraseOperation = encryptionService.decrypt(newPassphrase, encryptedVault.contents);
+        const decryptWithOldPassphraseOperation = encryptionService.decrypt(passphrase, encryptedVault.contents)
+
+        expect(decryptWithNewPassphraseOperation)
+          .resolves.not.toThrow(VaultRestoreError)
+
+        expect(decryptWithOldPassphraseOperation)
+          .rejects.toThrow(/password/)
       })
     })
 
     describe('when no new passphrase is provided', () => {
       test('returns the encrypted with the current passphrase', async () => {
         const passphraseValue = 'passphrase'
+        const passphrase = new Passphrase(passphraseValue)
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault(passphraseValue)
         const encryptedVault = await vaultTeller.exportVault(passphraseValue)
-        expect(() => encryptionService.decrypt(new Passphrase(passphraseValue), encryptedVault.contents))
+        expect(() => encryptionService.decrypt(passphrase, encryptedVault.contents))
           .not.toThrow(VaultRestoreError)
       })
     })
