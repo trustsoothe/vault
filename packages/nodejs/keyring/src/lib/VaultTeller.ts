@@ -614,6 +614,38 @@ export class VaultTeller {
     return this._isUnlocked && this._vault !== null;
   }
 
+  async getSession(sessionId: string): Promise<Session | null> {
+    const serializedSession = await this.sessionStore.getById(sessionId);
+    if (serializedSession) {
+      return Session.deserialize(serializedSession)
+    }
+    return null;
+  }
+
+  async exportVault(vaultPassphraseValue: string, newPassphraseValue: string = vaultPassphraseValue) {
+    const vaultPassphrase = new Passphrase(vaultPassphraseValue)
+    const vault = await this.getVault(vaultPassphrase)
+    if (newPassphraseValue === vaultPassphraseValue) {
+      return this.getEncryptedVault();
+    }
+
+    const newPassphrase = new Passphrase(newPassphraseValue)
+    return this.encryptVault(newPassphrase, vault);
+  }
+
+  async importVault(encryptedVault: EncryptedVault, passphraseValue: string, newPassphraseValue = passphraseValue) {
+    if (!encryptedVault) {
+      throw new VaultRestoreError()
+    }
+
+    const passphrase = new Passphrase(passphraseValue)
+    const newPassphrase = new Passphrase(newPassphraseValue)
+    const vaultToImport = await this.decryptVault(passphrase, encryptedVault)
+    this._vault = Vault.FromVault(vaultToImport)
+    const newEncryptedVault = await this.encryptVault(newPassphrase, this._vault)
+    await this.vaultStore.save(newEncryptedVault.serialize())
+  }
+
   private async encryptVault(
     passphrase: Passphrase,
     vault: Vault
@@ -652,25 +684,6 @@ export class VaultTeller {
         "Unable to deserialize vault. Has it been tempered with?"
       );
     }
-  }
-
-  async getSession(sessionId: string): Promise<Session | null> {
-    const serializedSession = await this.sessionStore.getById(sessionId);
-    if (serializedSession) {
-      return Session.deserialize(serializedSession)
-    }
-    return null;
-  }
-
-  async exportVault(vaultPassphraseValue: string, newPassphraseValue: string = vaultPassphraseValue) {
-    const vaultPassphrase = new Passphrase(vaultPassphraseValue)
-    const vault = await this.getVault(vaultPassphrase)
-    if (newPassphraseValue === vaultPassphraseValue) {
-      return this.getEncryptedVault();
-    }
-
-    const newPassphrase = new Passphrase(newPassphraseValue)
-    return this.encryptVault(newPassphrase, vault);
   }
 
   private async updateSessionLastActivity(sessionId: string): Promise<void> {

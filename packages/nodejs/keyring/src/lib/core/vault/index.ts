@@ -41,6 +41,13 @@ export class Vault implements IEntity {
     this._accounts = accounts || [];
   }
 
+  static FromVault(vault: Vault): Vault {
+    return new Vault(
+      v4(),
+      vault.accounts.slice(),
+    );
+  }
+
   get id(): string {
     return this._id;
   }

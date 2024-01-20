@@ -4,7 +4,7 @@ import {
   AccountNotFoundError,
   AccountOptions,
   AccountReference,
-  Asset,
+  Asset, EncryptedVault,
   ExternalAccessRequest,
   ForbiddenSessionError,
   IEncryptionService,
@@ -22,7 +22,7 @@ import {
   SessionIdRequiredError,
   SupportedProtocols,
   SupportedTransferDestinations,
-  SupportedTransferOrigins,
+  SupportedTransferOrigins, Vault,
   VaultIsLockedError,
   VaultRestoreError,
   VaultTeller,
@@ -1140,8 +1140,7 @@ export default <
         const decryptWithNewPassphraseOperation = encryptionService.decrypt(newPassphrase, encryptedVault.contents);
         const decryptWithOldPassphraseOperation = encryptionService.decrypt(passphrase, encryptedVault.contents)
 
-        expect(decryptWithNewPassphraseOperation)
-          .resolves.not.toThrow(VaultRestoreError)
+        expect(decryptWithNewPassphraseOperation).not.toThrow(VaultRestoreError)
 
         expect(decryptWithOldPassphraseOperation)
           .rejects.toThrow(/password/)
@@ -1149,15 +1148,104 @@ export default <
     })
 
     describe('when no new passphrase is provided', () => {
-      test('returns the encrypted with the current passphrase', async () => {
+      test('returns the encrypted vault with the current passphrase', async () => {
         const passphraseValue = 'passphrase'
         const passphrase = new Passphrase(passphraseValue)
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault(passphraseValue)
         const encryptedVault = await vaultTeller.exportVault(passphraseValue)
-        expect(() => encryptionService.decrypt(passphrase, encryptedVault.contents))
-          .not.toThrow(VaultRestoreError)
+        const decryptVaultOperation = encryptionService.decrypt(passphrase, encryptedVault.contents)
+        await expect(decryptVaultOperation).resolves.not.toThrow(VaultRestoreError)
+      })
+    })
+  })
+
+  describe('importVault', () => {
+    const getEncryptedVaultAndTeller = async (passphraseValue: string = 'passphrase') => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault(passphraseValue)
+      const encryptedVault = await vaultTeller.exportVault(passphraseValue)
+      return { passphraseValue, encryptedVault, vaultStore, vaultTeller };
+    }
+
+    const decryptVault = async (
+        passphrase: Passphrase,
+        encryptedVault: EncryptedVault
+    ): Promise<Vault> => {
+        let vaultJson: string;
+
+      try {
+        vaultJson = await encryptionService.decrypt(
+          passphrase,
+          encryptedVault.contents
+        );
+      } catch (error) {
+        throw new VaultRestoreError();
+      }
+
+      try {
+        return Vault.deserialize(JSON.parse(vaultJson));
+      } catch (error) {
+        throw new Error(
+          "Unable to deserialize vault. Has it been tempered with?"
+        );
+      }
+    }
+
+    test('throws an error if the provided vault is null or empty', async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+
+      // @ts-ignore
+      const importNullVaultOperation = vaultTeller.importVault(null,'passphrase')
+
+      // @ts-ignore
+      const importUndefinedVaultOperation = vaultTeller.importVault(undefined, 'passphrase')
+
+      await expect(importNullVaultOperation).rejects.toThrow(VaultRestoreError);
+      await expect(importUndefinedVaultOperation).rejects.toThrow(VaultRestoreError);
+    })
+
+    test('throws an error if the passed passphrase is null or empty', async () => {
+      const { encryptedVault, vaultTeller } = await getEncryptedVaultAndTeller()
+      // @ts-ignore
+      const importWithNullPassphraseOperation = vaultTeller.importVault(encryptedVault,null)
+      const importWithEmptyPassphraseOperation = vaultTeller.importVault(encryptedVault,'')
+
+      await expect(importWithNullPassphraseOperation).rejects.toThrow('Passphrase cannot be null or empty')
+      await expect(importWithEmptyPassphraseOperation).rejects.toThrow('Passphrase cannot be null or empty')
+    })
+
+    test('throws an error if the provided passphrase is incorrect', async () => {
+      const { encryptedVault, vaultTeller } = await getEncryptedVaultAndTeller()
+      const wrongPassphraseImportOperation = vaultTeller.importVault(encryptedVault, 'wrong-passphrase')
+      await expect(wrongPassphraseImportOperation).rejects.toThrow(VaultRestoreError)
+    })
+
+    test('replaces the existing vault - uses the file passphrase if none is provided', async () => {
+      const { encryptedVault, vaultTeller, passphraseValue } = await getEncryptedVaultAndTeller()
+      const passphrase = new Passphrase(passphraseValue)
+      const originalVault = await decryptVault(passphrase, encryptedVault)
+      await vaultTeller.importVault(encryptedVault, passphraseValue)
+      const reImportedEncryptedVault = await vaultTeller.exportVault(passphraseValue);
+      const reImportedVault = await decryptVault(passphrase, reImportedEncryptedVault)
+      expect(originalVault.id).not.toEqual(reImportedVault.id)
+    })
+
+    describe('when a new passphrase is provided', () => {
+      test('uses the new passphrase if one is provided', async () => {
+        const { encryptedVault, vaultTeller, passphraseValue } = await getEncryptedVaultAndTeller()
+        const passphrase = new Passphrase(passphraseValue)
+        const newPassphraseValue = 'new-passphrase'
+        await vaultTeller.importVault(encryptedVault, passphraseValue, newPassphraseValue)
+
+        const exportWithOldPassphraseOperation = vaultTeller.exportVault(passphraseValue)
+        const exportWithNewPassphraseOperation = vaultTeller.exportVault(newPassphraseValue)
+
+        expect(exportWithOldPassphraseOperation).rejects.toThrow(VaultRestoreError)
+        expect(exportWithNewPassphraseOperation).resolves
       })
     })
   })
