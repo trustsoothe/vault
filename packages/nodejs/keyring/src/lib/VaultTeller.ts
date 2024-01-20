@@ -22,7 +22,7 @@ import {
   SessionIdRequiredError,
   SessionNotFoundError,
   VaultIsLockedError,
-  VaultRestoreError,
+  VaultRestoreError, VaultUninitializedError,
 } from "./errors";
 import {
   CreateAccountFromPrivateKeyOptions,
@@ -87,17 +87,13 @@ export class VaultTeller {
     const serializedEncryptedVault = await this.vaultStore.get();
 
     if (!serializedEncryptedVault) {
-      throw new Error(
-        "Vault could not be restored from store. Has it been initialized?"
-      );
+      throw new VaultUninitializedError()
     }
 
     const encryptedVault = EncryptedVault.deserialize(serializedEncryptedVault);
 
     if (!encryptedVault) {
-      throw new Error(
-        "Vault could not be restored from store. Has it been initialized?"
-      );
+      throw new VaultUninitializedError()
     }
 
     const vault = await this.decryptVault(passphraseValue, encryptedVault);
@@ -658,12 +654,17 @@ export class VaultTeller {
     }
   }
 
-  public async getSession(sessionId: string): Promise<Session | null> {
+  async getSession(sessionId: string): Promise<Session | null> {
     const serializedSession = await this.sessionStore.getById(sessionId);
     if (serializedSession) {
       return Session.deserialize(serializedSession);
     }
     return null;
+  }
+
+  async exportVault(vaultPassphraseValue: string, newPassphraseValue: string = vaultPassphraseValue) {
+    const vaultPassphrase = new Passphrase(vaultPassphraseValue);
+    const vault = await this.getVault(vaultPassphrase);
   }
 
   private async updateSessionLastActivity(sessionId: string): Promise<void> {
@@ -744,7 +745,7 @@ export class VaultTeller {
     const serializedEncryptedVault = await this.vaultStore.get();
 
     if (!serializedEncryptedVault) {
-      throw new Error("Vault is not initialized");
+      throw new VaultUninitializedError()
     }
 
     const encryptedOriginalVault = EncryptedVault.deserialize(
@@ -752,7 +753,7 @@ export class VaultTeller {
     );
 
     if (!encryptedOriginalVault) {
-      throw new Error("Vault is not initialized");
+      throw new VaultUninitializedError()
     }
 
     return await this.decryptVault(vaultPassphrase, encryptedOriginalVault);

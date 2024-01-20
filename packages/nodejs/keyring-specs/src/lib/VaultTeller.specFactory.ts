@@ -26,6 +26,7 @@ import {
   VaultIsLockedError,
   VaultRestoreError,
   VaultTeller,
+  VaultUninitializedError,
 } from '@poktscan/keyring'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
 import sinon from 'sinon'
@@ -127,7 +128,7 @@ export default <
       sinon.stub(vaultStore, 'get').returns(null)
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       const authorizeOwnerOperation = vaultTeller.unlockVault('passphrase')
-      await expect(authorizeOwnerOperation).rejects.toThrow('Vault could not be restored from store. Has it been initialized?');
+      await expect(authorizeOwnerOperation).rejects.toThrow(VaultUninitializedError);
     })
 
     test('throws an error if the passed passphrase is null or empty', async () => {
@@ -1085,6 +1086,46 @@ export default <
           expect(privateKey).toEqual(examplePrivateKey)
         })
       });
+    })
+  })
+
+  describe('exportVault', () => {
+    test('throws an error if the vault store is not initialized', async () => {
+      vaultStore = createVaultStore()
+      sinon.stub(vaultStore, 'get').resolves(null)
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      const exportVaultOperation = vaultTeller.exportVault('passphrase')
+      await expect(exportVaultOperation).rejects.toThrow(VaultUninitializedError);
+    })
+
+    test('throws an error if the passed passphrase is null or empty', async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      // @ts-ignore
+      const nullPassphraseExportOperation = vaultTeller.exportVault(null)
+      await expect(nullPassphraseExportOperation).rejects.toThrow('Passphrase cannot be null or empty')
+      const emptyPassphraseExportOperation = vaultTeller.exportVault('')
+      await expect(emptyPassphraseExportOperation).rejects.toThrow('Passphrase cannot be null or empty')
+    })
+
+    test('throws an error if the provided passphrase is incorrect', async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault('passphrase')
+      const incorrectPassphraseOperation = vaultTeller.exportVault('wrong-passphrase')
+      await expect(incorrectPassphraseOperation).rejects.toThrow(VaultRestoreError)
+    })
+
+    describe('when new passphrase is provided', () => {
+      test('encrypts the returned vault with the new passphrase', () => {
+        throw new Error('Not Implemented')
+      })
+    })
+
+    describe('when no new passphrase is provided', () => {
+      test('returns the encrypted with the current passphrase', () => {
+        throw new Error('Not Implemented')
+      })
     })
   })
 }
