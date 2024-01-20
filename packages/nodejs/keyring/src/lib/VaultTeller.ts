@@ -664,7 +664,8 @@ export class VaultTeller {
 
   async exportVault(vaultPassphraseValue: string, newPassphraseValue: string = vaultPassphraseValue) {
     const vaultPassphrase = new Passphrase(vaultPassphraseValue);
-    const vault = await this.getVault(vaultPassphrase);
+    await this.getVault(vaultPassphrase);
+    return this.getEncryptedVault();
   }
 
   private async updateSessionLastActivity(sessionId: string): Promise<void> {
@@ -742,6 +743,11 @@ export class VaultTeller {
   }
 
   private async getVault(vaultPassphrase: Passphrase) {
+    const encryptedOriginalVault = await this.getEncryptedVault();
+    return await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
+  }
+
+  private async getEncryptedVault() {
     const serializedEncryptedVault = await this.vaultStore.get();
 
     if (!serializedEncryptedVault) {
@@ -755,8 +761,7 @@ export class VaultTeller {
     if (!encryptedOriginalVault) {
       throw new VaultUninitializedError()
     }
-
-    return await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
+    return encryptedOriginalVault;
   }
 
   private async removeVaultAccount(

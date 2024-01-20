@@ -1116,6 +1116,16 @@ export default <
       await expect(incorrectPassphraseOperation).rejects.toThrow(VaultRestoreError)
     })
 
+    test('returns the encryptedVault', async () => {
+      const passphraseValue = 'passphrase'
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      await vaultTeller.initializeVault(passphraseValue)
+      const encryptedVault = await vaultTeller.exportVault(passphraseValue)
+      expect(encryptedVault).not.toBeNull();
+      expect(encryptedVault).not.toBeUndefined();
+    })
+
     describe('when new passphrase is provided', () => {
       test('encrypts the returned vault with the new passphrase', () => {
         throw new Error('Not Implemented')
@@ -1123,8 +1133,14 @@ export default <
     })
 
     describe('when no new passphrase is provided', () => {
-      test('returns the encrypted with the current passphrase', () => {
-        throw new Error('Not Implemented')
+      test('returns the encrypted with the current passphrase', async () => {
+        const passphraseValue = 'passphrase'
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+        await vaultTeller.initializeVault(passphraseValue)
+        const encryptedVault = await vaultTeller.exportVault(passphraseValue)
+        expect(() => encryptionService.decrypt(new Passphrase(passphraseValue), encryptedVault.contents))
+          .not.toThrow(VaultRestoreError)
       })
     })
   })
