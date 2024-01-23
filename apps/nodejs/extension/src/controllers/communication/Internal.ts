@@ -68,14 +68,18 @@ import type { ICommunicationController } from "../../types";
 import browser, { type Runtime } from "webextension-polyfill";
 import {
   AccountExistErrorName,
+  AccountReference,
+  EthereumNetworkProtocolService,
   ExternalAccessRequest,
   OriginReference,
+  Passphrase,
   PermissionResources,
   PermissionsBuilder,
   PrivateKeyRestoreErrorName,
   SupportedProtocols,
   VaultRestoreErrorName,
 } from "@poktscan/keyring";
+import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
 import store from "../../redux/store";
 import {
   ACCOUNT_BALANCE_REQUEST,
@@ -171,6 +175,10 @@ import {
 } from "../../redux/slices/vault/backup";
 
 type MessageSender = Runtime.MessageSender;
+
+const ethService = new EthereumNetworkProtocolService(
+  new WebEncryptionService()
+);
 
 const mapMessageType: Record<InternalRequests["type"], true> = {
   [ANSWER_CONNECTION_REQUEST]: true,
@@ -749,12 +757,34 @@ class InternalCommunicationController implements ICommunicationController {
           error: OperationRejected,
         };
       } else {
+        const vault = getVault();
+        const vaultState = store.getState().vault;
+        const vaultSessionId = vaultState.vaultSession.id;
+        const serializedAccount = vaultState.accounts.find(
+          (account) =>
+            account.protocol === request.protocol &&
+            account.address === request.address
+        );
+        const accountReference =
+          AccountReference.deserialize(serializedAccount);
+        const pass = await getVaultPassword(vaultSessionId);
+        const passphrase = new Passphrase(pass);
+        const pk = await vault.getAccountPrivateKey(
+          vaultSessionId,
+          passphrase,
+          accountReference
+        );
+
+        const sign = await ethService.signTypedData({
+          data: request.data,
+          privateKey: pk.replace("0x", ""),
+        });
+
         responseToProxy = {
           requestId: request?.requestId,
           type: SIGN_TYPED_DATA_RESPONSE,
           data: {
-            // todo: replace sign when sign method is implemented
-            sign: "0x4355c47d63924e8a72e509b65029052eb6c299d53a04e167c5775fd466751c9d07299936d304c153f6443dfa05f40ff007d72911b6f72307f996231605b915621c",
+            sign,
           },
           error: null,
         };
