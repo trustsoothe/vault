@@ -1,10 +1,6 @@
-import {
-  CreateAccountFromPrivateKeyOptions,
-  CreateAccountOptions,
-  IProtocolService,
-} from "../IProtocolService";
-import { Account } from "../../../vault";
-import { AccountReference, SupportedProtocols } from "../../values";
+import {CreateAccountFromPrivateKeyOptions, CreateAccountOptions, IProtocolService,} from "../IProtocolService";
+import {Account} from "../../../vault";
+import {AccountReference, SupportedProtocols} from "../../values";
 import Eth from "web3-eth";
 import {
   create,
@@ -15,32 +11,30 @@ import {
   privateKeyToPublicKey,
   signTransaction,
 } from "web3-eth-accounts";
-import { Contract } from "web3-eth-contract";
-import { HttpProvider } from "web3-providers-http";
-import { fromWei, toHex, toWei } from "web3-utils";
-import {
-  ArgumentError,
-  NetworkRequestError,
-  ProtocolTransactionError,
-} from "../../../../errors";
-import { IEncryptionService } from "../../encryption/IEncryptionService";
-import { ProtocolFee } from "../ProtocolFee";
-import { INetwork } from "../INetwork";
-import { IAsset } from "../IAsset";
-import { NetworkStatus } from "../../values/NetworkStatus";
+import {Contract} from "web3-eth-contract";
+import {HttpProvider} from "web3-providers-http";
+import {fromWei, toHex, toWei} from "web3-utils";
+import {ArgumentError, NetworkRequestError, ProtocolTransactionError,} from "../../../../errors";
+import {IEncryptionService} from "../../encryption/IEncryptionService";
+import {ProtocolFee} from "../ProtocolFee";
+import {INetwork} from "../INetwork";
+import {IAsset} from "../IAsset";
+import {NetworkStatus} from "../../values/NetworkStatus";
 import {
   EthereumProtocolFeeRequestSchema,
   EthereumProtocolNetworkSchema,
   EthereumProtocolSendTransactionForStatusResponseSchema,
 } from "./schemas";
-import { EthereumNetworkFeeRequestOptions } from "./EthereumNetworkFeeRequestOptions";
-import { SUGGESTED_GAS_FEES_URL } from "../../../../constants";
+import {EthereumNetworkFeeRequestOptions} from "./EthereumNetworkFeeRequestOptions";
+import {SUGGESTED_GAS_FEES_URL} from "../../../../constants";
 import ERC20Abi from "./contracts/ERC20Detailed";
-import { IProtocolTransactionResult } from "../ProtocolTransaction";
-import { Buffer } from "buffer";
-import { EthereumNetworkProtocolTransaction } from "./EthereumNetworkProtocolTransaction";
-import { EthereumNetworkTransactionTypes } from "./EthereumNetworkTransactionTypes";
+import {IProtocolTransactionResult} from "../ProtocolTransaction";
+import {Buffer} from "buffer";
+import {EthereumNetworkProtocolTransaction} from "./EthereumNetworkProtocolTransaction";
+import {EthereumNetworkTransactionTypes} from "./EthereumNetworkTransactionTypes";
 import {EthereumNetworkFee} from "./EthereumNetworkFee";
+import {SignTypedDataVersion, TypedDataUtils} from "@metamask/eth-sig-util";
+import {ecsign}  from 'ethereumjs-util'
 
 interface SuggestedFeeSpeed {
   suggestedMaxPriorityFeePerGas: string;
@@ -60,6 +54,11 @@ interface SuggestedFees {
   historicalBaseFeeRange: string[];
   priorityFeeTrend: string;
   baseFeeTrend: string;
+}
+
+export interface SignTypedDataRequest {
+  data: any // TODO: Provide a EIP-712 request type
+  privateKey: string
 }
 
 export class EthereumNetworkProtocolService
@@ -111,12 +110,9 @@ export class EthereumNetworkProtocolService
     if (!options.privateKey) {
       throw new ArgumentError("options.privateKey");
     }
+    const {validatedPrivateKey, account} = this.createWeb3Account(options.privateKey);
 
-    const rawPrivateKey = this.parsePrivateKey(options.privateKey);
-
-    const account = privateKeyToAccount(rawPrivateKey);
-
-    let privateKey = rawPrivateKey;
+    let privateKey = validatedPrivateKey;
 
     if (options.passphrase) {
       privateKey = await this.encryptionService.encrypt(
@@ -416,6 +412,19 @@ export class EthereumNetworkProtocolService
       network,
       withBalanceStatus
     );
+  }
+
+  async signTypedData(request: SignTypedDataRequest) {
+    const hashedMessage = TypedDataUtils.eip712Hash(request.data, SignTypedDataVersion.V4)
+    const sig = ecsign(hashedMessage, Buffer.from(request.privateKey, 'hex'))
+    return `0x${sig.r.toString('hex')}${sig.s.toString('hex')}${sig.v.toString(16)}`
+  }
+
+  private createWeb3Account(privateKey: string) {
+    const validatedPrivateKey = this.parsePrivateKey(privateKey);
+
+    const account = privateKeyToAccount(validatedPrivateKey);
+    return {validatedPrivateKey, account};
   }
 
   private validateNetwork(network: INetwork) {
