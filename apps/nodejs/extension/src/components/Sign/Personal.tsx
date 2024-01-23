@@ -1,4 +1,4 @@
-import type { ExternalPersonalSignRequest } from "../../types/communication";
+import type { AppPersonalSignReq } from "../../types/communications/personalSign";
 import { toAscii } from "web3-utils";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
@@ -14,7 +14,7 @@ import { selectedChainByProtocolSelector } from "../../redux/selectors/network";
 const PersonalSign: React.FC = () => {
   const theme = useTheme();
   const location = useLocation();
-  const request: ExternalPersonalSignRequest = location.state;
+  const request: AppPersonalSignReq = location.state;
   const selectedChainByProtocol = useAppSelector(
     selectedChainByProtocolSelector
   );

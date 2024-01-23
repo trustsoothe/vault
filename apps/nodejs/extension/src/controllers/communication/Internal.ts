@@ -1,32 +1,78 @@
-import type { ICommunicationController } from "../../types";
+import type { AppRequests, InternalRequests } from "../../types/communications";
 import type {
-  ExternalConnectionRequest,
-  ExternalNewAccountRequest,
-  ExternalPersonalSignRequest,
-  ExternalSignedTypedDataRequest,
-  ExternalSwitchChainRequest,
-  ExternalSwitchChainResponse,
-  InternalConnectionResponse,
-  InternalNewAccountResponse,
-  InternalTransferResponse,
-} from "../../types/communication";
-import {
-  ExternalPersonalSignResponse,
-  ExternalSignTypedDataResponse,
-  InternalPersonalSignResponse,
-  InternalSignedTypedDataResponse,
-} from "../../types/communication";
+  AnswerTransferReq,
+  AnswerTransferRes,
+  InternalTransferRes,
+} from "../../types/communications/transfer";
+import type {
+  AnswerConnectionReq,
+  AnswerConnectionRes,
+  InternalConnectionRes,
+} from "../../types/communications/connection";
+import type {
+  AnswerSwitchChainReq,
+  AnswerSwitchChainRes,
+  ExternalSwitchChainRes,
+  InternalSwitchChainRes,
+} from "../../types/communications/switchChain";
+import type {
+  AnswerSignedTypedDataReq,
+  AnswerSignedTypedDataRes,
+  ExternalSignTypedDataRes,
+  InternalSignedTypedDataRes,
+} from "../../types/communications/signTypedData";
+import type {
+  AnswerPersonalSignReq,
+  AnswerPersonalSignRes,
+  InternalPersonalSignRes,
+} from "../../types/communications/personalSign";
+import type {
+  CheckPermissionForSessionReq,
+  CheckPermissionForSessionRes,
+  ExportVaultReq,
+  ExportVaultRes,
+  ImportAccountReq,
+  ImportAccountRes,
+  ImportVaultReq,
+  ImportVaultRes,
+  InitializeVaultReq,
+  InitializeVaultRes,
+  LockVaultRes,
+  PrivateKeyAccountReq,
+  PrivateKeyAccountRes,
+  RemoveAccountReq,
+  RemoveAccountRes,
+  RevokeExternalSessionsRes,
+  RevokeSessionRes,
+  ShouldExportVaultRes,
+  UnlockVaultReq,
+  UnlockVaultRes,
+  UpdateAccountReq,
+  UpdateAccountRes,
+} from "../../types/communications/vault";
+import type {
+  AnswerNewAccountReq,
+  AnswerNewAccountRes,
+} from "../../types/communications/newAccount";
+import type {
+  AccountBalanceReq,
+  AccountBalanceRes,
+} from "../../types/communications/balance";
+import type {
+  NetworkFeeReq,
+  NetworkFeeRes,
+  SetRequirePasswordForOptsReq,
+  SetRequirePasswordForOptsRes,
+} from "../../types/communications/app";
+import type { ICommunicationController } from "../../types";
 import browser, { type Runtime } from "webextension-polyfill";
 import {
   AccountExistErrorName,
-  EthereumNetworkFee,
   ExternalAccessRequest,
   OriginReference,
   PermissionResources,
   PermissionsBuilder,
-  PocketNetworkFee,
   PrivateKeyRestoreErrorName,
-  SerializedAccountReference,
   SupportedProtocols,
   VaultRestoreErrorName,
 } from "@poktscan/keyring";
@@ -62,8 +108,6 @@ import {
   LOCK_VAULT_RESPONSE,
   NETWORK_FEE_REQUEST,
   NETWORK_FEE_RESPONSE,
-  NEW_ACCOUNT_REQUEST,
-  NEW_ACCOUNT_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
   PK_ACCOUNT_REQUEST,
@@ -91,10 +135,8 @@ import {
 import {
   changeActiveTab,
   changeSelectedNetwork,
-  IAsset,
   increaseErrorOfNetwork,
   removeExternalRequest,
-  RequestsType,
   resetRequestsState,
   setRequirePasswordSensitiveOpts,
   setSessionMaxAgeData,
@@ -109,9 +151,7 @@ import {
   addNewAccount,
   getPrivateKeyOfAccount,
   importAccount,
-  ImportAccountParam,
   removeAccount,
-  SendTransactionParams,
   sendTransfer,
   updateAccount,
 } from "../../redux/slices/vault/account";
@@ -121,402 +161,18 @@ import {
   revokeSession,
 } from "../../redux/slices/vault/session";
 import { OperationRejected, UnknownError } from "../../errors/communication";
-import {
-  getAccountBalance,
-  GetAccountBalanceParam,
-} from "../../redux/slices/app/network";
+import { getAccountBalance } from "../../redux/slices/app/network";
 import { getFee, NetworkForOperations } from "../../utils/networkOperations";
 import { getVault } from "../../utils";
 import {
   exportVault,
   hashString,
   importVault,
-  VaultBackupSchema,
 } from "../../redux/slices/vault/backup";
 
 type MessageSender = Runtime.MessageSender;
-type UnknownErrorType = typeof UnknownError;
-type BaseData = { answered: true };
 
-type BaseResponse<
-  T extends string,
-  D extends BaseData = BaseData,
-  E = UnknownErrorType
-> = { type: T; data: D; error: null } | { type: T; data: null; error: E };
-
-export interface AnswerConnectionRequest {
-  type: typeof ANSWER_CONNECTION_REQUEST;
-  data: {
-    accepted: boolean;
-    request: ExternalConnectionRequest;
-    selectedAccounts: string[];
-    protocol: SupportedProtocols;
-  } | null;
-}
-
-export type AnswerConnectionResponse = BaseResponse<
-  typeof ANSWER_CONNECTION_RESPONSE
->;
-
-export type AnswerSwitchChainResponse = BaseResponse<
-  typeof ANSWER_SWITCH_CHAIN_RESPONSE
->;
-
-export interface AnswerNewAccountRequest {
-  type: typeof ANSWER_NEW_ACCOUNT_REQUEST;
-  data: {
-    rejected?: boolean;
-    accountData: {
-      name: string;
-      protocol: SupportedProtocols;
-    } | null;
-    request?: ExternalNewAccountRequest | null;
-  };
-}
-
-type AnswerNewAccountResponseData = BaseData & {
-  address: string;
-  accountId: string;
-};
-
-export type AnswerNewAccountResponse = BaseResponse<
-  typeof ANSWER_NEW_ACCOUNT_RESPONSE,
-  AnswerNewAccountResponseData
->;
-
-export interface AnswerTransferRequest {
-  type: typeof ANSWER_TRANSFER_REQUEST;
-  data: {
-    rejected?: boolean;
-    transferData: SendTransactionParams | null;
-    request?: {
-      tabId: number;
-      origin: string;
-      requestId: string;
-      protocol: SupportedProtocols;
-    } | null;
-  };
-}
-
-type AnswerTransferResponseData = BaseData & {
-  hash: string;
-  isPasswordWrong?: boolean;
-};
-
-export type AnswerTransferResponse = BaseResponse<
-  typeof ANSWER_TRANSFER_RESPONSE,
-  AnswerTransferResponseData
->;
-
-export interface VaultRequestWithPass<T extends string> {
-  type: T;
-  data: {
-    password: string;
-  };
-}
-
-export interface InitializeVaultRequest {
-  type: typeof INITIALIZE_VAULT_REQUEST;
-  data: {
-    password: string;
-    sessionsMaxAge: {
-      enabled: boolean;
-      maxAge: number;
-    };
-    requirePasswordForSensitiveOpts: boolean;
-  };
-}
-
-export type InitializeVaultResponse = BaseResponse<
-  typeof INITIALIZE_VAULT_RESPONSE
->;
-
-export type UnlockVaultRequest = VaultRequestWithPass<
-  typeof UNLOCK_VAULT_REQUEST
->;
-
-type UnlockVaultResponseData = BaseData & {
-  isPasswordWrong: boolean;
-};
-
-export type UnlockVaultResponse = BaseResponse<
-  typeof UNLOCK_VAULT_RESPONSE,
-  UnlockVaultResponseData
->;
-
-export interface LockVaultMessage {
-  type: typeof LOCK_VAULT_REQUEST;
-}
-
-export type LockVaultResponse = BaseResponse<typeof LOCK_VAULT_RESPONSE>;
-
-export interface RevokeSessionMessage {
-  type: typeof REVOKE_SESSION_REQUEST;
-  data: {
-    sessionId: string;
-  };
-}
-
-export interface RevokeExternalSessionsMessage {
-  type: typeof REVOKE_EXTERNAL_SESSIONS_REQUEST;
-}
-
-export type RevokeSessionResponse = BaseResponse<
-  typeof REVOKE_SESSION_RESPONSE
->;
-
-export type RevokeExternalSessionsResponse = BaseResponse<
-  typeof REVOKE_EXTERNAL_SESSIONS_RESPONSE
->;
-
-export interface UpdateAccountMessage {
-  type: typeof UPDATE_ACCOUNT_REQUEST;
-  data: {
-    id: string;
-    name: string;
-  };
-}
-
-export interface UpdateAccountResponse {
-  type: typeof UPDATE_ACCOUNT_RESPONSE;
-  data: {
-    answered: true;
-    isPasswordWrong?: boolean;
-  } | null;
-  error: UnknownErrorType | null;
-}
-
-export interface RemoveAccountMessage {
-  type: typeof REMOVE_ACCOUNT_REQUEST;
-  data: {
-    serializedAccount: SerializedAccountReference;
-    vaultPassword?: string;
-  };
-}
-
-export interface RemoveAccountResponse {
-  type: typeof REMOVE_ACCOUNT_RESPONSE;
-  data: {
-    answered: true;
-    isPasswordWrong?: boolean;
-  } | null;
-  error: UnknownErrorType | null;
-}
-
-export interface ImportAccountMessage {
-  type: typeof IMPORT_ACCOUNT_REQUEST;
-  data: ImportAccountParam;
-}
-
-export interface ImportAccountResponse {
-  type: typeof IMPORT_ACCOUNT_RESPONSE;
-  data: {
-    answered: true;
-    accountId: string;
-    accountAlreadyExists?: boolean;
-  } | null;
-  error: UnknownErrorType | null;
-}
-
-export interface PrivateKeyAccountMessage {
-  type: typeof PK_ACCOUNT_REQUEST;
-  data: {
-    account: SerializedAccountReference;
-    vaultPassword: string;
-  };
-}
-
-export interface PrivateKeyAccountResponse {
-  type: typeof PK_ACCOUNT_RESPONSE;
-  data: {
-    answered: true;
-    privateKey: string | null;
-    isAccountPasswordWrong?: boolean;
-    isVaultPasswordWrong?: boolean;
-  } | null;
-  error: UnknownErrorType | null;
-}
-
-export interface AccountBalanceMessage {
-  type: typeof ACCOUNT_BALANCE_REQUEST;
-  data: GetAccountBalanceParam;
-}
-
-export interface AccountBalanceResponse {
-  type: typeof ACCOUNT_BALANCE_RESPONSE;
-  data: {
-    answered: true;
-    balance: number;
-  } | null;
-  error: UnknownErrorType | null;
-}
-
-export interface NetworkFeeMessage {
-  type: typeof NETWORK_FEE_REQUEST;
-  data: {
-    toAddress?: string;
-    asset?: IAsset;
-    protocol: SupportedProtocols;
-    chainId: string;
-    data?: string;
-    from?: string;
-    gasLimit?: number;
-    maxFeePerGas?: string;
-    maxPriorityFeePerGas?: string;
-  };
-}
-
-export interface NetworkFeeResponse {
-  type: typeof NETWORK_FEE_RESPONSE;
-  data: {
-    answered: true;
-    networkFee: PocketNetworkFee | EthereumNetworkFee;
-  } | null;
-  error: UnknownErrorType | null;
-}
-
-export interface CheckPermissionForSessionMessage {
-  type: typeof CHECK_PERMISSION_FOR_SESSION_REQUEST;
-  data: {
-    sessionId: string;
-    resource: string;
-    action: string;
-    ids?: string[];
-  };
-}
-
-export interface CheckPermissionForSessionResponse {
-  type: typeof CHECK_PERMISSION_FOR_SESSION_RESPONSE;
-  data: {
-    sessionIsValid: boolean;
-  } | null;
-  error: UnknownErrorType | null;
-}
-
-export interface AnswerSwitchChainRequest {
-  type: typeof ANSWER_SWITCH_CHAIN_REQUEST;
-  data: {
-    accepted: boolean;
-    request: ExternalSwitchChainRequest;
-  } | null;
-}
-
-export interface AnswerSignedTypedDataRequest {
-  type: typeof ANSWER_SIGNED_TYPED_DATA_REQUEST;
-  data: {
-    accepted: boolean;
-    request: ExternalSignedTypedDataRequest;
-  };
-}
-
-export type AnswerSignedTypedDataResponse = BaseResponse<
-  typeof ANSWER_SIGNED_TYPED_DATA_RESPONSE
->;
-
-export interface AnswerPersonalSignRequest {
-  type: typeof ANSWER_PERSONAL_SIGN_REQUEST;
-  data: {
-    accepted: boolean;
-    request: ExternalPersonalSignRequest;
-  };
-}
-
-export type AnswerPersonalSignResponse = BaseResponse<
-  typeof ANSWER_PERSONAL_SIGN_RESPONSE
->;
-
-export interface ExportVaultRequest {
-  type: typeof EXPORT_VAULT_REQUEST;
-  data: {
-    currentVaultPassword?: string;
-    encryptionPassword?: string;
-  };
-}
-
-export type ExportVaultResponse = {
-  type: typeof EXPORT_VAULT_RESPONSE;
-} & (
-  | {
-      data: {
-        vault: VaultBackupSchema | null;
-        isPasswordWrong?: boolean;
-      };
-      error: null;
-    }
-  | { error: typeof UnknownError; data: null }
-);
-
-export interface ShouldExportVaultRequest {
-  type: typeof SHOULD_EXPORT_VAULT_REQUEST;
-}
-
-export type ShouldExportVaultResponse = {
-  type: typeof SHOULD_EXPORT_VAULT_RESPONSE;
-} & (
-  | {
-      data: {
-        shouldExportVault: boolean;
-        hasVaultBeenExported: boolean;
-      };
-      error: null;
-    }
-  | { error: typeof UnknownError; data: null }
-);
-
-export interface ImportVaultRequest {
-  type: typeof IMPORT_VAULT_REQUEST;
-  data: {
-    vault: VaultBackupSchema;
-    password: string;
-  };
-}
-
-export type ImportVaultResponse = BaseResponse<
-  typeof IMPORT_VAULT_RESPONSE,
-  UnlockVaultResponseData
->;
-
-export interface SetRequirePasswordForOptsRequest {
-  type: typeof SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST;
-  data: {
-    vaultPassword: string;
-    enabled: boolean;
-  };
-}
-
-export type SetRequirePasswordForOptsResponse = BaseResponse<
-  typeof SET_REQUIRE_PASSWORD_FOR_OPTS_RESPONSE,
-  {
-    isPasswordWrong: boolean;
-    answered: true;
-  }
->;
-
-export type Message =
-  | AnswerConnectionRequest
-  | AnswerNewAccountRequest
-  | AnswerTransferRequest
-  | InitializeVaultRequest
-  | UnlockVaultRequest
-  | LockVaultMessage
-  | RevokeSessionMessage
-  | UpdateAccountMessage
-  | RemoveAccountMessage
-  | ImportAccountMessage
-  | PrivateKeyAccountMessage
-  | RevokeExternalSessionsMessage
-  | AccountBalanceMessage
-  | NetworkFeeMessage
-  | CheckPermissionForSessionMessage
-  | AnswerSwitchChainRequest
-  | AnswerSignedTypedDataRequest
-  | AnswerPersonalSignRequest
-  | ExportVaultRequest
-  | ShouldExportVaultRequest
-  | ImportVaultRequest
-  | SetRequirePasswordForOptsRequest;
-
-const mapMessageType: Record<Message["type"], true> = {
+const mapMessageType: Record<InternalRequests["type"], true> = {
   [ANSWER_CONNECTION_REQUEST]: true,
   [ANSWER_NEW_ACCOUNT_REQUEST]: true,
   [ANSWER_TRANSFER_REQUEST]: true,
@@ -551,7 +207,7 @@ class InternalCommunicationController implements ICommunicationController {
     return mapMessageType[messageType] || false;
   }
 
-  async onMessageHandler(message: Message, _: MessageSender) {
+  async onMessageHandler(message: InternalRequests, _: MessageSender) {
     if (message?.type === ANSWER_CONNECTION_REQUEST) {
       return this._answerConnectionRequest(message);
     }
@@ -646,14 +302,13 @@ class InternalCommunicationController implements ICommunicationController {
 
     if (externalRequests?.length && windowId === requestsWindowId) {
       await Promise.all([
-        ...externalRequests.map((request: RequestsType) => {
+        ...externalRequests.map((request: AppRequests) => {
           let response:
-            | InternalTransferResponse
-            | InternalConnectionResponse
-            | InternalNewAccountResponse
-            | ExternalSwitchChainResponse
-            | ExternalSignTypedDataResponse
-            | ExternalPersonalSignResponse;
+            | InternalTransferRes
+            | InternalConnectionRes
+            | InternalSwitchChainRes
+            | InternalSignedTypedDataRes
+            | InternalPersonalSignRes;
 
           if (request.type === CONNECTION_REQUEST_MESSAGE) {
             response = {
@@ -664,7 +319,7 @@ class InternalCommunicationController implements ICommunicationController {
                 session: null,
               },
               error: null,
-            } as InternalConnectionResponse;
+            } as InternalConnectionRes;
           } else if (request.type === TRANSFER_REQUEST) {
             response = {
               requestId: request.requestId,
@@ -675,39 +330,28 @@ class InternalCommunicationController implements ICommunicationController {
                 protocol: null,
               },
               error: null,
-            } as InternalTransferResponse;
-          } else if (request.type === NEW_ACCOUNT_REQUEST) {
-            response = {
-              requestId: request.requestId,
-              type: NEW_ACCOUNT_RESPONSE,
-              data: {
-                rejected: true,
-                address: null,
-                protocol: null,
-              },
-              error: null,
-            } as InternalNewAccountResponse;
+            } as InternalTransferRes;
           } else if (request.type === SIGN_TYPED_DATA_REQUEST) {
             response = {
               requestId: request.requestId,
               type: SIGN_TYPED_DATA_RESPONSE,
               data: null,
               error: OperationRejected,
-            } as ExternalSignTypedDataResponse;
+            } as InternalSignedTypedDataRes;
           } else if (request.type === PERSONAL_SIGN_REQUEST) {
             response = {
               requestId: request.requestId,
               type: PERSONAL_SIGN_RESPONSE,
               data: null,
               error: OperationRejected,
-            } as ExternalPersonalSignResponse;
+            } as InternalPersonalSignRes;
           } else {
             response = {
               requestId: request.requestId,
               type: SWITCH_CHAIN_RESPONSE,
               data: null,
               error: OperationRejected,
-            } as ExternalSwitchChainResponse;
+            } as InternalSwitchChainRes;
           }
 
           return browser.tabs.sendMessage(request.tabId, response);
@@ -722,8 +366,8 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleInitializeVault(
-    data: InitializeVaultRequest["data"]
-  ): Promise<InitializeVaultResponse> {
+    data: InitializeVaultReq["data"]
+  ): Promise<InitializeVaultRes> {
     try {
       await store
         .dispatch(
@@ -756,8 +400,8 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleUnlockVault(
-    data: UnlockVaultRequest["data"]
-  ): Promise<UnlockVaultResponse> {
+    data: UnlockVaultReq["data"]
+  ): Promise<UnlockVaultRes> {
     try {
       await store.dispatch(unlockVault(data.password)).unwrap();
 
@@ -789,7 +433,7 @@ class InternalCommunicationController implements ICommunicationController {
     }
   }
 
-  private async _handleLockVault(): Promise<LockVaultResponse> {
+  private async _handleLockVault(): Promise<LockVaultRes> {
     try {
       await store.dispatch(lockVault());
 
@@ -811,7 +455,7 @@ class InternalCommunicationController implements ICommunicationController {
 
   private async _handleRevokeSession(
     sessionId: string
-  ): Promise<RevokeSessionResponse> {
+  ): Promise<RevokeSessionRes> {
     try {
       await store
         .dispatch(revokeSession({ sessionId, external: false }))
@@ -833,7 +477,7 @@ class InternalCommunicationController implements ICommunicationController {
     }
   }
 
-  private async _handleRevokeExternalSessions(): Promise<RevokeExternalSessionsResponse> {
+  private async _handleRevokeExternalSessions(): Promise<RevokeExternalSessionsRes> {
     try {
       await store.dispatch(revokeAllExternalSessions()).unwrap();
 
@@ -854,15 +498,15 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _answerConnectionRequest(
-    message: AnswerConnectionRequest
-  ): Promise<AnswerConnectionResponse> {
+    message: AnswerConnectionReq
+  ): Promise<AnswerConnectionRes> {
     try {
       const { accepted, selectedAccounts, request, protocol } =
         message?.data || {};
       const { origin, tabId, type } = request;
 
       const promises: Promise<unknown>[] = [];
-      let responseToProxy: InternalConnectionResponse;
+      let responseToProxy: InternalConnectionRes;
 
       if (!accepted) {
         responseToProxy = {
@@ -1010,14 +654,14 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _answerSwitchChainRequest(
-    message: AnswerSwitchChainRequest
-  ): Promise<AnswerSwitchChainResponse> {
+    message: AnswerSwitchChainReq
+  ): Promise<AnswerSwitchChainRes> {
     try {
       const { accepted, request } = message?.data || {};
       const { origin, tabId, type } = request;
 
       const promises: Promise<unknown>[] = [];
-      let responseToProxy: ExternalSwitchChainResponse;
+      let responseToProxy: ExternalSwitchChainRes;
 
       if (!accepted) {
         responseToProxy = {
@@ -1075,7 +719,7 @@ class InternalCommunicationController implements ICommunicationController {
             type: SWITCH_CHAIN_RESPONSE,
             data: null,
             error: UnknownError,
-          } as ExternalSwitchChainResponse)
+          } as InternalSwitchChainRes)
           .catch();
       }
 
@@ -1088,14 +732,14 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _answerSignedTypedDataRequest(
-    message: AnswerSignedTypedDataRequest
-  ): Promise<AnswerSignedTypedDataResponse> {
+    message: AnswerSignedTypedDataReq
+  ): Promise<AnswerSignedTypedDataRes> {
     try {
       const { accepted, request } = message?.data || {};
       const { origin, tabId, type } = request;
 
       const promises: Promise<unknown>[] = [];
-      let responseToProxy: InternalSignedTypedDataResponse;
+      let responseToProxy: InternalSignedTypedDataRes;
 
       if (!accepted) {
         responseToProxy = {
@@ -1142,7 +786,7 @@ class InternalCommunicationController implements ICommunicationController {
             type: SIGN_TYPED_DATA_RESPONSE,
             data: null,
             error: UnknownError,
-          } as ExternalSignTypedDataResponse)
+          } as ExternalSignTypedDataRes)
           .catch();
       }
 
@@ -1155,14 +799,14 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _answerPersonalSignRequest(
-    message: AnswerPersonalSignRequest
-  ): Promise<AnswerPersonalSignResponse> {
+    message: AnswerPersonalSignReq
+  ): Promise<AnswerPersonalSignRes> {
     try {
       const { accepted, request } = message?.data || {};
       const { origin, tabId, type } = request;
 
       const promises: Promise<unknown>[] = [];
-      let responseToProxy: InternalPersonalSignResponse;
+      let responseToProxy: InternalPersonalSignRes;
 
       if (!accepted) {
         responseToProxy = {
@@ -1209,7 +853,7 @@ class InternalCommunicationController implements ICommunicationController {
             type: PERSONAL_SIGN_RESPONSE,
             data: null,
             error: UnknownError,
-          } as ExternalPersonalSignResponse)
+          } as InternalPersonalSignRes)
           .catch();
       }
 
@@ -1222,40 +866,17 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _answerCreateNewAccount(
-    message: AnswerNewAccountRequest
-  ): Promise<AnswerNewAccountResponse> {
+    message: AnswerNewAccountReq
+  ): Promise<AnswerNewAccountRes> {
     try {
-      const { rejected, request, accountData } = message?.data || {};
+      const { rejected, accountData } = message?.data || {};
       let address: string | null = null,
         accountId: string = null;
-      let response: InternalNewAccountResponse;
 
-      if (typeof rejected === "boolean" && rejected && request) {
-        response = {
-          requestId: request?.requestId,
-          type: NEW_ACCOUNT_RESPONSE,
-          data: {
-            rejected: true,
-            address: null,
-            protocol: null,
-          },
-          error: null,
-        };
-        await Promise.all([
-          browser.tabs.sendMessage(request.tabId, response),
-          store.dispatch(
-            removeExternalRequest({
-              origin: request.origin,
-              type: request.type,
-              protocol: accountData.protocol,
-            })
-          ),
-        ]);
-      } else if (!rejected) {
+      if (!rejected) {
         const responseVault = await store
           .dispatch(
             addNewAccount({
-              sessionId: request?.sessionId,
               protocol: accountData.protocol,
               name: accountData.name,
             })
@@ -1264,33 +885,6 @@ class InternalCommunicationController implements ICommunicationController {
 
         address = responseVault.accountReference.address;
         accountId = responseVault.accountReference.id;
-
-        if (request) {
-          response = {
-            type: NEW_ACCOUNT_RESPONSE,
-            requestId: request?.requestId,
-            data: {
-              rejected: false,
-              address,
-              protocol: accountData.protocol,
-            },
-            error: null,
-          };
-          await Promise.all([
-            browser.tabs.sendMessage(request.tabId, response),
-            store.dispatch(
-              removeExternalRequest({
-                origin: request.origin,
-                type: request.type,
-                protocol: accountData.protocol,
-              })
-            ),
-          ]);
-        }
-      }
-
-      if (request) {
-        await this._updateBadgeText();
       }
 
       return {
@@ -1315,18 +909,6 @@ class InternalCommunicationController implements ICommunicationController {
         };
       }
 
-      const tabId = message?.data?.request?.tabId;
-
-      if (tabId) {
-        await browser.tabs
-          .sendMessage(tabId, {
-            type: NEW_ACCOUNT_RESPONSE,
-            data: null,
-            error: UnknownError,
-          })
-          .catch();
-      }
-
       return {
         type: ANSWER_NEW_ACCOUNT_RESPONSE,
         data: null,
@@ -1336,13 +918,13 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _answerTransferAccount(
-    message: AnswerTransferRequest
-  ): Promise<AnswerTransferResponse> {
+    message: AnswerTransferReq
+  ): Promise<AnswerTransferRes> {
     try {
       const { rejected, request, transferData } = message?.data || {};
 
       let hash: string | null = null;
-      let response: InternalTransferResponse;
+      let response: InternalTransferRes;
 
       if (typeof rejected === "boolean" && rejected && request) {
         response = {
@@ -1461,8 +1043,8 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleUpdateAccount(
-    message: UpdateAccountMessage
-  ): Promise<UpdateAccountResponse> {
+    message: UpdateAccountReq
+  ): Promise<UpdateAccountRes> {
     try {
       await store.dispatch(updateAccount(message.data)).unwrap();
 
@@ -1493,8 +1075,8 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleRemoveAccount(
-    message: RemoveAccountMessage
-  ): Promise<RemoveAccountResponse> {
+    message: RemoveAccountReq
+  ): Promise<RemoveAccountRes> {
     try {
       await store.dispatch(removeAccount(message.data)).unwrap();
 
@@ -1525,8 +1107,8 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleImportAccount(
-    message: ImportAccountMessage
-  ): Promise<ImportAccountResponse> {
+    message: ImportAccountReq
+  ): Promise<ImportAccountRes> {
     try {
       const account = await store
         .dispatch(importAccount(message.data))
@@ -1573,7 +1155,7 @@ class InternalCommunicationController implements ICommunicationController {
 
   private async _getPrivateKeyOfAccount({
     data,
-  }: PrivateKeyAccountMessage): Promise<PrivateKeyAccountResponse> {
+  }: PrivateKeyAccountReq): Promise<PrivateKeyAccountRes> {
     try {
       const privateKey = await store
         .dispatch(getPrivateKeyOfAccount(data))
@@ -1621,7 +1203,7 @@ class InternalCommunicationController implements ICommunicationController {
 
   private async _getAccountBalance({
     data,
-  }: AccountBalanceMessage): Promise<AccountBalanceResponse> {
+  }: AccountBalanceReq): Promise<AccountBalanceRes> {
     try {
       const result = await store.dispatch(getAccountBalance(data)).unwrap();
 
@@ -1644,7 +1226,7 @@ class InternalCommunicationController implements ICommunicationController {
 
   private async _getNetworkFee({
     data: { protocol, chainId, toAddress, asset, ...optionProps },
-  }: NetworkFeeMessage): Promise<NetworkFeeResponse> {
+  }: NetworkFeeReq): Promise<NetworkFeeRes> {
     try {
       const networks = this._getNetworks();
       const errorsPreferredNetwork =
@@ -1720,8 +1302,8 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _checkPermissionsForSession(
-    message: CheckPermissionForSessionMessage
-  ): Promise<CheckPermissionForSessionResponse> {
+    message: CheckPermissionForSessionReq
+  ): Promise<CheckPermissionForSessionRes> {
     try {
       const vault = getVault();
 
@@ -1770,9 +1352,7 @@ class InternalCommunicationController implements ICommunicationController {
     } catch (e) {}
   }
 
-  private async _exportVault(
-    message: ExportVaultRequest
-  ): Promise<ExportVaultResponse> {
+  private async _exportVault(message: ExportVaultReq): Promise<ExportVaultRes> {
     try {
       const encryptionPassword = message.data.encryptionPassword;
       const response = await store
@@ -1812,25 +1392,33 @@ class InternalCommunicationController implements ICommunicationController {
     }
   }
 
-  private async _shouldExportVault(): Promise<ShouldExportVaultResponse> {
+  private async _shouldExportVault(): Promise<ShouldExportVaultRes> {
     try {
       const { backupData, dateWhenInitialized } = store.getState().vault;
       const date = backupData?.lastDate || dateWhenInitialized || 0;
       const oneWeekInMs = 604800000;
 
-      const vaultContent = await browser.storage.local
-        .get("vault")
-        .then((res) => res["vault"] || "");
+      let shouldExportVault = false;
 
-      const vaultContentHashed = await hashString(JSON.stringify(vaultContent));
+      try {
+        const vault = getVault();
+        const vaultContent = await vault
+          .getEncryptedVault()
+          .then((value) => value.contents);
+        const vaultContentHashed = await hashString(
+          JSON.stringify(vaultContent)
+        );
+
+        shouldExportVault =
+          vaultContentHashed !== backupData?.vaultHash &&
+          date + oneWeekInMs < Date.now();
+      } catch (e) {}
 
       return {
         type: SHOULD_EXPORT_VAULT_RESPONSE,
         data: {
           hasVaultBeenExported: !!backupData,
-          shouldExportVault:
-            vaultContentHashed !== backupData?.vaultHash &&
-            date + oneWeekInMs < Date.now(),
+          shouldExportVault,
         },
         error: null,
       };
@@ -1843,9 +1431,7 @@ class InternalCommunicationController implements ICommunicationController {
     }
   }
 
-  private async _importVault(
-    message: ImportVaultRequest
-  ): Promise<ImportVaultResponse> {
+  private async _importVault(message: ImportVaultReq): Promise<ImportVaultRes> {
     try {
       await store.dispatch(importVault(message.data)).unwrap();
 
@@ -1878,8 +1464,8 @@ class InternalCommunicationController implements ICommunicationController {
   }
 
   private async _setRequirePasswordForOpts(
-    message: SetRequirePasswordForOptsRequest
-  ): Promise<SetRequirePasswordForOptsResponse> {
+    message: SetRequirePasswordForOptsReq
+  ): Promise<SetRequirePasswordForOptsRes> {
     try {
       const { id } = store.getState().vault.vaultSession;
       const password = await getVaultPassword(id);

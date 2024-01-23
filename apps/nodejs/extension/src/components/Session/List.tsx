@@ -29,6 +29,10 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
   const accounts = useAppSelector(accountsSelector);
 
   useEffect(() => {
+    if (!session.maxAge) {
+      return;
+    }
+
     const sessionSerialized = session.serialize();
 
     const handler = () => {
@@ -85,10 +89,6 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
       });
   }, [accountsExpanded, accounts, session]);
 
-  if (secsToExpire < 0) {
-    return null;
-  }
-
   return (
     <Stack
       paddingY={0.5}
@@ -136,7 +136,12 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
           Disconnect
         </Typography>
       </Stack>
-      <Stack direction={"row"} justifyContent={"space-between"} height={25}>
+      <Stack
+        direction={"row"}
+        justifyContent={"space-between"}
+        height={25}
+        display={secsToExpire < 0 || !session.maxAge ? "none" : "flex"}
+      >
         <Typography
           fontSize={12}
           lineHeight={"20px"}

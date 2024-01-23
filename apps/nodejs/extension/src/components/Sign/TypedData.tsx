@@ -1,4 +1,4 @@
-import type { ExternalSignedTypedDataRequest } from "../../types/communication";
+import type { AppSignTypedDataReq } from "../../types/communications/signTypedData";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -66,7 +66,7 @@ const RenderMessage: React.FC<RenderMessageProps> = ({
 const SignTypedData: React.FC = () => {
   const theme = useTheme();
   const location = useLocation();
-  const request: ExternalSignedTypedDataRequest = location.state;
+  const request: AppSignTypedDataReq = location.state;
 
   const sendResponse = useCallback((accepted: boolean) => {
     AppToBackground.answerSignTypedData({

@@ -83,7 +83,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
           name: data.account_name,
           protocol,
         },
-        request: null,
       });
 
       if (result.error) {

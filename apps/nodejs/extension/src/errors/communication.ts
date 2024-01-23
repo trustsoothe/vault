@@ -22,51 +22,9 @@ export const UnauthorizedError = createError(
 
 export const UnsupportedMethod = createError(4200, "Method not supported.");
 
-export const OriginNotPresented = createError(
-  -32602,
-  "The origin was not presented in the payload."
-);
-
-export const FromAddressNotPresented = createError(
-  -32602,
-  "from was not presented in the payload."
-);
-
-export const ToAddressNotPresented = createError(
-  -32602,
-  "to was not presented in the payload."
-);
-
-export const AmountNotPresented = createError(
-  -32602,
-  "amount was not presented in the payload."
-);
-
-export const FromAddressNotValid = createError(-32602, "from is not valid.");
-
-export const AddressNotValid = createError(-32602, "address is not valid.");
-
-export const ChallengeNotValid = createError(-32602, "challenge is not valid.");
-
 export const BlockNotSupported = createError(
   -32602,
   "Block passed is not valid. Only latest is supported."
-);
-
-export const ToAddressNotValid = createError(-32602, "to is not valid.");
-
-export const AmountNotValid = createError(-32602, "amount is not valid.");
-
-export const MemoNotValid = createError(-32602, "memo is not valid.");
-
-export const ProtocolNotPresented = createError(
-  -32602,
-  "protocol was not presented in the payload."
-);
-
-export const InvalidProtocol = createError(
-  -32602,
-  "The protocol passed is not valid."
 );
 
 export const InvalidBody = createError(-32602, "The data passed is not valid.");
@@ -107,10 +65,9 @@ export const RequestPersonalSignExists = createError(
 );
 
 export const UnrecognizedChainId = createError(4092, "Unrecognized chain ID.");
-
-export const ChainIdNotPresented = createError(
-  -32602,
-  "Chain ID not presented."
+export const ChainIdIsNotActive = createError(
+  -32603,
+  "Provided chainId is not"
 );
 
 export const RequestTimeout = createError(

@@ -1,3 +1,4 @@
+import type { BackgroundAppIsReadyRes } from "../types/communications/appIsReady";
 import MessageSender = Runtime.MessageSender;
 import OnInstalledDetailsType = Runtime.OnInstalledDetailsType;
 import OnActivatedActiveInfoType = Tabs.OnActivatedActiveInfoType;
@@ -27,7 +28,6 @@ import {
 import store, { RootState } from "../redux/store";
 import InternalCommunicationController from "./communication/Internal";
 import ExternalCommunicationController from "./communication/External";
-import { AppIsReadyResponse } from "../types/communication";
 import { loadBackupData } from "../redux/slices/vault/backup";
 
 export default class BackgroundController {
@@ -130,7 +130,7 @@ export default class BackgroundController {
     };
   }
 
-  private async _answerAppIsReadyRequest(): Promise<AppIsReadyResponse> {
+  private async _answerAppIsReadyRequest(): Promise<BackgroundAppIsReadyRes> {
     const status = store.getState().app.isReadyStatus;
 
     if (status === "yes") {
@@ -144,7 +144,7 @@ export default class BackgroundController {
       };
     }
 
-    const makeAppReady = async (): Promise<AppIsReadyResponse> => {
+    const makeAppReady = async (): Promise<BackgroundAppIsReadyRes> => {
       try {
         await this._initializeExtensionState();
 

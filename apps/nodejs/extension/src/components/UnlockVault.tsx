@@ -114,9 +114,6 @@ const UnlockVault: React.FC = () => {
       case "CONNECTION_REQUEST":
         description = "Is trying to connect with your vault.";
         break;
-      case "NEW_ACCOUNT_REQUEST":
-        description = "Is trying to create a new account.";
-        break;
       case "TRANSFER_REQUEST":
         description = "Is trying to request a new transfer.";
         break;

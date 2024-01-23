@@ -73,7 +73,7 @@ const ExportVault: React.FC = () => {
           setWrongPassword(true);
           setStatus("normal");
         } else {
-          const blob = new Blob([JSON.stringify(data.isPasswordWrong)], {
+          const blob = new Blob([JSON.stringify(data.vault)], {
             type: "application/json",
           });
           const filename = `soothe_vault_${new Date()
@@ -117,38 +117,46 @@ const ExportVault: React.FC = () => {
     content = (
       <>
         <Stack>
-          <Typography
-            fontSize={12}
-            lineHeight={"20px"}
-            marginTop={0.5}
-            paddingX={0.5}
-          >
+          <Typography fontSize={12} lineHeight={"20px"} marginTop={0.5}>
             Exporting your vault will allow you to have a backup and allow you
-            to import it in another Pc or browser.
+            to import it in another PC or browser.
             <br />
             <br />
-            We recommend you save your backup in another device or in a cloud
+            We recommend you to save your backup in another device or in a cloud
             storage service to prevent the case where you lose access to your
-            vault because you cannot access anymore your PC.
+            vault because you cannot access your PC.
             <br />
             <br />
-            Note: your accounts will be exported encrypted.
+            Note: your vault will be exported encrypted.
           </Typography>
           <FormProvider {...methods}>
             {requirePassword && (
-              <Password
-                containerProps={{
-                  spacing: 0.5,
-                  marginTop: 1,
-                }}
-                labelPassword={"Vault Password"}
-                passwordName={"vaultPassword"}
-                canGenerateRandom={false}
-                autofocusPassword={true}
-                hidePasswordStrong={true}
-                justRequire={true}
-                errorPassword={wrongPassword ? "Invalid password" : undefined}
-              />
+              <>
+                <Typography
+                  fontSize={12}
+                  fontWeight={500}
+                  marginTop={0.5}
+                  lineHeight={"24px"}
+                  letterSpacing={"0.5px"}
+                  sx={{ userSelect: "none" }}
+                  color={theme.customColors.dark100}
+                >
+                  To confirm, enter the vault password:
+                </Typography>
+                <Password
+                  containerProps={{
+                    spacing: 0.5,
+                    marginTop: 1,
+                  }}
+                  labelPassword={"Vault Password"}
+                  passwordName={"vaultPassword"}
+                  canGenerateRandom={false}
+                  autofocusPassword={true}
+                  hidePasswordStrong={true}
+                  justRequire={true}
+                  errorPassword={wrongPassword ? "Invalid password" : undefined}
+                />
+              </>
             )}
             <Stack alignSelf={"flex-start"} height={20} marginLeft={0.5}>
               <FormControlLabel

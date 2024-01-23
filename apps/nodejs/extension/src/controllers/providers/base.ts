@@ -1,21 +1,20 @@
+import type { AccountsChangedToProvider } from "../../types/communications/accountChanged";
+import type { AppIsReadyMessageToProvider } from "../../types/communications/appIsReady";
+import type { ChainChangedToProvider } from "../../types/communications/chainChanged";
+import type { ProxyRequests, ProxyResponses } from "../../types/communications";
 import type {
   ArgsOrCallback,
   Method,
   MethodOrPayload,
 } from "../../types/provider";
-import type { AccountsChangedToProvider } from "../../types/communication";
-import type { BrowserRequest, BrowserResponse } from "../../types";
 import { v4 } from "uuid";
 import { EventEmitter } from "events";
 import { SupportedProtocols } from "@poktscan/keyring";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,
-  CHECK_CONNECTION_REQUEST,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
-  DISCONNECT_REQUEST,
-  DISCONNECT_RESPONSE,
   EXTERNAL_ACCOUNT_BALANCE_REQUEST,
   EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
   GET_POKT_TRANSACTION_REQUEST,
@@ -23,8 +22,6 @@ import {
   LIST_ACCOUNTS_REQUEST,
   LIST_ACCOUNTS_RESPONSE,
   MINUTES_ALLOWED_FOR_REQ,
-  NEW_ACCOUNT_REQUEST,
-  NEW_ACCOUNT_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
   SELECTED_ACCOUNT_CHANGED,
@@ -43,24 +40,6 @@ import {
   RequestTimeout,
   UnsupportedMethod,
 } from "../../errors/communication";
-
-interface ChainChangedMessage {
-  type: typeof SELECTED_CHAIN_CHANGED;
-  to: "VAULT_KEYRING";
-  network: SupportedProtocols;
-  data: {
-    chainId: string;
-  };
-}
-
-export interface AppIsReadyMessage {
-  type: typeof APP_IS_READY;
-  to: "VAULT_KEYRING";
-  network: SupportedProtocols;
-  data: {
-    chainId: string;
-  };
-}
 
 export enum PocketNetworkMethod {
   REQUEST_ACCOUNTS = "pokt_requestAccounts",
@@ -86,13 +65,13 @@ export enum EthereumMethod {
 }
 
 export default class BaseProvider extends EventEmitter {
-  readonly network: SupportedProtocols;
+  readonly protocol: SupportedProtocols;
   readonly isSoothe = true;
   protected _isConnected = false;
 
   constructor(protocol: SupportedProtocols) {
     super();
-    this.network = protocol;
+    this.protocol = protocol;
 
     // this is required to prevent that this is undefined in these methods when the
     // provider is taken from the announcement event in some pages. For example: https://eip6963.org/
@@ -104,9 +83,8 @@ export default class BaseProvider extends EventEmitter {
       "message",
       async (
         event: MessageEvent<
-          | (BrowserRequest & { network: SupportedProtocols })
-          | ChainChangedMessage
-          | AppIsReadyMessage
+          | ChainChangedToProvider
+          | AppIsReadyMessageToProvider
           | AccountsChangedToProvider
         >
       ) => {
@@ -114,19 +92,19 @@ export default class BaseProvider extends EventEmitter {
 
         if (
           origin === window.location.origin &&
-          data?.to === "VAULT_KEYRING" &&
-          data?.network === this.network
+          data?.from === "VAULT_KEYRING" &&
+          data.protocol === this.protocol
         ) {
-          if (data?.type === APP_IS_READY && !this._isConnected) {
+          if (data.type === APP_IS_READY && !this._isConnected) {
             this._isConnected = true;
-            this.emit("connect", data?.data?.chainId);
+            this.emit("connect", data.data?.chainId);
           }
 
-          if (data?.type === SELECTED_ACCOUNT_CHANGED) {
+          if (data.type === SELECTED_ACCOUNT_CHANGED) {
             this._accountsChanged(data.data?.addresses);
           }
 
-          if (data?.type === SELECTED_CHAIN_CHANGED) {
+          if (data.type === SELECTED_CHAIN_CHANGED) {
             this._chainChanged(data.data.chainId);
           }
         }
@@ -171,18 +149,18 @@ export default class BaseProvider extends EventEmitter {
   async request(args: Method) {
     const { method, params } = args;
 
-    let sootheRequestType: BrowserRequest["type"];
+    let sootheRequestType: ProxyRequests["type"];
 
-    if (!Object.values(SupportedProtocols).includes(this.network)) {
-      throw Error(`protocol not supported: ${this.network}`);
+    if (!Object.values(SupportedProtocols).includes(this.protocol)) {
+      throw Error(`protocol not supported: ${this.protocol}`);
     }
 
     if (
-      (this.network === SupportedProtocols.Pocket &&
+      (this.protocol === SupportedProtocols.Pocket &&
         !Object.values(PocketNetworkMethod).includes(
           method as PocketNetworkMethod
         )) ||
-      (this.network === SupportedProtocols.Ethereum &&
+      (this.protocol === SupportedProtocols.Ethereum &&
         !Object.values(EthereumMethod).includes(method as EthereumMethod))
     ) {
       throw UnsupportedMethod;
@@ -236,45 +214,36 @@ export default class BaseProvider extends EventEmitter {
       }
     }
 
-    let responseType: BrowserResponse["type"],
-      requestData: BrowserRequest["data"] = undefined;
+    let responseType: ProxyResponses["type"],
+      requestData: ProxyRequests["data"] = undefined;
 
-    switch (sootheRequestType as BrowserRequest["type"]) {
-      case CHECK_CONNECTION_REQUEST:
-        responseType = CONNECTION_RESPONSE_MESSAGE;
-        break;
+    switch (sootheRequestType as ProxyRequests["type"]) {
       case SELECTED_CHAIN_REQUEST:
         responseType = SELECTED_CHAIN_RESPONSE;
         requestData = {
-          protocol: this.network,
+          protocol: this.protocol,
         };
         break;
       case EXTERNAL_ACCOUNT_BALANCE_REQUEST:
         responseType = EXTERNAL_ACCOUNT_BALANCE_RESPONSE;
 
         const address =
-          this.network === SupportedProtocols.Ethereum
+          this.protocol === SupportedProtocols.Ethereum
             ? params?.[0]
             : params?.[0]?.address;
 
         requestData = {
           address,
           block: params?.[1] || "latest",
-          protocol: this.network,
+          protocol: this.protocol,
         };
         break;
       case CONNECTION_REQUEST_MESSAGE:
         responseType = CONNECTION_RESPONSE_MESSAGE;
         break;
-      case NEW_ACCOUNT_REQUEST:
-        responseType = NEW_ACCOUNT_RESPONSE;
-        break;
       case TRANSFER_REQUEST:
         responseType = TRANSFER_RESPONSE;
         requestData = params?.[0];
-        break;
-      case DISCONNECT_REQUEST:
-        responseType = DISCONNECT_RESPONSE;
         break;
       case LIST_ACCOUNTS_REQUEST:
         responseType = LIST_ACCOUNTS_RESPONSE;
@@ -316,16 +285,16 @@ export default class BaseProvider extends EventEmitter {
     window.postMessage(
       {
         type: sootheRequestType,
-        network: this.network,
+        protocol: this.protocol,
         data: requestData,
         to: "VAULT_KEYRING",
         id,
-      } as BrowserRequest,
+      } as ProxyRequests,
       window.location.origin
     );
 
     return new Promise((resolve, reject) => {
-      const listener = (event: MessageEvent<BrowserResponse>) => {
+      const listener = (event: MessageEvent<ProxyResponses>) => {
         if (
           (responseType === event.data.type ||
             event.data.type === APP_IS_NOT_READY) &&
@@ -349,7 +318,7 @@ export default class BaseProvider extends EventEmitter {
 
             let dataToResolve = data;
 
-            if (this.network === SupportedProtocols.Pocket) {
+            if (this.protocol === SupportedProtocols.Pocket) {
               if (responseType === TRANSFER_RESPONSE) {
                 // data is expected to be the transaction hash string
                 dataToResolve = { hash: data };

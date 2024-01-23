@@ -1,12 +1,5 @@
-import type {
-  ExternalConnectionRequest,
-  ExternalNewAccountRequest,
-  ExternalTransferRequest,
-  AccountsChangedToProxy,
-  ExternalSwitchChainRequest,
-  ExternalSignedTypedDataRequest,
-  ExternalPersonalSignRequest,
-} from "../../../types/communication";
+import type { AppRequests } from "../../../types/communications";
+import type { AccountsChangedToProxy } from "../../../types/communications/accountChanged";
 import type { RootState } from "../../store";
 import set from "lodash/set";
 import get from "lodash/get";
@@ -27,15 +20,7 @@ import {
 } from "./network";
 import { SettingsSchema } from "../vault/backup";
 import { addContactThunksToBuilder } from "./contact";
-
-export type RequestsType = (
-  | ExternalConnectionRequest
-  | ExternalNewAccountRequest
-  | ExternalTransferRequest
-  | ExternalSwitchChainRequest
-  | ExternalSignedTypedDataRequest
-  | ExternalPersonalSignRequest
-) & { requestedAt?: number; requestId: string };
+import { ChainChangedMessageToProxy } from "../../../types/communications/chainChanged";
 
 export interface AccountBalanceInfo {
   amount: number;
@@ -106,7 +91,7 @@ export interface NetworkCanBeSelectedMap {
 
 export interface GeneralAppSlice {
   requestsWindowId: number | null;
-  externalRequests: RequestsType[];
+  externalRequests: AppRequests[];
   blockedSites: {
     loaded: boolean;
     list: string[];
@@ -224,7 +209,10 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
 export const changeSelectedNetwork = createAsyncThunk(
   "app/changeSelectedNetwork",
   async (
-    { network, chainId }: { network: SupportedProtocols; chainId: string },
+    {
+      network: protocol,
+      chainId,
+    }: { network: SupportedProtocols; chainId: string },
     context
   ) => {
     const state = context.getState() as RootState;
@@ -236,8 +224,8 @@ export const changeSelectedNetwork = createAsyncThunk(
 
     const newSelectedAccountByProtocol = selectedAccountByProtocol;
 
-    if (network !== selectedProtocol) {
-      if (!newSelectedAccountByProtocol[network]) {
+    if (protocol !== selectedProtocol) {
+      if (!newSelectedAccountByProtocol[protocol]) {
         const accounts = state.vault.accounts;
         const accountOfNetwork = accounts.find(
           (item) => item.protocol === selectedProtocol
@@ -252,24 +240,24 @@ export const changeSelectedNetwork = createAsyncThunk(
 
     const newSelectedChainByProtocol = {
       ...selectedChainByProtocol,
-      [network]: chainId,
+      [protocol]: chainId,
     };
 
     await browser.storage.local.set({
-      [SELECTED_NETWORK_KEY]: network,
+      [SELECTED_NETWORK_KEY]: protocol,
       [SELECTED_CHAINS_KEY]: newSelectedChainByProtocol,
       [SELECTED_ACCOUNTS_KEY]: newSelectedAccountByProtocol,
     });
 
     const promises: Promise<any>[] = [];
 
-    if (selectedChainByProtocol[network] !== chainId) {
-      const message = {
+    if (selectedChainByProtocol[protocol] !== chainId) {
+      const message: ChainChangedMessageToProxy = {
         type: SELECTED_CHAIN_CHANGED,
-        network,
+        protocol,
         data: {
           chainId:
-            network === SupportedProtocols.Ethereum
+            protocol === SupportedProtocols.Ethereum
               ? `0x${Number(chainId || "1").toString(16)}`
               : chainId,
         },
@@ -284,7 +272,7 @@ export const changeSelectedNetwork = createAsyncThunk(
     await Promise.allSettled(promises);
 
     return {
-      selectedProtocol: network,
+      selectedProtocol: protocol,
       selectedChainByProtocol: newSelectedChainByProtocol,
       selectedAccountByProtocol: newSelectedAccountByProtocol,
     };
@@ -405,7 +393,7 @@ export const changeSelectedAccountOfNetwork = createAsyncThunk(
 
               const message: AccountsChangedToProxy = {
                 type: SELECTED_ACCOUNT_CHANGED,
-                network: session.protocol || protocol,
+                protocol: session.protocol || protocol,
                 data: {
                   addresses: newAccounts,
                 },
@@ -625,7 +613,7 @@ const generalAppSlice = createSlice({
       state.externalRequests = [];
       state.requestsWindowId = null;
     },
-    addExternalRequest: (state, action: PayloadAction<RequestsType>) => {
+    addExternalRequest: (state, action: PayloadAction<AppRequests>) => {
       state.externalRequests.push({
         ...action.payload,
         requestedAt: new Date().getTime(),
@@ -711,6 +699,7 @@ const generalAppSlice = createSlice({
           contacts,
           sessionMaxAge,
           requirePasswordForSensitiveOpts,
+          accountsImported,
         } = action.payload;
 
         state.selectedProtocol = selectedProtocol;
@@ -723,6 +712,7 @@ const generalAppSlice = createSlice({
         state.contacts = contacts;
         state.sessionsMaxAge = sessionMaxAge;
         state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
+        state.accountsImported = accountsImported;
         state.isReadyStatus = "yes";
       }
     );

@@ -2,11 +2,12 @@ import type { VaultSliceBuilder } from "../../../types";
 import { z } from "zod";
 import browser from "webextension-polyfill";
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { SupportedProtocols } from "@poktscan/keyring";
 import {
-  isNetworkUrlHealthy,
-  isValidAddress,
-} from "../../../utils/networkOperations";
+  EncryptedVault,
+  SerializedEncryptedVault,
+  SupportedProtocols,
+} from "@poktscan/keyring";
+import { isValidAddress } from "../../../utils/networkOperations";
 import { RootState } from "../../store";
 import { importAppSettings } from "../app";
 import {
@@ -15,6 +16,7 @@ import {
   unlockVault,
   VAULT_HAS_BEEN_INITIALIZED_KEY,
 } from "./index";
+import { getVault } from "../../../utils";
 
 const BACKUP_VAULT_KEY = "BACKUP_VAULT";
 
@@ -39,23 +41,6 @@ const CustomRpcSchema = z.object({
   protocol: SupportedProtocolsSchema,
   isPreferred: z.boolean().default(false),
 });
-/*  .refine(async (customRpc) => {
-    try {
-      const healthResult = await isNetworkUrlHealthy({
-        rpcUrl: customRpc.url,
-        protocol: customRpc.protocol,
-        chainID: customRpc.chainId,
-      });
-
-      return (
-        healthResult.canProvideBalance &&
-        healthResult.canProvideFee &&
-        healthResult.canSendTransaction
-      );
-    } catch (e) {
-      return false;
-    }
-  }, "RPC is not valid");*/
 
 const validVersions = ["0.0.1"] as const;
 
@@ -133,12 +118,13 @@ export const exportVault = createAsyncThunk(
         ? passwordFromArg
         : await getVaultPassword(state.vault.vaultSession.id);
 
-    const vault = await browser.storage.local
-      .get("vault")
-      .then((res) => res["vault"] || "");
+    const vault = getVault();
+    const encryptedVault = await vault
+      .exportVault(vaultPassword, encryptionPassword || vaultPassword)
+      .then((instance) => instance.serialize());
 
     const vaultToExport: VaultBackupSchema = {
-      vault,
+      vault: encryptedVault,
       version: "0.0.1",
       settings: {
         contacts: currentAppState.contacts,
@@ -155,7 +141,7 @@ export const exportVault = createAsyncThunk(
       },
     };
 
-    const vaultHash = await hashString(JSON.stringify(vault));
+    const vaultHash = await hashString(JSON.stringify(encryptedVault.contents));
     const backupData = {
       vaultHash,
       lastDate: Date.now(),
@@ -182,8 +168,13 @@ export const importVault = createAsyncThunk(
       vault = VaultBackupSchema.parse(vault);
       const dateWhenInitialized = Date.now();
 
+      const vaultTeller = getVault();
+
+      await vaultTeller.importVault(
+        EncryptedVault.deserialize(vault.vault as SerializedEncryptedVault),
+        password
+      );
       await browser.storage.local.set({
-        vault: vault.vault,
         [VAULT_HAS_BEEN_INITIALIZED_KEY]: "true",
         [DATE_WHEN_VAULT_INITIALIZED_KEY]: dateWhenInitialized,
       });

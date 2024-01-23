@@ -1,34 +1,50 @@
-import type { ICommunicationController } from "../../types";
 import type {
-  BalanceRequestMessage,
-  BaseErrors,
-  ConnectionRequestMessage,
-  DisconnectBackResponse,
-  DisconnectRequestMessage,
-  ExternalBalanceResponse,
-  ExternalConnectionResponse,
-  ExternalGetPoktTxResponse,
-  ExternalListAccountsResponse,
-  ExternalNewAccountResponse,
-  ExternalSelectedChainResponse,
-  ExternalSignTypedDataResponse,
-  ExternalSwitchChainResponse,
-  ExternalTransferResponse,
-  GetPoktTxRequestMessage,
-  IsSessionValidResponse,
-  ListAccountsRequestMessage,
-  NewAccountRequestMessage,
+  AppRequests,
+  ExternalRequests,
   RequestExistsError,
-  SelectedChainRequestMessage,
-  SessionValidRequestMessage,
-  SignTypedDataRequestMessage,
-  SwitchChainRequestMessage,
-  TransferRequestMessage,
-} from "../../types/communication";
-import {
-  ExternalPersonalSignResponse,
-  PersonalSignRequestMessage,
-} from "../../types/communication";
+} from "../../types/communications";
+import type {
+  ExternalConnectionReq,
+  ExternalConnectionRes,
+} from "../../types/communications/connection";
+import type {
+  ExternalSwitchChainReq,
+  ExternalSwitchChainRes,
+} from "../../types/communications/switchChain";
+import type {
+  ExternalIsSessionValidReq,
+  ExternalIsSessionValidRes,
+} from "../../types/communications/sessionIsValid";
+import type {
+  ExternalTransferReq,
+  ExternalTransferRes,
+} from "../../types/communications/transfer";
+import type {
+  ExternalSignTypedDataReq,
+  ExternalSignTypedDataRes,
+} from "../../types/communications/signTypedData";
+import type {
+  ExternalPersonalSignReq,
+  ExternalPersonalSignRes,
+} from "../../types/communications/personalSign";
+import type { BaseErrors } from "../../types/communications/common";
+import type {
+  ExternalListAccountsReq,
+  ExternalListAccountsRes,
+} from "../../types/communications/listAccounts";
+import type {
+  ExternalBalanceReq,
+  ExternalBalanceRes,
+} from "../../types/communications/balance";
+import type {
+  ExternalSelectedChainReq,
+  ExternalSelectedChainRes,
+} from "../../types/communications/selectedChain";
+import type {
+  ExternalGetPoktTxReq,
+  ExternalGetPoktTxRes,
+} from "../../types/communications/getPoktTransaction";
+import type { ICommunicationController } from "../../types";
 import { toWei } from "web3-utils";
 import browser, { type Runtime } from "webextension-polyfill";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
@@ -38,9 +54,10 @@ import {
   SupportedProtocols,
 } from "@poktscan/keyring";
 import {
-  OriginNotPresented,
+  propertyIsRequired,
   RequestConnectionExists,
-  RequestNewAccountExists,
+  RequestPersonalSignExists,
+  RequestSignedTypedDataExists,
   RequestSwitchChainExists,
   RequestTransferExists,
   SessionIdNotPresented,
@@ -53,12 +70,10 @@ import {
   addExternalRequest,
   addWindow,
   getBlockedSites,
-  RequestsType,
 } from "../../redux/slices/app";
 import {
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
-  DISCONNECT_REQUEST,
   DISCONNECT_RESPONSE,
   EXTERNAL_ACCOUNT_BALANCE_REQUEST,
   EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
@@ -68,8 +83,6 @@ import {
   IS_SESSION_VALID_RESPONSE,
   LIST_ACCOUNTS_REQUEST,
   LIST_ACCOUNTS_RESPONSE,
-  NEW_ACCOUNT_REQUEST,
-  NEW_ACCOUNT_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
   REQUEST_BEING_HANDLED,
@@ -84,39 +97,30 @@ import {
 } from "../../constants/communication";
 import { getVault, isHex, returnExtensionErr } from "../../utils";
 import { getAccountBalance } from "../../redux/slices/app/network";
-import { revokeSession } from "../../redux/slices/vault/session";
 import { HEIGHT, WIDTH } from "../../constants/ui";
 import { isValidAddress } from "../../utils/networkOperations";
 
 type MessageSender = Runtime.MessageSender;
 
-export type Message =
-  | ConnectionRequestMessage
-  | SessionValidRequestMessage
-  | NewAccountRequestMessage
-  | TransferRequestMessage
-  | DisconnectRequestMessage
-  | ListAccountsRequestMessage
-  | SelectedChainRequestMessage
-  | BalanceRequestMessage
-  | GetPoktTxRequestMessage
-  | SwitchChainRequestMessage
-  | SignTypedDataRequestMessage
-  | PersonalSignRequestMessage;
-
-const mapMessageType: Record<Message["type"], true> = {
+const mapMessageType: Record<ExternalRequests["type"], true> = {
   [CONNECTION_REQUEST_MESSAGE]: true,
   [IS_SESSION_VALID_REQUEST]: true,
-  [NEW_ACCOUNT_REQUEST]: true,
   [TRANSFER_REQUEST]: true,
   [SWITCH_CHAIN_REQUEST]: true,
-  [DISCONNECT_REQUEST]: true,
   [LIST_ACCOUNTS_REQUEST]: true,
   [EXTERNAL_ACCOUNT_BALANCE_REQUEST]: true,
   [SELECTED_CHAIN_REQUEST]: true,
   [GET_POKT_TRANSACTION_REQUEST]: true,
   [SIGN_TYPED_DATA_REQUEST]: true,
   [PERSONAL_SIGN_REQUEST]: true,
+};
+
+const errorReqExistByResType = {
+  [CONNECTION_RESPONSE_MESSAGE]: RequestConnectionExists,
+  [SWITCH_CHAIN_RESPONSE]: RequestSwitchChainExists,
+  [TRANSFER_RESPONSE]: RequestTransferExists,
+  [SIGN_TYPED_DATA_RESPONSE]: RequestSignedTypedDataExists,
+  [PERSONAL_SIGN_RESPONSE]: RequestPersonalSignExists,
 };
 
 const ExtensionVaultInstance = getVault();
@@ -129,7 +133,10 @@ class ExternalCommunicationController implements ICommunicationController {
     return mapMessageType[messageType] || false;
   }
 
-  public async onMessageHandler(message: Message, sender: MessageSender) {
+  public async onMessageHandler(
+    message: ExternalRequests,
+    sender: MessageSender
+  ) {
     if (message.type === CONNECTION_REQUEST_MESSAGE) {
       const response = await this._handleConnectionRequest(message, sender);
 
@@ -148,18 +155,6 @@ class ExternalCommunicationController implements ICommunicationController {
       if (response?.type === IS_SESSION_VALID_RESPONSE) {
         return response;
       }
-    }
-
-    if (message.type === NEW_ACCOUNT_REQUEST) {
-      const response = await this._handleNewAccountRequest(message, sender);
-
-      if (response && response?.type === NEW_ACCOUNT_RESPONSE) {
-        return response;
-      }
-      return {
-        requestId: message?.requestId,
-        type: REQUEST_BEING_HANDLED,
-      };
     }
 
     if (message?.type === TRANSFER_REQUEST) {
@@ -184,14 +179,6 @@ class ExternalCommunicationController implements ICommunicationController {
         requestId: message?.requestId,
         type: REQUEST_BEING_HANDLED,
       };
-    }
-
-    if (message?.type === DISCONNECT_REQUEST) {
-      const response = await this._handleDisconnectRequest(message);
-
-      if (response?.type === DISCONNECT_RESPONSE) {
-        return response;
-      }
     }
 
     if (message?.type === LIST_ACCOUNTS_REQUEST) {
@@ -254,9 +241,9 @@ class ExternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleConnectionRequest(
-    message: ConnectionRequestMessage,
+    message: ExternalConnectionReq,
     sender: MessageSender
-  ): Promise<ExternalConnectionResponse> {
+  ): Promise<ExternalConnectionRes> {
     try {
       const { origin, faviconUrl, protocol } = message?.data || {};
 
@@ -282,9 +269,9 @@ class ExternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleSwitchChainRequest(
-    message: SwitchChainRequestMessage,
+    message: ExternalSwitchChainReq,
     sender: MessageSender
-  ): Promise<ExternalSwitchChainResponse> {
+  ): Promise<ExternalSwitchChainRes> {
     try {
       const { origin, faviconUrl, protocol, chainId } = message?.data || {};
 
@@ -347,8 +334,8 @@ class ExternalCommunicationController implements ICommunicationController {
   }
 
   private async _isSessionValid(
-    message: SessionValidRequestMessage
-  ): Promise<IsSessionValidResponse> {
+    message: ExternalIsSessionValidReq
+  ): Promise<ExternalIsSessionValidRes> {
     try {
       const sessionId = message?.data?.sessionId;
 
@@ -387,61 +374,10 @@ class ExternalCommunicationController implements ICommunicationController {
     }
   }
 
-  private async _handleNewAccountRequest(
-    message: NewAccountRequestMessage,
-    sender: MessageSender
-  ): Promise<ExternalNewAccountResponse> {
-    try {
-      const { sessionId, faviconUrl, origin, protocol } = message?.data || {};
-
-      if (!sessionId) {
-        return {
-          type: NEW_ACCOUNT_RESPONSE,
-          error: SessionIdNotPresented,
-          data: null,
-          requestId: message?.requestId,
-        };
-      }
-
-      try {
-        await ExtensionVaultInstance.validateSessionForPermissions(
-          sessionId,
-          "account",
-          "create"
-        );
-      } catch (error) {
-        return {
-          ...returnExtensionErr(error, NEW_ACCOUNT_RESPONSE),
-          requestId: message?.requestId,
-        };
-      }
-
-      return this._addExternalRequest(
-        {
-          type: NEW_ACCOUNT_REQUEST,
-          origin,
-          faviconUrl,
-          tabId: sender.tab.id,
-          sessionId,
-          protocol,
-          requestId: message?.requestId,
-        },
-        NEW_ACCOUNT_RESPONSE
-      );
-    } catch (e) {
-      return {
-        type: NEW_ACCOUNT_RESPONSE,
-        error: UnknownError,
-        data: null,
-        requestId: message?.requestId,
-      };
-    }
-  }
-
   private async _handleTransferRequest(
-    message: TransferRequestMessage,
+    message: ExternalTransferReq,
     sender: MessageSender
-  ): Promise<ExternalTransferResponse> {
+  ): Promise<ExternalTransferRes> {
     try {
       const {
         sessionId,
@@ -501,9 +437,9 @@ class ExternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleSignTypedDataRequest(
-    message: SignTypedDataRequestMessage,
+    message: ExternalSignTypedDataReq,
     sender: MessageSender
-  ): Promise<ExternalSignTypedDataResponse> {
+  ): Promise<ExternalSignTypedDataRes> {
     try {
       const { sessionId, address, protocol, data } = message.data;
       if (!sessionId) {
@@ -575,9 +511,9 @@ class ExternalCommunicationController implements ICommunicationController {
   }
 
   private async _handlePersonalSignRequest(
-    message: PersonalSignRequestMessage,
+    message: ExternalPersonalSignReq,
     sender: MessageSender
-  ): Promise<ExternalPersonalSignResponse> {
+  ): Promise<ExternalPersonalSignRes> {
     try {
       const { sessionId, address } = message.data;
       if (!sessionId) {
@@ -630,13 +566,12 @@ class ExternalCommunicationController implements ICommunicationController {
   private async _addExternalRequest<
     T extends
       | typeof CONNECTION_RESPONSE_MESSAGE
-      | typeof NEW_ACCOUNT_RESPONSE
       | typeof TRANSFER_RESPONSE
       | typeof SWITCH_CHAIN_RESPONSE
       | typeof SIGN_TYPED_DATA_RESPONSE
       | typeof PERSONAL_SIGN_RESPONSE
   >(
-    request: RequestsType,
+    request: AppRequests,
     responseMessage: T
   ): Promise<{
     type: T;
@@ -667,13 +602,9 @@ class ExternalCommunicationController implements ICommunicationController {
       if (pendingRequestWindow) {
         return {
           type: responseMessage,
-          error: (responseMessage === CONNECTION_RESPONSE_MESSAGE
-            ? RequestConnectionExists
-            : responseMessage === NEW_ACCOUNT_RESPONSE
-            ? RequestNewAccountExists
-            : responseMessage === TRANSFER_RESPONSE
-            ? RequestTransferExists
-            : RequestSwitchChainExists) as RequestExistsError<T>,
+          error: errorReqExistByResType[
+            responseMessage
+          ] as unknown as RequestExistsError<T>,
           data: null,
           requestId: request?.requestId,
         };
@@ -709,59 +640,9 @@ class ExternalCommunicationController implements ICommunicationController {
     }
   }
 
-  private async _handleDisconnectRequest(
-    message: DisconnectRequestMessage
-  ): Promise<DisconnectBackResponse> {
-    try {
-      const sessionId = message?.data?.sessionId;
-      if (!sessionId) {
-        return {
-          type: DISCONNECT_RESPONSE,
-          error: SessionIdNotPresented,
-          data: null,
-        };
-      }
-
-      const checkOriginResponse = await this._checkOriginIsBlocked(
-        message?.data?.origin,
-        DISCONNECT_RESPONSE
-      );
-
-      if (checkOriginResponse) {
-        return checkOriginResponse;
-      }
-
-      const session = await ExtensionVaultInstance.getSession(sessionId);
-      const protocol = session?.protocol;
-
-      try {
-        await store
-          .dispatch(revokeSession({ sessionId, external: true }))
-          .unwrap();
-      } catch (error) {
-        return returnExtensionErr(error, DISCONNECT_RESPONSE);
-      }
-
-      return {
-        type: DISCONNECT_RESPONSE,
-        data: {
-          disconnected: true,
-          protocol,
-        },
-        error: null,
-      };
-    } catch (e) {
-      return {
-        type: DISCONNECT_RESPONSE,
-        error: UnknownError,
-        data: null,
-      };
-    }
-  }
-
   private async _handleListAccountsRequest(
-    message: ListAccountsRequestMessage
-  ): Promise<ExternalListAccountsResponse> {
+    message: ExternalListAccountsReq
+  ): Promise<ExternalListAccountsRes> {
     try {
       const sessionId = message?.data?.sessionId;
 
@@ -856,8 +737,8 @@ class ExternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleBalanceRequest(
-    message: BalanceRequestMessage
-  ): Promise<ExternalBalanceResponse> {
+    message: ExternalBalanceReq
+  ): Promise<ExternalBalanceRes> {
     const { data } = message || {};
     try {
       const checkOriginResponse = await this._checkOriginIsBlocked(
@@ -917,8 +798,8 @@ class ExternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleGetSelectedChain(
-    message: SelectedChainRequestMessage
-  ): Promise<ExternalSelectedChainResponse> {
+    message: ExternalSelectedChainReq
+  ): Promise<ExternalSelectedChainRes> {
     try {
       const { data } = message || {};
       const checkOriginResponse = await this._checkOriginIsBlocked(
@@ -958,8 +839,8 @@ class ExternalCommunicationController implements ICommunicationController {
   }
 
   private async _getPoktTx(
-    message: GetPoktTxRequestMessage
-  ): Promise<ExternalGetPoktTxResponse> {
+    message: ExternalGetPoktTxReq
+  ): Promise<ExternalGetPoktTxRes> {
     try {
       const { origin, hash } = message?.data || {};
       const checkOriginResponse = await this._checkOriginIsBlocked(
@@ -1023,7 +904,6 @@ class ExternalCommunicationController implements ICommunicationController {
   private async _checkOriginIsBlocked<
     T extends
       | typeof CONNECTION_RESPONSE_MESSAGE
-      | typeof NEW_ACCOUNT_RESPONSE
       | typeof TRANSFER_RESPONSE
       | typeof DISCONNECT_RESPONSE
       | typeof IS_SESSION_VALID_RESPONSE
@@ -1040,7 +920,7 @@ class ExternalCommunicationController implements ICommunicationController {
   ): Promise<{
     type: T;
     error:
-      | typeof OriginNotPresented
+      | ReturnType<typeof propertyIsRequired>
       | typeof UnauthorizedError
       | typeof UnknownError;
     data: null;
@@ -1049,7 +929,7 @@ class ExternalCommunicationController implements ICommunicationController {
       if (!origin) {
         return {
           type: responseMessage,
-          error: OriginNotPresented,
+          error: propertyIsRequired("origin"),
           data: null,
         };
       }
