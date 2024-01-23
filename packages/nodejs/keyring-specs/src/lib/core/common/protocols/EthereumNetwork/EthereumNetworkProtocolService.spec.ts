@@ -334,6 +334,73 @@ describe('EthereumNetworkProtocolService', () => {
         },
         '0xfba508a4beabffdd277db322c083e4a5ef234381a0f62fb03285f48dc4d09df038c5a3db6635503a6303a4d5a283b518edc99f76aba15664296c30123e1acc381b',
       ],
+      etheMailGoerli: [
+        {
+          types: {
+            EIP712Domain: [
+              {
+                name: 'name',
+                type: 'string'
+              },
+              {
+                name: 'version',
+                type: 'string'
+              },
+              {
+                name: 'chainId',
+                type: 'uint256'
+              },
+              {
+                name: 'verifyingContract',
+                type: 'address'
+              }
+            ],
+            Person: [
+              {
+                name: 'name',
+                type: 'string'
+              },
+              {
+                name: 'wallet',
+                type: 'address'
+              }
+            ],
+            Mail: [
+              {
+                name: 'from',
+                type: 'Person'
+              },
+              {
+                name: 'to',
+                type: 'Person'
+              },
+              {
+                name: 'contents',
+                type: 'string'
+              }
+            ]
+          },
+          primaryType: 'Mail',
+          domain: {
+            name: 'Ether Mail',
+            version: '1',
+            chainId: 5,
+            verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC'
+          },
+          message: {
+            from: {
+              name: 'Cow',
+              wallet: '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826'
+            },
+            to: {
+              name: 'Bob',
+              wallet: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'
+            },
+            contents: 'Hello, Bob!'
+          }
+        },
+        '0x84b6ef34ca87c46343f5d74117b9fa40f9ea1440750183168527442401465a28107c99238d5026ceb13013722988becb0de5363186532d9b659f8a40e556d82e1c',
+      ],
     }
 
     test.each(Object.values(exampleData))('Successfully signs the provided typed data', async (data: any, expectedSignature: string) => {
@@ -341,9 +408,7 @@ describe('EthereumNetworkProtocolService', () => {
         data,
         privateKey: accountImport.privateKey,
       }
-
       const signature = await protocolService.signTypedData(signTypedDataRequest);
-
       expect(expectedSignature).toEqual(signature);
     });
   })
