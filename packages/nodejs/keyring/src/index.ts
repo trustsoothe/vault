@@ -21,7 +21,8 @@ import type IEntity from './lib/core/common/IEntity'
 import type {INetwork} from './lib/core/common/protocols/INetwork'
 import type {IAsset} from './lib/core/common/protocols/IAsset'
 import type {INetworkOptions} from "./lib/core/network/INetworkOptions";
-import {VaultOptions} from "./lib/VaultTeller";
+import type {VaultOptions} from "./lib/VaultTeller"
+import type {SignTypedDataRequest} from './lib/core/common/protocols'
 
 export type {
   IEncryptionService,
@@ -32,6 +33,7 @@ export type {
   INetwork,
   IAsset,
   VaultOptions,
+  SignTypedDataRequest,
 };
 
 export { EncryptionServiceSpecFactory };

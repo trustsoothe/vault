@@ -1,43 +1,47 @@
-import {afterAll, afterEach, beforeAll, describe, expect, test} from "vitest";
-import ProtocolServiceSpecFactory from "../IProtocolService.specFactory";
+import {afterAll, afterEach, beforeAll, describe, expect, test} from 'vitest';
+import ProtocolServiceSpecFactory from '../IProtocolService.specFactory';
 import {
   AccountReference,
-  Asset,
   EthereumNetworkProtocolService,
-  Network,
   SupportedProtocols,
-  IEncryptionService, ArgumentError, NetworkRequestError, EthereumNetworkFeeRequestOptions, IAsset, INetwork,
-} from "@poktscan/keyring";
-import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
-import {MockServerFactory} from "../../../../../mocks/mock-server-factory";
+  IEncryptionService,
+  ArgumentError,
+  NetworkRequestError,
+  EthereumNetworkFeeRequestOptions,
+  IAsset,
+  INetwork,
+  SignTypedDataRequest,
+} from '@poktscan/keyring';
+import { WebEncryptionService } from '@poktscan/keyring-encryption-web';
+import {MockServerFactory} from '../../../../../mocks/mock-server-factory';
 
-describe("EthereumNetworkProtocolService", () => {
+describe('EthereumNetworkProtocolService', () => {
   const asset: IAsset = {
     protocol: SupportedProtocols.Ethereum,
-    chainID: "11155111",
-    contractAddress: "0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465",
+    chainID: '11155111',
+    contractAddress: '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
     decimals: 8,
   };
 
   const network : INetwork = {
-    rpcUrl: "http://localhost:8080",
+    rpcUrl: 'http://localhost:8080',
     protocol: asset.protocol,
-    chainID: "11155111",
+    chainID: '11155111',
   };
 
   const account = new AccountReference(
-    "account-id",
-    "test-account",
-    "0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465",
+    'account-id',
+    'test-account',
+    '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
     SupportedProtocols.Ethereum,
   );
 
   const accountImport = {
     privateKey:
-      "e65700becfed73028e0d00d81217e9bfd5db4af9cbc960493b6ffa5633e98797",
+      'e65700becfed73028e0d00d81217e9bfd5db4af9cbc960493b6ffa5633e98797',
     publicKey:
-      "0x7ff21bc4f68979598e3f9e47bb814a9a3115678b0a577050af08bcb2af0826cb16d4901b7e913f05dcdc57b874bc9f73e8ebe08737704e2c005398466a8f918f",
-    address: "0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465",
+      '0x7ff21bc4f68979598e3f9e47bb814a9a3115678b0a577050af08bcb2af0826cb16d4901b7e913f05dcdc57b874bc9f73e8ebe08737704e2c005398466a8f918f',
+    address: '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
   };
 
   const encryptionService: IEncryptionService = new WebEncryptionService();
@@ -228,5 +232,119 @@ describe("EthereumNetworkProtocolService", () => {
       const balance = await protocolService.getBalance(account, network, asset)
       expect(balance).toBe(408.71715)
     })
+  })
+
+  describe('signTypedData', () => {
+    const exampleData: Record<string, [any, string]> = {
+      simplePerson: [
+        {
+          types: {
+            EIP712Domain: [
+              {
+                name: 'name',
+                type: 'string'
+              }
+            ],
+            Person: [
+              {
+                name: 'name',
+                type: 'string'
+              },
+              {
+                name: 'wallet',
+                type: 'address'
+              }
+            ],
+          },
+          primaryType: 'Person',
+          domain: {
+            name: 'Simple Person',
+          },
+          message: {
+            name: 'Bob',
+            wallet: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'
+          }
+        },
+        '0x447e1aed4610ca83a24658ab9b4a729843b83d6df1ccc07c74b3c14a14c9f3062e5db48c6cc892cafe0a63d901fbde855946a4abd30679391f2baaf08658a6e41c'
+      ],
+      ethMail: [
+        {
+          types: {
+            EIP712Domain: [
+              {
+                name: 'name',
+                type: 'string'
+              },
+              {
+                name: 'version',
+                type: 'string'
+              },
+              {
+                name: 'chainId',
+                type: 'uint256'
+              },
+              {
+                name: 'verifyingContract',
+                type: 'address'
+              }
+            ],
+            Person: [
+              {
+                name: 'name',
+                type: 'string'
+              },
+              {
+                name: 'wallet',
+                type: 'address'
+              }
+            ],
+            Mail: [
+              {
+                name: 'from',
+                type: 'Person'
+              },
+              {
+                name: 'to',
+                type: 'Person'
+              },
+              {
+                name: 'contents',
+                type: 'string'
+              }
+            ]
+          },
+          primaryType: 'Mail',
+          domain: {
+            name: 'Ether Mail',
+            version: '1',
+            chainId: 1,
+            verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC'
+          },
+          message: {
+            from: {
+              name: 'Cow',
+              wallet: '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826'
+            },
+            to: {
+              name: 'Bob',
+              wallet: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'
+            },
+            contents: 'Hello, Bob!'
+          }
+        },
+        '0xfba508a4beabffdd277db322c083e4a5ef234381a0f62fb03285f48dc4d09df038c5a3db6635503a6303a4d5a283b518edc99f76aba15664296c30123e1acc381b',
+      ],
+    }
+
+    test.each(Object.values(exampleData))('Successfully signs the provided typed data', async (data: any, expectedSignature: string) => {
+      const signTypedDataRequest: SignTypedDataRequest = {
+        data,
+        privateKey: accountImport.privateKey,
+      }
+
+      const signature = await protocolService.signTypedData(signTypedDataRequest);
+
+      expect(expectedSignature).toEqual(signature);
+    });
   })
 });
