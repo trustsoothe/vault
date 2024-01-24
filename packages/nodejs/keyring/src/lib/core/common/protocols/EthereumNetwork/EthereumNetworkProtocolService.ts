@@ -62,7 +62,7 @@ export interface SignTypedDataRequest {
 }
 
 export interface SignPersonalDataRequest {
-  data: string
+  challenge: string
   privateKey: string
 }
 
@@ -426,9 +426,8 @@ export class EthereumNetworkProtocolService
   }
 
   async signPersonalData(request: SignPersonalDataRequest) {
-    const challenge = `0x${Buffer.from(request.data, 'utf-8').toString('hex')}`
     const {account} = this.createWeb3Account(request.privateKey)
-    const result = account.sign(challenge)
+    const result = account.sign(request.challenge)
     return result.signature;
   }
 

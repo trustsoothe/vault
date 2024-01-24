@@ -478,13 +478,13 @@ describe('EthereumNetworkProtocolService', () => {
 
   describe('signPersonalData', () => {
     const testCaseExpectations: [string, string][] = [
-        ['hello', '0xf472938b71c3622eb2d57c8a0430fba4ed301b68960db4515e63b215f6812d16741188cda9076426dc32bb992571b7766bcdeecff30f7069e3b16469bc666f7a1b'],
-        ['Hello, world!', '0xdcd198b7f7b238656a2f937688158991f80c06667c371cb2158399563cb4e3dc79d359fc7d91383a4a0fa2f1ae42723c3cc7742c3a7a13ed2b7b02d69593d74c1b'],
+        ['0x68656c6c6f', '0xf472938b71c3622eb2d57c8a0430fba4ed301b68960db4515e63b215f6812d16741188cda9076426dc32bb992571b7766bcdeecff30f7069e3b16469bc666f7a1b'],
+        ['0x48656c6c6f2c20776f726c6421', '0xdcd198b7f7b238656a2f937688158991f80c06667c371cb2158399563cb4e3dc79d359fc7d91383a4a0fa2f1ae42723c3cc7742c3a7a13ed2b7b02d69593d74c1b'],
     ]
 
-    test.each(testCaseExpectations)('For: %s it resolves to: %s', async (data, expectedSignature) => {
+    test.each(testCaseExpectations)('For: %s it resolves to: %s', async (challenge, expectedSignature) => {
         const input: SignPersonalDataRequest = {
-          data,
+          challenge,
           privateKey: accountImport.privateKey,
         }
 
