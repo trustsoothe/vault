@@ -11,6 +11,7 @@ import {
   IAsset,
   INetwork,
   SignTypedDataRequest,
+  SignPersonalDataRequest,
 } from '@poktscan/keyring';
 import { WebEncryptionService } from '@poktscan/keyring-encryption-web';
 import {MockServerFactory} from '../../../../../mocks/mock-server-factory';
@@ -473,5 +474,23 @@ describe('EthereumNetworkProtocolService', () => {
       const signature = await protocolService.signTypedData(signTypedDataRequest);
       expect(expectedSignature).toEqual(signature);
     });
+  })
+
+  describe('signPersonalData', () => {
+    const testCaseExpectations: [string, string][] = [
+        ['hello', '0xf472938b71c3622eb2d57c8a0430fba4ed301b68960db4515e63b215f6812d16741188cda9076426dc32bb992571b7766bcdeecff30f7069e3b16469bc666f7a1b'],
+        ['Hello, world!', '0xdcd198b7f7b238656a2f937688158991f80c06667c371cb2158399563cb4e3dc79d359fc7d91383a4a0fa2f1ae42723c3cc7742c3a7a13ed2b7b02d69593d74c1b'],
+    ]
+
+    test.each(testCaseExpectations)('For: %s it resolves to: %s', async (data, expectedSignature) => {
+        const input: SignPersonalDataRequest = {
+          data,
+          privateKey: accountImport.privateKey,
+        }
+
+        const signature = await protocolService.signPersonalData(input);
+
+        expect(expectedSignature).toEqual(signature);
+    })
   })
 });
