@@ -61,6 +61,11 @@ export interface SignTypedDataRequest {
   privateKey: string
 }
 
+export interface SignPersonalDataRequest {
+  challenge: string
+  privateKey: string
+}
+
 export class EthereumNetworkProtocolService
   implements IProtocolService<SupportedProtocols.Ethereum>
 {
@@ -418,6 +423,12 @@ export class EthereumNetworkProtocolService
     const hashedMessage = TypedDataUtils.eip712Hash(request.data, SignTypedDataVersion.V4)
     const sig = ecsign(hashedMessage, Buffer.from(request.privateKey, 'hex'))
     return `0x${sig.r.toString('hex')}${sig.s.toString('hex')}${sig.v.toString(16)}`
+  }
+
+  async signPersonalData(request: SignPersonalDataRequest) {
+    const {account} = this.createWeb3Account(request.privateKey)
+    const result = account.sign(request.challenge)
+    return result.signature;
   }
 
   private createWeb3Account(privateKey: string) {
