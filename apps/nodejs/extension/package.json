@@ -119,7 +119,9 @@
       "@poktscan/keyring>vitest>jsdom>ws>bufferutil": false,
       "@poktscan/keyring>vitest>jsdom>ws>utf-8-validate": false,
       "@poktscan/keyring>vitest>vite>esbuild": false,
-      "net-browserify>express-ws>ws": false
+      "net-browserify>express-ws>ws": false,
+      "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>keccak": false,
+      "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>secp256k1": false
     }
   }
 }

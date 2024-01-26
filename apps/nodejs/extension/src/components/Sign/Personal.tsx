@@ -20,12 +20,15 @@ const PersonalSign: React.FC = () => {
   );
   const chainId = selectedChainByProtocol[request.protocol];
 
-  const sendResponse = useCallback((accepted: boolean) => {
-    AppToBackground.answerPersonalSign({
-      request,
-      accepted,
-    }).catch();
-  }, []);
+  const sendResponse = useCallback(
+    (accepted: boolean) => {
+      AppToBackground.answerPersonalSign({
+        request,
+        accepted,
+      }).catch();
+    },
+    [request]
+  );
 
   return (
     <Stack flexGrow={1} justifyContent={"space-between"} width={400}>

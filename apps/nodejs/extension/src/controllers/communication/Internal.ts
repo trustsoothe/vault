@@ -797,6 +797,7 @@ class InternalCommunicationController implements ICommunicationController {
         error: null,
       };
     } catch (e) {
+      console.log("ERR SIGN TYPED DATA:", e);
       const tabId = message?.data?.request?.tabId;
 
       if (tabId) {
@@ -841,9 +842,7 @@ class InternalCommunicationController implements ICommunicationController {
           request.requestId
         );
 
-        // todo: replace with sign of EthereumNetworkProtocolService
-        const signResult = sign(request.challenge, pk).signature;
-
+        const signResult = ethService;
         responseToProxy = {
           requestId: request?.requestId,
           type: PERSONAL_SIGN_RESPONSE,

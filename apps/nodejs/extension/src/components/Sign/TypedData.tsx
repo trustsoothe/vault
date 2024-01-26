@@ -68,12 +68,15 @@ const SignTypedData: React.FC = () => {
   const location = useLocation();
   const request: AppSignTypedDataReq = location.state;
 
-  const sendResponse = useCallback((accepted: boolean) => {
-    AppToBackground.answerSignTypedData({
-      request,
-      accepted,
-    }).catch();
-  }, []);
+  const sendResponse = useCallback(
+    (accepted: boolean) => {
+      AppToBackground.answerSignTypedData({
+        request,
+        accepted,
+      }).catch();
+    },
+    [request]
+  );
 
   return (
     <Stack flexGrow={1} justifyContent={"space-between"} width={400}>
