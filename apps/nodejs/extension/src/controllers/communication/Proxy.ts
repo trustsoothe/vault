@@ -637,7 +637,7 @@ class ProxyCommunicationController {
       } else {
         this._sendTransferResponse(requestId, null, error);
 
-        if (error?.code === UnauthorizedError.code) {
+        if (error?.isSessionInvalid) {
           this._handleDisconnect(response.data.protocol);
         }
       }
@@ -737,10 +737,6 @@ class ProxyCommunicationController {
       }
 
       window.postMessage(proxyResponse, window.location.origin);
-
-      if (proxyResponse?.error?.code === UnauthorizedError.code) {
-        this._handleDisconnect(protocol);
-      }
     } catch (e) {
       const message: ProxyListAccountsRes = {
         id: requestId,
@@ -1072,7 +1068,7 @@ class ProxyCommunicationController {
             response.error
           );
 
-          if (response.error.code === UnauthorizedError.code) {
+          if (response?.error?.isSessionInvalid) {
             this._handleDisconnect(protocol);
           }
         }
@@ -1186,7 +1182,7 @@ class ProxyCommunicationController {
             response.error
           );
 
-          if (response.error.code === UnauthorizedError.code) {
+          if (response?.error?.isSessionInvalid) {
             this._handleDisconnect(protocol);
           }
         }

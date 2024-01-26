@@ -22,6 +22,7 @@ import {
   RequestTransferExists,
   SessionIdNotPresented,
   UnauthorizedError,
+  UnauthorizedErrorSessionInvalid,
   UnknownError,
 } from "../../errors/communication";
 import {
@@ -52,6 +53,7 @@ export type ExternalTransferErrors =
   | typeof RequestTimeout
   | typeof SessionIdNotPresented
   | typeof UnauthorizedError
+  | typeof UnauthorizedErrorSessionInvalid
   | typeof RequestTransferExists;
 
 export type ExternalTransferRes = void | {

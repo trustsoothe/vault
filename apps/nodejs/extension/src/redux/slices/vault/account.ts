@@ -16,7 +16,6 @@ import {
 } from "@poktscan/keyring";
 import { getVaultPassword, VaultSlice } from "./index";
 import { getVault } from "../../../utils";
-import { ACCOUNT_CANNOT_BE_REMOVED } from "../../../errors/account";
 import {
   addImportedAccountAddress,
   removeImportedAccountAddress,
@@ -121,12 +120,8 @@ export const removeAccount = createAsyncThunk(
   ) => {
     const {
       vault: { vaultSession },
-      app: { requirePasswordForSensitiveOpts, accountsImported },
+      app: { requirePasswordForSensitiveOpts },
     } = context.getState() as RootState;
-
-    if (!accountsImported.includes(args.serializedAccount.address)) {
-      throw ACCOUNT_CANNOT_BE_REMOVED;
-    }
 
     const { vaultPassword: passwordFromArg, serializedAccount } = args;
     const account = AccountReference.deserialize(serializedAccount);

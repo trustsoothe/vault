@@ -173,6 +173,7 @@ import {
   hashString,
   importVault,
 } from "../../redux/slices/vault/backup";
+import { sign } from "web3-eth-accounts";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -757,22 +758,10 @@ class InternalCommunicationController implements ICommunicationController {
           error: OperationRejected,
         };
       } else {
-        const vault = getVault();
-        const vaultState = store.getState().vault;
-        const vaultSessionId = vaultState.vaultSession.id;
-        const serializedAccount = vaultState.accounts.find(
-          (account) =>
-            account.protocol === request.protocol &&
-            account.address === request.address
-        );
-        const accountReference =
-          AccountReference.deserialize(serializedAccount);
-        const pass = await getVaultPassword(vaultSessionId);
-        const passphrase = new Passphrase(pass);
-        const pk = await vault.getAccountPrivateKey(
-          vaultSessionId,
-          passphrase,
-          accountReference
+        const pk = await this._getAccountPrivateKey(
+          request.address,
+          request.protocol,
+          request.requestId
         );
 
         const sign = await ethService.signTypedData({
@@ -846,12 +835,20 @@ class InternalCommunicationController implements ICommunicationController {
           error: OperationRejected,
         };
       } else {
+        const pk = await this._getAccountPrivateKey(
+          request.address,
+          request.protocol,
+          request.requestId
+        );
+
+        // todo: replace with sign of EthereumNetworkProtocolService
+        const signResult = sign(request.challenge, pk).signature;
+
         responseToProxy = {
           requestId: request?.requestId,
           type: PERSONAL_SIGN_RESPONSE,
           data: {
-            // todo: replace sign when sign method is implemented
-            sign: "0x4355c47d63924e8a72e509b65029052eb6c299d53a04e167c5775fd466751c9d07299936d304c153f6443dfa05f40ff007d72911b6f72307f996231605b915621c",
+            sign: signResult,
           },
           error: null,
         };
@@ -1384,12 +1381,12 @@ class InternalCommunicationController implements ICommunicationController {
 
   private async _exportVault(message: ExportVaultReq): Promise<ExportVaultRes> {
     try {
-      const encryptionPassword = message.data.encryptionPassword;
+      const { encryptionPassword, currentVaultPassword } = message.data;
       const response = await store
         .dispatch(
           exportVault({
             encryptionPassword,
-            vaultPassword: message.data.currentVaultPassword,
+            vaultPassword: currentVaultPassword,
           })
         )
         .unwrap();
@@ -1530,6 +1527,23 @@ class InternalCommunicationController implements ICommunicationController {
         error: UnknownError,
       };
     }
+  }
+
+  private async _getAccountPrivateKey(
+    address: string,
+    protocol: SupportedProtocols,
+    sessionId: string
+  ) {
+    const vault = getVault();
+    const vaultState = store.getState().vault;
+    const vaultSessionId = vaultState.vaultSession.id;
+    const serializedAccount = vaultState.accounts.find(
+      (account) => account.protocol === protocol && account.address === address
+    );
+    const accountReference = AccountReference.deserialize(serializedAccount);
+    const pass = await getVaultPassword(vaultSessionId);
+    const passphrase = new Passphrase(pass);
+    return vault.getAccountPrivateKey(sessionId, passphrase, accountReference);
   }
 }
 

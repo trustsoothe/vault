@@ -12,7 +12,6 @@ import { RootState } from "../../store";
 import { importAppSettings } from "../app";
 import {
   DATE_WHEN_VAULT_INITIALIZED_KEY,
-  getVaultPassword,
   unlockVault,
   VAULT_HAS_BEEN_INITIALIZED_KEY,
 } from "./index";
@@ -106,17 +105,12 @@ export const exportVault = createAsyncThunk(
   async (
     {
       encryptionPassword,
-      vaultPassword: passwordFromArg,
+      vaultPassword,
     }: { encryptionPassword: string; vaultPassword?: string },
     context
   ) => {
     const state = context.getState() as RootState;
     const currentAppState = state.app;
-
-    const vaultPassword =
-      passwordFromArg || currentAppState.requirePasswordForSensitiveOpts
-        ? passwordFromArg
-        : await getVaultPassword(state.vault.vaultSession.id);
 
     const vault = getVault();
     const encryptedVault = await vault

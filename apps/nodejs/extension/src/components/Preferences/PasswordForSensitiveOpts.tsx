@@ -41,12 +41,16 @@ const PasswordForSensitiveOpts: React.FC = () => {
     }
   }, [vaultPassword]);
 
-  useDidMountEffect(() => {
+  const resetForm = useCallback(() => {
     reset({
       enabled: requirePasswordForSensitiveOpts,
       vaultPassword: "",
     });
   }, [requirePasswordForSensitiveOpts]);
+
+  useDidMountEffect(() => {
+    resetForm();
+  }, [resetForm]);
 
   const onSubmit = useCallback(
     (data: FormValues) => {
@@ -69,6 +73,10 @@ const PasswordForSensitiveOpts: React.FC = () => {
     },
     [dispatch]
   );
+
+  const cancelChanges = useCallback(() => {
+    resetForm();
+  }, [resetForm]);
 
   const showPassAndButtons = enabled !== requirePasswordForSensitiveOpts;
 
@@ -93,8 +101,7 @@ const PasswordForSensitiveOpts: React.FC = () => {
       </Stack>
       <Typography fontSize={10} color={theme.customColors.dark75}>
         When this is enabled you will be required to insert the vault password
-        for the following operations: transactions, export vault and remove
-        account.
+        for the following operations: transactions and remove account.
       </Typography>
       <Collapse in={showPassAndButtons}>
         <Typography fontSize={12} marginTop={0.5}>
@@ -136,6 +143,7 @@ const PasswordForSensitiveOpts: React.FC = () => {
             }}
             variant={"outlined"}
             fullWidth
+            onClick={cancelChanges}
           >
             Cancel
           </Button>

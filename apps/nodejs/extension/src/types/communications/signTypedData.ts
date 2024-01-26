@@ -20,6 +20,8 @@ import {
   RequestSignedTypedDataExists,
   RequestTimeout,
   SessionIdNotPresented,
+  UnauthorizedError,
+  UnauthorizedErrorSessionInvalid,
   UnknownError,
   UnrecognizedChainId,
 } from "../../errors/communication";
@@ -47,6 +49,8 @@ export type ExternalSignTypedDataReq = {
 
 type ExternalSignTypedDataErrors =
   | BaseErrors
+  | typeof UnauthorizedError
+  | typeof UnauthorizedErrorSessionInvalid
   | typeof RequestSignedTypedDataExists
   | typeof OperationRejected
   | typeof SessionIdNotPresented

@@ -113,6 +113,7 @@ const TextFieldWithShowPassword: React.FC<TextFieldWithShowPasswordProps> =
         <TextField
           size={"small"}
           variant={"outlined"}
+          required
           {...others}
           inputRef={ref}
           type={showPassword && canShowPassword ? "text" : "password"}
@@ -260,6 +261,8 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
             ) as PathValue<any, any>
           );
         }
+      } else if (confirmPasswordName) {
+        setValue(confirmPasswordName, "" as PathValue<any, any>);
       }
 
       localStorage.setItem(
@@ -385,6 +388,8 @@ const Password: React.FC<PasswordProps> = function <T extends {}>({
             generateRandomPassword(units, randomWords) as PathValue<any, any>
           );
         }
+      } else if (confirmPasswordName) {
+        setValue(confirmPasswordName, "" as PathValue<any, any>);
       }
     }
   }, [

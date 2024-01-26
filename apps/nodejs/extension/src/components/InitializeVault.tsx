@@ -4,7 +4,7 @@ import {
   useForm,
   useFormContext,
 } from "react-hook-form";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import Button, { ButtonProps } from "@mui/material/Button";
 import { useTheme } from "@mui/material";
@@ -26,6 +26,7 @@ interface InfoViewProps {
   title: string;
   submitButtonText: string;
   submitButtonProps?: ButtonProps;
+  enableSubmitAfterTime?: boolean;
 }
 
 const InfoView: React.FC<InfoViewProps> = ({
@@ -35,9 +36,23 @@ const InfoView: React.FC<InfoViewProps> = ({
   title,
   submitButtonText,
   submitButtonProps,
+  enableSubmitAfterTime,
 }) => {
   const theme = useTheme();
   const [hasReachBottom, setHasReachBottom] = useState(false);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (show && enableSubmitAfterTime) {
+      timeout = setTimeout(() => setHasReachBottom(true), 4000);
+    }
+
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [show]);
 
   const onScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
     const isInBottom =
@@ -138,12 +153,12 @@ const InfoView: React.FC<InfoViewProps> = ({
   );
 };
 
-type SavePasswordViewProps = Omit<
+type CustomInfoViewProps = Omit<
   InfoViewProps,
   "children" | "title" | "submitButtonText"
 >;
 
-const SecurityAndPrivacyView: React.FC<SavePasswordViewProps> = (infoProps) => {
+const SecurityAndPrivacyView: React.FC<CustomInfoViewProps> = (infoProps) => {
   return (
     <InfoView
       {...infoProps}
@@ -180,10 +195,7 @@ const SecurityAndPrivacyView: React.FC<SavePasswordViewProps> = (infoProps) => {
   );
 };
 
-const SavePasswordView: React.FC<SavePasswordViewProps> = (infoProps) => {
-  const theme = useTheme();
-  const { control, watch } = useFormContext<FormValues>();
-  const [enabled] = watch(["sessionsMaxAge.enabled"]);
+const SavePasswordView: React.FC<CustomInfoViewProps> = (infoProps) => {
   return (
     <InfoView
       {...infoProps}
@@ -216,11 +228,21 @@ const SavePasswordView: React.FC<SavePasswordViewProps> = (infoProps) => {
         (export) your vault and to save the accounts private keys and portable
         wallet (PPK file).
       </Typography>
-      <br />
-      <br />
-      <Typography fontSize={15} fontWeight={500}>
-        Vault Preferences
-      </Typography>
+    </InfoView>
+  );
+};
+
+const VaultPreferences: React.FC<CustomInfoViewProps> = (infoProps) => {
+  const theme = useTheme();
+  const { control, watch } = useFormContext<FormValues>();
+  const [enabled] = watch(["sessionsMaxAge.enabled"]);
+  return (
+    <InfoView
+      {...infoProps}
+      title={"VAULT PREFERENCES"}
+      submitButtonText={"Next"}
+      enableSubmitAfterTime={true}
+    >
       <Typography fontSize={13}>
         To help you secure your vault, we give you the following settings:
       </Typography>
@@ -285,6 +307,7 @@ const SavePasswordView: React.FC<SavePasswordViewProps> = (infoProps) => {
           render={({ field, fieldState: { error } }) => (
             <TextField
               fullWidth
+              required={enabled}
               label={"Amount (hours)"}
               sx={{
                 height: 30,
@@ -345,8 +368,7 @@ const SavePasswordView: React.FC<SavePasswordViewProps> = (infoProps) => {
       </Stack>
       <Typography fontSize={10} color={theme.customColors.dark75}>
         When this is enabled you will be required to insert the vault password
-        for the following operations: transactions, backup (export) vault and
-        remove account.
+        for the following operations: transactions and remove account.
       </Typography>
     </InfoView>
   );
@@ -369,6 +391,7 @@ const InitializeVault: React.FC = () => {
     | "sec_and_priv"
     | "loading"
     | "error"
+    | "preferences"
     | "sec_and_priv_to_submit"
     | "passwords_warning"
   >("normal");
@@ -397,7 +420,7 @@ const InitializeVault: React.FC = () => {
 
   const onSubmit = useCallback(
     (data: FormValues) => {
-      if (status === "passwords_warning") {
+      if (status === "sec_and_priv_to_submit") {
         setStatus("loading");
         AppToBackground.initializeVault({
           password: data.password,
@@ -408,9 +431,11 @@ const InitializeVault: React.FC = () => {
           requirePasswordForSensitiveOpts: data.requirePasswordForOpts,
         }).then((result) => setStatus(result.error ? "error" : "normal"));
       } else if (status === "normal") {
-        setStatus("sec_and_priv_to_submit");
-      } else if (status === "sec_and_priv_to_submit") {
+        setStatus("preferences");
+      } else if (status === "preferences") {
         setStatus("passwords_warning");
+      } else if (status === "passwords_warning") {
+        setStatus("sec_and_priv_to_submit");
       } else if (status === "sec_and_priv") {
         setStatus("normal");
       }
@@ -420,10 +445,16 @@ const InitializeVault: React.FC = () => {
 
   const onBack = useCallback(() => {
     setStatus((prevState) => {
-      if (prevState === "sec_and_priv_to_submit") {
-        return "passwords_warning";
-      } else {
-        return "normal";
+      switch (prevState) {
+        case "sec_and_priv_to_submit": {
+          return "passwords_warning";
+        }
+        case "passwords_warning": {
+          return "preferences";
+        }
+        default: {
+          return "normal";
+        }
       }
     });
   }, []);
@@ -572,11 +603,12 @@ const InitializeVault: React.FC = () => {
           }}
           onBack={onBack}
         />
+        <SavePasswordView
+          show={status === "passwords_warning"}
+          onBack={onBack}
+        />
         <FormProvider {...methods}>
-          <SavePasswordView
-            show={status === "passwords_warning"}
-            onBack={onBack}
-          />
+          <VaultPreferences show={status === "preferences"} onBack={onBack} />
 
           {formContent}
         </FormProvider>

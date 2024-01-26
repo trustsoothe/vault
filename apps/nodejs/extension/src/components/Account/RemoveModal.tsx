@@ -18,6 +18,10 @@ import AccountInfo from "./AccountInfo";
 import { useAppSelector } from "../../hooks/redux";
 import { EXPORT_VAULT_PAGE } from "../../constants/routes";
 import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
+import { getPrivateKey, ImportComponent } from "./Import";
+import { accountsImportedSelector } from "../../redux/selectors/account";
+import { getAddressFromPrivateKey } from "../../utils/networkOperations";
+import { INVALID_FILE_PASSWORD } from "../../errors/account";
 
 interface RenameModalProps {
   account?: SerializedAccountReference;
@@ -26,7 +30,19 @@ interface RenameModalProps {
 
 interface FormValues {
   vault_password?: string;
+  import_type: "private_key" | "json_file";
+  private_key?: string;
+  json_file?: File | null;
+  file_password?: string;
 }
+
+const defaultValues: FormValues = {
+  vault_password: "",
+  import_type: "private_key",
+  private_key: "",
+  json_file: null,
+  file_password: "",
+};
 
 const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   const theme = useTheme();
@@ -34,20 +50,25 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   const requirePassword = useAppSelector(
     requirePasswordForSensitiveOptsSelector
   );
+  const accountsImported = useAppSelector(accountsImportedSelector);
   const [wrongPassword, setWrongPassword] = useState(false);
-  const [status, setStatus] = useState<"normal" | "loading" | "error">(
-    "normal"
-  );
+  const [wrongFilePassword, setWrongFilePassword] = useState(false);
+  const [status, setStatus] = useState<
+    "normal" | "loading" | "error" | "invalid_pk"
+  >("normal");
   const [stillShowModal, setStillShowModal] = useState(false);
 
   const methods = useForm<FormValues>({
-    defaultValues: {
-      vault_password: "",
-    },
+    defaultValues,
   });
 
-  const { handleSubmit, control, watch, reset } = methods;
-  const pass = watch("vault_password");
+  const { handleSubmit, control, getValues, watch, reset } = methods;
+  const [pass, file_password, importType] = watch([
+    "vault_password",
+    "file_password",
+    "import_type",
+  ]);
+  const shouldCheckPk = !accountsImported.includes(account?.address);
 
   useEffect(() => {
     if (wrongPassword) {
@@ -56,25 +77,58 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   }, [pass]);
 
   useEffect(() => {
+    if (wrongFilePassword) {
+      setWrongFilePassword(false);
+    }
+  }, [file_password]);
+
+  useEffect(() => {
     if (account) {
       setTimeout(() => setStillShowModal(true), 100);
 
       reset({
-        vault_password: "",
+        ...defaultValues,
       });
     } else {
       setTimeout(() => {
         reset({
-          vault_password: "",
+          ...defaultValues,
         });
         setStillShowModal(false);
       }, 225);
     }
+    setStatus("normal");
   }, [account]);
 
   const removeAccount = useCallback(
-    (data: FormValues) => {
+    async (data: FormValues) => {
       setStatus("loading");
+
+      if (shouldCheckPk) {
+        let privateKey: string;
+        try {
+          privateKey = await getPrivateKey(data, account.protocol);
+        } catch (e) {
+          if (e?.name === INVALID_FILE_PASSWORD.name) {
+            setWrongFilePassword(true);
+            setStatus("normal");
+          } else {
+            setStatus("error");
+          }
+          return;
+        }
+
+        const addressOfPk = await getAddressFromPrivateKey(
+          privateKey,
+          account.protocol
+        );
+
+        if (addressOfPk !== account.address) {
+          setStatus("invalid_pk");
+          return;
+        }
+      }
+
       AppToBackground.removeAccount({
         serializedAccount: account,
         vaultPassword: requirePassword ? data.vault_password : undefined,
@@ -111,7 +165,7 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
         }
       });
     },
-    [account, navigate, requirePassword]
+    [account, navigate, requirePassword, shouldCheckPk]
   );
 
   const onClickAway = useCallback(() => {
@@ -121,6 +175,14 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
       onClose();
     }
   }, [status, onClose, account, stillShowModal]);
+
+  const onClickOkOfInvalidPk = useCallback(() => {
+    reset({
+      ...defaultValues,
+      import_type: getValues("import_type"),
+    });
+    setStatus("normal");
+  }, [reset, getValues]);
 
   const content = useMemo(() => {
     const title = (
@@ -149,9 +211,28 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
         <Stack flexGrow={1}>
           {title}
           <OperationFailed
-            text={"There was an error renaming the account."}
+            text={"There was an error removing the account."}
             onCancel={onClose}
             retryBtnProps={{ sx: { height: 30, fontSize: 14 } }}
+            cancelBtnProps={{ sx: { height: 30, fontSize: 14 } }}
+          />
+        </Stack>
+      );
+    } else if (status === "invalid_pk") {
+      component = (
+        <Stack flexGrow={1}>
+          {title}
+          <OperationFailed
+            text={`The ${
+              importType === "private_key" ? "private key" : "portable wallet"
+            } you passed do not correspond to the account you are trying to remove. Please pass the correct private key or portable wallet of this account.`}
+            onCancel={onClose}
+            textProps={{
+              fontSize: 13,
+            }}
+            retryBtnText={"Ok"}
+            onRetry={onClickOkOfInvalidPk}
+            retryBtnProps={{ sx: { height: 30, fontSize: 14 }, type: "button" }}
             cancelBtnProps={{ sx: { height: 30, fontSize: 14 } }}
           />
         </Stack>
@@ -168,19 +249,49 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
               lineHeight={"20px"}
               textAlign={"center"}
               marginTop={0.5}
-              marginBottom={2}
+              marginBottom={0.5}
               paddingX={0.5}
             >
               Are you sure you want to remove the following account?
             </Typography>
             {account && <AccountInfo account={account} compact={true} />}
+            {shouldCheckPk && (
+              <>
+                <Typography fontSize={12} marginLeft={0.8} marginTop={0.5}>
+                  To allow you to remove this account we have to make sure that
+                  you have it private key or portable wallet somewhere saved.
+                  Please import it:
+                </Typography>
+                <Stack
+                  spacing={2}
+                  height={1}
+                  width={1}
+                  marginTop={"-10px!important"}
+                  sx={{ transform: "scale(0.95)" }}
+                >
+                  <FormProvider {...methods}>
+                    <ImportComponent
+                      wrongFilePassword={wrongFilePassword}
+                      customMenuSxProps={{
+                        "& .MuiPaper-root": {
+                          top: "46px!important",
+                          left: "178px!important",
+                          height: 76,
+                          maxHeight: "unset",
+                        },
+                      }}
+                    />
+                  </FormProvider>
+                </Stack>
+              </>
+            )}
             {requirePassword && (
               <>
                 <Divider
                   sx={{
                     borderColor: theme.customColors.dark15,
-                    marginTop: "22px!important",
-                    marginBottom: "15px!important",
+                    marginTop: `${shouldCheckPk ? 13 : 22}px!important`,
+                    marginBottom: `${shouldCheckPk ? 5 : 15}px!important`,
                   }}
                 />
                 <Typography
@@ -190,7 +301,7 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
                   lineHeight={"30px"}
                   sx={{ userSelect: "none" }}
                 >
-                  To continue, introduce the vault's password:
+                  To continue, enter the vault password:
                 </Typography>
                 <FormProvider {...methods}>
                   <Password
@@ -276,6 +387,12 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
     control,
     stillShowModal,
     onClickAway,
+    onClickOkOfInvalidPk,
+    importType,
+    wrongFilePassword,
+    shouldCheckPk,
+    onClose,
+    requirePassword,
   ]);
 
   return (

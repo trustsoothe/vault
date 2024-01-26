@@ -134,9 +134,11 @@ const EthFeeInputs: React.FC<EthFeeInputsProps> = ({ networkPriceData }) => {
           Fee ({symbol}
           {canShowUsd ? " / USD" : ""})
         </Typography>
-        {!toAddress ? (
+        {!toAddress || !isValidAddress(toAddress, protocol) ? (
           <Typography fontSize={14} color={theme.customColors.red100}>
-            Select recipient first
+            {!toAddress
+              ? "Select recipient first"
+              : "Invalid recipient address"}
           </Typography>
         ) : feeFetchStatus === "loading" && !networkFee ? (
           <>
@@ -308,7 +310,8 @@ const AmountFeeInputs: React.FC = () => {
   );
 
   const nativeBalance = useMemo(() => {
-    return (accountBalances[protocol][chainId][fromAddress] || {}) as AccountBalanceInfo;
+    return (accountBalances[protocol][chainId][fromAddress] ||
+      {}) as AccountBalanceInfo;
   }, [accountBalances, protocol, chainId, fromAddress]);
 
   const assetBalance: AccountBalanceInfo = useMemo(() => {
@@ -417,6 +420,7 @@ const AmountFeeInputs: React.FC = () => {
           render={({ field, fieldState: { error } }) => (
             <TextField
               label={`Amount (${asset?.symbol || symbol})`}
+              required
               size={"small"}
               type={"number"}
               disabled={disableAmountInput}

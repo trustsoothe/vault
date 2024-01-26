@@ -215,6 +215,7 @@ const SaveContact: React.FC = () => {
               <TextField
                 label={"Name"}
                 size={"small"}
+                required
                 fullWidth
                 autoComplete={"off"}
                 error={!!error}
@@ -269,6 +270,7 @@ const SaveContact: React.FC = () => {
               <TextField
                 size={"small"}
                 autoComplete={"off"}
+                required
                 label={"Address"}
                 error={!!error}
                 helperText={error?.message}

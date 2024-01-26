@@ -170,6 +170,7 @@ const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
                 <TextField
                   label={"Rename"}
                   autoFocus
+                  required
                   size={"small"}
                   fullWidth
                   {...field}

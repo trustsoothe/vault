@@ -175,8 +175,9 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
             rules={nameRules}
             render={({ field, fieldState: { error } }) => (
               <TextField
-                label={"Rename"}
+                label={"Account Name"}
                 autoFocus
+                required
                 size={"small"}
                 fullWidth
                 {...field}

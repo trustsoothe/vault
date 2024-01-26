@@ -30,12 +30,16 @@ const SessionsMaxAge: React.FC = () => {
     },
   });
 
-  useEffect(() => {
+  const resetForm = useCallback(() => {
     reset({
       enabled: sessionsMaxAge.enabled,
       maxAge: sessionsMaxAge.maxAgeInSecs / hourInSecs,
     });
   }, [sessionsMaxAge]);
+
+  useEffect(() => {
+    resetForm();
+  }, [resetForm]);
 
   const [enabled, maxAge] = watch(["enabled", "maxAge"]);
 
@@ -58,6 +62,10 @@ const SessionsMaxAge: React.FC = () => {
     },
     [dispatch]
   );
+
+  const cancelChanges = useCallback(() => {
+    resetForm();
+  }, [resetForm]);
 
   const showButtons =
     enabled !== sessionsMaxAge.enabled ||
@@ -112,10 +120,11 @@ const SessionsMaxAge: React.FC = () => {
           render={({ field, fieldState: { error } }) => (
             <TextField
               fullWidth
+              required={enabled}
               label={"Amount (hours)"}
               sx={{
                 height: 30,
-                marginBottom: !!error?.message ? 0.5 : undefined,
+                marginBottom: !!error?.message ? "5px!important" : undefined,
                 "& .MuiFormLabel-root": {
                   top: -4,
                 },
@@ -136,7 +145,7 @@ const SessionsMaxAge: React.FC = () => {
         />
       </Stack>
       <Typography fontSize={10} color={theme.customColors.dark75}>
-        When enabled the vault and websites will keep their sessions open for
+        When enabled the sessions of the vault and websites will be alive for
         the hours you specify.
       </Typography>
       <Collapse in={showButtons}>
@@ -160,6 +169,7 @@ const SessionsMaxAge: React.FC = () => {
             }}
             variant={"outlined"}
             fullWidth
+            onClick={cancelChanges}
           >
             Cancel
           </Button>

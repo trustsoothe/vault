@@ -132,7 +132,7 @@ const Header = () => {
 
         if (shouldExportVault) {
           const text = hasVaultBeenExported
-            ? "There's been more than a week since you backup the vault."
+            ? "It's been more than a week since you backup the vault."
             : "You haven't backup your vault yet.";
 
           enqueueSnackbar({

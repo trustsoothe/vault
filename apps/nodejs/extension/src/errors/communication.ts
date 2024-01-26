@@ -19,6 +19,13 @@ export const UnauthorizedError = createError(
   4100,
   "The requested method and/or account has not been authorized by the user."
 );
+export const UnauthorizedErrorSessionInvalid = Object.freeze({
+  ...createError(
+    4100,
+    "The requested method and/or account has not been authorized by the user."
+  ),
+  isSessionInvalid: true,
+});
 
 export const UnsupportedMethod = createError(4200, "Method not supported.");
 

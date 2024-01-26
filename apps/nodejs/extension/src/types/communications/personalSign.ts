@@ -18,6 +18,8 @@ import {
   RequestPersonalSignExists,
   RequestTimeout,
   SessionIdNotPresented,
+  UnauthorizedError,
+  UnauthorizedErrorSessionInvalid,
   UnknownError,
 } from "../../errors/communication";
 
@@ -44,6 +46,8 @@ export type ExternalPersonalSignReq = {
 
 type ExternalPersonalSignErrors =
   | BaseErrors
+  | typeof UnauthorizedError
+  | typeof UnauthorizedErrorSessionInvalid
   | typeof RequestPersonalSignExists
   | typeof OperationRejected
   | typeof SessionIdNotPresented;

@@ -306,7 +306,7 @@ export default class BaseProvider extends EventEmitter {
           window.removeEventListener("message", listener);
 
           if (event.data.type === "APP_IS_NOT_READY") {
-            reject(ProviderNotReady);
+            return reject(ProviderNotReady);
           }
 
           const { data, error } = event.data;
@@ -335,9 +335,9 @@ export default class BaseProvider extends EventEmitter {
               }
             }
 
-            resolve(dataToResolve);
+            return resolve(dataToResolve);
           } else {
-            reject(error);
+            return reject(error);
           }
         }
       };

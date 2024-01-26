@@ -13,9 +13,7 @@ import { enqueueSnackbar } from "../../utils/ui";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import { useAppSelector } from "../../hooks/redux";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 
 interface FormValues {
   vaultPassword: string;
@@ -26,9 +24,7 @@ interface FormValues {
 const ExportVault: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const requirePassword = useAppSelector(
-    requirePasswordForSensitiveOptsSelector
-  );
+
   const methods = useForm<FormValues>({
     defaultValues: {
       vaultPassword: "",
@@ -64,7 +60,7 @@ const ExportVault: React.FC = () => {
       setStatus("loading");
 
       AppToBackground.exportVault({
-        currentVaultPassword: requirePassword ? data.vaultPassword : undefined,
+        currentVaultPassword: data.vaultPassword,
         encryptionPassword: anotherPassword ? data.anotherPassword : undefined,
       }).then(({ data, error }) => {
         if (error) {
@@ -93,7 +89,7 @@ const ExportVault: React.FC = () => {
         }
       });
     },
-    [navigate, requirePassword, anotherPassword]
+    [navigate, anotherPassword]
   );
 
   let content: React.ReactNode;
@@ -125,39 +121,32 @@ const ExportVault: React.FC = () => {
             We recommend you to save your backup in another device or in a cloud
             storage service to prevent the case where you lose access to your
             vault because you cannot access your PC.
-            <br />
-            <br />
-            Note: your vault will be exported encrypted.
           </Typography>
           <FormProvider {...methods}>
-            {requirePassword && (
-              <>
-                <Typography
-                  fontSize={12}
-                  fontWeight={500}
-                  marginTop={0.5}
-                  lineHeight={"24px"}
-                  letterSpacing={"0.5px"}
-                  sx={{ userSelect: "none" }}
-                  color={theme.customColors.dark100}
-                >
-                  To confirm, enter the vault password:
-                </Typography>
-                <Password
-                  containerProps={{
-                    spacing: 0.5,
-                    marginTop: 1,
-                  }}
-                  labelPassword={"Vault Password"}
-                  passwordName={"vaultPassword"}
-                  canGenerateRandom={false}
-                  autofocusPassword={true}
-                  hidePasswordStrong={true}
-                  justRequire={true}
-                  errorPassword={wrongPassword ? "Invalid password" : undefined}
-                />
-              </>
-            )}
+            <Typography
+              fontSize={12}
+              fontWeight={500}
+              marginTop={0.5}
+              lineHeight={"24px"}
+              letterSpacing={"0.5px"}
+              sx={{ userSelect: "none" }}
+              color={theme.customColors.dark100}
+            >
+              To continue, enter the vault password:
+            </Typography>
+            <Password
+              containerProps={{
+                spacing: 0.5,
+                marginTop: 1,
+              }}
+              labelPassword={"Vault Password"}
+              passwordName={"vaultPassword"}
+              canGenerateRandom={false}
+              autofocusPassword={true}
+              hidePasswordStrong={true}
+              justRequire={true}
+              errorPassword={wrongPassword ? "Invalid password" : undefined}
+            />
             <Stack alignSelf={"flex-start"} height={20} marginLeft={0.5}>
               <FormControlLabel
                 sx={{
@@ -183,7 +172,7 @@ const ExportVault: React.FC = () => {
                     checked={anotherPassword}
                   />
                 }
-                label={"Encrypt vault with another password"}
+                label={"Encrypt exported vault with another password"}
               />
             </Stack>
             {anotherPassword && (

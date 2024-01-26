@@ -14,7 +14,11 @@ import {
   ExtensionVaultStorage,
 } from "@poktscan/keyring-storage-extension";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
-import { UnauthorizedError, UnknownError } from "../errors/communication";
+import {
+  UnauthorizedError,
+  UnauthorizedErrorSessionInvalid,
+  UnknownError,
+} from "../errors/communication";
 
 let extensionVaultInstance: VaultTeller;
 
@@ -47,12 +51,16 @@ export const returnExtensionErr = <T extends string>(
   error: Error,
   responseType: T
 ) => {
+  if (error?.name === InvalidSessionErrorName) {
+    return {
+      type: responseType,
+      error: UnauthorizedErrorSessionInvalid,
+      data: null,
+    };
+  }
+
   if (
-    [
-      ForbiddenSessionErrorName,
-      InvalidSessionErrorName,
-      SessionNotFoundErrorName,
-    ].includes(error?.name)
+    [ForbiddenSessionErrorName, SessionNotFoundErrorName].includes(error?.name)
   ) {
     return {
       type: responseType,
@@ -88,7 +96,7 @@ export const generateRandomPassword = (
   let password = "";
 
   if (words) {
-    password = generate({ minLength: 3, exactly: passwordLength, join: " " });
+    password = generate({ minLength: 4, exactly: passwordLength, join: " " });
   } else {
     for (let i = 0; i <= passwordLength; i++) {
       const randomNumber = Math.floor(Math.random() * chars.length);

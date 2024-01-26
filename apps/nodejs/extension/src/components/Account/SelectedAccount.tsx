@@ -40,7 +40,6 @@ import {
   selectedProtocolSelector,
 } from "../../redux/selectors/network";
 import {
-  accountsImportedSelector,
   accountsSelector,
   selectedAccountSelector,
 } from "../../redux/selectors/account";
@@ -126,7 +125,6 @@ const SelectedAccount: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [wPoktVisible, setWPoktVisible] = useState(false);
 
-  const accountsImported = useAppSelector(accountsImportedSelector);
   const accounts = useAppSelector(accountsSelector);
   const selectedChain = useAppSelector(selectedChainSelector);
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
@@ -402,9 +400,6 @@ const SelectedAccount: React.FC = () => {
   const isPokt = selectedProtocol === SupportedProtocols.Pocket;
 
   const menuItems = [];
-  const includeRemoveAccount = accountsImported.includes(
-    selectedAccount?.address
-  );
 
   if (selectedAsset) {
     menuItems.push({
@@ -433,32 +428,27 @@ const SelectedAccount: React.FC = () => {
         key: "rename_item",
         label: "Rename Account",
         onClick: showRenameModal,
-      }
-    );
-
-    if (includeRemoveAccount) {
-      menuItems.push(
-        {
-          key: "divider1_item",
-          type: "divider",
-        },
-        {
-          key: "remove_item",
-          label: "Remove Account",
-          onClick: showRemoveModal,
-          customProps: {
-            color: theme.customColors.red100,
-            sx: {
-              "&:hover": {
-                color: theme.customColors.white,
-                backgroundColor: theme.customColors.red100,
-                fontWeight: 700,
-              },
+      },
+      {
+        key: "divider1_item",
+        type: "divider",
+      },
+      {
+        key: "remove_item",
+        label: "Remove Account",
+        onClick: showRemoveModal,
+        customProps: {
+          color: theme.customColors.red100,
+          sx: {
+            "&:hover": {
+              color: theme.customColors.white,
+              backgroundColor: theme.customColors.red100,
+              fontWeight: 700,
             },
           },
-        }
-      );
-    }
+        },
+      }
+    );
   }
 
   return (
@@ -537,9 +527,7 @@ const SelectedAccount: React.FC = () => {
                   <Grow {...TransitionProps}>
                     <Stack
                       width={140}
-                      height={
-                        selectedAsset ? 41 : includeRemoveAccount ? 120 : 75
-                      }
+                      height={selectedAsset ? 41 : 120}
                       padding={0.5}
                       borderRadius={"8px"}
                       boxSizing={"border-box"}

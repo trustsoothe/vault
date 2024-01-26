@@ -509,6 +509,7 @@ const TransferForm: React.FC<TransferFormProps> = ({
             <TextField
               size={"small"}
               type={"number"}
+              required
               label={"Amount"}
               InputLabelProps={{ shrink: !!field.value }}
               sx={{
