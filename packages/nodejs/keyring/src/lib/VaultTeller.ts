@@ -288,7 +288,7 @@ export class VaultTeller {
     accountPassphrase?: Passphrase
   ): Promise<string> {
     await this.validateSessionForPermissions(sessionId, "account", "read", [
-      accountReference.id,
+      accountReference.address,
     ]);
 
     if (!this.isUnlocked) {

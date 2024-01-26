@@ -761,7 +761,7 @@ class InternalCommunicationController implements ICommunicationController {
         const pk = await this._getAccountPrivateKey(
           request.address,
           request.protocol,
-          request.requestId
+          request.sessionId
         );
 
         const sign = await ethService.signTypedData({
@@ -839,10 +839,13 @@ class InternalCommunicationController implements ICommunicationController {
         const pk = await this._getAccountPrivateKey(
           request.address,
           request.protocol,
-          request.requestId
+          request.sessionId
         );
 
-        const signResult = ethService;
+        const signResult = await ethService.signPersonalData({
+          privateKey: pk,
+          challenge: request.challenge,
+        });
         responseToProxy = {
           requestId: request?.requestId,
           type: PERSONAL_SIGN_RESPONSE,
