@@ -44,7 +44,7 @@ const InfoView: React.FC<InfoViewProps> = ({
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (show && enableSubmitAfterTime) {
-      timeout = setTimeout(() => setHasReachBottom(true), 4000);
+      timeout = setTimeout(() => setHasReachBottom(true), 2000);
     }
 
     return () => {
