@@ -36,10 +36,10 @@ export default <
   TEncryptionService extends IEncryptionService,
   TSessionStore extends IStorage<SerializedSession>,
   TVaultStore extends IVaultStore>(
-    TVaultStoreCreator: {  new (): TVaultStore } | (() => TVaultStore),
-    TSessionStoreCreator: {  new (): TSessionStore } | (() => IStorage<SerializedSession>),
-    TEncryptionServiceCreator: {  new (): TEncryptionService } | (() => TEncryptionService)
-  ) => {
+  TVaultStoreCreator: { new(): TVaultStore } | (() => TVaultStore),
+  TSessionStoreCreator: { new(): TSessionStore } | (() => IStorage<SerializedSession>),
+  TEncryptionServiceCreator: { new(): TEncryptionService } | (() => TEncryptionService)
+) => {
 
   let vaultStore: TVaultStore
   let sessionStore: TSessionStore
@@ -56,11 +56,11 @@ export default <
     symbol: 'POKT'
   });
 
-  function isConstructor<T>(creator: {  new (): T } | (() => T)) {
+  function isConstructor<T>(creator: { new(): T } | (() => T)) {
     return !!creator && !!creator.prototype && !!creator.prototype.constructor
   }
 
-  function createVaultStore() : TVaultStore {
+  function createVaultStore(): TVaultStore {
     return isConstructor<TVaultStore>(TVaultStoreCreator)
       // @ts-ignore
       ? new TVaultStoreCreator()
@@ -70,11 +70,11 @@ export default <
 
   beforeEach(() => {
     encryptionService =
-        isConstructor<TEncryptionService>(TEncryptionServiceCreator)
-            // @ts-ignore
-          ? new TEncryptionServiceCreator()
-            // @ts-ignore
-          : TEncryptionServiceCreator()
+      isConstructor<TEncryptionService>(TEncryptionServiceCreator)
+        // @ts-ignore
+        ? new TEncryptionServiceCreator()
+        // @ts-ignore
+        : TEncryptionServiceCreator()
 
     unspecifiedNetworkAsset = new Asset({
       name: 'Example Asset',
@@ -178,7 +178,7 @@ export default <
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
-        const { permissions } = await vaultTeller.unlockVault('passphrase')
+        const {permissions} = await vaultTeller.unlockVault('passphrase')
         const expectedPermissions
           = new PermissionsBuilder().forResource('account').allowEverything().onAny().build()
         expect(permissions).toEqual(expect.arrayContaining(expectedPermissions))
@@ -188,7 +188,7 @@ export default <
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
-        const { permissions } = await vaultTeller.unlockVault('passphrase')
+        const {permissions} = await vaultTeller.unlockVault('passphrase')
         const expectedPermissions
           = new PermissionsBuilder().forResource('transaction').allowEverything().onAny().build()
         expect(permissions).toEqual(expect.arrayContaining(expectedPermissions))
@@ -198,7 +198,7 @@ export default <
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
-        const { permissions } = await vaultTeller.unlockVault('passphrase')
+        const {permissions} = await vaultTeller.unlockVault('passphrase')
         const expectedPermissions
           = new PermissionsBuilder().forResource('session').allowEverything().onAny().build()
         expect(permissions).toEqual(expect.arrayContaining(expectedPermissions))
@@ -208,7 +208,7 @@ export default <
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
         await vaultTeller.initializeVault('passphrase')
-        const { maxAge } = await vaultTeller.unlockVault('passphrase', {
+        const {maxAge} = await vaultTeller.unlockVault('passphrase', {
           sessionMaxAge: 2,
         })
         expect(maxAge).toEqual(2);
@@ -684,7 +684,7 @@ export default <
             amount: 200,
             network: new Network<SupportedProtocols.Pocket>({
               name: 'Example POKT Testnet Network',
-              protocol:SupportedProtocols.Pocket,
+              protocol: SupportedProtocols.Pocket,
               rpcUrl: 'https://example.com',
               chainID: 'testnet',
             }),
@@ -693,7 +693,7 @@ export default <
           })
 
           await expect(transferFundsOperation).rejects.toThrow(AccountNotFoundError)
-       })
+        })
 
         test('throws "VaultIsLockedError" if the vault is locked', async () => {
           vaultStore = createVaultStore()
@@ -812,7 +812,7 @@ export default <
       })
 
       test('account is persisted in the vault', async () => {
-        const { account,  vaultTeller, ownerSession } = await createVaultAndImportAccountFromPK();
+        const {account, vaultTeller, ownerSession} = await createVaultAndImportAccountFromPK();
         const accounts = await vaultTeller.listAccounts(ownerSession.id)
         expect(accounts).toEqual([account])
       })
@@ -831,7 +831,7 @@ export default <
       })
 
       test('replaces the account if it already exists in the vault and "replace" is set to true', async () => {
-        const { account,  vaultTeller, ownerSession, passphrase } = await createVaultAndImportAccountFromPK();
+        const {account, vaultTeller, ownerSession, passphrase} = await createVaultAndImportAccountFromPK();
 
         const accountWithSameName = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
           name: 'example-account',
@@ -974,7 +974,7 @@ export default <
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
         // @ts-ignore
-        const getAccountPrivateKeyOperation = vaultTeller.getAccountPrivateKey(null, null, { id: 'fake' }, null)
+        const getAccountPrivateKeyOperation = vaultTeller.getAccountPrivateKey(null, null, {id: 'fake'}, null)
 
         await expect(getAccountPrivateKeyOperation).rejects.toThrow(SessionIdRequiredError)
       })
@@ -986,7 +986,7 @@ export default <
         await vaultTeller.initializeVault(passphrase.get())
         const session = await vaultTeller.unlockVault(passphrase.get())
         // @ts-ignore
-        const getAccountPrivateKeyOperation = vaultTeller.getAccountPrivateKey(session.id, null, { id: 'fake' }, passphrase)
+        const getAccountPrivateKeyOperation = vaultTeller.getAccountPrivateKey(session.id, null, {id: 'fake'}, passphrase)
 
         await expect(getAccountPrivateKeyOperation).rejects.toThrow(VaultRestoreError)
       })
@@ -1167,14 +1167,14 @@ export default <
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
       await vaultTeller.initializeVault(passphraseValue)
       const encryptedVault = await vaultTeller.exportVault(passphraseValue)
-      return { passphraseValue, encryptedVault, vaultStore, vaultTeller };
+      return {passphraseValue, encryptedVault, vaultStore, vaultTeller};
     }
 
     const decryptVault = async (
-        passphrase: Passphrase,
-        encryptedVault: EncryptedVault
+      passphrase: Passphrase,
+      encryptedVault: EncryptedVault
     ): Promise<Vault> => {
-        let vaultJson: string;
+      let vaultJson: string;
 
       try {
         vaultJson = await encryptionService.decrypt(
@@ -1199,7 +1199,7 @@ export default <
       const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
 
       // @ts-ignore
-      const importNullVaultOperation = vaultTeller.importVault(null,'passphrase')
+      const importNullVaultOperation = vaultTeller.importVault(null, 'passphrase')
 
       // @ts-ignore
       const importUndefinedVaultOperation = vaultTeller.importVault(undefined, 'passphrase')
@@ -1209,23 +1209,23 @@ export default <
     })
 
     test('throws an error if the passed passphrase is null or empty', async () => {
-      const { encryptedVault, vaultTeller } = await getEncryptedVaultAndTeller()
+      const {encryptedVault, vaultTeller} = await getEncryptedVaultAndTeller()
       // @ts-ignore
-      const importWithNullPassphraseOperation = vaultTeller.importVault(encryptedVault,null)
-      const importWithEmptyPassphraseOperation = vaultTeller.importVault(encryptedVault,'')
+      const importWithNullPassphraseOperation = vaultTeller.importVault(encryptedVault, null)
+      const importWithEmptyPassphraseOperation = vaultTeller.importVault(encryptedVault, '')
 
       await expect(importWithNullPassphraseOperation).rejects.toThrow('Passphrase cannot be null or empty')
       await expect(importWithEmptyPassphraseOperation).rejects.toThrow('Passphrase cannot be null or empty')
     })
 
     test('throws an error if the provided passphrase is incorrect', async () => {
-      const { encryptedVault, vaultTeller } = await getEncryptedVaultAndTeller()
+      const {encryptedVault, vaultTeller} = await getEncryptedVaultAndTeller()
       const wrongPassphraseImportOperation = vaultTeller.importVault(encryptedVault, 'wrong-passphrase')
       await expect(wrongPassphraseImportOperation).rejects.toThrow(VaultRestoreError)
     })
 
     test('replaces the existing vault - uses the file passphrase if none is provided', async () => {
-      const { encryptedVault, vaultTeller, passphraseValue } = await getEncryptedVaultAndTeller()
+      const {encryptedVault, vaultTeller, passphraseValue} = await getEncryptedVaultAndTeller()
       const passphrase = new Passphrase(passphraseValue)
       const originalVault = await decryptVault(passphrase, encryptedVault)
       await vaultTeller.importVault(encryptedVault, passphraseValue)
@@ -1236,7 +1236,7 @@ export default <
 
     describe('when a new passphrase is provided', () => {
       test('uses the new passphrase if one is provided', async () => {
-        const { encryptedVault, vaultTeller, passphraseValue } = await getEncryptedVaultAndTeller()
+        const {encryptedVault, vaultTeller, passphraseValue} = await getEncryptedVaultAndTeller()
         const passphrase = new Passphrase(passphraseValue)
         const newPassphraseValue = 'new-passphrase'
         await vaultTeller.importVault(encryptedVault, passphraseValue, newPassphraseValue)
@@ -1249,4 +1249,94 @@ export default <
       })
     })
   })
+
+  describe('createRecoveryPhrase', () => {
+    test('defaults to 12 words', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('allows to specify the number of words', async () => {
+      throw new Error('Not implemented');
+    });
+  });
+
+  describe('validateRecoveryPhrase', () => {
+    test('throws "ArgumentError" if the recovery phrase is not provided', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('resolves to false if the recovery phrase is not valid', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('resolves to true if the recovery phrase is valid', async () => {
+      throw new Error('Not implemented');
+    });
+  });
+
+  describe('importRecoveryPhrase', () => {
+    test('throws "ArgumentError" if the recovery phrase is not provided', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('throws "VaultRestoreError" if the recovery phrase is not valid', async () => {
+      throw new Error('Not implemented');
+    });
+
+    describe('when the recovery phrase is valid', () => {
+      test('resolves to the newly created HDSeed and HDChild account references', async () => {
+        throw new Error('Not implemented');
+      });
+
+      test('the newly created HDChild account references are persisted in the vault', async () => {
+        throw new Error('Not implemented');
+      });
+
+      test('the newly created HDChild has the id of the HDSeed as parent', async () => {
+        throw new Error('Not implemented');
+      });
+
+      test('throws "AccountExistsError" if the HDSeed or HDChild account already exists in the vault', async () => {
+        throw new Error('Not implemented');
+      });
+    });
+  });
+
+  describe('addHDWalletAccount', () => {
+    test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('throws an error when the seed account does not exist in the vault', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('defaults to 1 account', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('allows to specify the number of accounts', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('resolves to the newly created HDChild account references', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('the newly created HDChild account references are persisted in the vault', async () => {
+      throw new Error('Not implemented');
+    });
+
+    test('selects the first available index for the HDChild account', async () => {
+      throw new Error('Not implemented');
+    });
+  });
 }

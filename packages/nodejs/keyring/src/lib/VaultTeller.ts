@@ -73,6 +73,18 @@ export interface VaultOptions {
   sessionMaxAge?: number;
 }
 
+export interface ImportRecoveryPhraseOptions {
+  recoveryPhrase: string;
+  protocol: SupportedProtocols;
+  passphrase?: string;
+  isSendNodes?: boolean;
+}
+
+export interface AddHDWalletAccountOptions {
+  seedAccountId: string;
+  count?: number;
+}
+
 export class VaultTeller {
   private _isUnlocked = false;
   private _vault: Vault | null = null;
@@ -666,6 +678,22 @@ export class VaultTeller {
       this._vault
     );
     await this.vaultStore.save(newEncryptedVault.serialize());
+  }
+
+  async createRecoveryPhrase(size: number = 12): Promise<string> {
+    throw new Error("Method not implemented.");
+  }
+
+  async validateRecoveryPhrase(recoveryPhrase: string): Promise<boolean> {
+    throw new Error("Method not implemented.");
+  }
+
+  async importRecoveryPhrase(recoveryPhrase: string, passphrase: string): Promise<AccountReference> {
+    throw new Error("Method not implemented.");
+  }
+
+  async addHDWalletAccount(options: AddHDWalletAccountOptions): Promise<AccountReference[]> {
+    throw new Error("Method not implemented.");
   }
 
   private async encryptVault(
