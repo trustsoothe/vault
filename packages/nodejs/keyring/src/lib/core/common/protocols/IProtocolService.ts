@@ -20,6 +20,19 @@ export interface CreateAccountFromPrivateKeyOptions extends CreateAccountOptions
   privateKey: string
 }
 
+export interface ImportRecoveryPhraseOptions {
+  recoveryPhrase: string;
+  protocol: SupportedProtocols;
+  seedAccountName?: string;
+  passphrase?: string;
+  isSendNodes?: boolean;
+}
+
+export interface AddHDWalletAccountOptions {
+  seedAccountId: string;
+  count?: number;
+}
+
 export interface IProtocolService<T extends SupportedProtocols> {
   createAccount(options: CreateAccountOptions): Promise<Account>
   createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account>

@@ -1,11 +1,13 @@
-import { Asset, SerializedAsset } from "../../asset";
-import {SupportedProtocols} from "./SupportedProtocols";
+import {SupportedProtocols} from "../../common/values";
+import {AccountType} from "./AccountType";
 
 export interface SerializedAccountReference {
   id: string;
   name: string;
   address: string;
   protocol: SupportedProtocols;
+  accountType: AccountType;
+  parentId: string;
 }
 
 export class AccountReference {
@@ -13,12 +15,16 @@ export class AccountReference {
   private readonly _name: string = "";
   private readonly _address: string = "";
   private readonly _protocol: SupportedProtocols;
+  private readonly _accountType: AccountType;
+  private readonly _parentId: string = "";
 
-  constructor(id: string, name: string, address: string, protocol: SupportedProtocols) {
+  constructor(id: string, name: string, address: string, protocol: SupportedProtocols, accountType?: AccountType, parentId?: string) {
     this._id = id;
     this._name = name;
     this._address = address;
     this._protocol = protocol;
+    this._accountType = accountType || AccountType.Individual;
+    this._parentId = parentId || "";
   }
 
   get id(): string {
@@ -37,12 +43,22 @@ export class AccountReference {
     return this._protocol;
   }
 
+  get accountType(): AccountType {
+    return this._accountType;
+  }
+
+  get parentId(): string {
+    return this._parentId;
+  }
+
   serialize(): SerializedAccountReference {
     return {
-      id: this._id,
-      name: this._name,
-      address: this._address,
-      protocol: this._protocol,
+      id: this.id,
+      name: this.name,
+      address: this.address,
+      protocol: this.protocol,
+      accountType: this.accountType,
+      parentId: this.parentId,
     };
   }
 
@@ -52,6 +68,7 @@ export class AccountReference {
       data.name,
       data.address,
       data.protocol,
+      data.accountType,
     );
   }
 }

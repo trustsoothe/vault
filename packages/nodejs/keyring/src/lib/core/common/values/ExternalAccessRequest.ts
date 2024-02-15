@@ -1,6 +1,6 @@
 import {Permission} from "../permissions";
 import {OriginReference} from "./OriginReference";
-import {AccountReference} from "./AccountReference";
+import {AccountReference} from "../../vault";
 
 export class ExternalAccessRequest {
   private readonly _permissions: Permission[]

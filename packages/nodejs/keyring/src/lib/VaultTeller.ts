@@ -18,7 +18,7 @@ import {
   ArgumentError,
   ForbiddenSessionError,
   InvalidSessionError,
-  PrivateKeyRestoreError,
+  PrivateKeyRestoreError, RecoveryPhraseError,
   SessionIdRequiredError,
   SessionNotFoundError,
   VaultIsLockedError,
@@ -26,9 +26,10 @@ import {
   VaultUninitializedError,
 } from "./errors";
 import {
+  AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
-  EthereumNetworkProtocolService,
+  EthereumNetworkProtocolService, ImportRecoveryPhraseOptions,
   PocketNetworkProtocolService,
   ProtocolServiceFactory,
 } from "./core/common/protocols";
@@ -73,18 +74,6 @@ export interface TransferOptions {
 
 export interface VaultOptions {
   sessionMaxAge?: number;
-}
-
-export interface ImportRecoveryPhraseOptions {
-  recoveryPhrase: string;
-  protocol: SupportedProtocols;
-  passphrase?: string;
-  isSendNodes?: boolean;
-}
-
-export interface AddHDWalletAccountOptions {
-  seedAccountId: string;
-  count?: number;
 }
 
 export class VaultTeller {
@@ -701,11 +690,43 @@ export class VaultTeller {
     return bip39.validateMnemonic(recoveryPhrase, wordlist);
   }
 
-  async importRecoveryPhrase(recoveryPhrase: string, passphrase: string): Promise<AccountReference> {
+  async importRecoveryPhrase(
+    sessionId: string,
+    vaultPassphrase: Passphrase,
+    options: ImportRecoveryPhraseOptions
+  ): Promise<AccountReference[]> {
+    await this.validateSessionForPermissions(sessionId, "account", "create");
+
+    const isValidRecoveredPhrase = this.validateRecoveryPhrase(options.recoveryPhrase);
+
+    if (!isValidRecoveredPhrase) {
+      throw new RecoveryPhraseError('Invalid recovery phrase')
+    }
+
+    const protocolService = ProtocolServiceFactory.getProtocolService(
+      options.protocol,
+      this.encryptionService
+    );
+
     throw new Error("Method not implemented.");
+
+    // const accounts = await protocolService.importRecoveryPhrase(options);
+
+    // for (const account of accounts) {
+    //   await this.addVaultAccount(account, vaultPassphrase);
+    //   await this.addAccountToSession(sessionId, account);
+    // }
+    //
+    // await this.updateSessionLastActivity(sessionId);
+    //
+    // return accounts.map((a) => a.asAccountReference());
   }
 
-  async addHDWalletAccount(options: AddHDWalletAccountOptions): Promise<AccountReference[]> {
+  async addHDWalletAccount(
+    sessionId: string,
+    vaultPassphrase: Passphrase,
+    options: AddHDWalletAccountOptions,
+  ): Promise<AccountReference[]> {
     throw new Error("Method not implemented.");
   }
 

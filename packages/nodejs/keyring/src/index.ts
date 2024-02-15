@@ -12,8 +12,6 @@ export * from './lib/errors'
 export * from './lib/constants';
 export * from './lib/core/common/protocols/Bridges';
 
-import EncryptionServiceSpecFactory from './lib/core/common/encryption/IEncryptionService.specFactory'
-
 import type {IEncryptionService} from './lib/core/common/encryption/IEncryptionService'
 import type IVaultStore from './lib/core/common/storage/IVaultStorage'
 import type IStorage from './lib/core/common/storage/IStorage'
@@ -37,5 +35,3 @@ export type {
   SignTypedDataRequest,
   SignPersonalDataRequest,
 };
-
-export { EncryptionServiceSpecFactory };

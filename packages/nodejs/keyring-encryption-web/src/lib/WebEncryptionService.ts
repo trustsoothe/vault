@@ -1,12 +1,7 @@
-import {IEncryptionService, MnemonicPhrase, Passphrase} from "@poktscan/keyring";
-import {scrypt} from '@noble/hashes/scrypt';
+import {IEncryptionService, Passphrase} from "@poktscan/keyring";
 
 const DERIVED_KEY_FORMAT = 'AES-GCM';
 const STRING_ENCODING = 'utf-8';
-const SEED_ALG = 'PBKDF2';
-const SEED_HASH_FN = 'SHA-512';
-const SEED_HASH_ROUNDS = 2048;
-const PBKDF2_KEY_LENGTH_IN_BITS = 512;
 
 export class WebEncryptionService implements IEncryptionService {
     async decrypt(passphrase: Passphrase, data: string): Promise<string> {
@@ -61,49 +56,6 @@ export class WebEncryptionService implements IEncryptionService {
         });
     }
 
-    async deriveSeed(mnemonic: MnemonicPhrase, passphrase?: Passphrase): Promise<string> {
-        if (!mnemonic) {
-            throw new Error('Invalid Operation: Mnemonic phrase not provided')
-        }
-
-        if (!mnemonic.isValid()) {
-            throw new Error('Invalid Operation: Mnemonic phrase is not valid')
-        }
-
-        const passphraseValue = this.normalizeString((passphrase && passphrase.get()) || '');
-        const mnemonicLiteral = this.normalizeString(mnemonic.words.map(w => w.word).join(' '));
-        const salt = "mnemonic" + passphraseValue;
-
-        const encoder = new TextEncoder();
-        const mnemonicData = encoder.encode(mnemonicLiteral);
-        const saltData = encoder.encode(salt);
-
-        const importedKey = await crypto.subtle.importKey(
-          'raw',
-          mnemonicData,
-          { name: SEED_ALG },
-          false,
-          ['deriveBits']
-        );
-
-        const derivedKey = await crypto.subtle.deriveBits(
-          {
-              name: SEED_ALG,
-              salt: saltData,
-              iterations: SEED_HASH_ROUNDS,
-              hash: SEED_HASH_FN,
-          },
-          importedKey,
-          PBKDF2_KEY_LENGTH_IN_BITS
-        );
-
-        const derivedKeyArray = Array.from(new Uint8Array(derivedKey));
-
-        return derivedKeyArray
-          .map(byte => byte.toString(16).padStart(2, '0'))
-          .join('');
-    }
-
     private generateSalt(byteCount = 32): string {
         const view = new Uint8Array(byteCount);
         globalThis.crypto.getRandomValues(view);
@@ -131,9 +83,5 @@ export class WebEncryptionService implements IEncryptionService {
           false,
           ['encrypt', 'decrypt'],
         )
-    }
-
-    private normalizeString(str: string): string {
-        return str.normalize('NFKD');
     }
 }

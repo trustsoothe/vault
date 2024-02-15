@@ -1,7 +1,8 @@
-import {v4, validate} from "uuid";
-import {AccountReference, SupportedProtocols} from "../../common/values";
-import IEntity from "../../common/IEntity";
-import {ArgumentError} from "../../../errors";
+import {v4, validate} from 'uuid';
+import {SupportedProtocols} from '../../common/values'
+import IEntity from '../../common/IEntity'
+import {ArgumentError} from '../../../errors'
+import {AccountReference, AccountType} from '../'
 
 export interface SerializedAccount extends IEntity {
   id: string
@@ -10,7 +11,11 @@ export interface SerializedAccount extends IEntity {
   privateKey: string
   address: string
   protocol: SupportedProtocols
-  isSecure: boolean;
+  isSecure: boolean
+  accountType?: AccountType
+  parentId?: string
+  hdwIndex?: number
+  hdwAccountIndex?: number
   createdAt: number
   updatedAt: number
 }
@@ -22,6 +27,10 @@ export interface AccountOptions {
   address: string
   protocol: SupportedProtocols
   secure: boolean
+  accountType?: AccountType
+  parentId?: string
+  hdwIndex?: number
+  hdwAccountIndex?: number
 }
 
 export interface AccountUpdateOptions {
@@ -37,6 +46,10 @@ export class Account implements IEntity {
   private readonly _address: string
   private readonly _protocol: SupportedProtocols
   private readonly _secure: boolean;
+  private readonly _accountType: AccountType
+  private readonly _parentId?: string
+  private readonly _hdwIndex?: number
+  private readonly _hdwAccountIndex?: number
   private _createdAt: number
   private _updatedAt: number
 
@@ -61,6 +74,20 @@ export class Account implements IEntity {
       throw new ArgumentError('Protocol cannot be null or empty')
     }
 
+    if (options.accountType && options.accountType === AccountType.HDChild) {
+     if (!options.parentId) {
+        throw new ArgumentError('Parent ID cannot be null or empty when account type is HDChild')
+     }
+
+     if (!options.hdwIndex || options.hdwIndex < 0) {
+        throw new ArgumentError('HDW Index cannot be null or empty or less than 0 when account type is HDChild')
+     }
+
+      if (!options.hdwAccountIndex || options.hdwAccountIndex < 0) {
+        throw new ArgumentError('HDW Account Index cannot be null or empty or less than 0 when account type is HDChild')
+      }
+    }
+
     this._id = id || v4()
     this._name = options.name || ''
     this._publicKey = options.publicKey
@@ -68,6 +95,10 @@ export class Account implements IEntity {
     this._address = options.address
     this._protocol = options.protocol
     this._secure = options.secure
+    this._accountType = options.accountType || AccountType.Individual
+    this._parentId = options.parentId || undefined
+    this._hdwIndex = options.hdwIndex || undefined
+    this._hdwIndex = options.hdwAccountIndex || undefined
     this._createdAt = Date.now()
     this._updatedAt = Date.now()
   }
@@ -113,6 +144,22 @@ export class Account implements IEntity {
     this._updatedAt = Date.now()
   }
 
+  get accountType(): AccountType {
+    return this._accountType || AccountType.Individual
+  }
+
+  get parentId(): string | undefined {
+    return this._parentId
+  }
+
+  get hdwIndex(): number | undefined {
+    return this._hdwIndex
+  }
+
+  get hdwAccountIndex(): number | undefined {
+    return this._hdwAccountIndex
+  }
+
   serialize(): SerializedAccount {
     return {
       id: this.id,
@@ -124,6 +171,10 @@ export class Account implements IEntity {
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
       isSecure: this.isSecure,
+      accountType: this.accountType,
+      parentId: this.parentId,
+      hdwIndex: this.hdwIndex,
+      hdwAccountIndex: this.hdwAccountIndex,
     }
   }
 
@@ -135,6 +186,10 @@ export class Account implements IEntity {
       address: serializedAccount.address,
       protocol: serializedAccount.protocol,
       secure: serializedAccount.isSecure,
+      accountType: serializedAccount.accountType,
+      parentId: serializedAccount.parentId,
+      hdwIndex: serializedAccount.hdwIndex,
+      hdwAccountIndex: serializedAccount.hdwAccountIndex
     }
 
     const deserializedAccount =  new Account(options, serializedAccount.id)

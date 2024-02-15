@@ -1,40 +1,26 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useForm, Controller } from "react-hook-form";
+import React, {useCallback, useEffect, useMemo, useRef, useState,} from "react";
+import {useNavigate, useSearchParams} from "react-router-dom";
+import {Controller, useForm} from "react-hook-form";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
-import { useTheme } from "@mui/material";
+import {useTheme} from "@mui/material";
 import Stack from "@mui/material/Stack";
-import {
-  SerializedAccountReference,
-  SupportedProtocols,
-} from "@poktscan/keyring";
-import { nameRules } from "../Account/CreateModal";
-import { enqueueSnackbar } from "../../utils/ui";
-import { CONTACTS_PAGE } from "../../constants/routes";
+import {AccountType, SerializedAccountReference, SupportedProtocols,} from "@poktscan/keyring";
+import {nameRules} from "../Account/CreateModal";
+import {enqueueSnackbar} from "../../utils/ui";
+import {CONTACTS_PAGE} from "../../constants/routes";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import { saveContact } from "../../redux/slices/app/contact";
+import {Contact, saveContact} from "../../redux/slices/app/contact";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
-import { labelByProtocolMap } from "../../constants/protocols";
-import { isValidAddress } from "../../utils/networkOperations";
-import { contactsSelector } from "../../redux/selectors/contact";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
-import {
-  ACCOUNT_ALREADY_EXISTS,
-  CONTACT_ALREADY_EXISTS,
-} from "../../errors/contact";
+import {labelByProtocolMap} from "../../constants/protocols";
+import {isValidAddress} from "../../utils/networkOperations";
+import {contactsSelector} from "../../redux/selectors/contact";
+import {useAppDispatch, useAppSelector} from "../../hooks/redux";
+import {ACCOUNT_ALREADY_EXISTS, CONTACT_ALREADY_EXISTS,} from "../../errors/contact";
 
-type FormValues = Omit<SerializedAccountReference, "id">;
-
-const defaultFormValues: FormValues = {
+const defaultFormValues: Contact = {
   name: "",
   address: "",
   protocol: SupportedProtocols.Pocket,
@@ -52,7 +38,7 @@ const SaveContact: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [contactToUpdate, setContactToUpdate] =
-    useState<SerializedAccountReference>(null);
+    useState<Contact>(null);
   const [status, setStatus] = useState<
     | "normal"
     | "loading"
@@ -69,7 +55,7 @@ const SaveContact: React.FC = () => {
     setValue,
     clearErrors,
     setFocus,
-  } = useForm<FormValues>({
+  } = useForm<Contact>({
     defaultValues: { ...defaultFormValues },
   });
 
@@ -116,7 +102,7 @@ const SaveContact: React.FC = () => {
   }, [contactToUpdate]);
 
   const onSubmit = useCallback(
-    async (data: FormValues) => {
+    async (data: Contact) => {
       setStatus("loading");
 
       dispatch(

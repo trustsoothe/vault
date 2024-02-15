@@ -15,9 +15,10 @@ import CopyIcon from "../../assets/img/thin_copy_icon.svg";
 import { labelByProtocolMap } from "../../constants/protocols";
 import { contactsSelector } from "../../redux/selectors/contact";
 import { REMOVE_CONTACT_PAGE, SAVE_CONTACT_PAGE } from "../../constants/routes";
+import {Contact} from "../../redux/slices/app/contact";
 
 interface ContactItemProps {
-  contact: SerializedAccountReference;
+  contact: Contact;
 }
 
 export const ContactItem: React.FC<ContactItemProps> = ({ contact }) => {

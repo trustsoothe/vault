@@ -3,7 +3,7 @@ import {
   AccountExistError,
   AccountNotFoundError,
   AccountOptions,
-  AccountReference, ArgumentError,
+  AccountReference, AccountType, ArgumentError,
   Asset, EncryptedVault,
   ExternalAccessRequest,
   ForbiddenSessionError,
@@ -17,6 +17,7 @@ import {
   Permission,
   PermissionsBuilder,
   PrivateKeyRestoreError,
+  RecoveryPhraseError,
   SerializedSession,
   Session,
   SessionIdRequiredError,
@@ -501,20 +502,7 @@ export default <
     })
 
     test('throws "ForbiddenSessionError" if the session id is found in the session store but "account:delete" is not allowed', async () => {
-      vaultStore = createVaultStore()
-      const externalAccessRequestWithoutDefaults = new ExternalAccessRequest(
-        exampleExternalAccessRequest.permissions as Permission[],
-        exampleExternalAccessRequest.maxAge,
-        exampleExternalAccessRequest.origin,
-        exampleExternalAccessRequest.accounts as AccountReference[],
-        false
-      )
-
-      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
-      await vaultTeller.initializeVault('passphrase')
-      await vaultTeller.unlockVault('passphrase')
-      const session = await vaultTeller.authorizeExternal(externalAccessRequestWithoutDefaults)
-      const passphrase = new Passphrase('passphrase');
+      const { vaultTeller, session, passphrase } = await initializePermissionLessVault()
       // @ts-ignore
       const createAccountOperation = vaultTeller.removeAccount(session.id, passphrase, null)
 
@@ -732,6 +720,25 @@ export default <
     })
   })
 
+  const initializePermissionLessVault = async () => {
+    vaultStore = createVaultStore()
+    const externalAccessRequestWithoutDefaults = new ExternalAccessRequest(
+      exampleExternalAccessRequest.permissions as Permission[],
+      exampleExternalAccessRequest.maxAge,
+      exampleExternalAccessRequest.origin,
+      exampleExternalAccessRequest.accounts as AccountReference[],
+      false
+    )
+
+    const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+    await vaultTeller.initializeVault('passphrase')
+    await vaultTeller.unlockVault('passphrase')
+    const session = await vaultTeller.authorizeExternal(externalAccessRequestWithoutDefaults)
+    const passphrase = new Passphrase('passphrase');
+
+    return {vaultTeller, session, passphrase};
+  }
+
   describe('Account creation - Pocket Network', () => {
     const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'
     const expectedAddress = '30fd308b3bf2126030aba7f0e342dcb8b4922a8b';
@@ -856,7 +863,6 @@ export default <
         // @ts-ignore
         const createAccountOperation = vaultTeller.createAccount(null, passphrase, {
           name: 'example-account',
-          asset: pocketAsset,
           passphrase,
         })
 
@@ -1087,6 +1093,205 @@ export default <
         })
       });
     })
+
+    describe('importRecoveryPhrase', () => {
+      const createVault = async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        const session = await vaultTeller.unlockVault('passphrase')
+        const passphrase = new Passphrase('passphrase')
+
+        return {vaultTeller, session, passphrase};
+      }
+
+      test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        await vaultTeller.unlockVault('passphrase')
+        const passphrase = new Passphrase('passphrase')
+        // @ts-ignore
+        const importRecoveryPhraseOperation = vaultTeller.importRecoveryPhrase(null, passphrase, {
+          seedAccountName: 'example-hd-wallet',
+          recoveryPhrase: 'example invalid recovery phrase',
+          protocol: SupportedProtocols.Pocket,
+        })
+
+        await expect(importRecoveryPhraseOperation).rejects.toThrow(SessionIdRequiredError)
+      })
+
+      test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        const session = await vaultTeller.unlockVault('passphrase')
+        // @ts-ignore
+        const importRecoveryPhraseOperation = vaultTeller.importRecoveryPhrase(session.id, null, {
+          seedAccountName: 'example-hd-wallet',
+          recoveryPhrase: 'example invalid recovery phrase',
+          protocol: SupportedProtocols.Pocket,
+        })
+
+        await expect(importRecoveryPhraseOperation).rejects.toThrow(VaultRestoreError)
+      })
+
+      test('throws "ForbiddenSessionError" if the session id is found in the session store but "account:create" is not allowed', async () => {
+        const { vaultTeller, session, passphrase } = await initializePermissionLessVault();
+        // @ts-ignore
+        const importRecoveryPhraseOperation = vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          seedAccountName: 'example-hd-wallet',
+          recoveryPhrase: 'example invalid recovery phrase',
+          protocol: SupportedProtocols.Pocket,
+        })
+
+        await expect(importRecoveryPhraseOperation).rejects.toThrow(ForbiddenSessionError)
+      });
+
+      test('throws "RecoveryPhraseError" if the recovery phrase is not provided', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        const session = await vaultTeller.unlockVault('passphrase')
+        const passphrase = new Passphrase('passphrase')
+
+        // @ts-ignore
+        const importRecoveryPhraseOperation = vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          seedAccountName: 'example-hd-wallet',
+          protocol: SupportedProtocols.Pocket,
+        })
+
+        await expect(importRecoveryPhraseOperation).rejects.toThrow(/^.*(recovery|phrase).*$/g);
+      });
+
+      test('throws "RecoveryPhraseError" if the recovery phrase is not valid', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        const session = await vaultTeller.unlockVault('passphrase')
+        const passphrase = new Passphrase('passphrase')
+
+        const importRecoveryPhraseOperation = vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          seedAccountName: 'example-hd-wallet',
+          recoveryPhrase: 'example invalid recovery phrase',
+          protocol: SupportedProtocols.Pocket,
+        })
+
+        await expect(importRecoveryPhraseOperation).rejects.toThrow(RecoveryPhraseError)
+      });
+
+      describe('when the recovery phrase is valid', () => {
+        const recoveryPhrase = 'eye mosquito square rigid snow youth horse pride feed stage enact hero'
+
+        const expectedAddresses = [
+          'ee1f2bbe3f1f3b8141377ef75857cbf6a1a3991b',
+          '36414bb4d7d55453f015abd6545d9a5cbd39b9a2',
+          'adcd47c81b4d4cd8e440e331742c55b50f4f233f',
+          '38edaa0ab2929c3d2f789d870f000006e6171488',
+        ]
+
+        const expectedPrivateKeys = [
+          '47b9968277615da21f132bb66e3f2b61c21e875fb9fe381cb5e3d0b849d661790e82d734e99fdd170baae84b37471decd6548931b102641326a3b1c855b8cf99',
+          '62e7c2db46e884e92c239ff4eb10c7307fcaeb6eaec7fe5edba93aff67d13c42ec147521134ced15b52628fb8b8a6866e645a6bbfdf77e9d0b7e7dc26ccfb4d1',
+          '90d0cde5d6df6e7e94a055f3497642c50c8b60fe107522a085a41db927636808672d02446a51dc7c4acc37004d50f9f89c4989fa2aa1c51bb37dceb6d1e6a676',
+          '48e41dcbc6b8bdc42c05d627c7fc148ae4087b1e5fc93d568a69d754f3800c2a16c197c1b7208c33a8e64f7dd15e81f0483b37bfdd21db41296e6a1606770142',
+        ]
+
+        test('resolves to the newly created HDSeed and HDChild account references', async () => {
+          const {vaultTeller, session, passphrase} = await createVault();
+          const accountReferences = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+            recoveryPhrase,
+            protocol: SupportedProtocols.Pocket,
+            seedAccountName: 'example-hd-wallet',
+          })
+
+          const hdSeed = accountReferences.find((a) => a.accountType === AccountType.HDSeed)
+          const hdChild = accountReferences.find((a) => a.accountType === AccountType.HDChild)
+
+          expect(hdSeed).not.toBeNull()
+          expect(hdChild).not.toBeNull()
+        });
+
+        test('the newly created HDChild has the id of the HDSeed as parent', async () => {
+          const {vaultTeller, session, passphrase} = await createVault();
+          const accountReferences = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+            recoveryPhrase,
+            protocol: SupportedProtocols.Pocket,
+            seedAccountName: 'example-hd-wallet',
+          })
+
+          const hdSeed = accountReferences.find((a) => a.accountType === AccountType.HDSeed)
+          const hdChild = accountReferences.find((a) => a.accountType === AccountType.HDChild)
+
+          expect(hdChild?.parentId).toEqual(hdSeed?.id)
+        });
+
+        test('the newly created HDChild account reference is persisted in the vault', async () => {
+          const {vaultTeller, session, passphrase} = await createVault();
+          const accountReferences = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+            recoveryPhrase,
+            protocol: SupportedProtocols.Pocket,
+            seedAccountName: 'example-hd-wallet',
+          })
+
+          const accounts = await vaultTeller.listAccounts(session.id)
+          const hdChild = accountReferences.find((a) => a.accountType === AccountType.HDChild)
+
+          expect(accounts).toContainEqual(hdChild)
+        });
+
+        test('throws "AccountExistsError" if the HDSeed or HDChild account already exists in the vault', async () => {
+          const {vaultTeller, session, passphrase} = await createVault();
+          await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+            recoveryPhrase,
+            protocol: SupportedProtocols.Pocket,
+            seedAccountName: 'example-hd-wallet',
+          })
+
+          const importRecoveryPhraseOperation = vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+            recoveryPhrase,
+            protocol: SupportedProtocols.Pocket,
+            seedAccountName: 'example-hd-wallet',
+          })
+
+          await expect(importRecoveryPhraseOperation).rejects.toThrow(AccountExistError)
+        });
+      });
+    });
+
+    describe('addHDWalletAccount', () => {
+      test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
+        throw new Error('Not implemented');
+      });
+
+      test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
+        throw new Error('Not implemented');
+      });
+
+      test('throws an error when the seed account does not exist in the vault', async () => {
+        throw new Error('Not implemented');
+      });
+
+      test('defaults to 1 account', async () => {
+        throw new Error('Not implemented');
+      });
+
+      test('allows to specify the number of accounts', async () => {
+        throw new Error('Not implemented');
+      });
+
+      test('resolves to the newly created HDChild account references', async () => {
+        throw new Error('Not implemented');
+      });
+
+      test('the newly created HDChild account references are persisted in the vault', async () => {
+        throw new Error('Not implemented');
+      });
+
+      test('selects the first available index for the HDChild account', async () => {
+        throw new Error('Not implemented');
+      });
+    });
   })
 
   describe('exportVault', () => {
@@ -1289,72 +1494,6 @@ export default <
       const recoveryPhrase = vaultTeller.createRecoveryPhrase()
       const isValid = vaultTeller.validateRecoveryPhrase(recoveryPhrase)
       expect(isValid).toBeTruthy()
-    });
-  });
-
-  describe('importRecoveryPhrase', () => {
-    test('throws "ArgumentError" if the recovery phrase is not provided', async () => {
-      throw new Error('Not implemented');
-    });
-
-    test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
-      throw new Error('Not implemented');
-    });
-
-    test('throws "VaultRestoreError" if the recovery phrase is not valid', async () => {
-      throw new Error('Not implemented');
-    });
-
-    describe('when the recovery phrase is valid', () => {
-      test('resolves to the newly created HDSeed and HDChild account references', async () => {
-        throw new Error('Not implemented');
-      });
-
-      test('the newly created HDChild account references are persisted in the vault', async () => {
-        throw new Error('Not implemented');
-      });
-
-      test('the newly created HDChild has the id of the HDSeed as parent', async () => {
-        throw new Error('Not implemented');
-      });
-
-      test('throws "AccountExistsError" if the HDSeed or HDChild account already exists in the vault', async () => {
-        throw new Error('Not implemented');
-      });
-    });
-  });
-
-  describe('addHDWalletAccount', () => {
-    test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
-      throw new Error('Not implemented');
-    });
-
-    test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
-      throw new Error('Not implemented');
-    });
-
-    test('throws an error when the seed account does not exist in the vault', async () => {
-      throw new Error('Not implemented');
-    });
-
-    test('defaults to 1 account', async () => {
-      throw new Error('Not implemented');
-    });
-
-    test('allows to specify the number of accounts', async () => {
-      throw new Error('Not implemented');
-    });
-
-    test('resolves to the newly created HDChild account references', async () => {
-      throw new Error('Not implemented');
-    });
-
-    test('the newly created HDChild account references are persisted in the vault', async () => {
-      throw new Error('Not implemented');
-    });
-
-    test('selects the first available index for the HDChild account', async () => {
-      throw new Error('Not implemented');
     });
   });
 }
