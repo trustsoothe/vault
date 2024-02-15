@@ -3,7 +3,7 @@ import {
   AccountExistError,
   AccountNotFoundError,
   AccountOptions,
-  AccountReference,
+  AccountReference, ArgumentError,
   Asset, EncryptedVault,
   ExternalAccessRequest,
   ForbiddenSessionError,
@@ -1251,26 +1251,44 @@ export default <
   })
 
   describe('createRecoveryPhrase', () => {
-    test('defaults to 12 words', async () => {
-      throw new Error('Not implemented');
+    test('defaults to 12 words', () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      const recoveryPhrase = vaultTeller.createRecoveryPhrase()
+      expect(recoveryPhrase.split(' ').length).toEqual(12)
     });
 
-    test('allows to specify the number of words', async () => {
-      throw new Error('Not implemented');
+    test('allows to specify the number of words', () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      const recoveryPhrase = vaultTeller.createRecoveryPhrase(24)
+      expect(recoveryPhrase.split(' ').length).toEqual(24)
     });
   });
 
   describe('validateRecoveryPhrase', () => {
-    test('throws "ArgumentError" if the recovery phrase is not provided', async () => {
-      throw new Error('Not implemented');
+    test('resolves to false if the recovery phrase is not provided', () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      // @ts-ignore
+      const isValid = vaultTeller.validateRecoveryPhrase(null)
+      expect(isValid).toBeFalsy()
     });
 
-    test('resolves to false if the recovery phrase is not valid', async () => {
-      throw new Error('Not implemented');
+    test('resolves to false if the recovery phrase is not valid', () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      const recoveryPhrase = 'invalid-recovery-phrase'
+      const isValid = vaultTeller.validateRecoveryPhrase(recoveryPhrase)
+      expect(isValid).toBeFalsy()
     });
 
-    test('resolves to true if the recovery phrase is valid', async () => {
-      throw new Error('Not implemented');
+    test('resolves to true if the recovery phrase is valid', () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore, encryptionService)
+      const recoveryPhrase = vaultTeller.createRecoveryPhrase()
+      const isValid = vaultTeller.validateRecoveryPhrase(recoveryPhrase)
+      expect(isValid).toBeTruthy()
     });
   });
 

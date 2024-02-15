@@ -39,6 +39,8 @@ import { IProtocolTransactionResult } from "./core/common/protocols/ProtocolTran
 import { PocketNetworkTransactionTypes } from "./core/common/protocols/PocketNetwork/PocketNetworkTransactionTypes";
 import { EthereumNetworkTransactionTypes } from "./core/common/protocols/EthereumNetwork/EthereumNetworkTransactionTypes";
 import { IAsset } from "./core/common/protocols/IAsset";
+import * as bip39 from "@scure/bip39";
+import { wordlist } from "@scure/bip39/wordlists/english";
 
 export type AllowedProtocols = keyof typeof SupportedProtocols;
 
@@ -680,12 +682,23 @@ export class VaultTeller {
     await this.vaultStore.save(newEncryptedVault.serialize());
   }
 
-  async createRecoveryPhrase(size: number = 12): Promise<string> {
-    throw new Error("Method not implemented.");
+  createRecoveryPhrase(size: number = 12): string {
+    const strengthMap = new Map<number, number>([
+      [12, 128],
+      [15, 160],
+      [18, 192],
+      [21, 224],
+      [24, 256],
+    ]);
+
+    return bip39.generateMnemonic(wordlist, strengthMap.get(size));
   }
 
-  async validateRecoveryPhrase(recoveryPhrase: string): Promise<boolean> {
-    throw new Error("Method not implemented.");
+  validateRecoveryPhrase(recoveryPhrase: string): boolean {
+    if (!recoveryPhrase) {
+      return false;
+    }
+    return bip39.validateMnemonic(recoveryPhrase, wordlist);
   }
 
   async importRecoveryPhrase(recoveryPhrase: string, passphrase: string): Promise<AccountReference> {
