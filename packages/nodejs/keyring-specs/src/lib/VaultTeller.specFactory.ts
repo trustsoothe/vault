@@ -1094,17 +1094,17 @@ export default <
       });
     })
 
+    const createVault = async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault('passphrase')
+      const session = await vaultTeller.unlockVault('passphrase')
+      const passphrase = new Passphrase('passphrase')
+
+      return {vaultTeller, session, passphrase};
+    }
+
     describe('importRecoveryPhrase', () => {
-      const createVault = async () => {
-        vaultStore = createVaultStore()
-        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
-        await vaultTeller.initializeVault('passphrase')
-        const session = await vaultTeller.unlockVault('passphrase')
-        const passphrase = new Passphrase('passphrase')
-
-        return {vaultTeller, session, passphrase};
-      }
-
       test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
         vaultStore = createVaultStore()
         const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
@@ -1262,23 +1262,62 @@ export default <
 
     describe('addHDWalletAccount', () => {
       test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
-        throw new Error('Not implemented');
+        const {vaultTeller} = await createVault();
+        // @ts-ignore
+        const addHDWalletAccountOperation = vaultTeller.addHDWalletAccount(null, null, null)
+        await expect(addHDWalletAccountOperation).rejects.toThrow(SessionIdRequiredError)
       });
 
       test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
-        throw new Error('Not implemented');
+        const {vaultTeller, session} = await createVault();
+        // @ts-ignore
+        const addHDWalletAccountOperation = vaultTeller.addHDWalletAccount(session.id, null, null)
+        await expect(addHDWalletAccountOperation).rejects.toThrow(VaultRestoreError)
       });
 
       test('throws an error when the seed account does not exist in the vault', async () => {
-        throw new Error('Not implemented');
+        const {vaultTeller, session, passphrase } = await createVault();
+
+        const addHDWalletAccountOperation = vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          seedAccountId: 'fake',
+        })
+
+        await expect(addHDWalletAccountOperation).rejects.toThrow(AccountNotFoundError)
       });
 
       test('defaults to 1 account', async () => {
-        throw new Error('Not implemented');
+        const {vaultTeller, session, passphrase} = await initializePermissionLessVault();
+        const accounts = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+          protocol: SupportedProtocols.Pocket,
+          seedAccountName: 'example-hd-wallet',
+        })
+
+        const hdSeed = accounts.find((a) => a.accountType === AccountType.HDSeed)
+
+        const hdChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          seedAccountId: hdSeed?.id!,
+        })
+
+        expect(hdChildren.length).toEqual(1)
       });
 
       test('allows to specify the number of accounts', async () => {
-        throw new Error('Not implemented');
+        const {vaultTeller, session, passphrase} = await initializePermissionLessVault();
+        const accounts = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+          protocol: SupportedProtocols.Pocket,
+          seedAccountName: 'example-hd-wallet',
+        })
+
+        const hdSeed = accounts.find((a) => a.accountType === AccountType.HDSeed)
+
+        const hdChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          seedAccountId: hdSeed?.id!,
+          count: 5,
+        })
+
+        expect(hdChildren.length).toEqual(5)
       });
 
       test('resolves to the newly created HDChild account references', async () => {

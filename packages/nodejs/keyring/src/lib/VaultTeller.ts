@@ -725,6 +725,7 @@ export class VaultTeller {
     vaultPassphrase: Passphrase,
     options: AddHDWalletAccountOptions,
   ): Promise<AccountReference[]> {
+    await this.validateSessionForPermissions(sessionId, "account", "create");
     throw new Error("Method not implemented.");
   }
 
