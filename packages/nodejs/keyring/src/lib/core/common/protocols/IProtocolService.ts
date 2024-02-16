@@ -6,8 +6,6 @@ import {IAsset} from "./IAsset";
 import {NetworkStatus} from "../values/NetworkStatus";
 import {IAbstractProtocolFeeRequestOptions} from "./ProtocolFeeRequestOptions";
 import {IProtocolTransactionResult, ProtocolTransaction} from "./ProtocolTransaction";
-import {PocketNetworkProtocolTransaction} from "./PocketNetwork/PocketNetworkProtocolTransaction";
-import {EthereumNetworkProtocolTransaction} from "./EthereumNetwork/EthereumNetworkProtocolTransaction";
 
 export interface CreateAccountOptions {
   name?: string
@@ -45,4 +43,6 @@ export interface IProtocolService<T extends SupportedProtocols> {
   getFee(network: INetwork, options?: IAbstractProtocolFeeRequestOptions<T>): Promise<ProtocolFee<T>>
   getBalance(account: AccountReference, network: INetwork, asset?: IAsset): Promise<number>
   getAddressFromPrivateKey(privateKey: string): Promise<string>
+  createAccountsFromRecoveryPhrase(options: ImportRecoveryPhraseOptions): Promise<Account[]>
+  createHDWalletAccount(options: AddHDWalletAccountOptions): Promise<Account[]>
 }

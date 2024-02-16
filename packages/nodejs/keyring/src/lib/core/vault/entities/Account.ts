@@ -3,6 +3,7 @@ import {SupportedProtocols} from '../../common/values'
 import IEntity from '../../common/IEntity'
 import {ArgumentError} from '../../../errors'
 import {AccountReference, AccountType} from '../'
+import {isNil, isNumber} from "lodash";
 
 export interface SerializedAccount extends IEntity {
   id: string
@@ -79,11 +80,11 @@ export class Account implements IEntity {
         throw new ArgumentError('Parent ID cannot be null or empty when account type is HDChild')
      }
 
-     if (!options.hdwIndex || options.hdwIndex < 0) {
+     if (isNil(options.hdwIndex) || (isNumber(options.hdwIndex) && options.hdwIndex < 0)) {
         throw new ArgumentError('HDW Index cannot be null or empty or less than 0 when account type is HDChild')
      }
 
-      if (!options.hdwAccountIndex || options.hdwAccountIndex < 0) {
+      if (isNil(options.hdwAccountIndex) || (isNumber(options.hdwAccountIndex) && options.hdwAccountIndex  < 0)) {
         throw new ArgumentError('HDW Account Index cannot be null or empty or less than 0 when account type is HDChild')
       }
     }
@@ -97,8 +98,8 @@ export class Account implements IEntity {
     this._secure = options.secure
     this._accountType = options.accountType || AccountType.Individual
     this._parentId = options.parentId || undefined
-    this._hdwIndex = options.hdwIndex || undefined
-    this._hdwIndex = options.hdwAccountIndex || undefined
+    this._hdwIndex = isNumber(options.hdwIndex) ? options.hdwIndex : undefined
+    this._hdwAccountIndex = isNumber(options.hdwAccountIndex) ? options.hdwAccountIndex : undefined
     this._createdAt = Date.now()
     this._updatedAt = Date.now()
   }
@@ -201,6 +202,6 @@ export class Account implements IEntity {
   }
 
   asAccountReference(): AccountReference {
-    return new AccountReference(this.id, this.name, this.address, this.protocol)
+    return new AccountReference(this.id, this.name, this.address, this.protocol, this.accountType, this.parentId)
   }
 }

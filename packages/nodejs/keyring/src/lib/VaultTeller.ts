@@ -708,18 +708,16 @@ export class VaultTeller {
       this.encryptionService
     );
 
-    throw new Error("Method not implemented.");
+    const accounts = await protocolService.createAccountsFromRecoveryPhrase(options);
 
-    // const accounts = await protocolService.importRecoveryPhrase(options);
+    for (const account of accounts) {
+      await this.addVaultAccount(account, vaultPassphrase);
+      await this.addAccountToSession(sessionId, account);
+    }
 
-    // for (const account of accounts) {
-    //   await this.addVaultAccount(account, vaultPassphrase);
-    //   await this.addAccountToSession(sessionId, account);
-    // }
-    //
-    // await this.updateSessionLastActivity(sessionId);
-    //
-    // return accounts.map((a) => a.asAccountReference());
+    await this.updateSessionLastActivity(sessionId);
+
+    return accounts.map((a) => a.asAccountReference());
   }
 
   async addHDWalletAccount(
@@ -762,7 +760,7 @@ export class VaultTeller {
     }
 
     try {
-      return Vault.deserialize(JSON.parse(vaultJson));
+      return Vault.deserialize(JSON.parse(vaultJson))
     } catch (error) {
       throw new Error(
         "Unable to deserialize vault. Has it been tempered with?"

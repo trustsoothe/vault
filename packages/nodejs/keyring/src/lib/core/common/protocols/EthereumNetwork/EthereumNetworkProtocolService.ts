@@ -1,4 +1,9 @@
-import {CreateAccountFromPrivateKeyOptions, CreateAccountOptions, IProtocolService,} from "../IProtocolService";
+import {AddHDWalletAccountOptions,
+  CreateAccountFromPrivateKeyOptions,
+  CreateAccountOptions,
+  ImportRecoveryPhraseOptions,
+  IProtocolService,
+} from "../IProtocolService";
 import {Account} from "../../../vault";
 import {AccountReference, SupportedProtocols} from "../../values";
 import Eth from "web3-eth";
@@ -34,7 +39,7 @@ import {EthereumNetworkProtocolTransaction} from "./EthereumNetworkProtocolTrans
 import {EthereumNetworkTransactionTypes} from "./EthereumNetworkTransactionTypes";
 import {EthereumNetworkFee} from "./EthereumNetworkFee";
 import {SignTypedDataVersion, TypedDataUtils} from "@metamask/eth-sig-util";
-import {ecsign}  from 'ethereumjs-util'
+import {ecsign} from 'ethereumjs-util'
 
 interface SuggestedFeeSpeed {
   suggestedMaxPriorityFeePerGas: string;
@@ -67,9 +72,16 @@ export interface SignPersonalDataRequest {
 }
 
 export class EthereumNetworkProtocolService
-  implements IProtocolService<SupportedProtocols.Ethereum>
-{
-  constructor(private encryptionService: IEncryptionService) {}
+  implements IProtocolService<SupportedProtocols.Ethereum> {
+  constructor(private encryptionService: IEncryptionService) {
+  }
+
+  async createAccountsFromRecoveryPhrase(options: ImportRecoveryPhraseOptions): Promise<Account[]> {
+    throw new Error("Method not implemented.");
+  }
+  async createHDWalletAccount(options: AddHDWalletAccountOptions): Promise<Account[]> {
+    throw new Error("Method not implemented.");
+  }
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
     if (!options.protocol) {

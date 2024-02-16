@@ -1129,7 +1129,7 @@ export default <
         // @ts-ignore
         const importRecoveryPhraseOperation = vaultTeller.importRecoveryPhrase(session.id, null, {
           seedAccountName: 'example-hd-wallet',
-          recoveryPhrase: 'example invalid recovery phrase',
+          recoveryPhrase: vaultTeller.createRecoveryPhrase(),
           protocol: SupportedProtocols.Pocket,
         })
 
@@ -1235,6 +1235,7 @@ export default <
           })
 
           const accounts = await vaultTeller.listAccounts(session.id)
+
           const hdChild = accountReferences.find((a) => a.accountType === AccountType.HDChild)
 
           expect(accounts).toContainEqual(hdChild)
