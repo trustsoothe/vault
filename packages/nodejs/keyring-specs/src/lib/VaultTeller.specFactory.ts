@@ -739,16 +739,22 @@ export default <
     return {vaultTeller, session, passphrase};
   }
 
+  const createVault = async () => {
+    vaultStore = createVaultStore()
+    const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+    await vaultTeller.initializeVault('passphrase')
+    const session = await vaultTeller.unlockVault('passphrase')
+    const passphrase = new Passphrase('passphrase')
+
+    return {vaultTeller, session, passphrase};
+  }
+
   describe('Account creation - Pocket Network', () => {
     const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'
     const expectedAddress = '30fd308b3bf2126030aba7f0e342dcb8b4922a8b';
 
     async function createVaultAndImportAccountFromPK(skipEncryption: boolean = false) {
-      vaultStore = createVaultStore()
-      const passphrase = new Passphrase('passphrase');
-      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
-      await vaultTeller.initializeVault(passphrase.get())
-      const ownerSession = await vaultTeller.unlockVault(passphrase.get())
+      const {vaultTeller, session: ownerSession, passphrase} = await createVault();
       const account = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
         name: 'example-account',
         protocol: pocketAsset.protocol,
@@ -1094,16 +1100,6 @@ export default <
       });
     })
 
-    const createVault = async () => {
-      vaultStore = createVaultStore()
-      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
-      await vaultTeller.initializeVault('passphrase')
-      const session = await vaultTeller.unlockVault('passphrase')
-      const passphrase = new Passphrase('passphrase')
-
-      return {vaultTeller, session, passphrase};
-    }
-
     describe('importRecoveryPhrase', () => {
       test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
         vaultStore = createVaultStore()
@@ -1320,16 +1316,90 @@ export default <
         expect(hdChildren.length).toEqual(5)
       });
 
-      test('resolves to the newly created HDChild account references', async () => {
-        throw new Error('Not implemented');
+      test('creates new HDChild account references', async () => {
+        const { vaultTeller, session, passphrase } = await createVault();
+        const accounts = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+          protocol: SupportedProtocols.Pocket,
+          seedAccountName: 'example-hd-wallet',
+        });
+
+        const hdSeed = accounts.find((a) => a.accountType === AccountType.HDSeed);
+        const hdChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          seedAccountId: hdSeed?.id!,
+          count: 3,
+        });
+
+        expect(hdChildren.length).toEqual(3);
       });
 
-      test('the newly created HDChild account references are persisted in the vault', async () => {
-        throw new Error('Not implemented');
+      test('persists new HDChild account references in the vault', async () => {
+        const { vaultTeller, session, passphrase } = await createVault();
+        const accounts = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+          protocol: SupportedProtocols.Pocket,
+          seedAccountName: 'example-hd-wallet',
+        });
+
+        const hdSeed = accounts.find((a) => a.accountType === AccountType.HDSeed);
+        const hdChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          seedAccountId: hdSeed?.id!,
+          count: 5,
+        });
+
+        const persistedAccounts = await vaultTeller.listAccounts(session.id);
+        hdChildren.forEach((child) => {
+          expect(persistedAccounts).toContainEqual(child);
+        });
       });
 
-      test('selects the first available index for the HDChild account', async () => {
-        throw new Error('Not implemented');
+      test('selects first available index for HDChild account when there is a gap', async () => {
+        // Generate 4 new accounts then create a gap by deleting the second one
+        // Once the gap is created, add a new account and check that it takes the second index
+        const { vaultTeller, session, passphrase } = await createVault();
+        const accounts = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+          protocol: SupportedProtocols.Pocket,
+          seedAccountName: 'example-hd-wallet',
+        });
+
+        const hdSeed = accounts.find((a) => a.accountType === AccountType.HDSeed);
+
+        const originalChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          seedAccountId: hdSeed?.id!,
+          count: 4,
+        });
+
+        await vaultTeller.removeAccount(session.id, passphrase, originalChildren[1]);
+
+        const newChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          seedAccountId: hdSeed?.id!,
+          count: 1,
+        });
+
+        expect(newChildren[0].index).toEqual(1);
+      });
+
+      test('selects the next available index for HDChild account in sequence when there are no gaps', async () => {
+        const { vaultTeller, session, passphrase } = await createVault();
+        const accounts = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+          protocol: SupportedProtocols.Pocket,
+          seedAccountName: 'example-hd-wallet',
+        });
+
+        const hdSeed = accounts.find((a) => a.accountType === AccountType.HDSeed);
+        const firstChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          seedAccountId: hdSeed?.id!,
+          count: 1,
+        });
+
+        const secondChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          seedAccountId: hdSeed?.id!,
+          count: 1,
+        });
+
+        expect(firstChild[0].index).toBeLessThan(secondChild[0].index);
       });
     });
   })
