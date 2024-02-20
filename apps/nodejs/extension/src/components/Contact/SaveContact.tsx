@@ -16,7 +16,7 @@ import {
   SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/keyring";
-import { nameRules } from "../Account/CreateNew";
+import { nameRules } from "../Account/CreateModal";
 import { enqueueSnackbar } from "../../utils/ui";
 import { CONTACTS_PAGE } from "../../constants/routes";
 import CircularLoading from "../common/CircularLoading";
@@ -215,6 +215,7 @@ const SaveContact: React.FC = () => {
               <TextField
                 label={"Name"}
                 size={"small"}
+                required
                 fullWidth
                 autoComplete={"off"}
                 error={!!error}
@@ -269,6 +270,7 @@ const SaveContact: React.FC = () => {
               <TextField
                 size={"small"}
                 autoComplete={"off"}
+                required
                 label={"Address"}
                 error={!!error}
                 helperText={error?.message}

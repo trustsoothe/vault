@@ -1,3 +1,4 @@
+import type { OutletContext } from "../../types";
 import type { AssetLocationState } from "../Transfer";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Grow from "@mui/material/Grow";
@@ -6,7 +7,11 @@ import Popper from "@mui/material/Popper";
 import Button from "@mui/material/Button";
 import { shallowEqual } from "react-redux";
 import Divider from "@mui/material/Divider";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  useNavigate,
+  useOutletContext,
+  useSearchParams,
+} from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import { type SxProps, useTheme } from "@mui/material";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
@@ -17,9 +22,7 @@ import ExploreIcon from "../../assets/img/explore_icon.svg";
 import WPoktIcon from "../../assets/img/wpokt_icon.svg";
 import {
   ACCOUNT_PK_PAGE,
-  CREATE_ACCOUNT_PAGE,
   IMPORT_ACCOUNT_PAGE,
-  REIMPORT_SEARCH_PARAM,
   TRANSFER_PAGE,
 } from "../../constants/routes";
 import RenameModal from "./RenameModal";
@@ -113,6 +116,7 @@ const SelectedAccount: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { toggleShowCreateAccount } = useOutletContext<OutletContext>();
   const [searchParams, setURLSearchParams] = useSearchParams();
   const [modalToShow, setModalToShow] = useState<
     "none" | "rename" | "remove" | "assets"
@@ -254,12 +258,6 @@ const SelectedAccount: React.FC = () => {
     }
   }, [navigate, selectedAccount]);
 
-  const onClickReimport = useCallback(() => {
-    if (selectedAccount) {
-      navigate(`${IMPORT_ACCOUNT_PAGE}${REIMPORT_SEARCH_PARAM}`);
-    }
-  }, [selectedAccount, navigate]);
-
   const onClickExplorer = useCallback(() => {
     if (explorerAccountUrl && selectedAccount?.address) {
       let link = explorerAccountUrl.replace(
@@ -276,10 +274,6 @@ const SelectedAccount: React.FC = () => {
 
   const onClickImport = useCallback(() => {
     navigate(IMPORT_ACCOUNT_PAGE);
-  }, [navigate]);
-
-  const onClickNew = useCallback(() => {
-    navigate(CREATE_ACCOUNT_PAGE);
   }, [navigate]);
 
   const toggleWPoktVisible = useCallback(
@@ -381,7 +375,7 @@ const SelectedAccount: React.FC = () => {
             },
             {
               label: "New",
-              onClick: onClickNew,
+              onClick: toggleShowCreateAccount,
             },
           ].map(({ label, onClick }, index) => (
             <Button
@@ -404,6 +398,58 @@ const SelectedAccount: React.FC = () => {
   }
 
   const isPokt = selectedProtocol === SupportedProtocols.Pocket;
+
+  const menuItems = [];
+
+  if (selectedAsset) {
+    menuItems.push({
+      key: "remove_asset_item",
+      label: "Remove Asset",
+      onClick: showAssetsModal,
+      customProps: {
+        color: theme.customColors.red100,
+        sx: {
+          "&:hover": {
+            color: theme.customColors.white,
+            backgroundColor: theme.customColors.red100,
+            fontWeight: 700,
+          },
+        },
+      },
+    });
+  } else {
+    menuItems.push(
+      {
+        key: "private_key_item",
+        label: "Private Key",
+        onClick: onClickPk,
+      },
+      {
+        key: "rename_item",
+        label: "Rename Account",
+        onClick: showRenameModal,
+      },
+      {
+        key: "divider1_item",
+        type: "divider",
+      },
+      {
+        key: "remove_item",
+        label: "Remove Account",
+        onClick: showRemoveModal,
+        customProps: {
+          color: theme.customColors.red100,
+          sx: {
+            "&:hover": {
+              color: theme.customColors.white,
+              backgroundColor: theme.customColors.red100,
+              fontWeight: 700,
+            },
+          },
+        },
+      }
+    );
+  }
 
   return (
     <>
@@ -481,7 +527,7 @@ const SelectedAccount: React.FC = () => {
                   <Grow {...TransitionProps}>
                     <Stack
                       width={140}
-                      height={selectedAsset ? 41 : 148}
+                      height={selectedAsset ? 41 : 120}
                       padding={0.5}
                       borderRadius={"8px"}
                       boxSizing={"border-box"}
@@ -495,106 +541,54 @@ const SelectedAccount: React.FC = () => {
                         borderTopRightRadius: "0px!important",
                       }}
                     >
-                      {(selectedAsset
-                        ? [
-                            {
-                              key: "remove_asset_item",
-                              label: "Remove Asset",
-                              onClick: showAssetsModal,
-                              customProps: {
-                                color: theme.customColors.red100,
-                                sx: {
+                      {menuItems.map(
+                        ({ type, label, onClick, customProps, key }) => {
+                          if (type === "divider") {
+                            return (
+                              <Divider
+                                key={key}
+                                sx={{
+                                  marginY: 0.7,
+                                  borderColor: theme.customColors.dark15,
+                                }}
+                              />
+                            );
+                          } else {
+                            return (
+                              <Typography
+                                key={key}
+                                width={1}
+                                height={30}
+                                fontSize={11}
+                                paddingX={0.5}
+                                lineHeight={"30px"}
+                                letterSpacing={"0.5px"}
+                                boxSizing={"border-box"}
+                                {...customProps}
+                                onClick={() => {
+                                  if (onClick) {
+                                    onClick();
+                                  }
+                                  onCloseMoreMenu();
+                                }}
+                                sx={{
+                                  cursor: "pointer",
+                                  userSelect: "none",
                                   "&:hover": {
+                                    backgroundColor:
+                                      theme.customColors.primary500,
                                     color: theme.customColors.white,
-                                    backgroundColor: theme.customColors.red100,
                                     fontWeight: 700,
                                   },
-                                },
-                              },
-                            },
-                          ]
-                        : [
-                            {
-                              key: "private_key_item",
-                              label: "Private Key",
-                              onClick: onClickPk,
-                            },
-                            {
-                              key: "reimport_item",
-                              label: "Reimport Account",
-                              onClick: onClickReimport,
-                            },
-                            {
-                              key: "rename_item",
-                              label: "Rename Account",
-                              onClick: showRenameModal,
-                            },
-                            {
-                              key: "divider1_item",
-                              type: "divider",
-                            },
-                            {
-                              key: "remove_item",
-                              label: "Remove Account",
-                              onClick: showRemoveModal,
-                              customProps: {
-                                color: theme.customColors.red100,
-                                sx: {
-                                  "&:hover": {
-                                    color: theme.customColors.white,
-                                    backgroundColor: theme.customColors.red100,
-                                    fontWeight: 700,
-                                  },
-                                },
-                              },
-                            },
-                          ]
-                      ).map(({ type, label, onClick, customProps, key }) => {
-                        if (type === "divider") {
-                          return (
-                            <Divider
-                              key={key}
-                              sx={{
-                                marginY: 0.7,
-                                borderColor: theme.customColors.dark15,
-                              }}
-                            />
-                          );
-                        } else {
-                          return (
-                            <Typography
-                              key={key}
-                              width={1}
-                              height={30}
-                              fontSize={11}
-                              paddingX={0.5}
-                              lineHeight={"30px"}
-                              letterSpacing={"0.5px"}
-                              boxSizing={"border-box"}
-                              {...customProps}
-                              onClick={() => {
-                                if (onClick) {
-                                  onClick();
-                                }
-                                onCloseMoreMenu();
-                              }}
-                              sx={{
-                                cursor: "pointer",
-                                userSelect: "none",
-                                "&:hover": {
-                                  backgroundColor:
-                                    theme.customColors.primary500,
-                                  color: theme.customColors.white,
-                                  fontWeight: 700,
-                                },
-                                ...customProps?.sx,
-                              }}
-                            >
-                              {label}
-                            </Typography>
-                          );
+                                  ...customProps?.sx,
+                                }}
+                              >
+                                {label}
+                              </Typography>
+                            );
+                          }
                         }
-                      })}
+                      )}
                     </Stack>
                   </Grow>
                 </ClickAwayListener>

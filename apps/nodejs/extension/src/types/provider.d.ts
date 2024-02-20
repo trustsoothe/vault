@@ -60,6 +60,28 @@ interface GetPoktTxRequest {
   params: [{ hash: string }];
 }
 
+export interface SignTypedData {
+  types: Record<string, { name: string; type: string }[]>;
+  primaryType: string;
+  domain: {
+    name: string;
+    verifyingContract: string;
+    chainId?: number;
+    version?: string;
+  };
+  message: Record<string, unknown>;
+}
+
+interface SignTypedDataRequest {
+  method: typeof EthereumMethod.SIGN_TYPED_DATA;
+  params: [string, SignTypedData];
+}
+
+interface PersonalSignRequest {
+  method: typeof EthereumMethod.PERSONAL_SIGN;
+  params: [string, string];
+}
+
 export type Method =
   | AccountRequest
   | ChainRequest
@@ -69,7 +91,9 @@ export type Method =
   | SendTransactionRequest
   | ListAccountRequest
   | GetPoktTxRequest
-  | SwitchChainRequest;
+  | SwitchChainRequest
+  | SignTypedDataRequest
+  | PersonalSignRequest;
 
 export type SuccessfulCallback = (error: null, res: unknown) => unknown;
 export type ErrorCallback = (error: unknown, res: null) => unknown;

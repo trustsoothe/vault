@@ -1,4 +1,4 @@
-import type { ExternalConnectionRequest } from "../../types/communication";
+import type { AppConnectionRequest } from "../../types/communications/connection";
 import type { AccountBalanceInfo } from "../../redux/slices/app";
 import React, {
   useCallback,
@@ -185,7 +185,7 @@ const AccountItem: React.FC<AccountItemProps> = ({
 
 const NewConnect: React.FC = () => {
   const theme = useTheme();
-  const currentRequest: ExternalConnectionRequest = useLocation()?.state;
+  const currentRequest: AppConnectionRequest = useLocation()?.state;
   const protocol = currentRequest?.protocol;
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
@@ -240,7 +240,7 @@ const NewConnect: React.FC = () => {
     const symbolByProtocol = networks.reduce(
       (acc, network) => ({
         ...acc,
-        [network.protocol]: network.currencySymbol,
+        [`${network.protocol}-${network.chainId}`]: network.currencySymbol,
       }),
       {}
     );
@@ -251,7 +251,7 @@ const NewConnect: React.FC = () => {
         .map((item) => ({
           ...item,
           balanceInfo: balancesById?.[item.address] as AccountBalanceInfo,
-          symbol: symbolByProtocol[item.protocol] || "",
+          symbol: symbolByProtocol[`${item.protocol}-${selectedChain}`] || "",
         })),
       ["balanceInfo.amount"],
       ["desc"]

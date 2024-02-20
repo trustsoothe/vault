@@ -37,6 +37,7 @@
     "notistack": "3.0.1",
     "os-browserify": "0.3.0",
     "querystring-es3": "0.2.1",
+    "random-words": "2.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-hook-form": "7.45.0",
@@ -68,6 +69,7 @@
     "@svgr/webpack": "8.1.0",
     "@types/chrome": "0.0.237",
     "@types/events": "3.0.3",
+    "@types/file-saver": "2.0.7",
     "@types/jest": "29.5.0",
     "@types/lodash": "4.14.195",
     "@types/react": "18.2.0",
@@ -117,7 +119,9 @@
       "@poktscan/keyring>vitest>jsdom>ws>bufferutil": false,
       "@poktscan/keyring>vitest>jsdom>ws>utf-8-validate": false,
       "@poktscan/keyring>vitest>vite>esbuild": false,
-      "net-browserify>express-ws>ws": false
+      "net-browserify>express-ws>ws": false,
+      "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>keccak": false,
+      "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>secp256k1": false
     }
   }
 }

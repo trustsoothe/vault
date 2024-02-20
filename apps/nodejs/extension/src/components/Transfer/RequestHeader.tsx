@@ -9,9 +9,10 @@ import TooltipOverflow from "../common/TooltipOverflow";
 
 interface RequestHeaderProps {
   origin: string;
+  title: string;
 }
 
-const RequestHeader: React.FC<RequestHeaderProps> = ({ origin }) => {
+const RequestHeader: React.FC<RequestHeaderProps> = ({ origin, title }) => {
   const theme = useTheme();
   const isPopup = useIsPopup();
 
@@ -54,7 +55,7 @@ const RequestHeader: React.FC<RequestHeaderProps> = ({ origin }) => {
             color={"white"}
             marginRight={1}
           >
-            External Transfer Request
+            {title}
           </Typography>
         </Stack>
       </Stack>

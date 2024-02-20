@@ -7,14 +7,17 @@ import {
   BLOCK_SITE_PAGE,
   CHANGE_SELECTED_CHAIN_PAGE,
   CONTACTS_PAGE,
-  CREATE_ACCOUNT_PAGE,
   DISCONNECT_SITE_PAGE,
+  EXPORT_VAULT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
+  PERSONAL_SIGN_PAGE,
+  PREFERENCES_PAGE,
   REMOVE_CONTACT_PAGE,
   REMOVE_NETWORK_PAGE,
   REQUEST_CONNECTION_PAGE,
   SAVE_CONTACT_PAGE,
+  SIGN_TYPED_DATA_PAGE,
   SITES_PAGE,
   TRANSFER_PAGE,
   UNBLOCK_SITE_PAGE,
@@ -28,7 +31,6 @@ import { ToggleBlockSiteFromRouter } from "../components/Session/ToggleBlockSite
 import Network from "../components/Network";
 import AddUpdateNetwork from "../components/Network/AddUpdate";
 import RemoveNetwork from "../components/Network/Remove";
-import CreateNewAccount from "../components/Account/CreateNew";
 import ImportAccount from "../components/Account/Import";
 import Transfer from "../components/Transfer";
 import RequestHandler from "../components/RequestHandler";
@@ -39,6 +41,10 @@ import ContactList from "../components/Contact/List";
 import SaveContact from "../components/Contact/SaveContact";
 import RemoveContact from "../components/Contact/RemoveContact";
 import ChangeSelectedChain from "../components/Network/ChangeChain";
+import SignTypedData from "../components/Sign/TypedData";
+import PersonalSign from "../components/Sign/Personal";
+import Preferences from "../components/Preferences";
+import ExportVault from "../components/Vault/Export";
 
 export const router = createHashRouter([
   {
@@ -86,10 +92,6 @@ export const router = createHashRouter([
         element: <RemoveNetwork />,
       },
       {
-        path: CREATE_ACCOUNT_PAGE,
-        element: <CreateNewAccount />,
-      },
-      {
         path: IMPORT_ACCOUNT_PAGE,
         element: <ImportAccount />,
       },
@@ -109,6 +111,14 @@ export const router = createHashRouter([
         path: REMOVE_CONTACT_PAGE,
         element: <RemoveContact />,
       },
+      {
+        path: PREFERENCES_PAGE,
+        element: <Preferences />,
+      },
+      {
+        path: EXPORT_VAULT_PAGE,
+        element: <ExportVault />,
+      },
     ],
   },
 ]);
@@ -127,10 +137,6 @@ export const requestRouter = createHashRouter([
         element: <NewConnect />,
       },
       {
-        path: CREATE_ACCOUNT_PAGE,
-        element: <CreateNewAccount />,
-      },
-      {
         path: IMPORT_ACCOUNT_PAGE,
         element: <ImportAccount />,
       },
@@ -141,6 +147,14 @@ export const requestRouter = createHashRouter([
       {
         path: CHANGE_SELECTED_CHAIN_PAGE,
         element: <ChangeSelectedChain />,
+      },
+      {
+        path: SIGN_TYPED_DATA_PAGE,
+        element: <SignTypedData />,
+      },
+      {
+        path: PERSONAL_SIGN_PAGE,
+        element: <PersonalSign />,
       },
     ],
   },

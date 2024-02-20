@@ -22,7 +22,8 @@ import {
   SessionIdRequiredError,
   SessionNotFoundError,
   VaultIsLockedError,
-  VaultRestoreError, VaultUninitializedError,
+  VaultRestoreError,
+  VaultUninitializedError,
 } from "./errors";
 import {
   CreateAccountFromPrivateKeyOptions,
@@ -82,18 +83,21 @@ export class VaultTeller {
     private readonly encryptionService: IEncryptionService
   ) {}
 
-  async unlockVault(passphrase: string, vaultOptions: VaultOptions = {}): Promise<Session> {
+  async unlockVault(
+    passphrase: string,
+    vaultOptions: VaultOptions = {}
+  ): Promise<Session> {
     const passphraseValue = new Passphrase(passphrase);
     const serializedEncryptedVault = await this.vaultStore.get();
 
     if (!serializedEncryptedVault) {
-      throw new VaultUninitializedError()
+      throw new VaultUninitializedError();
     }
 
     const encryptedVault = EncryptedVault.deserialize(serializedEncryptedVault);
 
     if (!encryptedVault) {
-      throw new VaultUninitializedError()
+      throw new VaultUninitializedError();
     }
 
     const vault = await this.decryptVault(passphraseValue, encryptedVault);
@@ -112,7 +116,10 @@ export class VaultTeller {
 
     const sessionOptions: SessionOptions = { permissions };
 
-    if (vaultOptions?.sessionMaxAge !== null && vaultOptions?.sessionMaxAge !== undefined) {
+    if (
+      vaultOptions?.sessionMaxAge !== null &&
+      vaultOptions?.sessionMaxAge !== undefined
+    ) {
       sessionOptions.maxAge = vaultOptions?.sessionMaxAge;
     }
 
@@ -281,7 +288,7 @@ export class VaultTeller {
     accountPassphrase?: Passphrase
   ): Promise<string> {
     await this.validateSessionForPermissions(sessionId, "account", "read", [
-      accountReference.id,
+      accountReference.address,
     ]);
 
     if (!this.isUnlocked) {
@@ -573,10 +580,6 @@ export class VaultTeller {
       throw new ArgumentError("from.value");
     }
 
-    if (!options.from.passphrase) {
-      throw new ArgumentError("from.passphrase");
-    }
-
     const account = this._vault?.accounts.find(
       (account) => account.id === options.from.value
     );
@@ -585,16 +588,25 @@ export class VaultTeller {
       throw new AccountNotFoundError();
     }
 
+    if (!options.from.passphrase && account.isSecure) {
+      throw new ArgumentError("from.passphrase");
+    }
+
     let privateKey: string;
 
-    try {
-      privateKey = await this.encryptionService.decrypt(
-        new Passphrase(options.from.passphrase || ""),
-        account.privateKey
-      );
-    } catch (e) {
-      throw new PrivateKeyRestoreError();
+    if (account.isSecure) {
+      try {
+        privateKey = await this.encryptionService.decrypt(
+          new Passphrase(options.from.passphrase || ""),
+          account.privateKey
+        );
+      } catch (e) {
+        throw new PrivateKeyRestoreError();
+      }
+    } else {
+      privateKey = account.privateKey;
     }
+
     return { account, privateKey };
   }
 
@@ -617,33 +629,43 @@ export class VaultTeller {
   async getSession(sessionId: string): Promise<Session | null> {
     const serializedSession = await this.sessionStore.getById(sessionId);
     if (serializedSession) {
-      return Session.deserialize(serializedSession)
+      return Session.deserialize(serializedSession);
     }
     return null;
   }
 
-  async exportVault(vaultPassphraseValue: string, newPassphraseValue: string = vaultPassphraseValue) {
-    const vaultPassphrase = new Passphrase(vaultPassphraseValue)
-    const vault = await this.getVault(vaultPassphrase)
+  async exportVault(
+    vaultPassphraseValue: string,
+    newPassphraseValue: string = vaultPassphraseValue
+  ) {
+    const vaultPassphrase = new Passphrase(vaultPassphraseValue);
+    const vault = await this.getVault(vaultPassphrase);
     if (newPassphraseValue === vaultPassphraseValue) {
       return this.getEncryptedVault();
     }
 
-    const newPassphrase = new Passphrase(newPassphraseValue)
+    const newPassphrase = new Passphrase(newPassphraseValue);
     return this.encryptVault(newPassphrase, vault);
   }
 
-  async importVault(encryptedVault: EncryptedVault, passphraseValue: string, newPassphraseValue = passphraseValue) {
+  async importVault(
+    encryptedVault: EncryptedVault,
+    passphraseValue: string,
+    newPassphraseValue = passphraseValue
+  ) {
     if (!encryptedVault) {
-      throw new VaultRestoreError()
+      throw new VaultRestoreError();
     }
 
-    const passphrase = new Passphrase(passphraseValue)
-    const newPassphrase = new Passphrase(newPassphraseValue)
-    const vaultToImport = await this.decryptVault(passphrase, encryptedVault)
-    this._vault = Vault.FromVault(vaultToImport)
-    const newEncryptedVault = await this.encryptVault(newPassphrase, this._vault)
-    await this.vaultStore.save(newEncryptedVault.serialize())
+    const passphrase = new Passphrase(passphraseValue);
+    const newPassphrase = new Passphrase(newPassphraseValue);
+    const vaultToImport = await this.decryptVault(passphrase, encryptedVault);
+    this._vault = Vault.FromVault(vaultToImport);
+    const newEncryptedVault = await this.encryptVault(
+      newPassphrase,
+      this._vault
+    );
+    await this.vaultStore.save(newEncryptedVault.serialize());
   }
 
   private async encryptVault(
@@ -765,11 +787,11 @@ export class VaultTeller {
     return await this.decryptVault(vaultPassphrase, encryptedOriginalVault);
   }
 
-  private async getEncryptedVault() {
+  async getEncryptedVault() {
     const serializedEncryptedVault = await this.vaultStore.get();
 
     if (!serializedEncryptedVault) {
-      throw new VaultUninitializedError()
+      throw new VaultUninitializedError();
     }
 
     const encryptedOriginalVault = EncryptedVault.deserialize(
@@ -777,7 +799,7 @@ export class VaultTeller {
     );
 
     if (!encryptedOriginalVault) {
-      throw new VaultUninitializedError()
+      throw new VaultUninitializedError();
     }
     return encryptedOriginalVault;
   }

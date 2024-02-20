@@ -368,6 +368,164 @@
         "@mui/lab>@babel/runtime": true
       }
     },
+    "@poktscan/keyring-encryption-web>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "@poktscan/keyring>@metamask/eth-sig-util": {
+      "packages": {
+        "@poktscan/keyring>@metamask/eth-sig-util>@ethereumjs/util": true,
+        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/abi-utils": true,
+        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils": true,
+        "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl": true,
+        "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl-util": true,
+        "browserify>buffer": true,
+        "ethereum-cryptography": true
+      }
+    },
+    "@poktscan/keyring>@metamask/eth-sig-util>@ethereumjs/util": {
+      "globals": {
+        "console.warn": true
+      },
+      "packages": {
+        "@poktscan/keyring>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": true,
+        "browserify>buffer": true,
+        "browserify>insert-module-globals>is-buffer": true,
+        "ethereum-cryptography": true,
+        "events": true,
+        "web3-eth-accounts>@ethereumjs/rlp": true
+      }
+    },
+    "@poktscan/keyring>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": {
+      "globals": {
+        "Headers": true,
+        "TextDecoder": true,
+        "URL": true,
+        "btoa": true,
+        "fetch": true
+      },
+      "packages": {
+        "assert>util": true,
+        "browserify-zlib": true,
+        "browserify>buffer": true,
+        "https-browserify": true,
+        "process": true,
+        "stream-http": true,
+        "url": true
+      }
+    },
+    "@poktscan/keyring>@metamask/eth-sig-util>@metamask/abi-utils": {
+      "packages": {
+        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils": true,
+        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>superstruct": true
+      }
+    },
+    "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true
+      },
+      "packages": {
+        "@poktscan/keyring-encryption-web>@noble/hashes": true,
+        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>@scure/base": true,
+        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>pony-cause": true,
+        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>superstruct": true,
+        "browserify>buffer": true,
+        "ts-jest>@babel/core>debug": true,
+        "ts-jest>semver": true
+      }
+    },
+    "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>@scure/base": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true
+      }
+    },
+    "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>superstruct": {
+      "globals": {
+        "console.warn": true,
+        "define": true
+      }
+    },
+    "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl": {
+      "globals": {
+        "crypto": true,
+        "msCrypto": true,
+        "nacl": "write"
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
+    "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl-util": {
+      "globals": {
+        "atob": true,
+        "btoa": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
+    "@poktscan/keyring>ethereumjs-util": {
+      "packages": {
+        "@poktscan/keyring>ethereumjs-util>bn.js": true,
+        "@poktscan/keyring>ethereumjs-util>ethereum-cryptography": true,
+        "@poktscan/keyring>ethereumjs-util>rlp": true,
+        "browserify>assert": true,
+        "browserify>buffer": true,
+        "browserify>insert-module-globals>is-buffer": true,
+        "crypto-browserify>create-hash": true
+      }
+    },
+    "@poktscan/keyring>ethereumjs-util>bn.js": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
+    "@poktscan/keyring>ethereumjs-util>ethereum-cryptography": {
+      "packages": {
+        "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>keccak": true,
+        "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>secp256k1": true,
+        "browserify>buffer": true,
+        "crypto-browserify>randombytes": true
+      }
+    },
+    "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>hash.js": {
+      "packages": {
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
+        "glob>inherits": true
+      }
+    },
+    "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>keccak": {
+      "packages": {
+        "browserify>buffer": true,
+        "stream-http>readable-stream": true
+      }
+    },
+    "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>secp256k1": {
+      "packages": {
+        "crypto-browserify>create-ecdh>elliptic": true
+      }
+    },
+    "@poktscan/keyring>ethereumjs-util>rlp": {
+      "packages": {
+        "@poktscan/keyring>ethereumjs-util>rlp>bn.js": true,
+        "browserify>buffer": true
+      }
+    },
+    "@poktscan/keyring>ethereumjs-util>rlp>bn.js": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
     "@poktscan/keyring>protobufjs": {
       "globals": {
         "setTimeout": true
@@ -589,6 +747,145 @@
         "process": true
       }
     },
+    "assert>call-bind": {
+      "packages": {
+        "assert>call-bind>function-bind": true,
+        "assert>call-bind>get-intrinsic": true,
+        "assert>call-bind>set-function-length": true
+      }
+    },
+    "assert>call-bind>get-intrinsic": {
+      "globals": {
+        "AggregateError": true,
+        "FinalizationRegistry": true,
+        "WeakRef": true
+      },
+      "packages": {
+        "assert>call-bind>function-bind": true,
+        "assert>call-bind>get-intrinsic>has-proto": true,
+        "assert>call-bind>get-intrinsic>hasown": true,
+        "assert>object.assign>has-symbols": true
+      }
+    },
+    "assert>call-bind>get-intrinsic>hasown": {
+      "packages": {
+        "assert>call-bind>function-bind": true
+      }
+    },
+    "assert>call-bind>set-function-length": {
+      "packages": {
+        "assert>call-bind>get-intrinsic": true,
+        "assert>is-nan>define-properties>define-data-property": true,
+        "assert>is-nan>define-properties>has-property-descriptors": true,
+        "assert>util>which-typed-array>gopd": true
+      }
+    },
+    "assert>is-nan>define-properties>define-data-property": {
+      "packages": {
+        "assert>call-bind>get-intrinsic": true,
+        "assert>is-nan>define-properties>has-property-descriptors": true,
+        "assert>util>which-typed-array>gopd": true
+      }
+    },
+    "assert>is-nan>define-properties>has-property-descriptors": {
+      "packages": {
+        "assert>call-bind>get-intrinsic": true
+      }
+    },
+    "assert>object.assign": {
+      "packages": {
+        "assert>call-bind": true,
+        "assert>object.assign>has-symbols": true,
+        "assert>object.assign>object-keys": true
+      }
+    },
+    "assert>util": {
+      "globals": {
+        "console.error": true,
+        "console.log": true,
+        "console.trace": true
+      },
+      "packages": {
+        "assert>util>is-arguments": true,
+        "assert>util>is-generator-function": true,
+        "assert>util>is-typed-array": true,
+        "assert>util>which-typed-array": true,
+        "glob>inherits": true,
+        "process": true
+      }
+    },
+    "assert>util>is-arguments": {
+      "packages": {
+        "assert>call-bind": true,
+        "assert>util>is-arguments>has-tostringtag": true
+      }
+    },
+    "assert>util>is-arguments>has-tostringtag": {
+      "packages": {
+        "assert>object.assign>has-symbols": true
+      }
+    },
+    "assert>util>is-generator-function": {
+      "packages": {
+        "assert>util>is-arguments>has-tostringtag": true
+      }
+    },
+    "assert>util>is-typed-array": {
+      "packages": {
+        "assert>util>which-typed-array": true
+      }
+    },
+    "assert>util>which-typed-array": {
+      "packages": {
+        "assert>call-bind": true,
+        "assert>util>is-arguments>has-tostringtag": true,
+        "assert>util>which-typed-array>available-typed-arrays": true,
+        "assert>util>which-typed-array>for-each": true,
+        "assert>util>which-typed-array>gopd": true
+      }
+    },
+    "assert>util>which-typed-array>for-each": {
+      "packages": {
+        "assert>util>which-typed-array>for-each>is-callable": true
+      }
+    },
+    "assert>util>which-typed-array>for-each>is-callable": {
+      "globals": {
+        "document": true
+      }
+    },
+    "assert>util>which-typed-array>gopd": {
+      "packages": {
+        "assert>call-bind>get-intrinsic": true
+      }
+    },
+    "browserify-zlib": {
+      "packages": {
+        "assert>util": true,
+        "browserify-zlib>pako": true,
+        "browserify>assert": true,
+        "browserify>buffer": true,
+        "process": true,
+        "stream-browserify": true
+      }
+    },
+    "browserify>assert": {
+      "packages": {
+        "assert>object.assign": true,
+        "browserify>assert>util": true
+      }
+    },
+    "browserify>assert>util": {
+      "globals": {
+        "console.error": true,
+        "console.log": true,
+        "console.trace": true
+      },
+      "packages": {
+        "browserify>assert>util>inherits": true,
+        "process": true
+      }
+    },
     "browserify>browser-pack>safe-buffer": {
       "packages": {
         "browserify>buffer": true
@@ -601,6 +898,11 @@
       "packages": {
         "buffer>base64-js": true,
         "buffer>ieee754": true
+      }
+    },
+    "browserify>punycode": {
+      "globals": {
+        "define": true
       }
     },
     "browserify>readable-stream>util-deprecate": {
@@ -725,9 +1027,9 @@
     },
     "crypto-browserify>create-ecdh>elliptic": {
       "packages": {
+        "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>hash.js": true,
         "crypto-browserify>create-ecdh>bn.js": true,
         "crypto-browserify>create-ecdh>elliptic>brorand": true,
-        "crypto-browserify>create-ecdh>elliptic>hash.js": true,
         "crypto-browserify>create-ecdh>elliptic>hmac-drbg": true,
         "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
         "crypto-browserify>create-ecdh>elliptic>minimalistic-crypto-utils": true,
@@ -743,15 +1045,9 @@
         "browserify>browser-resolve": true
       }
     },
-    "crypto-browserify>create-ecdh>elliptic>hash.js": {
-      "packages": {
-        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
-        "glob>inherits": true
-      }
-    },
     "crypto-browserify>create-ecdh>elliptic>hmac-drbg": {
       "packages": {
-        "crypto-browserify>create-ecdh>elliptic>hash.js": true,
+        "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>hash.js": true,
         "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
         "crypto-browserify>create-ecdh>elliptic>minimalistic-crypto-utils": true
       }
@@ -961,7 +1257,9 @@
         "fetch": true
       },
       "packages": {
+        "@poktscan/keyring>@metamask/eth-sig-util": true,
         "@poktscan/keyring>@pokt-foundation/pocketjs-types": true,
+        "@poktscan/keyring>ethereumjs-util": true,
         "@poktscan/keyring>hex-lite": true,
         "@poktscan/keyring>protobufjs": true,
         "@poktscan/keyring>varint": true,
@@ -1149,6 +1447,12 @@
         "window": true
       }
     },
+    "https-browserify": {
+      "packages": {
+        "stream-http": true,
+        "url": true
+      }
+    },
     "notistack": {
       "globals": {
         "addEventListener": true,
@@ -1177,6 +1481,19 @@
       "globals": {
         "clearTimeout": true,
         "setTimeout": true
+      }
+    },
+    "random-words": {
+      "packages": {
+        "random-words>seedrandom": true
+      }
+    },
+    "random-words>seedrandom": {
+      "globals": {
+        "define": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
       }
     },
     "react-dom": {
@@ -1347,6 +1664,22 @@
         "stream-http>readable-stream": true
       }
     },
+    "stream-http": {
+      "globals": {
+        "AbortController": true,
+        "Blob": true,
+        "WritableStream": true
+      },
+      "packages": {
+        "browserify>buffer": true,
+        "browserify>xtend": true,
+        "glob>inherits": true,
+        "process": true,
+        "stream-http>builtin-status-codes": true,
+        "stream-http>readable-stream": true,
+        "url": true
+      }
+    },
     "stream-http>readable-stream": {
       "packages": {
         "browserify>browser-resolve": true,
@@ -1356,6 +1689,60 @@
         "events": true,
         "glob>inherits": true,
         "process": true
+      }
+    },
+    "ts-jest>@babel/core>debug": {
+      "globals": {
+        "console": true,
+        "document": true,
+        "localStorage": true,
+        "navigator": true,
+        "process": true
+      },
+      "packages": {
+        "process": true,
+        "ts-jest>@babel/core>debug>ms": true
+      }
+    },
+    "ts-jest>semver": {
+      "globals": {
+        "console.error": true
+      },
+      "packages": {
+        "process": true,
+        "ts-jest>semver>lru-cache": true
+      }
+    },
+    "ts-jest>semver>lru-cache": {
+      "packages": {
+        "ts-jest>semver>lru-cache>yallist": true
+      }
+    },
+    "url": {
+      "packages": {
+        "browserify>punycode": true,
+        "url>qs": true
+      }
+    },
+    "url>qs": {
+      "packages": {
+        "url>qs>side-channel": true
+      }
+    },
+    "url>qs>side-channel": {
+      "packages": {
+        "assert>call-bind": true,
+        "assert>call-bind>get-intrinsic": true,
+        "url>qs>side-channel>object-inspect": true
+      }
+    },
+    "url>qs>side-channel>object-inspect": {
+      "globals": {
+        "HTMLElement": true,
+        "WeakRef": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
       }
     },
     "uuid": {

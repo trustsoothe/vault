@@ -36,9 +36,6 @@ export const accountConnectedWithTabSelector = (state: RootState) => {
   return accountConnected;
 };
 
-export const passwordRememberedSelector = (state: RootState) =>
-  state.vault.passwordRemembered;
-
 export const externalRequestsSelector = (state: RootState) =>
   state.app.externalRequests;
 

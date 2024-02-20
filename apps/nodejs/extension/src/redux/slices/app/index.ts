@@ -1,10 +1,5 @@
-import type {
-  ExternalConnectionRequest,
-  ExternalNewAccountRequest,
-  ExternalTransferRequest,
-  AccountsChangedToProxy,
-  ExternalSwitchChainRequest,
-} from "../../../types/communication";
+import type { AppRequests } from "../../../types/communications";
+import type { AccountsChangedToProxy } from "../../../types/communications/accountChanged";
 import type { RootState } from "../../store";
 import set from "lodash/set";
 import get from "lodash/get";
@@ -23,14 +18,9 @@ import {
   addNetworksExtraReducers,
   setGetAccountPending as setGetAccountPendingFromNetwork,
 } from "./network";
+import { SettingsSchema } from "../vault/backup";
 import { addContactThunksToBuilder } from "./contact";
-
-export type RequestsType = (
-  | ExternalConnectionRequest
-  | ExternalNewAccountRequest
-  | ExternalTransferRequest
-  | ExternalSwitchChainRequest
-) & { requestedAt?: number; requestId: string };
+import { ChainChangedMessageToProxy } from "../../../types/communications/chainChanged";
 
 export interface AccountBalanceInfo {
   amount: number;
@@ -101,7 +91,7 @@ export interface NetworkCanBeSelectedMap {
 
 export interface GeneralAppSlice {
   requestsWindowId: number | null;
-  externalRequests: RequestsType[];
+  externalRequests: AppRequests[];
   blockedSites: {
     loaded: boolean;
     list: string[];
@@ -125,6 +115,12 @@ export interface GeneralAppSlice {
   contacts: SerializedAccountReference[];
   isReadyStatus: "yes" | "no" | "loading" | "error";
   idOfMintsSent: string[];
+  sessionsMaxAge: {
+    enabled: boolean;
+    maxAgeInSecs: number;
+  };
+  requirePasswordForSensitiveOpts: boolean;
+  accountsImported: string[];
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -133,8 +129,12 @@ const SELECTED_CHAINS_KEY = "SELECTED_CHAINS_KEY";
 const SHOW_TEST_NETWORKS_KEY = "SHOW_TEST_NETWORKS";
 const NETWORKS_CAN_BE_SELECTED_KEY = "NETWORKS_CAN_BE_SELECTED";
 const ASSETS_SELECTED_BY_ACCOUNTS_KEY = "ASSETS_SELECTED_BY_ACCOUNTS";
+const SESSION_MAX_AGE_KEY = "SESSION_MAX_AGE";
+const REQUIRE_PASS_SENSITIVE_OPTS_KEY = "REQUIRE_PASS_SENSITIVE_OPTS";
+
 export const CUSTOM_RPCS_KEY = "CUSTOM_RPCS";
 export const CONTACTS_KEY = "CONTACTS";
+export const ACCOUNTS_IMPORTED_KEY = "ACCOUNTS_IMPORTED";
 
 export const loadSelectedNetworkAndAccount = createAsyncThunk(
   "app/loadSelectedNetworkAndAccount",
@@ -150,6 +150,9 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       ASSETS_SELECTED_BY_ACCOUNTS_KEY,
       CUSTOM_RPCS_KEY,
       CONTACTS_KEY,
+      SESSION_MAX_AGE_KEY,
+      REQUIRE_PASS_SENSITIVE_OPTS_KEY,
+      ACCOUNTS_IMPORTED_KEY,
     ]);
 
     const selectedProtocol =
@@ -170,6 +173,11 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       [SupportedProtocols.Ethereum]: "1",
     };
     const savedSelectedChain = response[SELECTED_CHAINS_KEY] || {};
+    const sessionMaxAge =
+      response[SESSION_MAX_AGE_KEY] || initialState.sessionsMaxAge;
+    const requirePasswordForSensitiveOpts =
+      response[REQUIRE_PASS_SENSITIVE_OPTS_KEY] || false;
+    const accountsImported = response[ACCOUNTS_IMPORTED_KEY] || [];
 
     for (const protocol in savedSelectedChain) {
       const chainId = savedSelectedChain[protocol];
@@ -191,6 +199,9 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       assetsIdByAccount,
       customRpcs,
       contacts,
+      sessionMaxAge,
+      requirePasswordForSensitiveOpts,
+      accountsImported,
     };
   }
 );
@@ -198,7 +209,10 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
 export const changeSelectedNetwork = createAsyncThunk(
   "app/changeSelectedNetwork",
   async (
-    { network, chainId }: { network: SupportedProtocols; chainId: string },
+    {
+      network: protocol,
+      chainId,
+    }: { network: SupportedProtocols; chainId: string },
     context
   ) => {
     const state = context.getState() as RootState;
@@ -210,8 +224,8 @@ export const changeSelectedNetwork = createAsyncThunk(
 
     const newSelectedAccountByProtocol = selectedAccountByProtocol;
 
-    if (network !== selectedProtocol) {
-      if (!newSelectedAccountByProtocol[network]) {
+    if (protocol !== selectedProtocol) {
+      if (!newSelectedAccountByProtocol[protocol]) {
         const accounts = state.vault.accounts;
         const accountOfNetwork = accounts.find(
           (item) => item.protocol === selectedProtocol
@@ -226,24 +240,24 @@ export const changeSelectedNetwork = createAsyncThunk(
 
     const newSelectedChainByProtocol = {
       ...selectedChainByProtocol,
-      [network]: chainId,
+      [protocol]: chainId,
     };
 
     await browser.storage.local.set({
-      [SELECTED_NETWORK_KEY]: network,
+      [SELECTED_NETWORK_KEY]: protocol,
       [SELECTED_CHAINS_KEY]: newSelectedChainByProtocol,
       [SELECTED_ACCOUNTS_KEY]: newSelectedAccountByProtocol,
     });
 
     const promises: Promise<any>[] = [];
 
-    if (selectedChainByProtocol[network] !== chainId) {
-      const message = {
+    if (selectedChainByProtocol[protocol] !== chainId) {
+      const message: ChainChangedMessageToProxy = {
         type: SELECTED_CHAIN_CHANGED,
-        network,
+        protocol,
         data: {
           chainId:
-            network === SupportedProtocols.Ethereum
+            protocol === SupportedProtocols.Ethereum
               ? `0x${Number(chainId || "1").toString(16)}`
               : chainId,
         },
@@ -258,7 +272,7 @@ export const changeSelectedNetwork = createAsyncThunk(
     await Promise.allSettled(promises);
 
     return {
-      selectedProtocol: network,
+      selectedProtocol: protocol,
       selectedChainByProtocol: newSelectedChainByProtocol,
       selectedAccountByProtocol: newSelectedAccountByProtocol,
     };
@@ -379,7 +393,7 @@ export const changeSelectedAccountOfNetwork = createAsyncThunk(
 
               const message: AccountsChangedToProxy = {
                 type: SELECTED_ACCOUNT_CHANGED,
-                network: session.protocol || protocol,
+                protocol: session.protocol || protocol,
                 data: {
                   addresses: newAccounts,
                 },
@@ -457,6 +471,92 @@ export const toggleBlockWebsite = createAsyncThunk<string[], string>(
   }
 );
 
+export const setSessionMaxAgeData = createAsyncThunk(
+  "app/setSessionMaxAgeData",
+  async (data: GeneralAppSlice["sessionsMaxAge"]) => {
+    await browser.storage.local.set({ [SESSION_MAX_AGE_KEY]: data });
+
+    return data;
+  }
+);
+
+export const setRequirePasswordSensitiveOpts = createAsyncThunk(
+  "app/setRequirePasswordSensitiveOpts",
+  async (enabled: boolean) => {
+    await browser.storage.local.set({
+      [REQUIRE_PASS_SENSITIVE_OPTS_KEY]: enabled,
+    });
+
+    return enabled;
+  }
+);
+
+export const addImportedAccountAddress = createAsyncThunk(
+  "app/addImportedAccountAddress",
+  async (address: string, context) => {
+    const currentAccountsImported = (context.getState() as RootState).app
+      .accountsImported;
+    const newAccountsImported = [...currentAccountsImported, address];
+
+    await browser.storage.local.set({
+      [ACCOUNTS_IMPORTED_KEY]: newAccountsImported,
+    });
+
+    return newAccountsImported;
+  }
+);
+
+export const removeImportedAccountAddress = createAsyncThunk(
+  "app/removeImportedAccountAddress",
+  async (address: string, context) => {
+    const currentAccountsImported = (context.getState() as RootState).app
+      .accountsImported;
+    const newAccountsImported = currentAccountsImported.filter(
+      (addressItem) => addressItem !== address
+    );
+
+    await browser.storage.local.set({
+      [ACCOUNTS_IMPORTED_KEY]: newAccountsImported,
+    });
+
+    return newAccountsImported;
+  }
+);
+
+export const importAppSettings = createAsyncThunk(
+  "app/importSettings",
+  async (settings: SettingsSchema) => {
+    const settingsParsed = SettingsSchema.parse(settings);
+    const {
+      assetsIdByAccount,
+      selectedAccountByProtocol,
+      selectedChainByProtocol,
+      selectedProtocol,
+      networksCanBeSelected,
+      customRpcs,
+      contacts,
+      sessionsMaxAge,
+      requirePasswordForSensitiveOpts,
+      accountsImported,
+    } = settingsParsed;
+
+    await browser.storage.local.set({
+      [ASSETS_SELECTED_BY_ACCOUNTS_KEY]: assetsIdByAccount,
+      [SELECTED_ACCOUNTS_KEY]: selectedAccountByProtocol,
+      [SELECTED_CHAINS_KEY]: selectedChainByProtocol,
+      [SELECTED_NETWORK_KEY]: selectedProtocol,
+      [NETWORKS_CAN_BE_SELECTED_KEY]: networksCanBeSelected,
+      [CUSTOM_RPCS_KEY]: customRpcs,
+      [CONTACTS_KEY]: contacts,
+      [SESSION_MAX_AGE_KEY]: sessionsMaxAge,
+      [REQUIRE_PASS_SENSITIVE_OPTS_KEY]: requirePasswordForSensitiveOpts,
+      [ACCOUNTS_IMPORTED_KEY]: accountsImported,
+    });
+
+    return settingsParsed;
+  }
+);
+
 const initialState: GeneralAppSlice = {
   requestsWindowId: null,
   showTestNetworks: false,
@@ -497,6 +597,12 @@ const initialState: GeneralAppSlice = {
   contacts: [],
   isReadyStatus: "no",
   idOfMintsSent: [],
+  sessionsMaxAge: {
+    enabled: false,
+    maxAgeInSecs: 3600,
+  },
+  requirePasswordForSensitiveOpts: false,
+  accountsImported: [],
 };
 
 const generalAppSlice = createSlice({
@@ -507,7 +613,7 @@ const generalAppSlice = createSlice({
       state.externalRequests = [];
       state.requestsWindowId = null;
     },
-    addExternalRequest: (state, action: PayloadAction<RequestsType>) => {
+    addExternalRequest: (state, action: PayloadAction<AppRequests>) => {
       state.externalRequests.push({
         ...action.payload,
         requestedAt: new Date().getTime(),
@@ -591,6 +697,9 @@ const generalAppSlice = createSlice({
           assetsIdByAccount,
           customRpcs,
           contacts,
+          sessionMaxAge,
+          requirePasswordForSensitiveOpts,
+          accountsImported,
         } = action.payload;
 
         state.selectedProtocol = selectedProtocol;
@@ -601,6 +710,9 @@ const generalAppSlice = createSlice({
         state.assetsIdByAccount = assetsIdByAccount;
         state.customRpcs = customRpcs;
         state.contacts = contacts;
+        state.sessionsMaxAge = sessionMaxAge;
+        state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
+        state.accountsImported = accountsImported;
         state.isReadyStatus = "yes";
       }
     );
@@ -633,6 +745,56 @@ const generalAppSlice = createSlice({
     builder.addCase(toggleAssetOfAccount.fulfilled, (state, action) => {
       state.assetsIdByAccount = action.payload;
     });
+
+    builder.addCase(setSessionMaxAgeData.fulfilled, (state, action) => {
+      state.sessionsMaxAge = action.payload;
+    });
+
+    builder.addCase(
+      setRequirePasswordSensitiveOpts.fulfilled,
+      (state, action) => {
+        state.requirePasswordForSensitiveOpts = action.payload;
+      }
+    );
+
+    builder.addCase(addImportedAccountAddress.fulfilled, (state, action) => {
+      state.accountsImported = action.payload;
+    });
+
+    builder.addCase(removeImportedAccountAddress.fulfilled, (state, action) => {
+      state.accountsImported = action.payload;
+    });
+
+    builder.addCase(
+      importAppSettings.fulfilled,
+      (state, { payload: settings }) => {
+        const {
+          assetsIdByAccount,
+          selectedAccountByProtocol,
+          selectedChainByProtocol,
+          selectedProtocol,
+          networksCanBeSelected,
+          customRpcs,
+          contacts,
+          sessionsMaxAge,
+          requirePasswordForSensitiveOpts,
+          accountsImported,
+        } = settings;
+
+        state.assetsIdByAccount = assetsIdByAccount;
+        state.selectedAccountByProtocol = selectedAccountByProtocol;
+        state.selectedChainByProtocol = selectedChainByProtocol;
+        state.selectedProtocol = selectedProtocol;
+        state.networksCanBeSelected =
+          networksCanBeSelected as NetworkCanBeSelectedMap;
+        state.customRpcs = customRpcs as CustomRPC[];
+        state.contacts = contacts as SerializedAccountReference[];
+        state.sessionsMaxAge =
+          sessionsMaxAge as GeneralAppSlice["sessionsMaxAge"];
+        state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
+        state.accountsImported = accountsImported;
+      }
+    );
   },
 });
 

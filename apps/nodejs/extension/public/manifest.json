@@ -32,22 +32,24 @@
   "content_scripts": [
     {
       "matches": [
-        "<all_urls>"
+        "http://*/*",
+        "https://*/*"
       ],
       "js": [
         "js/proxy.js"
       ],
-      "run_at": "document_start"
+      "run_at": "document_idle"
     },
     {
       "matches": [
-        "<all_urls>"
+        "http://*/*",
+        "https://*/*"
       ],
       "js": [
         "js/provider.js"
       ],
       "world": "MAIN",
-      "run_at": "document_start",
+      "run_at": "document_idle",
       "all_frames": true
     }
   ],
@@ -61,6 +63,7 @@
     "offscreen"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "http://*/*",
+    "https://*/*"
   ]
 }

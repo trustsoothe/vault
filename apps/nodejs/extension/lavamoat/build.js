@@ -91,7 +91,7 @@ for (const file of files) {
       global: true,
       ignore: [
         // files need parsing
-        /\/node_modules\/(?!@reduxjs\/toolkit\/dist\/query\/cjs\/rtk-query)(?!isomorphic-ws\/browser\.js)(?!webextension-polyfill)/,
+        /\/node_modules\/(?!@reduxjs\/toolkit\/dist\/query\/cjs\/rtk-query)(?!isomorphic-ws\/browser\.js)(?!webextension-polyfill)(?!random-words)/,
       ],
     });
 

@@ -265,6 +265,7 @@ const AddUpdateNetwork: React.FC = () => {
             render={({ field, fieldState: { error } }) => (
               <TextField
                 size={"small"}
+                required
                 autoComplete={"off"}
                 label={"Chain ID"}
                 disabled={!selectedProtocol || !networksOfProtocol?.length}
@@ -294,6 +295,7 @@ const AddUpdateNetwork: React.FC = () => {
               <TextField
                 size={"small"}
                 autoComplete={"off"}
+                required
                 label={"RPC url"}
                 error={!!error}
                 helperText={error?.message}

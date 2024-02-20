@@ -1,48 +1,78 @@
 import type {
-  AccountBalanceMessage,
-  AccountBalanceResponse,
-  AnswerConnectionRequest,
-  AnswerConnectionResponse,
-  AnswerNewAccountRequest,
-  AnswerNewAccountResponse,
-  AnswerSwitchChainResponse,
-  AnswerTransferRequest,
-  AnswerTransferResponse,
-  ImportAccountMessage,
-  ImportAccountResponse,
-  InitializeVaultRequest,
-  InitializeVaultResponse,
-  LockVaultMessage,
-  LockVaultResponse,
-  NetworkFeeMessage,
-  NetworkFeeResponse,
-  PrivateKeyAccountMessage,
-  PrivateKeyAccountResponse,
-  RemoveAccountMessage,
-  RemoveAccountResponse,
-  RevokeExternalSessionsMessage,
-  RevokeExternalSessionsResponse,
-  RevokeSessionMessage,
-  RevokeSessionResponse,
-  UnlockVaultRequest,
-  UnlockVaultResponse,
-  UpdateAccountMessage,
-  UpdateAccountResponse,
-} from "./Internal";
-import {
-  AnswerSwitchChainRequest,
-  CheckPermissionForSessionMessage,
-  CheckPermissionForSessionResponse,
-} from "./Internal";
+  NetworkFeeReq,
+  NetworkFeeRes,
+  SetRequirePasswordForOptsReq,
+  SetRequirePasswordForOptsRes,
+} from "../../types/communications/app";
+import type {
+  AccountBalanceReq,
+  AccountBalanceRes,
+} from "../../types/communications/balance";
+import type {
+  AnswerConnectionReq,
+  AnswerConnectionRes,
+} from "../../types/communications/connection";
+import type {
+  AnswerNewAccountReq,
+  AnswerNewAccountRes,
+} from "../../types/communications/newAccount";
+import type {
+  AnswerPersonalSignReq,
+  AnswerPersonalSignRes,
+} from "../../types/communications/personalSign";
+import type {
+  AnswerSignedTypedDataReq,
+  AnswerSignedTypedDataRes,
+} from "../../types/communications/signTypedData";
+import type {
+  AnswerSwitchChainReq,
+  AnswerSwitchChainRes,
+} from "../../types/communications/switchChain";
+import type {
+  AnswerTransferReq,
+  AnswerTransferRes,
+} from "../../types/communications/transfer";
+import type {
+  CheckPermissionForSessionReq,
+  CheckPermissionForSessionRes,
+  ExportVaultReq,
+  ExportVaultRes,
+  ImportAccountReq,
+  ImportAccountRes,
+  ImportVaultReq,
+  ImportVaultRes,
+  InitializeVaultReq,
+  InitializeVaultRes,
+  LockVaultReq,
+  LockVaultRes,
+  PrivateKeyAccountReq,
+  PrivateKeyAccountRes,
+  RemoveAccountReq,
+  RemoveAccountRes,
+  RevokeExternalSessionsReq,
+  RevokeExternalSessionsRes,
+  RevokeSessionReq,
+  RevokeSessionRes,
+  ShouldExportVaultReq,
+  ShouldExportVaultRes,
+  UnlockVaultReq,
+  UnlockVaultRes,
+  UpdateAccountReq,
+  UpdateAccountRes,
+} from "../../types/communications/vault";
 import browser from "webextension-polyfill";
 import {
   ACCOUNT_BALANCE_REQUEST,
   ANSWER_CONNECTION_REQUEST,
-  ANSWER_SWITCH_CHAIN_REQUEST,
   ANSWER_NEW_ACCOUNT_REQUEST,
+  ANSWER_PERSONAL_SIGN_REQUEST,
+  ANSWER_SIGNED_TYPED_DATA_REQUEST,
+  ANSWER_SWITCH_CHAIN_REQUEST,
   ANSWER_TRANSFER_REQUEST,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
+  EXPORT_VAULT_REQUEST,
   IMPORT_ACCOUNT_REQUEST,
+  IMPORT_VAULT_REQUEST,
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
   NETWORK_FEE_REQUEST,
@@ -50,33 +80,37 @@ import {
   REMOVE_ACCOUNT_REQUEST,
   REVOKE_EXTERNAL_SESSIONS_REQUEST,
   REVOKE_SESSION_REQUEST,
+  SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST,
+  SHOULD_EXPORT_VAULT_REQUEST,
   UNLOCK_VAULT_REQUEST,
   UPDATE_ACCOUNT_REQUEST,
 } from "../../constants/communication";
 
 export default class AppToBackground {
   static async answerConnection(
-    data: AnswerConnectionRequest["data"]
-  ): Promise<AnswerConnectionResponse> {
-    return browser.runtime.sendMessage({
+    data: AnswerConnectionReq["data"]
+  ): Promise<AnswerConnectionRes> {
+    const message: AnswerConnectionReq = {
       type: ANSWER_CONNECTION_REQUEST,
       data,
-    } as AnswerConnectionRequest);
+    };
+    return browser.runtime.sendMessage(message);
   }
 
   static async answerNewAccount(
-    data: AnswerNewAccountRequest["data"]
-  ): Promise<AnswerNewAccountResponse> {
-    return browser.runtime.sendMessage({
+    data: AnswerNewAccountReq["data"]
+  ): Promise<AnswerNewAccountRes> {
+    const message: AnswerNewAccountReq = {
       type: ANSWER_NEW_ACCOUNT_REQUEST,
       data,
-    } as AnswerNewAccountRequest);
+    };
+    return browser.runtime.sendMessage(message);
   }
 
   static async importAccount(
-    data: ImportAccountMessage["data"]
-  ): Promise<ImportAccountResponse> {
-    const message: ImportAccountMessage = {
+    data: ImportAccountReq["data"]
+  ): Promise<ImportAccountRes> {
+    const message: ImportAccountReq = {
       type: IMPORT_ACCOUNT_REQUEST,
       data,
     };
@@ -85,18 +119,19 @@ export default class AppToBackground {
   }
 
   static async updateAccount(
-    data: UpdateAccountMessage["data"]
-  ): Promise<UpdateAccountResponse> {
-    return browser.runtime.sendMessage({
+    data: UpdateAccountReq["data"]
+  ): Promise<UpdateAccountRes> {
+    const message: UpdateAccountReq = {
       type: UPDATE_ACCOUNT_REQUEST,
       data,
-    } as UpdateAccountMessage);
+    };
+    return browser.runtime.sendMessage(message);
   }
 
   static async removeAccount(
-    data: RemoveAccountMessage["data"]
-  ): Promise<RemoveAccountResponse> {
-    const message: RemoveAccountMessage = {
+    data: RemoveAccountReq["data"]
+  ): Promise<RemoveAccountRes> {
+    const message: RemoveAccountReq = {
       type: REMOVE_ACCOUNT_REQUEST,
       data,
     };
@@ -104,9 +139,9 @@ export default class AppToBackground {
   }
 
   static async getAccountPrivateKey(
-    data: PrivateKeyAccountMessage["data"]
-  ): Promise<PrivateKeyAccountResponse> {
-    const message: PrivateKeyAccountMessage = {
+    data: PrivateKeyAccountReq["data"]
+  ): Promise<PrivateKeyAccountRes> {
+    const message: PrivateKeyAccountReq = {
       type: PK_ACCOUNT_REQUEST,
       data,
     };
@@ -115,67 +150,63 @@ export default class AppToBackground {
   }
 
   static async sendRequestToAnswerTransfer(
-    data: AnswerTransferRequest["data"]
-  ): Promise<AnswerTransferResponse> {
-    return browser.runtime.sendMessage({
+    data: AnswerTransferReq["data"]
+  ): Promise<AnswerTransferRes> {
+    const message: AnswerTransferReq = {
       type: ANSWER_TRANSFER_REQUEST,
       data,
-    } as AnswerTransferRequest);
+    };
+    return browser.runtime.sendMessage(message);
   }
 
   static async initializeVault(
-    password: string,
-    rememberPass: boolean
-  ): Promise<InitializeVaultResponse> {
-    return browser.runtime.sendMessage({
+    data: InitializeVaultReq["data"]
+  ): Promise<InitializeVaultRes> {
+    const message: InitializeVaultReq = {
       type: INITIALIZE_VAULT_REQUEST,
-      data: {
-        password,
-        remember: rememberPass,
-      },
-    } as InitializeVaultRequest);
+      data,
+    };
+    return browser.runtime.sendMessage(message);
   }
 
-  static async unlockVault(
-    password: string,
-    rememberPass: boolean
-  ): Promise<UnlockVaultResponse> {
-    return browser.runtime.sendMessage({
+  static async unlockVault(password: string): Promise<UnlockVaultRes> {
+    const message: UnlockVaultReq = {
       type: UNLOCK_VAULT_REQUEST,
       data: {
         password,
-        remember: rememberPass,
       },
-    } as UnlockVaultRequest);
+    };
+    return browser.runtime.sendMessage(message);
   }
 
-  static async lockVault(): Promise<LockVaultResponse> {
-    return browser.runtime.sendMessage({
+  static async lockVault(): Promise<LockVaultRes> {
+    const message: LockVaultReq = {
       type: LOCK_VAULT_REQUEST,
-    } as LockVaultMessage);
+    };
+    return browser.runtime.sendMessage(message);
   }
 
-  static async revokeSession(
-    sessionId: string
-  ): Promise<RevokeSessionResponse> {
-    return browser.runtime.sendMessage({
+  static async revokeSession(sessionId: string): Promise<RevokeSessionRes> {
+    const message: RevokeSessionReq = {
       type: REVOKE_SESSION_REQUEST,
       data: {
         sessionId,
       },
-    } as RevokeSessionMessage);
+    };
+    return browser.runtime.sendMessage(message);
   }
 
-  static async revokeAllExternalSessions(): Promise<RevokeExternalSessionsResponse> {
-    return browser.runtime.sendMessage({
+  static async revokeAllExternalSessions(): Promise<RevokeExternalSessionsRes> {
+    const message: RevokeExternalSessionsReq = {
       type: REVOKE_EXTERNAL_SESSIONS_REQUEST,
-    } as RevokeExternalSessionsMessage);
+    };
+    return browser.runtime.sendMessage(message);
   }
 
   static async getAccountBalance(
-    data: AccountBalanceMessage["data"]
-  ): Promise<AccountBalanceResponse> {
-    const message: AccountBalanceMessage = {
+    data: AccountBalanceReq["data"]
+  ): Promise<AccountBalanceRes> {
+    const message: AccountBalanceReq = {
       type: ACCOUNT_BALANCE_REQUEST,
       data,
     };
@@ -183,9 +214,9 @@ export default class AppToBackground {
   }
 
   static async getNetworkFee(
-    data: NetworkFeeMessage["data"]
-  ): Promise<NetworkFeeResponse> {
-    const message: NetworkFeeMessage = {
+    data: NetworkFeeReq["data"]
+  ): Promise<NetworkFeeRes> {
+    const message: NetworkFeeReq = {
       type: NETWORK_FEE_REQUEST,
       data,
     };
@@ -193,9 +224,9 @@ export default class AppToBackground {
   }
 
   static async checkPermissionForSession(
-    data: CheckPermissionForSessionMessage["data"]
-  ): Promise<CheckPermissionForSessionResponse> {
-    const message: CheckPermissionForSessionMessage = {
+    data: CheckPermissionForSessionReq["data"]
+  ): Promise<CheckPermissionForSessionRes> {
+    const message: CheckPermissionForSessionReq = {
       type: CHECK_PERMISSION_FOR_SESSION_REQUEST,
       data,
     };
@@ -203,12 +234,75 @@ export default class AppToBackground {
   }
 
   static async answerSwitchChain(
-    data: AnswerSwitchChainRequest["data"]
-  ): Promise<AnswerSwitchChainResponse> {
-    const message: AnswerSwitchChainRequest = {
+    data: AnswerSwitchChainReq["data"]
+  ): Promise<AnswerSwitchChainRes> {
+    const message: AnswerSwitchChainReq = {
       type: ANSWER_SWITCH_CHAIN_REQUEST,
       data,
     };
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async answerSignTypedData(
+    data: AnswerSignedTypedDataReq["data"]
+  ): Promise<AnswerSignedTypedDataRes> {
+    const message: AnswerSignedTypedDataReq = {
+      type: ANSWER_SIGNED_TYPED_DATA_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async answerPersonalSign(
+    data: AnswerPersonalSignReq["data"]
+  ): Promise<AnswerPersonalSignRes> {
+    const message: AnswerPersonalSignReq = {
+      data,
+      type: ANSWER_PERSONAL_SIGN_REQUEST,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async exportVault(
+    data: ExportVaultReq["data"]
+  ): Promise<ExportVaultRes> {
+    const message: ExportVaultReq = {
+      type: EXPORT_VAULT_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async shouldExportVault(): Promise<ShouldExportVaultRes> {
+    const message: ShouldExportVaultReq = {
+      type: SHOULD_EXPORT_VAULT_REQUEST,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async importVault(
+    data: ImportVaultReq["data"]
+  ): Promise<ImportVaultRes> {
+    const message: ImportVaultReq = {
+      type: IMPORT_VAULT_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async setRequirePasswordForOpts(
+    data: SetRequirePasswordForOptsReq["data"]
+  ): Promise<SetRequirePasswordForOptsRes> {
+    const message: SetRequirePasswordForOptsReq = {
+      type: SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST,
+      data,
+    };
+
     return browser.runtime.sendMessage(message);
   }
 }

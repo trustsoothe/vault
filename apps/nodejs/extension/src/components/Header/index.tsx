@@ -5,15 +5,18 @@ import browser from "webextension-polyfill";
 import Stack from "@mui/material/Stack";
 import Menu from "@mui/material/Menu";
 import { useTheme } from "@mui/material";
+import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import DownloadIcon from "@mui/icons-material/FileDownloadOutlined";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import ContactIcon from "@mui/icons-material/AccountCircleOutlined";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import PreferencesIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import {
   ACCOUNT_PK_PAGE,
@@ -22,9 +25,10 @@ import {
   BLOCK_SITE_PAGE,
   BLOCKED_SITES_PAGE,
   CONTACTS_PAGE,
-  CREATE_ACCOUNT_PAGE,
+  EXPORT_VAULT_PAGE,
   IMPORT_ACCOUNT_PAGE,
   NETWORKS_PAGE,
+  PREFERENCES_PAGE,
   REMOVE_CONTACT_PAGE,
   REMOVE_NETWORK_PAGE,
   SAVE_CONTACT_PAGE,
@@ -47,13 +51,14 @@ import LockIcon from "../../assets/img/lock_icon.svg";
 import useShowAccountSelect, {
   ROUTES_TO_HIDE_ACCOUNT_SELECT,
 } from "../../hooks/useShowAccountSelect";
+import { enqueueSnackbar } from "../../utils/ui";
 import { useAppSelector } from "../../hooks/redux";
 import { existsAccountsOfSelectedProtocolSelector } from "../../redux/selectors/account";
+import CreateModal from "../Account/CreateModal";
 
 const titleMap = {
   [ACCOUNTS_PAGE]: "Account Details",
   [ACCOUNT_PK_PAGE]: "View Private Key",
-  [CREATE_ACCOUNT_PAGE]: "Create Account",
   [IMPORT_ACCOUNT_PAGE]: "Import Account",
   [NETWORKS_PAGE]: "Networks",
   [ADD_NETWORK_PAGE]: "New RPC",
@@ -67,6 +72,8 @@ const titleMap = {
   [CONTACTS_PAGE]: "Contacts",
   [SAVE_CONTACT_PAGE]: "Add Contact",
   [REMOVE_CONTACT_PAGE]: "Remove Contact",
+  [PREFERENCES_PAGE]: "Preferences",
+  [EXPORT_VAULT_PAGE]: "Export Vault",
 };
 
 const getTitle = (path: string, search: string) => {
@@ -90,6 +97,8 @@ const ROUTES_WHERE_HIDE_SELECTORS = [
   CONTACTS_PAGE,
   REMOVE_CONTACT_PAGE,
   SAVE_CONTACT_PAGE,
+  PREFERENCES_PAGE,
+  EXPORT_VAULT_PAGE,
 ];
 
 const routesWhereAccountNotNeeded = [
@@ -103,12 +112,51 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const showAccountSelect = useShowAccountSelect();
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [showBackdrop, setShowBackdrop] = useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = !!anchorEl;
   const showSelectors = !ROUTES_WHERE_HIDE_SELECTORS.includes(
     location.pathname
   );
+
+  const closeMenu = useCallback(() => {
+    setAnchorEl(null);
+    setShowBackdrop(false);
+  }, []);
+
+  useEffect(() => {
+    AppToBackground.shouldExportVault().then((res) => {
+      if (res.data) {
+        const { shouldExportVault, hasVaultBeenExported } = res.data;
+
+        if (shouldExportVault) {
+          const text = hasVaultBeenExported
+            ? "It's been more than a week since you backup the vault."
+            : "You haven't backup your vault yet.";
+
+          enqueueSnackbar({
+            variant: "info",
+            persist: true,
+            message: (onClickClose) => (
+              <span>
+                {text}{" "}
+                <Button
+                  onClick={() => {
+                    onClickClose();
+                    navigate(EXPORT_VAULT_PAGE);
+                  }}
+                  sx={{ padding: 0, minWidth: 0 }}
+                >
+                  Backup now?
+                </Button>
+              </span>
+            ),
+          });
+        }
+      }
+    });
+  }, []);
 
   const existsAccountsOfSelectedProtocol = useAppSelector(
     existsAccountsOfSelectedProtocolSelector
@@ -135,11 +183,6 @@ const Header = () => {
     [toggleShowBackdrop]
   );
 
-  const closeMenu = useCallback(() => {
-    setAnchorEl(null);
-    toggleShowBackdrop();
-  }, [toggleShowBackdrop]);
-
   const canGoBack =
     location.key !== "default" && location.pathname !== ACCOUNTS_PAGE;
 
@@ -148,6 +191,11 @@ const Header = () => {
       navigate(ACCOUNTS_PAGE);
     }
   }, [navigate, canGoBack]);
+
+  const toggleShowCreateAccount = useCallback(() => {
+    setShowCreateAccount((prevState) => !prevState);
+    closeMenu();
+  }, [closeMenu]);
 
   const onClickLock = useCallback(() => {
     AppToBackground.lockVault();
@@ -278,8 +326,8 @@ const Header = () => {
             {
               key: "new_account_item",
               label: "New Account",
-              route: CREATE_ACCOUNT_PAGE,
               icon: NewIcon,
+              onClick: toggleShowCreateAccount,
             },
             {
               key: "import_account_item",
@@ -343,6 +391,34 @@ const Header = () => {
                 />
               ),
               hide: !isPopup,
+            },
+            {
+              key: "export_item",
+              label: "Export Vault",
+              route: EXPORT_VAULT_PAGE,
+              icon: () => (
+                <DownloadIcon
+                  sx={{
+                    fontSize: 12,
+                    paddingLeft: 0.3,
+                    "& path": { color: theme.customColors.dark75 },
+                  }}
+                />
+              ),
+            },
+            {
+              key: "preferences_item",
+              label: "Preferences",
+              route: PREFERENCES_PAGE,
+              icon: () => (
+                <PreferencesIcon
+                  sx={{
+                    fontSize: 12,
+                    paddingLeft: 0.3,
+                    "& path": { color: theme.customColors.dark75 },
+                  }}
+                />
+              ),
             },
             {
               key: "lock_item",
@@ -452,8 +528,9 @@ const Header = () => {
         paddingX={2}
         position={"relative"}
       >
-        <Outlet />
+        <Outlet context={{ toggleShowCreateAccount }} />
       </Stack>
+      <CreateModal open={showCreateAccount} onClose={toggleShowCreateAccount} />
     </Stack>
   );
 };

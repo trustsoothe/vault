@@ -1,23 +1,26 @@
-import type { FormValues } from "./index";
 import React, { useMemo } from "react";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
-import { useFormContext } from "react-hook-form";
 import Typography from "@mui/material/Typography";
+import { SupportedProtocols } from "@poktscan/keyring";
 import { useAppSelector } from "../../hooks/redux";
 import { networksSelector } from "../../redux/selectors/network";
 import { accountsSelector } from "../../redux/selectors/account";
 
-const NetworkAndAccount: React.FC = () => {
+interface NetworkAndAccountProps {
+  protocol: SupportedProtocols;
+  chainId: string;
+  fromAddress: string;
+}
+
+const NetworkAndAccount: React.FC<NetworkAndAccountProps> = ({
+  protocol,
+  chainId,
+  fromAddress,
+}) => {
   const theme = useTheme();
-  const { watch } = useFormContext<FormValues>();
   const networks = useAppSelector(networksSelector);
   const accounts = useAppSelector(accountsSelector);
-  const [protocol, chainId, fromAddress] = watch([
-    "protocol",
-    "chainId",
-    "from",
-  ]);
 
   const selectedNetwork = useMemo(() => {
     return networks.find(
@@ -37,6 +40,7 @@ const NetworkAndAccount: React.FC = () => {
       direction={"row"}
       paddingX={1.5}
       spacing={1}
+      width={1}
       height={50}
       minHeight={50}
       boxSizing={"border-box"}

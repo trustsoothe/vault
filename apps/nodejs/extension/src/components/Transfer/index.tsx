@@ -55,6 +55,7 @@ import {
 import { assetsIdByAccountSelector } from "../../redux/selectors/asset";
 import NetworkAndAccount from "./NetworkAndAccount";
 import { addMintIdSent } from "../../redux/slices/app";
+import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 
 export type FeeSpeed = "n/a" | "low" | "medium" | "high" | "site";
 
@@ -84,7 +85,7 @@ export interface FormValues {
   amount: string;
   memo?: string;
   rpcUrl: string | null;
-  accountPassword: string;
+  vaultPassword: string;
   fee: string;
   feeSpeed: FeeSpeed;
   protocol: SupportedProtocols;
@@ -115,6 +116,9 @@ const Transfer: React.FC = () => {
   const accounts = useAppSelector(accountsSelector);
   const accountBalances = useAppSelector(accountBalancesSelector);
   const selectedChainOnApp = useAppSelector(selectedChainSelector);
+  const requirePassword = useAppSelector(
+    requirePasswordForSensitiveOptsSelector
+  );
   const selectedProtocolOnApp = useAppSelector(selectedProtocolSelector);
   const assetsIdByAccount = useAppSelector(assetsIdByAccountSelector);
   const addressOfSelectedAccountOnApp = useAppSelector(
@@ -150,7 +154,7 @@ const Transfer: React.FC = () => {
       toAddress: externalTransferData?.toAddress || "",
       amount: externalTransferData?.amount || "",
       fee: "",
-      accountPassword: "",
+      vaultPassword: "",
       feeSpeed: useSiteFee
         ? "site"
         : (externalRequestInfo?.protocol || selectedProtocolOnApp) ===
@@ -172,11 +176,11 @@ const Transfer: React.FC = () => {
   const [sendingStatus, setSendingStatus] = useState<
     "check_network" | "sending"
   >(null);
-  const [protocol, chainId, accountPassword, fromAddress, toAddress, asset] =
+  const [protocol, chainId, vaultPassword, fromAddress, toAddress, asset] =
     watch([
       "protocol",
       "chainId",
-      "accountPassword",
+      "vaultPassword",
       "from",
       "toAddress",
       "asset",
@@ -193,7 +197,7 @@ const Transfer: React.FC = () => {
     if (wrongPassword) {
       setWrongPassword(false);
     }
-  }, [accountPassword]);
+  }, [vaultPassword]);
 
   const checkedNetwork = useRef(false);
 
@@ -268,7 +272,7 @@ const Transfer: React.FC = () => {
       toAddress: "",
       amount: "",
       fee: "",
-      accountPassword: "",
+      vaultPassword: "",
       feeSpeed: useSiteFee
         ? "site"
         : (externalRequestInfo?.protocol || selectedProtocolOnApp) ===
@@ -495,7 +499,7 @@ const Transfer: React.FC = () => {
       const baseTransferParam = {
         from: {
           type: SupportedTransferOrigins.VaultAccountId,
-          passphrase: data.accountPassword,
+          passphrase: requirePassword ? data.vaultPassword : "",
           value: accountId,
         },
         network,
@@ -664,6 +668,7 @@ const Transfer: React.FC = () => {
       externalRequestInfo,
       networkFee,
       dispatch,
+      requirePassword,
     ]
   );
 
@@ -781,7 +786,9 @@ const Transfer: React.FC = () => {
               }}
               variant={"contained"}
               fullWidth
-              disabled={(!networkFee && feeStatus !== "fetched") || !nativeBalance}
+              disabled={
+                (!networkFee && feeStatus !== "fetched") || !nativeBalance
+              }
               type={onClickPrimary ? "button" : "submit"}
               onClick={onClickPrimary}
             >
@@ -807,7 +814,13 @@ const Transfer: React.FC = () => {
 
   return (
     <FormProvider {...methods}>
-      {externalRequestInfo && <NetworkAndAccount />}
+      {externalRequestInfo && (
+        <NetworkAndAccount
+          protocol={protocol}
+          chainId={chainId}
+          fromAddress={fromAddress}
+        />
+      )}
       <TransferContextProvider
         transferType={transferType}
         networkFee={networkFee}
@@ -827,7 +840,6 @@ const Transfer: React.FC = () => {
           onSubmit={handleSubmit(onSubmit)}
           alignItems={"center"}
           marginTop={1}
-          marginBottom={externalRequestInfo ? -0.5 : undefined}
         >
           {selectedAccount && (
             <AccountInfo

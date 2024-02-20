@@ -1,52 +1,77 @@
-import type { AppIsReadyMessage } from "../providers/base";
-import type { BrowserRequest } from "../../types";
 import type {
-  AppIsReadyRequest,
-  ConnectionRequestMessage,
-  ConnectionResponseFromBack,
-  DisconnectBackResponse,
-  DisconnectRequestMessage,
-  ExternalConnectionResOnProxy,
-  ExternalListAccountsResponse,
-  ExternalNewAccountResOnProxy,
-  ExternalTransferResOnProxy,
-  InternalTransferResponse,
-  IsSessionValidResponse,
-  ListAccountsRequestMessage,
-  NewAccountRequestMessage,
-  NewAccountResponseFromBack,
+  InternalResponses,
+  ProxyRequests,
+} from "../../types/communications";
+import type {
+  ExternalConnectionReq,
+  ExternalConnectionResToProxy,
+  InternalConnectionRes,
+  PartialSession,
   ProxyConnectionErrors,
   ProxyConnectionRes,
-  ProxyDisconnectErrors,
-  ProxyDisconnectRes,
-  ProxyListAccountsRes,
-  ProxyNewAccountRequest,
-  ProxyNewAccountRequestErrors,
-  ProxyNewAccountRes,
-  ProxySwitchChainRes,
+} from "../../types/communications/connection";
+import type {
+  ExternalTransferReq,
+  ExternalTransferResToProxy,
   ProxyTransferError,
-  ProxyTransferRequest,
+  ProxyTransferReq,
   ProxyTransferRes,
-  SessionValidRequestMessage,
-  SwitchChainRequestMessage,
-  TransferRequestMessage,
   TransferResponseFromBack,
-  AccountsChangedToProvider,
-  AccountsChangedToProxy,
-  AppIsReadyResponse,
-  BalanceRequestMessage,
-  ExternalBalanceResponse,
-  ExternalGetPoktTxResponse,
-  ExternalSelectedChainResponse,
-  ExternalSwitchChainResOnProxy,
-  GetPoktTxRequestMessage,
-  PartialSession,
+} from "../../types/communications/transfer";
+import type {
+  AppIsReadyMessageToProvider,
+  BackgroundAppIsReadyReq,
+  BackgroundAppIsReadyRes,
+} from "../../types/communications/appIsReady";
+import type {
+  ChainChangedMessageToProxy,
+  ChainChangedToProvider,
+} from "../../types/communications/chainChanged";
+import type {
+  ExternalIsSessionValidReq,
+  ExternalIsSessionValidRes,
+} from "../../types/communications/sessionIsValid";
+import type {
+  ExternalListAccountsReq,
+  ExternalListAccountsRes,
+  ProxyListAccountsRes,
+} from "../../types/communications/listAccounts";
+import type {
+  ExternalBalanceReq,
+  ExternalBalanceRes,
   ProxyBalanceRes,
-  ProxyGetPoktTxRes,
+} from "../../types/communications/balance";
+import type {
+  ExternalSelectedChainReq,
+  ExternalSelectedChainRes,
   ProxySelectedChainRes,
-  SelectedChainRequestMessage,
-  SwitchChainResponseFromBack,
-} from "../../types/communication";
+} from "../../types/communications/selectedChain";
+import type {
+  ExternalGetPoktTxReq,
+  ExternalGetPoktTxRes,
+  ProxyGetPoktTxRes,
+} from "../../types/communications/getPoktTransaction";
+import type {
+  ExternalSwitchChainReq,
+  ExternalSwitchChainResToProxy,
+  ProxySwitchChainRes,
+} from "../../types/communications/switchChain";
+import type {
+  ExternalSignTypedDataReq,
+  ExternalSignTypedDataResToProxy,
+  InternalSignedTypedDataRes,
+  ProxySignedTypedDataErrors,
+  ProxySignedTypedDataRes,
+  ProxySignTypedDataReq,
+} from "../../types/communications/signTypedData";
+import type {
+  ExternalPersonalSignReq,
+  ExternalPersonalSignResToProxy,
+  InternalPersonalSignRes,
+  ProxyPersonalSignReq,
+  ProxyPersonalSignRes,
+} from "../../types/communications/personalSign";
+import type { AccountsChangedToProvider } from "../../types/communications/accountChanged";
 import browser from "webextension-polyfill";
 import { z, ZodError } from "zod";
 import { SupportedProtocols } from "@poktscan/keyring";
@@ -56,7 +81,6 @@ import {
   APP_IS_READY_REQUEST,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
-  DISCONNECT_REQUEST,
   DISCONNECT_RESPONSE,
   EXTERNAL_ACCOUNT_BALANCE_REQUEST,
   EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
@@ -66,57 +90,31 @@ import {
   IS_SESSION_VALID_RESPONSE,
   LIST_ACCOUNTS_REQUEST,
   LIST_ACCOUNTS_RESPONSE,
-  NEW_ACCOUNT_REQUEST,
-  NEW_ACCOUNT_RESPONSE,
+  PERSONAL_SIGN_REQUEST,
+  PERSONAL_SIGN_RESPONSE,
   SELECTED_ACCOUNT_CHANGED,
   SELECTED_CHAIN_CHANGED,
   SELECTED_CHAIN_REQUEST,
   SELECTED_CHAIN_RESPONSE,
+  SIGN_TYPED_DATA_REQUEST,
+  SIGN_TYPED_DATA_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
 import {
-  AddressNotValid,
-  AmountNotPresented,
   BlockNotSupported,
-  ChainIdNotPresented,
-  FromAddressNotPresented,
-  UnauthorizedError,
   OperationRejected,
   propertyIsNotValid,
-  ToAddressNotPresented,
+  propertyIsRequired,
+  UnauthorizedError,
   UnknownError,
 } from "../../errors/communication";
-import { isValidAddress } from "../../utils/networkOperations";
-
-interface DisconnectResponse {
-  type: typeof DISCONNECT_RESPONSE;
-  data: {
-    disconnected: true;
-    protocol: SupportedProtocols;
-  };
-  error: null;
-}
-
-interface ChainChangedMessage {
-  type: typeof SELECTED_CHAIN_CHANGED;
-  network: SupportedProtocols;
-  data: {
-    chainId: string;
-  };
-}
-
-type ExtensionResponses =
-  | AppIsReadyResponse
-  | ConnectionResponseFromBack
-  | NewAccountResponseFromBack
-  | TransferResponseFromBack
-  | DisconnectResponse
-  | ChainChangedMessage
-  | AccountsChangedToProxy
-  | SwitchChainResponseFromBack;
+import {
+  isValidAddress,
+  validateTypedDataPayload,
+} from "../../utils/networkOperations";
 
 export type TPocketTransferBody = z.infer<typeof PocketTransferBody>;
 
@@ -181,68 +179,76 @@ class ProxyCommunicationController {
 
     window.addEventListener(
       "message",
-      async (event: MessageEvent<BrowserRequest>) => {
+      async (event: MessageEvent<ProxyRequests>) => {
         const { data, origin } = event;
 
         if (
           origin === window.location.origin &&
           data?.to === "VAULT_KEYRING" &&
-          Object.values(SupportedProtocols).includes(data?.network)
+          Object.values(SupportedProtocols).includes(data.protocol)
         ) {
           if (!this._backgroundIsReady) {
             return window.postMessage({
               to: "VAULT_KEYRING",
               type: APP_IS_NOT_READY,
-              network: data.network,
+              protocol: data.protocol,
               id: data.id,
             });
           }
 
-          if (data?.type === CONNECTION_REQUEST_MESSAGE) {
-            await this._sendConnectionRequest(data.network, data.id);
+          if (data.type === CONNECTION_REQUEST_MESSAGE) {
+            await this._sendConnectionRequest(data.protocol, data.id);
           }
 
-          if (data?.type === NEW_ACCOUNT_REQUEST) {
-            await this._sendNewAccountRequest(data.network, data.id, data.data);
+          if (data.type === TRANSFER_REQUEST) {
+            await this._sendTransferRequest(data.protocol, data.id, data.data);
           }
 
-          if (data?.type === TRANSFER_REQUEST) {
-            await this._sendTransferRequest(data.network, data.id, data.data);
+          if (data.type === LIST_ACCOUNTS_REQUEST) {
+            await this._handleListAccountsRequest(data.protocol, data.id);
           }
 
-          // if (data?.type === DISCONNECT_REQUEST) {
-          //   await this._handleDisconnectRequest(data.network);
-          // }
-
-          if (data?.type === LIST_ACCOUNTS_REQUEST) {
-            await this._handleListAccountsRequest(data.network, data.id);
-          }
-
-          if (data?.type === EXTERNAL_ACCOUNT_BALANCE_REQUEST) {
+          if (data.type === EXTERNAL_ACCOUNT_BALANCE_REQUEST) {
             await this._handleBalanceRequest(
-              data?.network,
+              data.protocol,
               data.id,
-              data?.data?.address,
-              data?.data?.block
+              data.data?.address,
+              data.data?.block
             );
           }
 
-          if (data?.type === SELECTED_CHAIN_REQUEST) {
-            await this._handleGetSelectedChain(data?.network, data.id);
+          if (data.type === SELECTED_CHAIN_REQUEST) {
+            await this._handleGetSelectedChain(data.protocol, data.id);
           }
 
           if (
-            data?.type === GET_POKT_TRANSACTION_REQUEST &&
-            data.network === SupportedProtocols.Pocket
+            data.type === GET_POKT_TRANSACTION_REQUEST &&
+            data.protocol === SupportedProtocols.Pocket
           ) {
-            await this._getPoktTx(data?.data?.hash, data.id);
+            await this._getPoktTx(data.data?.hash, data.id);
           }
 
-          if (data?.type === SWITCH_CHAIN_REQUEST) {
+          if (data.type === SWITCH_CHAIN_REQUEST) {
             await this._sendSwitchChainRequest(
-              data.network,
+              data.protocol,
               data.id,
-              data?.data?.chainId
+              data.data?.chainId
+            );
+          }
+
+          if (data.type === SIGN_TYPED_DATA_REQUEST) {
+            await this._sendSignTypedDataRequest(
+              data.protocol,
+              data.id,
+              data.data
+            );
+          }
+
+          if (data.type === PERSONAL_SIGN_REQUEST) {
+            await this._sendPersonalSignRequest(
+              data.protocol,
+              data.id,
+              data.data
             );
           }
         }
@@ -250,42 +256,44 @@ class ProxyCommunicationController {
     );
 
     browser.runtime.onMessage.addListener(
-      async (message: ExtensionResponses) => {
-        if (message?.type === CONNECTION_RESPONSE_MESSAGE) {
+      async (message: InternalResponses) => {
+        if (!message?.type) {
+          return;
+        }
+
+        if (message.type === CONNECTION_RESPONSE_MESSAGE) {
           await this._handleConnectionResponse(message);
         }
 
-        if (message?.type === NEW_ACCOUNT_RESPONSE) {
-          await this._handleNewAccountResponse(message);
-        }
-
-        if (message?.type === TRANSFER_RESPONSE) {
+        if (message.type === TRANSFER_RESPONSE) {
           await this._handleTransferResponse(message);
         }
 
-        if (message?.type === DISCONNECT_RESPONSE) {
-          this._sendDisconnectResponse(
-            message.data?.disconnected,
-            message.error,
-            message.data?.protocol
-          );
+        if (message.type === DISCONNECT_RESPONSE) {
+          this._handleDisconnect(message.data?.protocol);
         }
 
-        if (message?.type === SWITCH_CHAIN_RESPONSE) {
-          this._sendSwitchChainResponse(message?.requestId, message?.error);
+        if (message.type === SWITCH_CHAIN_RESPONSE) {
+          this._sendSwitchChainResponse(message.requestId, message.error);
         }
 
-        if (message?.type === SELECTED_ACCOUNT_CHANGED) {
+        if (message.type === SIGN_TYPED_DATA_RESPONSE) {
+          this._handleSignTypedDataResponse(message);
+        }
+
+        if (message.type === PERSONAL_SIGN_RESPONSE) {
+          this._handlePersonalSignResponse(message);
+        }
+
+        if (message.type === SELECTED_ACCOUNT_CHANGED) {
           this._sendMessageAccountsChanged({
-            protocol: message.network,
+            protocol: message.protocol,
             addresses: message.data.addresses,
           });
         }
-        if (message?.type === SELECTED_CHAIN_CHANGED) {
+        if (message.type === SELECTED_CHAIN_CHANGED) {
           this._sendMessageChainChanged(message);
         }
-
-        return "RECEIVED";
       }
     );
   }
@@ -294,25 +302,25 @@ class ProxyCommunicationController {
     try {
       if (this._backgroundIsReady) return;
 
-      const response: AppIsReadyResponse = await browser.runtime.sendMessage({
+      const message: BackgroundAppIsReadyReq = {
         type: APP_IS_READY_REQUEST,
-      } as AppIsReadyRequest);
+      };
+      const response: BackgroundAppIsReadyRes =
+        await browser.runtime.sendMessage(message);
 
-      if (response.data?.isReady) {
+      if (response?.data?.isReady) {
         this._backgroundIsReady = true;
         for (const protocol of Object.values(SupportedProtocols)) {
           setTimeout(() => {
-            window.postMessage(
-              {
-                to: "VAULT_KEYRING",
-                type: APP_IS_READY,
-                network: protocol,
-                data: {
-                  chainId: response.data.chainByProtocol[protocol],
-                },
-              } as AppIsReadyMessage,
-              window.location.origin
-            );
+            const message: AppIsReadyMessageToProvider = {
+              from: "VAULT_KEYRING",
+              type: APP_IS_READY,
+              protocol: protocol,
+              data: {
+                chainId: response.data.chainByProtocol[protocol],
+              },
+            };
+            window.postMessage(message, window.location.origin);
           }, 1000);
         }
       } else {
@@ -335,16 +343,14 @@ class ProxyCommunicationController {
     return faviconUrl || "";
   }
 
-  private _sendMessageChainChanged(message: ChainChangedMessage) {
-    window.postMessage(
-      {
-        to: "VAULT_KEYRING",
-        type: SELECTED_CHAIN_CHANGED,
-        network: message.network,
-        data: message.data,
-      },
-      window.location.origin
-    );
+  private _sendMessageChainChanged(message: ChainChangedMessageToProxy) {
+    const messageToProvider: ChainChangedToProvider = {
+      from: "VAULT_KEYRING",
+      type: SELECTED_CHAIN_CHANGED,
+      protocol: message.protocol,
+      data: message.data,
+    };
+    window.postMessage(messageToProvider, window.location.origin);
   }
 
   private async _sendConnectionRequest(
@@ -355,7 +361,7 @@ class ProxyCommunicationController {
     try {
       const session = this._sessionByProtocol[protocol];
       if (session) {
-        const message: SessionValidRequestMessage = {
+        const message: ExternalIsSessionValidReq = {
           type: IS_SESSION_VALID_REQUEST,
           data: {
             sessionId: session.id,
@@ -363,11 +369,11 @@ class ProxyCommunicationController {
           },
         };
 
-        const messageResponse: IsSessionValidResponse =
+        const messageResponse: ExternalIsSessionValidRes =
           await browser.runtime.sendMessage(message);
 
         if (messageResponse?.data?.isValid) {
-          const message: ListAccountsRequestMessage = {
+          const message: ExternalListAccountsReq = {
             type: LIST_ACCOUNTS_REQUEST,
             requestId,
             data: {
@@ -376,7 +382,7 @@ class ProxyCommunicationController {
               protocol,
             },
           };
-          const response: ExternalListAccountsResponse =
+          const response: ExternalListAccountsRes =
             await browser.runtime.sendMessage(message);
 
           if (response?.data?.accounts) {
@@ -388,7 +394,7 @@ class ProxyCommunicationController {
         }
       }
 
-      const message: ConnectionRequestMessage = {
+      const message: ExternalConnectionReq = {
         type: CONNECTION_REQUEST_MESSAGE,
         requestId,
         data: {
@@ -398,7 +404,7 @@ class ProxyCommunicationController {
         },
       };
 
-      const response: ExternalConnectionResOnProxy =
+      const response: ExternalConnectionResToProxy =
         await browser.runtime.sendMessage(message);
       requestWasSent = true;
 
@@ -413,7 +419,7 @@ class ProxyCommunicationController {
   }
 
   private async _handleConnectionResponse(
-    extensionResponse: ConnectionResponseFromBack,
+    extensionResponse: InternalConnectionRes,
     idFromRequest?: string
   ) {
     try {
@@ -500,7 +506,7 @@ class ProxyCommunicationController {
             const session =
               response[`${window.location.origin}-session-${protocol}`];
             if (session) {
-              const message: SessionValidRequestMessage = {
+              const message: ExternalIsSessionValidReq = {
                 type: IS_SESSION_VALID_REQUEST,
                 data: {
                   sessionId: session.id,
@@ -508,7 +514,7 @@ class ProxyCommunicationController {
                 },
               };
 
-              const messageResponse: IsSessionValidResponse =
+              const messageResponse: ExternalIsSessionValidRes =
                 await browser.runtime.sendMessage(message);
               if (
                 messageResponse?.type === IS_SESSION_VALID_RESPONSE &&
@@ -537,117 +543,10 @@ class ProxyCommunicationController {
     } catch (e) {}
   }
 
-  private async _sendNewAccountRequest(
-    protocol: SupportedProtocols,
-    requestId: string,
-    data: ProxyNewAccountRequest["data"]
-  ) {
-    let requestWasSent = false;
-    try {
-      const session = this._sessionByProtocol[protocol];
-      if (session) {
-        const message: NewAccountRequestMessage = {
-          type: NEW_ACCOUNT_REQUEST,
-          requestId,
-          data: {
-            origin: window.location.origin,
-            faviconUrl: this._getFaviconUrl(),
-            sessionId: session.id,
-            protocol: data.protocol,
-          },
-        };
-        const response: ExternalNewAccountResOnProxy =
-          await browser.runtime.sendMessage(message);
-
-        requestWasSent = true;
-
-        if (response?.type === NEW_ACCOUNT_RESPONSE) {
-          await this._handleNewAccountResponse(response);
-        }
-      } else {
-        return this._sendNewAccountResponse(requestId, null, UnauthorizedError);
-      }
-    } catch (e) {
-      if (!requestWasSent) {
-        this._sendNewAccountResponse(requestId, null, UnknownError);
-      }
-    }
-  }
-
-  private async _handleNewAccountResponse(
-    response: NewAccountResponseFromBack,
-    idFromRequest?: string
-  ) {
-    try {
-      const { error, data, requestId } = response;
-
-      if (data) {
-        if (data.rejected) {
-          this._sendNewAccountResponse(requestId, null, OperationRejected);
-        } else {
-          this._sendNewAccountResponse(requestId, data);
-        }
-      } else {
-        this._sendNewAccountResponse(requestId, null, error);
-
-        if (error?.code === UnauthorizedError.code) {
-          this._sendDisconnectResponse(true, null, response.data.protocol);
-        }
-      }
-    } catch (e) {
-      this._sendNewAccountResponse(idFromRequest, null, UnknownError);
-    }
-  }
-
-  private _sendNewAccountResponse(
-    requestId: string,
-    data: NewAccountResponseFromBack["data"],
-    error: ProxyNewAccountRequestErrors = null
-  ) {
-    try {
-      let response: ProxyNewAccountRes;
-
-      if (error) {
-        response = {
-          from: "VAULT_KEYRING",
-          type: NEW_ACCOUNT_RESPONSE,
-          data: null,
-          error,
-          id: requestId,
-        };
-      } else {
-        response = {
-          from: "VAULT_KEYRING",
-          id: requestId,
-          type: NEW_ACCOUNT_RESPONSE,
-          data: {
-            rejected: typeof data !== null ? data.rejected : true,
-            address: typeof data !== null ? data.address : null,
-            protocol: typeof data !== null ? data.protocol : null,
-          },
-          error: null,
-        };
-      }
-
-      window.postMessage(response, window.location.origin);
-    } catch (e) {
-      window.postMessage(
-        {
-          from: "VAULT_KEYRING",
-          type: NEW_ACCOUNT_RESPONSE,
-          data: null,
-          error: UnknownError,
-          id: requestId,
-        } as ProxyNewAccountRes,
-        window.location.origin
-      );
-    }
-  }
-
   private async _sendTransferRequest(
     protocol: SupportedProtocols,
     requestId: string,
-    data: ProxyTransferRequest["data"]
+    data: ProxyTransferReq["data"]
   ) {
     let requestWasSent = false;
     try {
@@ -659,7 +558,7 @@ class ProxyCommunicationController {
           return this._sendTransferResponse(
             requestId,
             null,
-            FromAddressNotPresented
+            propertyIsNotValid("from")
           );
         }
 
@@ -667,7 +566,7 @@ class ProxyCommunicationController {
           return this._sendTransferResponse(
             requestId,
             null,
-            ToAddressNotPresented
+            propertyIsNotValid("to")
           );
         }
 
@@ -676,7 +575,7 @@ class ProxyCommunicationController {
             return this._sendTransferResponse(
               requestId,
               null,
-              AmountNotPresented
+              propertyIsNotValid("amount")
             );
           }
         }
@@ -695,7 +594,7 @@ class ProxyCommunicationController {
           return this._sendTransferResponse(requestId, null, errorToReturn);
         }
 
-        const message: TransferRequestMessage = {
+        const message: ExternalTransferReq = {
           type: TRANSFER_REQUEST,
           requestId,
           data: {
@@ -707,13 +606,13 @@ class ProxyCommunicationController {
           },
         };
 
-        const response: ExternalTransferResOnProxy =
+        const response: ExternalTransferResToProxy =
           await browser.runtime.sendMessage(message);
 
         requestWasSent = true;
 
         if (response?.type === TRANSFER_RESPONSE) {
-          await this._handleTransferResponse(response, requestId);
+          await this._handleTransferResponse(response);
         }
       } else {
         return this._sendTransferResponse(requestId, null, UnauthorizedError);
@@ -725,10 +624,7 @@ class ProxyCommunicationController {
     }
   }
 
-  private async _handleTransferResponse(
-    response: TransferResponseFromBack,
-    idOfRequest?: string
-  ) {
+  private async _handleTransferResponse(response: TransferResponseFromBack) {
     try {
       const { error, data, requestId } = response;
 
@@ -741,18 +637,18 @@ class ProxyCommunicationController {
       } else {
         this._sendTransferResponse(requestId, null, error);
 
-        if (error?.code === UnauthorizedError.code) {
-          this._sendDisconnectResponse(true, null, response.data.protocol);
+        if (error?.isSessionInvalid) {
+          this._handleDisconnect(response.data.protocol);
         }
       }
     } catch (e) {
-      this._sendTransferResponse(idOfRequest, null, UnknownError);
+      this._sendTransferResponse(response?.requestId, null, UnknownError);
     }
   }
 
   private _sendTransferResponse(
     requestId: string,
-    data: InternalTransferResponse["data"],
+    data: TransferResponseFromBack["data"],
     error: ProxyTransferError = null
   ) {
     try {
@@ -791,86 +687,14 @@ class ProxyCommunicationController {
     }
   }
 
-  private async _handleDisconnectRequest(protocol: SupportedProtocols) {
+  private _handleDisconnect(protocol: SupportedProtocols) {
     try {
-      const session = this._sessionByProtocol[protocol];
-      if (session) {
-        const message: DisconnectRequestMessage = {
-          type: DISCONNECT_REQUEST,
-          data: {
-            sessionId: session.id,
-            origin: window.location.origin,
-          },
-        };
-        const response: DisconnectBackResponse =
-          await browser.runtime.sendMessage(message);
-
-        const disconnected =
-          response?.data?.disconnected ||
-          response?.error?.code === UnauthorizedError.code;
-
-        if (disconnected) {
-          this._sessionByProtocol[protocol] = null;
-        }
-
-        this._sendDisconnectResponse(
-          disconnected,
-          !disconnected ? response?.error : null,
-          protocol
-        );
-      } else {
-        this._sendDisconnectResponse(false, UnauthorizedError, protocol);
-      }
-    } catch (e) {
-      this._sendDisconnectResponse(false, UnknownError, protocol);
-    }
-  }
-
-  private _sendDisconnectResponse(
-    disconnect: boolean,
-    error: ProxyDisconnectErrors = null,
-    protocol: SupportedProtocols
-  ) {
-    try {
-      let response: ProxyDisconnectRes;
-      if (disconnect) {
-        this._sessionByProtocol[protocol] = null;
-        response = {
-          id: "",
-          from: "VAULT_KEYRING",
-          type: DISCONNECT_RESPONSE,
-          data: {
-            disconnected: true,
-          },
-          error: null,
-        };
-        this._sendMessageAccountsChanged({
-          protocol,
-          addresses: [],
-        });
-      } else {
-        response = {
-          id: "",
-          from: "VAULT_KEYRING",
-          type: DISCONNECT_RESPONSE,
-          data: null,
-          error,
-        };
-      }
-
-      window.postMessage(response, window.location.origin);
-    } catch (e) {
-      window.postMessage(
-        {
-          id: "",
-          from: "VAULT_KEYRING",
-          type: DISCONNECT_RESPONSE,
-          data: null,
-          error: UnknownError,
-        } as ProxyDisconnectRes,
-        window.location.origin
-      );
-    }
+      this._sessionByProtocol[protocol] = null;
+      this._sendMessageAccountsChanged({
+        protocol,
+        addresses: [],
+      });
+    } catch (e) {}
   }
 
   private async _handleListAccountsRequest(
@@ -882,7 +706,7 @@ class ProxyCommunicationController {
 
       const session = this._sessionByProtocol[protocol];
 
-      const message: ListAccountsRequestMessage = {
+      const message: ExternalListAccountsReq = {
         type: LIST_ACCOUNTS_REQUEST,
         requestId,
         data: {
@@ -891,7 +715,7 @@ class ProxyCommunicationController {
           protocol,
         },
       };
-      const response: ExternalListAccountsResponse =
+      const response: ExternalListAccountsRes =
         await browser.runtime.sendMessage(message);
 
       if (response?.error) {
@@ -913,21 +737,15 @@ class ProxyCommunicationController {
       }
 
       window.postMessage(proxyResponse, window.location.origin);
-
-      if (proxyResponse?.error?.code === UnauthorizedError.code) {
-        this._sendDisconnectResponse(true, null, protocol);
-      }
     } catch (e) {
-      window.postMessage(
-        {
-          id: requestId,
-          from: "VAULT_KEYRING",
-          type: LIST_ACCOUNTS_RESPONSE,
-          error: UnknownError,
-          data: null,
-        } as ProxyListAccountsRes,
-        window.location.origin
-      );
+      const message: ProxyListAccountsRes = {
+        id: requestId,
+        from: "VAULT_KEYRING",
+        type: LIST_ACCOUNTS_RESPONSE,
+        error: UnknownError,
+        data: null,
+      };
+      window.postMessage(message, window.location.origin);
     }
   }
 
@@ -939,16 +757,14 @@ class ProxyCommunicationController {
   ) {
     try {
       if (!address || !isValidAddress(address, protocol)) {
-        return window.postMessage(
-          {
-            from: "VAULT_KEYRING",
-            type: EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
-            data: null,
-            error: AddressNotValid,
-            id: requestId,
-          } as ProxyBalanceRes,
-          window.location.origin
-        );
+        const message: ProxyBalanceRes = {
+          from: "VAULT_KEYRING",
+          type: EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
+          data: null,
+          error: propertyIsNotValid("address"),
+          id: requestId,
+        };
+        return window.postMessage(message, window.location.origin);
       }
 
       if (
@@ -968,7 +784,7 @@ class ProxyCommunicationController {
         );
       }
 
-      const message: BalanceRequestMessage = {
+      const message: ExternalBalanceReq = {
         type: EXTERNAL_ACCOUNT_BALANCE_REQUEST,
         requestId,
         data: {
@@ -977,8 +793,9 @@ class ProxyCommunicationController {
           address,
         },
       };
-      const response: ExternalBalanceResponse =
-        await browser.runtime.sendMessage(message);
+      const response: ExternalBalanceRes = await browser.runtime.sendMessage(
+        message
+      );
 
       let proxyResponse: ProxyBalanceRes;
 
@@ -1019,8 +836,10 @@ class ProxyCommunicationController {
     protocol: SupportedProtocols,
     requestId: string
   ) {
+    let proxyResponse: ProxySelectedChainRes;
+
     try {
-      const message: SelectedChainRequestMessage = {
+      const message: ExternalSelectedChainReq = {
         type: SELECTED_CHAIN_REQUEST,
         requestId,
         data: {
@@ -1028,10 +847,8 @@ class ProxyCommunicationController {
           protocol,
         },
       };
-      const response: ExternalSelectedChainResponse =
+      const response: ExternalSelectedChainRes =
         await browser.runtime.sendMessage(message);
-
-      let proxyResponse: ProxySelectedChainRes;
 
       if (response?.error) {
         proxyResponse = {
@@ -1053,22 +870,21 @@ class ProxyCommunicationController {
 
       window.postMessage(proxyResponse, window.location.origin);
     } catch (e) {
-      window.postMessage(
-        {
-          id: requestId,
-          from: "VAULT_KEYRING",
-          type: SELECTED_CHAIN_RESPONSE,
-          data: null,
-          error: UnknownError,
-        } as ProxySelectedChainRes,
-        window.location.origin
-      );
+      proxyResponse = {
+        id: requestId,
+        from: "VAULT_KEYRING",
+        type: SELECTED_CHAIN_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+      window.postMessage(proxyResponse, window.location.origin);
     }
   }
 
   private async _getPoktTx(hash: string, requestId: string) {
+    let proxyResponse: ProxyGetPoktTxRes;
     try {
-      const message: GetPoktTxRequestMessage = {
+      const message: ExternalGetPoktTxReq = {
         type: GET_POKT_TRANSACTION_REQUEST,
         requestId,
         data: {
@@ -1076,10 +892,9 @@ class ProxyCommunicationController {
           hash,
         },
       };
-      const response: ExternalGetPoktTxResponse =
-        await browser.runtime.sendMessage(message);
-
-      let proxyResponse: ProxyGetPoktTxRes;
+      const response: ExternalGetPoktTxRes = await browser.runtime.sendMessage(
+        message
+      );
 
       if (response?.error) {
         proxyResponse = {
@@ -1101,16 +916,14 @@ class ProxyCommunicationController {
 
       window.postMessage(proxyResponse, window.location.origin);
     } catch (e) {
-      window.postMessage(
-        {
-          id: requestId,
-          from: "VAULT_KEYRING",
-          type: GET_POKT_TRANSACTION_RESPONSE,
-          data: null,
-          error: UnknownError,
-        } as ProxyGetPoktTxRes,
-        window.location.origin
-      );
+      proxyResponse = {
+        id: requestId,
+        from: "VAULT_KEYRING",
+        type: GET_POKT_TRANSACTION_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+      window.postMessage(proxyResponse, window.location.origin);
     }
   }
 
@@ -1121,9 +934,12 @@ class ProxyCommunicationController {
   ) {
     try {
       if (!chainId) {
-        return this._sendSwitchChainResponse(requestId, ChainIdNotPresented);
+        return this._sendSwitchChainResponse(
+          requestId,
+          propertyIsRequired("chainId")
+        );
       }
-      const message: SwitchChainRequestMessage = {
+      const message: ExternalSwitchChainReq = {
         type: SWITCH_CHAIN_REQUEST,
         requestId,
         data: {
@@ -1134,7 +950,7 @@ class ProxyCommunicationController {
         },
       };
 
-      const response: ExternalSwitchChainResOnProxy =
+      const response: ExternalSwitchChainResToProxy =
         await browser.runtime.sendMessage(message);
 
       if (response?.type === SWITCH_CHAIN_RESPONSE) {
@@ -1144,16 +960,14 @@ class ProxyCommunicationController {
         );
       }
     } catch (e) {
-      window.postMessage(
-        {
-          id: requestId,
-          from: "VAULT_KEYRING",
-          type: SWITCH_CHAIN_RESPONSE,
-          data: null,
-          error: UnknownError,
-        } as ProxySwitchChainRes,
-        window.location.origin
-      );
+      const message: ProxySwitchChainRes = {
+        id: requestId,
+        from: "VAULT_KEYRING",
+        type: SWITCH_CHAIN_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+      window.postMessage(message, window.location.origin);
     }
   }
 
@@ -1199,14 +1013,244 @@ class ProxyCommunicationController {
     addresses: string[];
   }) {
     const message: AccountsChangedToProvider = {
-      to: "VAULT_KEYRING",
+      from: "VAULT_KEYRING",
       type: SELECTED_ACCOUNT_CHANGED,
-      network: param.protocol,
+      protocol: param.protocol,
       data: {
         addresses: param.addresses,
       },
     };
     window.postMessage(message, window.location.origin);
+  }
+
+  private async _sendSignTypedDataRequest(
+    protocol: SupportedProtocols,
+    requestId: string,
+    data: ProxySignTypedDataReq["data"]
+  ) {
+    try {
+      const sessionId = this._sessionByProtocol[protocol]?.id;
+
+      if (sessionId) {
+        if (!isValidAddress(data.address, protocol)) {
+          this._sendSignTypedResponse(
+            requestId,
+            null,
+            propertyIsNotValid("address")
+          );
+        }
+
+        const err = validateTypedDataPayload(data.data);
+
+        if (err) {
+          return this._sendSignTypedResponse(requestId, null, err);
+        }
+
+        const message: ExternalSignTypedDataReq = {
+          type: SIGN_TYPED_DATA_REQUEST,
+          requestId,
+          data: {
+            ...data,
+            protocol,
+            origin: window.location.origin,
+            faviconUrl: this._getFaviconUrl(),
+            sessionId,
+          },
+        };
+
+        const response: ExternalSignTypedDataResToProxy =
+          await browser.runtime.sendMessage(message);
+
+        if (response?.type === SIGN_TYPED_DATA_RESPONSE) {
+          this._sendSignTypedResponse(
+            response.requestId || requestId,
+            null,
+            response.error
+          );
+
+          if (response?.error?.isSessionInvalid) {
+            this._handleDisconnect(protocol);
+          }
+        }
+      } else {
+        return this._sendSignTypedResponse(requestId, null, UnauthorizedError);
+      }
+    } catch (e) {
+      this._sendSignTypedResponse(requestId, null, UnknownError);
+    }
+  }
+
+  private _handleSignTypedDataResponse(response: InternalSignedTypedDataRes) {
+    try {
+      const { error, data, requestId } = response;
+
+      if (data) {
+        this._sendSignTypedResponse(requestId, data.sign);
+      } else {
+        this._sendSignTypedResponse(requestId, null, error);
+      }
+    } catch (e) {
+      this._sendSignTypedResponse(response?.requestId, null, UnknownError);
+    }
+  }
+
+  private _sendSignTypedResponse(
+    requestId: string,
+    stringSigned: string | null,
+    error?: ProxySignedTypedDataErrors
+  ) {
+    try {
+      let response: ProxySignedTypedDataRes;
+
+      if (error) {
+        response = {
+          id: requestId,
+          type: SIGN_TYPED_DATA_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error,
+        };
+      } else {
+        response = {
+          id: requestId,
+          type: SIGN_TYPED_DATA_RESPONSE,
+          from: "VAULT_KEYRING",
+          error: null,
+          data: stringSigned,
+        };
+      }
+
+      window.postMessage(response, window.location.origin);
+    } catch (e) {
+      window.postMessage(
+        {
+          id: requestId,
+          type: SIGN_TYPED_DATA_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error: UnknownError,
+        } as ProxySignedTypedDataRes,
+        window.location.origin
+      );
+    }
+  }
+
+  private async _sendPersonalSignRequest(
+    protocol: SupportedProtocols,
+    requestId: string,
+    data: ProxyPersonalSignReq["data"]
+  ) {
+    try {
+      const sessionId = this._sessionByProtocol[protocol]?.id;
+
+      if (sessionId) {
+        if (!isValidAddress(data.address, protocol)) {
+          this._sendPersonalSignResponse(
+            requestId,
+            null,
+            propertyIsNotValid("address")
+          );
+        }
+
+        if (!stringRegex.test(data?.challenge)) {
+          this._sendPersonalSignResponse(
+            requestId,
+            null,
+            propertyIsNotValid("challenge")
+          );
+        }
+
+        const message: ExternalPersonalSignReq = {
+          type: PERSONAL_SIGN_REQUEST,
+          requestId,
+          data: {
+            ...data,
+            protocol,
+            sessionId,
+            origin: window.location.origin,
+            faviconUrl: this._getFaviconUrl(),
+          },
+        };
+
+        const response: ExternalPersonalSignResToProxy =
+          await browser.runtime.sendMessage(message);
+
+        if (response?.type === PERSONAL_SIGN_RESPONSE) {
+          this._sendSignTypedResponse(
+            response.requestId || requestId,
+            null,
+            response.error
+          );
+
+          if (response?.error?.isSessionInvalid) {
+            this._handleDisconnect(protocol);
+          }
+        }
+      } else {
+        return this._sendPersonalSignResponse(
+          requestId,
+          null,
+          UnauthorizedError
+        );
+      }
+    } catch (e) {
+      this._sendPersonalSignResponse(requestId, null, UnknownError);
+    }
+  }
+
+  private _handlePersonalSignResponse(response: InternalPersonalSignRes) {
+    try {
+      const { error, data, requestId } = response;
+
+      if (data) {
+        this._sendPersonalSignResponse(requestId, data.sign);
+      } else {
+        this._sendPersonalSignResponse(requestId, null, error);
+      }
+    } catch (e) {
+      this._sendPersonalSignResponse(response?.requestId, null, UnknownError);
+    }
+  }
+
+  private _sendPersonalSignResponse(
+    requestId: string,
+    stringSigned: string | null,
+    error?
+  ) {
+    try {
+      let response: ProxyPersonalSignRes;
+
+      if (error) {
+        response = {
+          id: requestId,
+          type: PERSONAL_SIGN_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error,
+        };
+      } else {
+        response = {
+          id: requestId,
+          type: PERSONAL_SIGN_RESPONSE,
+          from: "VAULT_KEYRING",
+          error: null,
+          data: stringSigned,
+        };
+      }
+
+      window.postMessage(response, window.location.origin);
+    } catch (e) {
+      window.postMessage(
+        {
+          id: requestId,
+          type: PERSONAL_SIGN_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error: UnknownError,
+        } as ProxyPersonalSignRes,
+        window.location.origin
+      );
+    }
   }
 }
 

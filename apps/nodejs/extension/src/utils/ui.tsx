@@ -1,9 +1,4 @@
-import type {
-  ConnectionResponseFromBack,
-  NewAccountResponseFromBack,
-  TransferResponseFromBack,
-  SwitchChainResponseFromBack,
-} from "../types/communication";
+import type { AppRequests, UiResponsesToProxy } from "../types/communications";
 import type { SupportedProtocols } from "@poktscan/keyring";
 import React from "react";
 import Stack from "@mui/material/Stack";
@@ -12,11 +7,13 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import {
   closeSnackbar,
-  EnqueueSnackbar,
   enqueueSnackbar as enqueueSnackbarNotistack,
+  OptionsWithExtraProps,
   SnackbarKey,
+  SnackbarMessage,
+  VariantType,
 } from "notistack";
-import { removeExternalRequest, RequestsType } from "../redux/slices/app";
+import { removeExternalRequest } from "../redux/slices/app";
 import {
   OperationRejected,
   RequestTimeout,
@@ -26,8 +23,8 @@ import { useAppDispatch } from "../hooks/redux";
 import {
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
-  NEW_ACCOUNT_REQUEST,
-  NEW_ACCOUNT_RESPONSE,
+  PERSONAL_SIGN_RESPONSE,
+  SIGN_TYPED_DATA_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
@@ -40,17 +37,10 @@ export const closeCurrentWindow = () =>
     .getCurrent()
     .then((window) => browser.windows.remove(window.id));
 
-type RequestsFromBack = (
-  | ConnectionResponseFromBack
-  | NewAccountResponseFromBack
-  | TransferResponseFromBack
-  | SwitchChainResponseFromBack
-) & { requestId: string };
-
 export interface PartialRequest {
   origin: string;
   tabId: number;
-  type: RequestsType["type"];
+  type: AppRequests["type"];
   sessionId?: string;
   protocol: SupportedProtocols;
   requestId: string;
@@ -69,10 +59,11 @@ export const removeRequestWithRes = async (
   let responseType:
     | typeof TRANSFER_RESPONSE
     | typeof CONNECTION_RESPONSE_MESSAGE
-    | typeof NEW_ACCOUNT_RESPONSE
-    | typeof SWITCH_CHAIN_RESPONSE;
-  let data: RequestsFromBack["data"] = null;
-  let errorToReturn: RequestsFromBack["error"] = null;
+    | typeof SWITCH_CHAIN_RESPONSE
+    | typeof SIGN_TYPED_DATA_RESPONSE
+    | typeof PERSONAL_SIGN_RESPONSE;
+  let data: UiResponsesToProxy["data"] = null;
+  let errorToReturn: UiResponsesToProxy["error"] = null;
 
   if (error.code !== OperationRejected.code) {
     errorToReturn = error;
@@ -86,7 +77,7 @@ export const removeRequestWithRes = async (
           rejected: true,
           hash: null,
           protocol: null,
-        } as TransferResponseFromBack["data"];
+        };
         errorToReturn = null;
       }
       break;
@@ -97,21 +88,11 @@ export const removeRequestWithRes = async (
         data = {
           accepted: false,
           session: null,
-        } as ConnectionResponseFromBack["data"];
-        errorToReturn = null;
-      }
-      break;
-    }
-    case NEW_ACCOUNT_REQUEST: {
-      if (error.code === OperationRejected.code) {
-        data = {
-          rejected: true,
-          address: null,
           protocol: null,
-        } as NewAccountResponseFromBack["data"];
+          addresses: null,
+        };
         errorToReturn = null;
       }
-      responseType = NEW_ACCOUNT_RESPONSE;
       break;
     }
     case SWITCH_CHAIN_REQUEST: {
@@ -133,7 +114,7 @@ export const removeRequestWithRes = async (
     data,
     error: errorToReturn,
     requestId: request.requestId,
-  } as RequestsFromBack;
+  } as UiResponsesToProxy;
 
   await Promise.all([
     browser.tabs.sendMessage(request.tabId, res),
@@ -156,7 +137,15 @@ export const removeRequestWithRes = async (
     .catch();
 };
 
-export const enqueueSnackbar: EnqueueSnackbar = (options) => {
+type Message =
+  | ((onClickClose: () => void) => SnackbarMessage)
+  | SnackbarMessage;
+
+export const enqueueSnackbar = <V extends VariantType>(
+  options: OptionsWithExtraProps<V> & {
+    message?: Message;
+  } & object
+): SnackbarKey => {
   let snackbarKey: SnackbarKey;
 
   const onClickClose = () => {
@@ -164,6 +153,11 @@ export const enqueueSnackbar: EnqueueSnackbar = (options) => {
       closeSnackbar(snackbarKey);
     }
   };
+
+  const message =
+    typeof options.message === "function"
+      ? options.message(onClickClose)
+      : options.message;
 
   snackbarKey = enqueueSnackbarNotistack({
     ...options,
@@ -181,8 +175,9 @@ export const enqueueSnackbar: EnqueueSnackbar = (options) => {
           fontSize={13}
           color={"#152A48"}
           width={280}
+          lineHeight={"18px"}
         >
-          {options.message}
+          {message}
         </Typography>
         <IconButton onClick={onClickClose}>
           <CloseIcon />
@@ -260,4 +255,20 @@ export const secsToText = (secs: number) => {
     const seconds = Math.floor(secs);
     return `0:${pad(seconds)}`;
   }
+};
+
+export const readFile = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const fr = new FileReader();
+
+      fr.onload = (event) => {
+        resolve(event.target.result.toString());
+      };
+
+      fr.readAsText(file);
+    } catch (e) {
+      reject(e);
+    }
+  });
 };

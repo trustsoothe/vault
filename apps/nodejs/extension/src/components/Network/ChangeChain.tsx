@@ -1,4 +1,4 @@
-import type { ExternalSwitchChainRequest } from "../../types/communication";
+import type { AppSwitchChainReq } from "../../types/communications/switchChain";
 import React, { useCallback, useMemo } from "react";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
@@ -16,7 +16,7 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 
 const ChangeSelectedChain: React.FC = () => {
   const theme = useTheme();
-  const currentRequest: ExternalSwitchChainRequest = useLocation()?.state;
+  const currentRequest: AppSwitchChainReq = useLocation()?.state;
 
   const networks = useAppSelector(networksSelector);
   const selectedChainByProtocol = useAppSelector(

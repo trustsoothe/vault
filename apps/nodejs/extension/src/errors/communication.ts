@@ -19,52 +19,19 @@ export const UnauthorizedError = createError(
   4100,
   "The requested method and/or account has not been authorized by the user."
 );
+export const UnauthorizedErrorSessionInvalid = Object.freeze({
+  ...createError(
+    4100,
+    "The requested method and/or account has not been authorized by the user."
+  ),
+  isSessionInvalid: true,
+});
 
 export const UnsupportedMethod = createError(4200, "Method not supported.");
-
-export const OriginNotPresented = createError(
-  -32602,
-  "The origin was not presented in the payload."
-);
-
-export const FromAddressNotPresented = createError(
-  -32602,
-  "from was not presented in the payload."
-);
-
-export const ToAddressNotPresented = createError(
-  -32602,
-  "to was not presented in the payload."
-);
-
-export const AmountNotPresented = createError(
-  -32602,
-  "amount was not presented in the payload."
-);
-
-export const FromAddressNotValid = createError(-32602, "from is not valid.");
-
-export const AddressNotValid = createError(-32602, "address is not valid.");
 
 export const BlockNotSupported = createError(
   -32602,
   "Block passed is not valid. Only latest is supported."
-);
-
-export const ToAddressNotValid = createError(-32602, "to is not valid.");
-
-export const AmountNotValid = createError(-32602, "amount is not valid.");
-
-export const MemoNotValid = createError(-32602, "memo is not valid.");
-
-export const ProtocolNotPresented = createError(
-  -32602,
-  "protocol was not presented in the payload."
-);
-
-export const InvalidProtocol = createError(
-  -32602,
-  "The protocol passed is not valid."
 );
 
 export const InvalidBody = createError(-32602, "The data passed is not valid.");
@@ -94,11 +61,20 @@ export const RequestSwitchChainExists = createError(
   "There is a pending switch chain request from this origin and protocol."
 );
 
-export const UnrecognizedChainId = createError(4092, "Unrecognized chain ID.");
-
-export const ChainIdNotPresented = createError(
+export const RequestSignedTypedDataExists = createError(
   -32602,
-  "Chain ID not presented."
+  "There is a pending signed typed data request from this origin and protocol."
+);
+
+export const RequestPersonalSignExists = createError(
+  -32602,
+  "There is a pending personal sign request from this origin and protocol."
+);
+
+export const UnrecognizedChainId = createError(4092, "Unrecognized chain ID.");
+export const ChainIdIsNotActive = createError(
+  -32603,
+  "Provided chainId is not"
 );
 
 export const RequestTimeout = createError(
@@ -118,3 +94,12 @@ export const ProviderNotReady = createError(
 
 export const propertyIsNotValid = (property: string) =>
   createError(-32602, `${property} is not valid`);
+
+export const propertyIsRequired = (property: string) =>
+  createError(-32602, `${property} is required`);
+
+export const propertyOfTypeIsNotValid = (property: string, type: string) =>
+  createError(-32602, `${property} of type ${type} is not valid`);
+
+export const typeIsNotValid = (type: string) =>
+  createError(-32602, `type ${type} is not valid`);

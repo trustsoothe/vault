@@ -1,6 +1,6 @@
 import type { VaultSlice } from "./index";
 import type { RootState } from "../../store";
-import type { DisconnectBackResponse } from "../../../types/communication";
+import type { InternalDisconnectRes } from "../../../types/communications/disconnect";
 import { ActionReducerMapBuilder, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   ExternalAccessRequest,
@@ -52,7 +52,7 @@ export const revokeAllExternalSessions = createAsyncThunk(
       ]);
 
       if (tabsWithOrigin.length) {
-        const response: DisconnectBackResponse = {
+        const response: InternalDisconnectRes = {
           type: DISCONNECT_RESPONSE,
           data: {
             disconnected: true,
@@ -108,7 +108,7 @@ export const revokeSession = createAsyncThunk<
       const tabsWithOrigin = await browser.tabs.query({ url: `${origin}/*` });
 
       if (tabsWithOrigin.length) {
-        const response: DisconnectBackResponse = {
+        const response: InternalDisconnectRes = {
           type: DISCONNECT_RESPONSE,
           data: {
             disconnected: true,

@@ -236,13 +236,6 @@ const theme = createTheme({
               },
             },
           },
-          "& input[type=number]": {
-            "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-              WebkitAppearance: "none",
-              margin: 0,
-            },
-            MozAppearance: "textfield",
-          },
         },
       },
     },

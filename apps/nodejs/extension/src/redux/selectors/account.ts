@@ -75,3 +75,6 @@ export const existsAccountsOfSelectedProtocolSelector = (state: RootState) =>
   state.vault.accounts.some(
     (account) => account.protocol === state.app.selectedProtocol
   );
+
+export const accountsImportedSelector = (state: RootState) =>
+  state.app.accountsImported;

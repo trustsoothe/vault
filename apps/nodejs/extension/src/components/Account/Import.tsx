@@ -1,51 +1,42 @@
-import type {
-  SerializedAccountReference,
-  SupportedProtocols,
-} from "@poktscan/keyring";
+import type { SupportedProtocols } from "@poktscan/keyring";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
+import {
+  Controller,
+  FormProvider,
+  useForm,
+  useFormContext,
+} from "react-hook-form";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Typography from "@mui/material/Typography";
-import { styled, useTheme } from "@mui/material";
+import { SxProps, useTheme } from "@mui/material";
+import browser from "webextension-polyfill";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Divider from "@mui/material/Divider";
-import { shallowEqual } from "react-redux";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+import { nameRules } from "./CreateModal";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import { nameRules } from "./CreateNew";
-import AccountAndVaultPasswords from "../common/AccountAndVaultPasswords";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { ACCOUNTS_PAGE } from "../../constants/routes";
+import {
+  ACCOUNTS_PAGE,
+  EXPORT_VAULT_PAGE,
+  IMPORT_ACCOUNT_PAGE,
+} from "../../constants/routes";
 import {
   getAddressFromPrivateKey,
   getPrivateKeyFromPPK,
   isValidPPK,
   isValidPrivateKey,
 } from "../../utils/networkOperations";
-import { enqueueSnackbar } from "../../utils/ui";
+import { enqueueSnackbar, readFile } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
-import { passwordRememberedSelector } from "../../redux/selectors/session";
-import {
-  accountsSelector,
-  selectedAccountSelector,
-} from "../../redux/selectors/account";
-
-const VisuallyHiddenInput = styled("input")({
-  clip: "rect(0 0 0 0)",
-  clipPath: "inset(50%)",
-  height: 1,
-  overflow: "hidden",
-  position: "absolute",
-  bottom: 0,
-  left: 0,
-  whiteSpace: "nowrap",
-  width: 1,
-});
+import SelectFile from "../common/SelectFile";
+import useIsPopup from "../../hooks/useIsPopup";
+import { INVALID_FILE_PASSWORD } from "../../errors/account";
 
 interface FormValues {
   import_type: "private_key" | "json_file";
@@ -53,73 +44,238 @@ interface FormValues {
   json_file?: File | null;
   file_password?: string;
   account_name: string;
-  account_password: string;
-  confirm_account_password: string;
-  vault_password: string;
 }
 
 const INVALID_PPK_MESSAGE = "File is not valid";
 
-const readFile = async (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const fr = new FileReader();
-
-      fr.onload = (event) => {
-        resolve(event.target.result.toString());
-      };
-
-      fr.readAsText(file);
-    } catch (e) {
-      reject(e);
-    }
-  });
-};
-
-const getPrivateKey = async (
-  data: FormValues,
+export const getPrivateKey = async (
+  data: Omit<FormValues, "account_name">,
   protocol: SupportedProtocols
 ) => {
-  let privateKey: string;
+  try {
+    let privateKey: string;
 
-  if (data.json_file) {
-    const contentFile = await readFile(data.json_file);
+    if (data.json_file) {
+      const contentFile = await readFile(data.json_file);
 
-    privateKey = await getPrivateKeyFromPPK(
-      contentFile,
-      data.file_password,
-      protocol
-    );
-  } else {
-    privateKey = data.private_key;
+      privateKey = await getPrivateKeyFromPPK(
+        contentFile,
+        data.file_password,
+        protocol
+      );
+    } else {
+      privateKey = data.private_key;
+    }
+
+    return privateKey;
+  } catch (e) {
+    if (
+      [
+        "Cannot define property stack, object is not extensible",
+        "Unsupported state or unable to authenticate data",
+        "Key derivation failed - possibly wrong password",
+      ].includes(e?.message)
+    ) {
+      throw INVALID_FILE_PASSWORD;
+    }
+
+    throw e;
   }
-
-  return privateKey;
 };
 
 type FormStatus = "normal" | "loading" | "error" | "account_exists";
+
+interface ImportComponentProps {
+  wrongFilePassword: boolean;
+  customMenuSxProps?: SxProps;
+}
+
+export const ImportComponent: React.FC<ImportComponentProps> = ({
+  wrongFilePassword,
+  customMenuSxProps,
+}) => {
+  const theme = useTheme();
+  const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const { control, formState, register, watch } = useFormContext();
+  const [type] = watch(["import_type"]);
+
+  return (
+    <>
+      <Stack
+        direction={"row"}
+        justifyContent={"space-between"}
+        alignItems={"center"}
+        width={1}
+        height={30}
+        marginTop={"15px!important"}
+      >
+        <Typography fontSize={14} fontWeight={500} letterSpacing={"0.5px"}>
+          Import from
+        </Typography>
+        <Controller
+          control={control}
+          name={"import_type"}
+          render={({ field }) => (
+            <TextField
+              select
+              size={"small"}
+              placeholder={"Type"}
+              SelectProps={{
+                MenuProps: {
+                  sx: {
+                    "& .MuiMenuItem-root": {
+                      fontSize: 12,
+                    },
+                    ...customMenuSxProps,
+                  },
+                  disablePortal: true,
+                },
+              }}
+              sx={{
+                width: 140,
+                backgroundColor: theme.customColors.dark2,
+                minHeight: 30,
+                maxHeight: 30,
+                height: 30,
+                "& .MuiSelect-select": {
+                  fontSize: "12px!important",
+                },
+                "& .MuiInputBase-root": {
+                  paddingTop: 0.3,
+                  minHeight: 30,
+                  maxHeight: 30,
+                  height: 30,
+                  "& input": {
+                    minHeight: 30,
+                    maxHeight: 30,
+                    height: 30,
+                  },
+                },
+              }}
+              {...field}
+            >
+              <MenuItem value={"private_key"}>Private Key</MenuItem>
+              <MenuItem value={"json_file"}>Portable Wallet</MenuItem>
+            </TextField>
+          )}
+        />
+      </Stack>
+
+      {type === "private_key" ? (
+        <TextField
+          label={"Private Key"}
+          size={"small"}
+          fullWidth
+          required
+          autoComplete={"off"}
+          {...register("private_key", {
+            validate: async (value, formValues) => {
+              if (formValues.import_type === "private_key") {
+                if (!value) {
+                  return "Required";
+                }
+
+                if (!isValidPrivateKey(value, selectedProtocol)) {
+                  return "Invalid Private Key";
+                }
+              }
+
+              return true;
+            },
+          })}
+          error={!!formState?.errors?.private_key}
+          helperText={formState?.errors?.private_key?.message as string}
+          sx={{
+            marginTop: "10px!important",
+          }}
+        />
+      ) : (
+        <Stack spacing={1} width={1} marginTop={"10px!important"}>
+          <Controller
+            control={control}
+            name={"json_file"}
+            rules={{
+              validate: async (value, formValues) => {
+                if (formValues.import_type === "json_file") {
+                  if (!value) {
+                    return "Required";
+                  }
+
+                  const content = await readFile(value);
+
+                  if (!isValidPPK(content, selectedProtocol)) {
+                    return INVALID_PPK_MESSAGE;
+                  }
+                }
+
+                return true;
+              },
+            }}
+            render={({ field, fieldState: { error } }) => (
+              <SelectFile
+                filenameProps={{
+                  color: error
+                    ? theme.customColors.red100
+                    : theme.customColors.dark75,
+                }}
+                filename={field.value?.name}
+                buttonProps={{
+                  sx: {
+                    color: error
+                      ? theme.customColors.red100
+                      : theme.customColors.primary500,
+                  },
+                }}
+                selectFileLabel={
+                  error?.message === INVALID_PPK_MESSAGE
+                    ? "Wrong File. Select Another"
+                    : "Select File"
+                }
+                inputFields={{
+                  ...field,
+                  // @ts-ignore
+                  value: field?.value?.fileName,
+                  onChange: (event) => {
+                    field.onChange(event.target.files?.[0] || null);
+                  },
+                }}
+              />
+            )}
+          />
+
+          <TextField
+            fullWidth
+            label={"File Password (Optional)"}
+            size={"small"}
+            type={"password"}
+            error={wrongFilePassword}
+            helperText={wrongFilePassword ? "Invalid password" : undefined}
+            sx={{
+              marginTop: "10px!important",
+            }}
+            {...register("file_password")}
+          />
+        </Stack>
+      )}
+    </>
+  );
+};
 
 const ImportAccount: React.FC = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
-  const passwordRemembered = useAppSelector(passwordRememberedSelector);
-  const accounts = useAppSelector(accountsSelector);
-  const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
 
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [accountToReimport, setAccountToReImport] =
-    useState<SerializedAccountReference>(null);
+  const isPopup = useIsPopup();
+  const [searchParams] = useSearchParams();
 
   const [status, setStatus] = useState<FormStatus>("normal");
   const [passwordStep, setPasswordStep] = useState<"account" | "vault">(
     "account"
   );
-  const [wrongPassword, setWrongPassword] = useState(false);
   const [wrongFilePassword, setWrongFilePassword] = useState(false);
-  const [errorPpk, setErrorPpk] = useState(false);
 
   const methods = useForm<FormValues>({
     defaultValues: {
@@ -128,9 +284,6 @@ const ImportAccount: React.FC = () => {
       json_file: null,
       file_password: "",
       account_name: "",
-      account_password: "",
-      confirm_account_password: "",
-      vault_password: "",
     },
   });
   const {
@@ -142,34 +295,25 @@ const ImportAccount: React.FC = () => {
     clearErrors,
     setValue,
     getValues,
+    reset,
   } = methods;
 
   const { isValidating } = formState;
 
+  const [type, file_password] = watch(["import_type", "file_password"]);
+
   useEffect(() => {
-    const isReimporting = searchParams.get("reimport") === "true";
-    if (
-      isReimporting &&
-      selectedAccount &&
-      accountToReimport?.id !== selectedAccount.id
-    ) {
-      setAccountToReImport({ ...selectedAccount });
+    const wasOpenToImportFile = searchParams.get("openToImportFile") === "true";
 
-      setValue("account_name", selectedAccount.name);
-      return;
+    if (wasOpenToImportFile) {
+      setValue("import_type", "json_file");
+      enqueueSnackbar({
+        variant: "info",
+        message:
+          "This page was open because you cannot import files in the popup.",
+      });
     }
-
-    if (!selectedAccount || !isReimporting) {
-      setAccountToReImport(null);
-    }
-  }, [selectedAccount]);
-
-  const [type, file_password, json_file, vault_password] = watch([
-    "import_type",
-    "file_password",
-    "json_file",
-    "vault_password",
-  ]);
+  }, []);
 
   useEffect(() => {
     setValue("private_key", "");
@@ -180,22 +324,19 @@ const ImportAccount: React.FC = () => {
   }, [type, selectedProtocol]);
 
   useEffect(() => {
-    if (wrongPassword) {
-      setWrongPassword(false);
-    }
-  }, [vault_password]);
-
-  useEffect(() => {
     if (wrongFilePassword) {
       setWrongFilePassword(false);
     }
   }, [file_password]);
 
   useEffect(() => {
-    if (errorPpk) {
-      setErrorPpk(false);
+    if (isPopup && type === "json_file") {
+      browser.tabs.create({
+        active: true,
+        url: `home.html#${IMPORT_ACCOUNT_PAGE}?openToImportFile=true`,
+      });
     }
-  }, [json_file]);
+  }, [type]);
 
   const onClickCancel = useCallback(() => {
     if (passwordStep === "vault") {
@@ -211,56 +352,30 @@ const ImportAccount: React.FC = () => {
 
   const onClickCreate = useCallback(
     async (data: FormValues) => {
-      if (!passwordRemembered && passwordStep === "account") {
-        setPasswordStep("vault");
-        return;
-      }
-
       setStatus("loading");
 
       let privateKey: string;
       try {
         privateKey = await getPrivateKey(data, selectedProtocol);
       } catch (e) {
-        if (
-          e?.message === "Unsupported state or unable to authenticate data" ||
-          e?.message === "Key derivation failed - possibly wrong password"
-        ) {
+        if (e?.name === INVALID_FILE_PASSWORD.name) {
           setWrongFilePassword(true);
+          setStatus("normal");
         } else {
-          setErrorPpk(true);
+          setStatus("error");
         }
-        setStatus("normal");
         return;
       }
 
       AppToBackground.importAccount({
-        accountData: {
-          protocol: selectedProtocol,
-          name: data.account_name,
-          accountPassword: data.account_password,
-          privateKey,
-        },
-        replace: !!accountToReimport,
-        vaultPassword: passwordRemembered ? undefined : data.vault_password,
+        protocol: selectedProtocol,
+        name: data.account_name,
+        privateKey,
       }).then(async (response) => {
         if (response.error) {
           setStatus("error");
         } else {
-          if (response.data.isPasswordWrong) {
-            setWrongPassword(true);
-            setStatus("normal");
-          } else if (response.data.accountAlreadyExists) {
-            const address = await getAddressFromPrivateKey(
-              privateKey,
-              selectedProtocol
-            );
-
-            const account = accounts.find(
-              (item) =>
-                item.address === address && item.protocol === selectedProtocol
-            );
-            setAccountToReImport(account);
+          if (response.data.accountAlreadyExists) {
             setStatus("account_exists");
           } else {
             const address = await getAddressFromPrivateKey(
@@ -275,9 +390,23 @@ const ImportAccount: React.FC = () => {
             ).then(() => {
               setTimeout(() => {
                 enqueueSnackbar({
-                  message: `Account ${
-                    accountToReimport ? "re" : ""
-                  }imported successfully.`,
+                  message: (onClickClose) => (
+                    <Stack>
+                      <span>{`Account imported successfully.`}</span>
+                      <span>
+                        The vault content changed.{" "}
+                        <Button
+                          onClick={() => {
+                            onClickClose();
+                            navigate(EXPORT_VAULT_PAGE);
+                          }}
+                          sx={{ padding: 0, minWidth: 0 }}
+                        >
+                          Backup now?
+                        </Button>
+                      </span>
+                    </Stack>
+                  ),
                   variant: "success",
                 });
                 navigate(ACCOUNTS_PAGE);
@@ -287,24 +416,19 @@ const ImportAccount: React.FC = () => {
         }
       });
     },
-    [
-      navigate,
-      accountToReimport,
-      passwordStep,
-      passwordRemembered,
-      selectedProtocol,
-      dispatch,
-      accounts,
-    ]
+    [navigate, passwordStep, selectedProtocol, dispatch]
   );
 
-  const onClickAccountExists = useCallback(async () => {
-    navigate(ACCOUNTS_PAGE);
-  }, [navigate]);
-
-  const onClickReimport = useCallback(() => {
-    handleSubmit(onClickCreate)();
-  }, [handleSubmit, onClickCreate]);
+  const onClickOkAccountExists = useCallback(() => {
+    setStatus("normal");
+    reset({
+      import_type: getValues("import_type"),
+      account_name: "",
+      json_file: null,
+      private_key: "",
+      file_password: "",
+    });
+  }, [reset, getValues]);
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -323,24 +447,28 @@ const ImportAccount: React.FC = () => {
     if (status === "account_exists") {
       return (
         <OperationFailed
-          text={"This account already exists."}
+          text={
+            "This account already exists and cannot be imported again. Import another one."
+          }
           retryBtnProps={{
             type: "button",
-            sx: {
-              width: 130,
-            },
           }}
-          cancelBtnProps={{
-            sx: {
-              width: 130,
-            },
+          textProps={{
+            width: 300,
+            fontSize: 15,
           }}
-          onCancel={onClickAccountExists}
-          cancelBtnText={"Cancel"}
-          retryBtnText={"Reimport"}
-          onRetry={onClickReimport}
+          retryBtnText={"Ok"}
+          onCancel={onClickCancel}
+          onRetry={onClickOkAccountExists}
           buttonsContainerProps={{
             width: 275,
+            marginTop: "20px!important",
+            sx: {
+              "& button": {
+                width: 130,
+                height: 30,
+              },
+            },
           }}
         />
       );
@@ -364,264 +492,19 @@ const ImportAccount: React.FC = () => {
           boxSizing={"border-box"}
           overflow={"hidden"}
         >
-          {!accountToReimport && (
-            <>
-              <TextField
-                fullWidth
-                label={"Account Name"}
-                autoComplete={"off"}
-                size={"small"}
-                {...register("account_name", nameRules)}
-                error={!!formState?.errors?.account_name}
-                helperText={formState?.errors?.account_name?.message}
-              />
-              <Divider />
-            </>
-          )}
-
-          <Stack
-            direction={"row"}
-            justifyContent={"space-between"}
-            alignItems={"center"}
-            width={1}
-            height={30}
-            marginTop={accountToReimport ? undefined : "15px!important"}
-          >
-            <Typography fontSize={14} fontWeight={500} letterSpacing={"0.5px"}>
-              Import from
-            </Typography>
-            <Controller
-              control={control}
-              name={"import_type"}
-              render={({ field }) => (
-                <TextField
-                  select
-                  size={"small"}
-                  placeholder={"Type"}
-                  SelectProps={{
-                    MenuProps: {
-                      sx: {
-                        "& .MuiMenuItem-root": {
-                          fontSize: 12,
-                        },
-                      },
-                    },
-                  }}
-                  sx={{
-                    width: 140,
-                    backgroundColor: theme.customColors.dark2,
-                    minHeight: 30,
-                    maxHeight: 30,
-                    height: 30,
-                    "& .MuiSelect-select": {
-                      fontSize: "12px!important",
-                    },
-                    "& .MuiInputBase-root": {
-                      paddingTop: 0.3,
-                      minHeight: 30,
-                      maxHeight: 30,
-                      height: 30,
-                      "& input": {
-                        minHeight: 30,
-                        maxHeight: 30,
-                        height: 30,
-                      },
-                    },
-                  }}
-                  {...field}
-                >
-                  <MenuItem value={"private_key"}>Private Key</MenuItem>
-                  <MenuItem value={"json_file"}>Portable Wallet</MenuItem>
-                </TextField>
-              )}
-            />
-          </Stack>
-
-          {type === "private_key" ? (
-            <TextField
-              label={"Private Key"}
-              size={"small"}
-              fullWidth
-              autoComplete={"off"}
-              {...register("private_key", {
-                validate: async (value, formValues) => {
-                  if (formValues.import_type === "private_key") {
-                    if (!value) {
-                      return "Required";
-                    }
-
-                    if (!isValidPrivateKey(value, selectedProtocol)) {
-                      return "Invalid Private Key";
-                    }
-
-                    if (accountToReimport) {
-                      const addressOfPrivateKey =
-                        await getAddressFromPrivateKey(value, selectedProtocol);
-
-                      if (accountToReimport.address !== addressOfPrivateKey) {
-                        return "This is not the PK of the account to reimport";
-                      }
-                    }
-                  }
-
-                  return true;
-                },
-              })}
-              error={!!formState?.errors?.private_key}
-              helperText={formState?.errors?.private_key?.message}
-              sx={{
-                marginTop: "10px!important",
-              }}
-            />
-          ) : (
-            <Stack spacing={1} width={1} marginTop={"10px!important"}>
-              <Controller
-                control={control}
-                name={"json_file"}
-                rules={{
-                  validate: async (value, formValues) => {
-                    if (formValues.import_type === "json_file") {
-                      if (!value) {
-                        return "Required";
-                      }
-
-                      const content = await readFile(value);
-
-                      if (!isValidPPK(content, selectedProtocol)) {
-                        return INVALID_PPK_MESSAGE;
-                      }
-
-                      if (accountToReimport) {
-                        try {
-                          const privateKey = await getPrivateKeyFromPPK(
-                            content,
-                            formValues.file_password,
-                            selectedProtocol
-                          );
-                          const addressOfPrivateKey =
-                            await getAddressFromPrivateKey(
-                              privateKey,
-                              selectedProtocol
-                            );
-
-                          if (
-                            accountToReimport.address !== addressOfPrivateKey
-                          ) {
-                            return INVALID_PPK_MESSAGE;
-                          }
-                        } catch (e) {}
-                      }
-                    }
-
-                    return true;
-                  },
-                }}
-                render={({ field, fieldState: { error } }) => (
-                  <Stack
-                    direction={"row"}
-                    spacing={"5px"}
-                    alignItems={"center"}
-                    height={30}
-                    paddingX={1}
-                    bgcolor={theme.customColors.dark2}
-                    justifyContent={"space-between"}
-                  >
-                    <Typography
-                      fontSize={12}
-                      textOverflow={"ellipsis"}
-                      whiteSpace={"nowrap"}
-                      overflow={"hidden"}
-                      color={
-                        error
-                          ? theme.customColors.red100
-                          : theme.customColors.dark75
-                      }
-                      sx={{
-                        maxWidth: 165,
-                        marginRight: 0.5,
-                      }}
-                    >
-                      {json_file?.name || "None File Selected"}
-                    </Typography>
-                    <Button
-                      variant={"text"}
-                      component={"label"}
-                      disableRipple={true}
-                      disableFocusRipple={true}
-                      sx={{
-                        height: 30,
-                        textDecoration: "underline",
-                        justifyContent: "flex-end",
-                        paddingX: 0,
-                        fontSize: 13,
-                        color: error
-                          ? theme.customColors.red100
-                          : theme.customColors.primary500,
-                        "&:hover": {
-                          textDecoration: "underline",
-                          backgroundColor: theme.customColors.dark2,
-                        },
-                      }}
-                    >
-                      {error?.message === INVALID_PPK_MESSAGE
-                        ? "Wrong File. Select Another"
-                        : "Select File"}
-                      <VisuallyHiddenInput
-                        type={"file"}
-                        accept={"application/json"}
-                        {...field}
-                        //@ts-ignore
-                        value={field?.value?.fileName}
-                        onChange={(event) => {
-                          field.onChange(event.target.files?.[0] || null);
-                        }}
-                      />
-                    </Button>
-                  </Stack>
-                )}
-              />
-
-              <TextField
-                fullWidth
-                label={"File Password (Optional)"}
-                size={"small"}
-                type={"password"}
-                error={wrongFilePassword}
-                helperText={wrongFilePassword ? "Invalid password" : undefined}
-                sx={{
-                  marginTop: "10px!important",
-                }}
-                {...register("file_password")}
-              />
-            </Stack>
-          )}
-
+          <TextField
+            fullWidth
+            required
+            label={"Account Name"}
+            autoComplete={"off"}
+            size={"small"}
+            {...register("account_name", nameRules)}
+            error={!!formState?.errors?.account_name}
+            helperText={formState?.errors?.account_name?.message}
+          />
+          <Divider />
           <FormProvider {...methods}>
-            <AccountAndVaultPasswords
-              introduceVaultPassword={passwordStep === "vault"}
-              vaultPasswordTitle={`To save the account, introduce the vault’s password:`}
-              accountRandomKey={"import-acc"}
-              vaultTitleProps={{
-                marginTop: `20px!important`,
-                marginBottom: "5px!important",
-              }}
-              vaultPasswordIsWrong={wrongPassword}
-              dividerProps={{
-                sx: {
-                  marginTop: `15px!important`,
-                },
-              }}
-              passwordContainerProps={{
-                marginTop: "10px!important",
-                sx: {
-                  ...(type === "json_file" && {
-                    "& #password-strength-bar-container": {
-                      marginBottom: "-11px!important",
-                    },
-                  }),
-                },
-              }}
-            />
+            <ImportComponent wrongFilePassword={wrongFilePassword} />
           </FormProvider>
         </Stack>
         <Stack direction={"row"} spacing={2} width={1} marginTop={2}>
@@ -638,9 +521,7 @@ const ImportAccount: React.FC = () => {
             variant={"outlined"}
             fullWidth
           >
-            {!passwordRemembered && passwordStep === "vault"
-              ? "Back"
-              : "Cancel"}
+            Cancel
           </Button>
           <Button
             sx={{
@@ -653,18 +534,14 @@ const ImportAccount: React.FC = () => {
             type={"submit"}
             disabled={isValidating}
           >
-            {!passwordRemembered && passwordStep === "account"
-              ? "Next"
-              : "Import"}
+            Import
           </Button>
         </Stack>
       </Stack>
     );
   }, [
     theme,
-    errorPpk,
     wrongFilePassword,
-    accountToReimport,
     register,
     control,
     onClickCancel,
@@ -673,12 +550,10 @@ const ImportAccount: React.FC = () => {
     getValues,
     formState,
     methods,
-    passwordRemembered,
     navigate,
     isValidating,
-    onClickAccountExists,
-    wrongPassword,
     passwordStep,
+    onClickOkAccountExists,
   ]);
 
   return (

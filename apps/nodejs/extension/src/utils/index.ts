@@ -1,3 +1,4 @@
+import { generate } from "random-words";
 import {
   ForbiddenSessionErrorName,
   InvalidSessionErrorName,
@@ -13,7 +14,11 @@ import {
   ExtensionVaultStorage,
 } from "@poktscan/keyring-storage-extension";
 import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
-import { UnauthorizedError, UnknownError } from "../errors/communication";
+import {
+  UnauthorizedError,
+  UnauthorizedErrorSessionInvalid,
+  UnknownError,
+} from "../errors/communication";
 
 let extensionVaultInstance: VaultTeller;
 
@@ -46,12 +51,16 @@ export const returnExtensionErr = <T extends string>(
   error: Error,
   responseType: T
 ) => {
+  if (error?.name === InvalidSessionErrorName) {
+    return {
+      type: responseType,
+      error: UnauthorizedErrorSessionInvalid,
+      data: null,
+    };
+  }
+
   if (
-    [
-      ForbiddenSessionErrorName,
-      InvalidSessionErrorName,
-      SessionNotFoundErrorName,
-    ].includes(error?.name)
+    [ForbiddenSessionErrorName, SessionNotFoundErrorName].includes(error?.name)
   ) {
     return {
       type: responseType,
@@ -78,14 +87,21 @@ export const verifyPassword = (password: string): true => {
   return true;
 };
 
-export const generateRandomPassword = (passwordLength = 12): string => {
+export const generateRandomPassword = (
+  passwordLength = 12,
+  words = false
+): string => {
   const chars =
     "0123456789abcdefghijklmnopqrstuvwxyz!@#$%^&*()ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let password = "";
 
-  for (let i = 0; i <= passwordLength; i++) {
-    const randomNumber = Math.floor(Math.random() * chars.length);
-    password += chars.substring(randomNumber, randomNumber + 1);
+  if (words) {
+    password = generate({ minLength: 4, exactly: passwordLength, join: " " });
+  } else {
+    for (let i = 0; i <= passwordLength; i++) {
+      const randomNumber = Math.floor(Math.random() * chars.length);
+      password += chars.substring(randomNumber, randomNumber + 1);
+    }
   }
 
   try {

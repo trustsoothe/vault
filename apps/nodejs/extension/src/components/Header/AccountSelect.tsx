@@ -150,7 +150,7 @@ const AccountItem: React.FC<AccountItemProps> = ({
             alignItems={"center"}
             spacing={0.5}
             justifyContent={"flex-end"}
-            width={158}
+            width={150}
           >
             <Typography
               fontSize={16}

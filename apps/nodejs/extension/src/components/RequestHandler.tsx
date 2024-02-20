@@ -7,15 +7,17 @@ import React, { useEffect, useMemo } from "react";
 import { closeCurrentWindow } from "../utils/ui";
 import {
   CONNECTION_REQUEST_MESSAGE,
-  NEW_ACCOUNT_REQUEST,
+  PERSONAL_SIGN_REQUEST,
+  SIGN_TYPED_DATA_REQUEST,
   SWITCH_CHAIN_REQUEST,
   TRANSFER_REQUEST,
 } from "../constants/communication";
 import {
   CHANGE_SELECTED_CHAIN_PAGE,
-  CREATE_ACCOUNT_PAGE,
   REQUEST_CONNECTION_PAGE,
   TRANSFER_PAGE,
+  SIGN_TYPED_DATA_PAGE,
+  PERSONAL_SIGN_PAGE,
 } from "../constants/routes";
 import SootheLogoHeader from "./common/SootheLogoHeader";
 import { useAppSelector } from "../hooks/redux";
@@ -39,12 +41,16 @@ const RequestHandler: React.FC = () => {
           navigate(REQUEST_CONNECTION_PAGE, { state: currentRequest });
           break;
         }
-        case NEW_ACCOUNT_REQUEST: {
-          navigate(CREATE_ACCOUNT_PAGE, { state: currentRequest });
-          break;
-        }
         case SWITCH_CHAIN_REQUEST: {
           navigate(CHANGE_SELECTED_CHAIN_PAGE, { state: currentRequest });
+          break;
+        }
+        case SIGN_TYPED_DATA_REQUEST: {
+          navigate(SIGN_TYPED_DATA_PAGE, { state: currentRequest });
+          break;
+        }
+        case PERSONAL_SIGN_REQUEST: {
+          navigate(PERSONAL_SIGN_PAGE, { state: currentRequest });
           break;
         }
         case TRANSFER_REQUEST: {
@@ -109,15 +115,25 @@ const RequestHandler: React.FC = () => {
     return null;
   }
 
-  const header =
-    currentRequest.type === TRANSFER_REQUEST ? (
-      <RequestHeader origin={currentRequest.origin} />
-    ) : (
-      <SootheLogoHeader compact={true} />
-    );
+  const header = [
+    TRANSFER_REQUEST,
+    SIGN_TYPED_DATA_REQUEST,
+    PERSONAL_SIGN_REQUEST,
+  ].includes(currentRequest.type) ? (
+    <RequestHeader
+      origin={currentRequest.origin}
+      title={
+        currentRequest.type === TRANSFER_REQUEST
+          ? "External Transfer Request"
+          : "Signature Request"
+      }
+    />
+  ) : (
+    <SootheLogoHeader compact={true} />
+  );
 
   return (
-    <Stack flexGrow={1}>
+    <Stack flexGrow={1} overflow={"hidden"}>
       {header}
       <Outlet />
     </Stack>

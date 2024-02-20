@@ -241,78 +241,90 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
       render={({
         field: { onChange, value, ...otherProps },
         fieldState: { error },
-      }) => (
-        <Autocomplete
-          options={accountsWithBalance.map((item) => item.address)}
-          filterOptions={filterOptions}
-          noOptionsText={
-            inputValue === value && !!value ? null : (
-              <Typography
-                fontSize={14}
-                color={theme.customColors.dark75}
-                paddingY={1.4}
-                paddingX={1.6}
-              >
-                {inputValue
-                  ? "No options found / not valid address."
-                  : "Paste the address or type to search between the saved accounts."}
-              </Typography>
-            )
-          }
-          clearOnBlur={true}
-          onInputChange={(event, value, reason) => {
-            onChangeInputValue(event, value, reason);
-            if (isValidAddress(value, protocol) && reason === "input") {
-              onChange(value);
-              otherProps.onBlur();
+      }) => {
+        const invalidValue = !!value && !isValidAddress(value, protocol);
+        return (
+          <Autocomplete
+            options={accountsWithBalance.map((item) => item.address)}
+            filterOptions={filterOptions}
+            noOptionsText={
+              inputValue === value && !!value ? null : (
+                <Typography
+                  fontSize={14}
+                  color={theme.customColors.dark75}
+                  paddingY={1.4}
+                  paddingX={1.6}
+                >
+                  {inputValue
+                    ? "No options found / not valid address."
+                    : "Paste the address or type to search between the saved accounts."}
+                </Typography>
+              )
             }
-          }}
-          selectOnFocus={true}
-          renderOption={renderOption}
-          getOptionLabel={getOptionLabel}
-          popupIcon={null}
-          onChange={(_, newValue) => onChange(newValue)}
-          value={value || null}
-          {...otherProps}
-          sx={{
-            width: 1,
-            marginTop:
-              protocol === SupportedProtocols.Ethereum
-                ? "0px!important"
-                : "20px!important",
-            order: protocol === SupportedProtocols.Ethereum ? 1 : 7,
-            "& .MuiAutocomplete-endAdornment": {
-              top: 6,
-              right: "5px!important",
-            },
-            ...autocompleteSxProps,
-          }}
-          ListboxProps={{
-            sx: {
-              maxHeight: 125,
-            },
-          }}
-          PaperComponent={StyledPaper}
-          disabled={disabled}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label={"Recipient"}
-              fullWidth
-              size={"small"}
-              disabled={disabled}
-              error={!!error}
-              helperText={error?.message}
-              sx={{
-                "& input": {
-                  fontSize: "12px!important",
-                },
-                ...textFieldSxProps,
-              }}
-            />
-          )}
-        />
-      )}
+            clearOnBlur={true}
+            onInputChange={(event, value, reason) => {
+              onChangeInputValue(event, value, reason);
+              if (isValidAddress(value, protocol) && reason === "input") {
+                onChange(value);
+                otherProps.onBlur();
+              }
+            }}
+            selectOnFocus={true}
+            renderOption={renderOption}
+            getOptionLabel={getOptionLabel}
+            popupIcon={null}
+            onChange={(_, newValue) => onChange(newValue)}
+            value={value || null}
+            {...otherProps}
+            onBlur={() => {
+              if (!isValidAddress(value, protocol)) {
+                onChange(inputValue);
+              }
+              otherProps.onBlur();
+            }}
+            sx={{
+              width: 1,
+              marginTop:
+                protocol === SupportedProtocols.Ethereum
+                  ? "0px!important"
+                  : "20px!important",
+              order: protocol === SupportedProtocols.Ethereum ? 1 : 7,
+              "& .MuiAutocomplete-endAdornment": {
+                top: 6,
+                right: "5px!important",
+              },
+              ...autocompleteSxProps,
+            }}
+            ListboxProps={{
+              sx: {
+                maxHeight: 125,
+              },
+            }}
+            PaperComponent={StyledPaper}
+            disabled={disabled}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={"Recipient"}
+                fullWidth
+                required
+                size={"small"}
+                disabled={disabled}
+                error={!!error || invalidValue}
+                helperText={
+                  error?.message || invalidValue ? "Invalid address" : undefined
+                }
+                sx={{
+                  "& input": {
+                    fontSize: "12px!important",
+                  },
+                  ...textFieldSxProps,
+                }}
+              />
+            )}
+          />
+        );
+      }}
     />
   );
 };
