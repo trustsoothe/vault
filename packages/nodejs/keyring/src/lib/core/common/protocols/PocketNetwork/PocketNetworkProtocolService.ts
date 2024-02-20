@@ -64,7 +64,14 @@ export class PocketNetworkProtocolService
     return [hdSeedAccount, hdChildAccount]
   }
   async createHDWalletAccount(options: AddHDWalletAccountOptions): Promise<Account[]> {
-      throw new Error("Method not implemented.");
+    const accounts: Account[] = []
+
+    for(let i = 0; i < options.indexes?.length; i++) {
+      const account = await this.deriveHDAccountAtIndex(options.seedAccount, options.indexes[i])
+      accounts.push(account)
+    }
+
+    return accounts
   }
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {

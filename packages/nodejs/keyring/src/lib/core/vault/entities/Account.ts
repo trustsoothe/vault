@@ -202,6 +202,14 @@ export class Account implements IEntity {
   }
 
   asAccountReference(): AccountReference {
-    return new AccountReference(this.id, this.name, this.address, this.protocol, this.accountType, this.parentId)
+    return new AccountReference({
+        id: this.id,
+        name: this.name,
+        address: this.address,
+        protocol: this.protocol,
+        accountType: this.accountType,
+        parentId: this.parentId,
+        hdwIndex: this.hdwIndex,
+      });
   }
 }

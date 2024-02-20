@@ -135,7 +135,13 @@ export const getAccountBalance = async ({
   errorsPreferredNetwork,
   asset: partialAsset,
 }: GetAccountBalanceParam) => {
-  const acc = new AccountReference("", "", address, protocol);
+  const acc = new AccountReference({
+    id: "",
+    name: "",
+    address,
+    protocol,
+  });
+
   const asset: IAsset =
     protocol === SupportedProtocols.Ethereum && partialAsset
       ? {

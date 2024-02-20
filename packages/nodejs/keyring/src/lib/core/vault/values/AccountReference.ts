@@ -1,5 +1,6 @@
 import {SupportedProtocols} from "../../common/values";
 import {AccountType} from "./AccountType";
+import {isNumber} from "lodash";
 
 export interface SerializedAccountReference {
   id: string;
@@ -8,6 +9,17 @@ export interface SerializedAccountReference {
   protocol: SupportedProtocols;
   accountType: AccountType;
   parentId: string;
+  hdwIndex?: number;
+}
+
+export interface AccountReferenceOptions {
+    id: string;
+    name: string;
+    address: string;
+    protocol: SupportedProtocols;
+    accountType?: AccountType;
+    parentId?: string;
+    hdwIndex?: number;
 }
 
 export class AccountReference {
@@ -17,14 +29,16 @@ export class AccountReference {
   private readonly _protocol: SupportedProtocols;
   private readonly _accountType: AccountType;
   private readonly _parentId: string = "";
+  private readonly _hdwIndex?: number;
 
-  constructor(id: string, name: string, address: string, protocol: SupportedProtocols, accountType?: AccountType, parentId?: string) {
-    this._id = id;
-    this._name = name;
-    this._address = address;
-    this._protocol = protocol;
-    this._accountType = accountType || AccountType.Individual;
-    this._parentId = parentId || "";
+  constructor(options: AccountReferenceOptions) {
+    this._id = options.id;
+    this._name = options.name;
+    this._address = options.address;
+    this._protocol = options.protocol;
+    this._accountType = options.accountType || AccountType.Individual;
+    this._parentId = options.parentId || "";
+    this._hdwIndex = isNumber(options.hdwIndex) ? options.hdwIndex : undefined;
   }
 
   get id(): string {
@@ -51,6 +65,10 @@ export class AccountReference {
     return this._parentId;
   }
 
+  get hdwIndex(): number | undefined {
+    return this._hdwIndex;
+  }
+
   serialize(): SerializedAccountReference {
     return {
       id: this.id,
@@ -59,16 +77,19 @@ export class AccountReference {
       protocol: this.protocol,
       accountType: this.accountType,
       parentId: this.parentId,
+      hdwIndex: this.hdwIndex,
     };
   }
 
   static deserialize(data: SerializedAccountReference): AccountReference {
-    return new AccountReference(
-      data.id,
-      data.name,
-      data.address,
-      data.protocol,
-      data.accountType,
-    );
+    return new AccountReference({
+      id: data.id,
+      name: data.name,
+      address: data.address,
+      protocol: data.protocol,
+      accountType: data.accountType,
+      parentId: data.parentId,
+      hdwIndex: data.hdwIndex,
+    });
   }
 }

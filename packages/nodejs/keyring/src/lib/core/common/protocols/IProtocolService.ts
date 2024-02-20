@@ -27,8 +27,8 @@ export interface ImportRecoveryPhraseOptions {
 }
 
 export interface AddHDWalletAccountOptions {
-  seedAccountId: string;
-  count?: number;
+  seedAccount: Account;
+  indexes: number[];
 }
 
 export interface IProtocolService<T extends SupportedProtocols> {

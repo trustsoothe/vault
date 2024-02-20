@@ -123,7 +123,12 @@ describe('session', () => {
     });
 
     const exampleAccountReference: AccountReference
-      = new AccountReference('123', 'Testnet Account','0x32344', asset.protocol)
+          = new AccountReference({
+            id: '123',
+            name: 'Testnet Account',
+            address: '0x32344',
+            protocol: asset.protocol
+          });
 
     const permissions =
       new PermissionsBuilder()

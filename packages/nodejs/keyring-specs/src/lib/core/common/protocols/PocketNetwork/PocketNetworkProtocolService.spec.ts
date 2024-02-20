@@ -21,14 +21,13 @@ describe('PocketNetworkProtocolService', () => {
     chainID: "testnet",
   };
 
-
   const account =
-    new AccountReference(
-      'account-id',
-      'test-account',
-      'test-address',
-      SupportedProtocols.Pocket,
-    );
+      new AccountReference({
+        id: 'account-id',
+        name: 'test-account',
+        address: 'test-address',
+        protocol: SupportedProtocols.Pocket,
+      });
 
   const encryptionService: IEncryptionService = new WebEncryptionService();
   const protocolService = new PocketNetworkProtocolService(encryptionService);

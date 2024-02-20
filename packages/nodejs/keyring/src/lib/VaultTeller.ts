@@ -26,7 +26,6 @@ import {
   VaultUninitializedError,
 } from "./errors";
 import {
-  AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
   EthereumNetworkProtocolService, ImportRecoveryPhraseOptions,
@@ -74,6 +73,12 @@ export interface TransferOptions {
 
 export interface VaultOptions {
   sessionMaxAge?: number;
+}
+
+export interface AddHDWalletAccountExternalRequest {
+  seedAccountId: string;
+  protocol: SupportedProtocols;
+  count?: number;
 }
 
 export class VaultTeller {
@@ -723,10 +728,42 @@ export class VaultTeller {
   async addHDWalletAccount(
     sessionId: string,
     vaultPassphrase: Passphrase,
-    options: AddHDWalletAccountOptions,
+    options: AddHDWalletAccountExternalRequest,
   ): Promise<AccountReference[]> {
     await this.validateSessionForPermissions(sessionId, "account", "create");
-    throw new Error("Method not implemented.");
+
+    const seedAccount = await this.getVaultAccountById(options.seedAccountId, vaultPassphrase);
+
+    const seedAccountChildren = (await this.listAccounts(sessionId)).filter((a) => a.parentId === seedAccount.id);
+    const seedAccountChildrenIndexes =
+        seedAccountChildren
+            .map(a => a.hdwIndex)
+            .sort((a, b) => a! - b!);
+
+    // Based on a sorted list of hdwIndex values from the seedAccountChildren array, determine the missing indexes
+    const missingIndexes =
+        Array.from({ length: seedAccountChildrenIndexes.length + (options.count || 1) }, (_, i) => i)
+             .filter(i => !seedAccountChildrenIndexes.some(a => a === i))
+             .slice(0, options.count || 1);
+
+    const protocolService = ProtocolServiceFactory.getProtocolService(
+      options.protocol,
+      this.encryptionService
+    );
+
+    const accounts = await protocolService.createHDWalletAccount({
+        seedAccount,
+        indexes: missingIndexes,
+    });
+
+    for (const account of accounts) {
+      await this.addVaultAccount(account, vaultPassphrase);
+      await this.addAccountToSession(sessionId, account);
+    }
+
+    await this.updateSessionLastActivity(sessionId);
+
+    return accounts.map((a) => a.asAccountReference());
   }
 
   private async encryptVault(

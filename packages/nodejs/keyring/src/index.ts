@@ -22,6 +22,7 @@ import type {INetworkOptions} from "./lib/core/network/INetworkOptions";
 import type {VaultOptions} from "./lib/VaultTeller"
 import type {SignTypedDataRequest} from './lib/core/common/protocols'
 import type {SignPersonalDataRequest} from './lib/core/common/protocols'
+import type {AddHDWalletAccountExternalRequest} from './lib/VaultTeller'
 
 export type {
   IEncryptionService,
@@ -34,4 +35,5 @@ export type {
   VaultOptions,
   SignTypedDataRequest,
   SignPersonalDataRequest,
+  AddHDWalletAccountExternalRequest,
 };
