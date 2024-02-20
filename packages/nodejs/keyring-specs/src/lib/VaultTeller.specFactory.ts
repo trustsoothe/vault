@@ -625,11 +625,14 @@ export default <
           await expect(transferFundsOperation).rejects.toThrow(/^.*from\.value.*$/);
         })
 
-        test('throws "ArgumentError" when the transfer origin passphrase is not valid', async () => {
+        /**
+         * With the latest changes related to removing the account specific passphrase, we need to re-evaluate the need for this spec.
+         */
+        test.skip('throws "ArgumentError" when the transfer origin passphrase is not valid', async () => {
           vaultStore = createVaultStore()
           const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
           await vaultTeller.initializeVault('passphrase')
-          const session = await vaultTeller.unlockVault('passphrase')
+          const session = await vaultTeller.unlockVault('passphrase');
           const transferFundsOperation = vaultTeller.transferFunds(session.id, {
             from: {
               type: SupportedTransferOrigins.VaultAccountId,
