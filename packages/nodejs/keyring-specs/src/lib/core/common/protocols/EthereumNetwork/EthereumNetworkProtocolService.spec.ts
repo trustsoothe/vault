@@ -30,12 +30,12 @@ describe('EthereumNetworkProtocolService', () => {
     chainID: '11155111',
   };
 
-  const account = new AccountReference(
-    'account-id',
-    'test-account',
-    '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
-    SupportedProtocols.Ethereum,
-  );
+  const account = new AccountReference({
+    id: 'account-id',
+    name: 'test-account',
+    address: '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
+    protocol: SupportedProtocols.Ethereum,
+  });
 
   const accountImport = {
     privateKey:

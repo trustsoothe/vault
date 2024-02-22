@@ -194,3 +194,12 @@ export class InvalidChainIDError extends KeyringError {
     });
   }
 }
+
+export class RecoveryPhraseError extends KeyringError {
+  constructor(message?: string) {
+    super({
+      name: "RecoveryPhraseError",
+      message: message || "Invalid",
+    });
+  }
+}

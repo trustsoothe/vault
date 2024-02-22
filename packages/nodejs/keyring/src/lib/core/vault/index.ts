@@ -4,7 +4,9 @@ import IEntity from "../common/IEntity";
 import { AccountReference } from "../common/values";
 import { AccountExistError } from "../../errors";
 
-export * from "./entities/Account";
+export * from './values/AccountReference'
+export * from './entities/Account'
+export * from './values/AccountType'
 
 export interface SerializedVault extends IEntity {
   id: string;

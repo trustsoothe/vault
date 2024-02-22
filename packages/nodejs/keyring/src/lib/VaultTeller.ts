@@ -18,7 +18,7 @@ import {
   ArgumentError,
   ForbiddenSessionError,
   InvalidSessionError,
-  PrivateKeyRestoreError,
+  PrivateKeyRestoreError, RecoveryPhraseError,
   SessionIdRequiredError,
   SessionNotFoundError,
   VaultIsLockedError,
@@ -28,7 +28,7 @@ import {
 import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
-  EthereumNetworkProtocolService,
+  EthereumNetworkProtocolService, ImportRecoveryPhraseOptions,
   PocketNetworkProtocolService,
   ProtocolServiceFactory,
 } from "./core/common/protocols";
@@ -39,6 +39,8 @@ import { IProtocolTransactionResult } from "./core/common/protocols/ProtocolTran
 import { PocketNetworkTransactionTypes } from "./core/common/protocols/PocketNetwork/PocketNetworkTransactionTypes";
 import { EthereumNetworkTransactionTypes } from "./core/common/protocols/EthereumNetwork/EthereumNetworkTransactionTypes";
 import { IAsset } from "./core/common/protocols/IAsset";
+import * as bip39 from "@scure/bip39";
+import { wordlist } from "@scure/bip39/wordlists/english";
 
 export type AllowedProtocols = keyof typeof SupportedProtocols;
 
@@ -71,6 +73,12 @@ export interface TransferOptions {
 
 export interface VaultOptions {
   sessionMaxAge?: number;
+}
+
+export interface AddHDWalletAccountExternalRequest {
+  seedAccountId: string;
+  protocol: SupportedProtocols;
+  count?: number;
 }
 
 export class VaultTeller {
@@ -668,6 +676,96 @@ export class VaultTeller {
     await this.vaultStore.save(newEncryptedVault.serialize());
   }
 
+  createRecoveryPhrase(size: number = 12): string {
+    const strengthMap = new Map<number, number>([
+      [12, 128],
+      [15, 160],
+      [18, 192],
+      [21, 224],
+      [24, 256],
+    ]);
+
+    return bip39.generateMnemonic(wordlist, strengthMap.get(size));
+  }
+
+  validateRecoveryPhrase(recoveryPhrase: string): boolean {
+    if (!recoveryPhrase) {
+      return false;
+    }
+    return bip39.validateMnemonic(recoveryPhrase, wordlist);
+  }
+
+  async importRecoveryPhrase(
+    sessionId: string,
+    vaultPassphrase: Passphrase,
+    options: ImportRecoveryPhraseOptions
+  ): Promise<AccountReference[]> {
+    await this.validateSessionForPermissions(sessionId, "account", "create");
+
+    const isValidRecoveredPhrase = this.validateRecoveryPhrase(options.recoveryPhrase);
+
+    if (!isValidRecoveredPhrase) {
+      throw new RecoveryPhraseError('Invalid recovery phrase')
+    }
+
+    const protocolService = ProtocolServiceFactory.getProtocolService(
+      options.protocol,
+      this.encryptionService
+    );
+
+    const accounts = await protocolService.createAccountsFromRecoveryPhrase(options);
+
+    for (const account of accounts) {
+      await this.addVaultAccount(account, vaultPassphrase);
+      await this.addAccountToSession(sessionId, account);
+    }
+
+    await this.updateSessionLastActivity(sessionId);
+
+    return accounts.map((a) => a.asAccountReference());
+  }
+
+  async addHDWalletAccount(
+    sessionId: string,
+    vaultPassphrase: Passphrase,
+    options: AddHDWalletAccountExternalRequest,
+  ): Promise<AccountReference[]> {
+    await this.validateSessionForPermissions(sessionId, "account", "create");
+
+    const seedAccount = await this.getVaultAccountById(options.seedAccountId, vaultPassphrase);
+
+    const seedAccountChildren = (await this.listAccounts(sessionId)).filter((a) => a.parentId === seedAccount.id);
+    const seedAccountChildrenIndexes =
+        seedAccountChildren
+            .map(a => a.hdwIndex)
+            .sort((a, b) => a! - b!);
+
+    // Based on a sorted list of hdwIndex values from the seedAccountChildren array, determine the missing indexes
+    const missingIndexes =
+        Array.from({ length: seedAccountChildrenIndexes.length + (options.count || 1) }, (_, i) => i)
+             .filter(i => !seedAccountChildrenIndexes.some(a => a === i))
+             .slice(0, options.count || 1);
+
+    const protocolService = ProtocolServiceFactory.getProtocolService(
+      options.protocol,
+      this.encryptionService
+    );
+
+    const accounts = await protocolService.createHDWalletAccount({
+        seedAccount,
+        indexes: missingIndexes,
+    });
+
+    for (const account of accounts) {
+      await this.addVaultAccount(account, vaultPassphrase);
+      await this.addAccountToSession(sessionId, account);
+    }
+
+    await this.updateSessionLastActivity(sessionId);
+
+    return accounts.map((a) => a.asAccountReference());
+  }
+
   private async encryptVault(
     passphrase: Passphrase,
     vault: Vault
@@ -700,7 +798,7 @@ export class VaultTeller {
     }
 
     try {
-      return Vault.deserialize(JSON.parse(vaultJson));
+      return Vault.deserialize(JSON.parse(vaultJson))
     } catch (error) {
       throw new Error(
         "Unable to deserialize vault. Has it been tempered with?"

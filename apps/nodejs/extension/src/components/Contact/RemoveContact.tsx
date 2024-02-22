@@ -10,7 +10,7 @@ import OperationFailed from "../common/OperationFailed";
 import { CONTACTS_PAGE } from "../../constants/routes";
 import { enqueueSnackbar } from "../../utils/ui";
 import { ContactItem } from "./List";
-import { removeContact } from "../../redux/slices/app/contact";
+import {Contact, removeContact} from "../../redux/slices/app/contact";
 import { contactsSelector } from "../../redux/selectors/contact";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 
@@ -19,7 +19,7 @@ const RemoveContact: React.FC = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const [contact, setContact] = useState<SerializedAccountReference>(null);
+  const [contact, setContact] = useState<Contact>(null);
   const dispatch = useAppDispatch();
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"

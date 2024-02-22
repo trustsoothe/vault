@@ -1,4 +1,4 @@
-import type { SerializedAccountReference } from "@poktscan/keyring";
+import {SerializedAccountReference, SupportedProtocols} from "@poktscan/keyring";
 import type { RootState } from "../../store";
 import type { AppSliceBuilder } from "../../../types";
 import { v4 } from "uuid";
@@ -10,8 +10,15 @@ import {
   CONTACT_ALREADY_EXISTS,
 } from "../../../errors/contact";
 
+export interface Contact {
+  id?: string;
+  name: string;
+  address: string;
+  protocol: SupportedProtocols;
+}
+
 interface SaveContactParam {
-  contact: Omit<SerializedAccountReference, "id">;
+  contact: Contact;
   /** id of the contact to replace */
   idToReplace?: string;
 }
@@ -46,7 +53,7 @@ export const saveContact = createAsyncThunk(
       throw CONTACT_ALREADY_EXISTS;
     }
 
-    const contactToSave: SerializedAccountReference = {
+    const contactToSave: Contact = {
       id: idToReplace || v4(),
       ...contact,
       name: contact.name.trim(),

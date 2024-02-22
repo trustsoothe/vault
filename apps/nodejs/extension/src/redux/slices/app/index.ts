@@ -19,7 +19,7 @@ import {
   setGetAccountPending as setGetAccountPendingFromNetwork,
 } from "./network";
 import { SettingsSchema } from "../vault/backup";
-import { addContactThunksToBuilder } from "./contact";
+import {addContactThunksToBuilder, Contact} from "./contact";
 import { ChainChangedMessageToProxy } from "../../../types/communications/chainChanged";
 
 export interface AccountBalanceInfo {
@@ -112,7 +112,7 @@ export interface GeneralAppSlice {
   networksCanBeSelected: NetworkCanBeSelectedMap;
   assetsIdByAccount: Record<string, string[]>;
   customRpcs: CustomRPC[];
-  contacts: SerializedAccountReference[];
+  contacts: Contact[];
   isReadyStatus: "yes" | "no" | "loading" | "error";
   idOfMintsSent: string[];
   sessionsMaxAge: {

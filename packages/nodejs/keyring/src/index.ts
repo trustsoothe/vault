@@ -12,8 +12,6 @@ export * from './lib/errors'
 export * from './lib/constants';
 export * from './lib/core/common/protocols/Bridges';
 
-import EncryptionServiceSpecFactory from './lib/core/common/encryption/IEncryptionService.specFactory'
-
 import type {IEncryptionService} from './lib/core/common/encryption/IEncryptionService'
 import type IVaultStore from './lib/core/common/storage/IVaultStorage'
 import type IStorage from './lib/core/common/storage/IStorage'
@@ -24,6 +22,7 @@ import type {INetworkOptions} from "./lib/core/network/INetworkOptions";
 import type {VaultOptions} from "./lib/VaultTeller"
 import type {SignTypedDataRequest} from './lib/core/common/protocols'
 import type {SignPersonalDataRequest} from './lib/core/common/protocols'
+import type {AddHDWalletAccountExternalRequest} from './lib/VaultTeller'
 
 export type {
   IEncryptionService,
@@ -36,6 +35,5 @@ export type {
   VaultOptions,
   SignTypedDataRequest,
   SignPersonalDataRequest,
+  AddHDWalletAccountExternalRequest,
 };
-
-export { EncryptionServiceSpecFactory };

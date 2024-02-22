@@ -23,6 +23,7 @@ import { useAppSelector } from "../../../hooks/redux";
 import { getTruncatedText } from "../../../utils/ui";
 import { accountsSelector } from "../../../redux/selectors/account";
 import { contactsSelector } from "../../../redux/selectors/contact";
+import {Contact} from "../../../redux/slices/app/contact";
 
 interface ToAddressAutocompleteProps {
   disabled?: boolean;
@@ -77,7 +78,7 @@ const renderAutocompleteOption = (
 
 export const filterAccounts = (
   searchText: string,
-  accounts: SerializedAccountReference[]
+  accounts: Contact[]
 ) => {
   if (!searchText) {
     return accounts;
