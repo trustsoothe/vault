@@ -21,5 +21,8 @@ export const PERSONAL_SIGN_PAGE = "/sign/personal";
 
 export const CHANGE_SELECTED_CHAIN_PAGE = "/network/change_chain";
 
+export const HD_WALLETS_PAGE = "/hd_wallets";
+export const CREATE_NEW_HD_WALLETS_PAGE = "/hd_wallets/new";
+export const IMPORT_HD_WALLET_PAGE = "/hd_wallets/import";
 export const PREFERENCES_PAGE = "/preferences";
 export const EXPORT_VAULT_PAGE = "/export_vault";

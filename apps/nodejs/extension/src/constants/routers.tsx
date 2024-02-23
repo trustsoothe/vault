@@ -7,9 +7,12 @@ import {
   BLOCK_SITE_PAGE,
   CHANGE_SELECTED_CHAIN_PAGE,
   CONTACTS_PAGE,
+  CREATE_NEW_HD_WALLETS_PAGE,
   DISCONNECT_SITE_PAGE,
   EXPORT_VAULT_PAGE,
+  HD_WALLETS_PAGE,
   IMPORT_ACCOUNT_PAGE,
+  IMPORT_HD_WALLET_PAGE,
   NETWORKS_PAGE,
   PERSONAL_SIGN_PAGE,
   PREFERENCES_PAGE,
@@ -45,6 +48,9 @@ import SignTypedData from "../components/Sign/TypedData";
 import PersonalSign from "../components/Sign/Personal";
 import Preferences from "../components/Preferences";
 import ExportVault from "../components/Vault/Export";
+import HDWallets from "../components/HDWallets";
+import ImportHdWallet from "../components/HDWallets/Import";
+import CreateNewHdWallet from "../components/HDWallets/CreateNew";
 
 export const router = createHashRouter([
   {
@@ -118,6 +124,18 @@ export const router = createHashRouter([
       {
         path: EXPORT_VAULT_PAGE,
         element: <ExportVault />,
+      },
+      {
+        path: HD_WALLETS_PAGE,
+        element: <HDWallets />,
+      },
+      {
+        path: CREATE_NEW_HD_WALLETS_PAGE,
+        element: <CreateNewHdWallet />,
+      },
+      {
+        path: IMPORT_HD_WALLET_PAGE,
+        element: <ImportHdWallet />,
       },
     ],
   },
