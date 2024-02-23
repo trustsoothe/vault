@@ -1,11 +1,12 @@
-import {AddHDWalletAccountOptions,
+import {
+  AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService,
 } from "../IProtocolService";
-import {Account, AccountType} from "../../../vault";
-import {AccountReference, SupportedProtocols} from "../../values";
+import { Account, AccountType } from "../../../vault";
+import { AccountReference, SupportedProtocols } from "../../values";
 import Eth from "web3-eth";
 import {
   create,
@@ -16,32 +17,37 @@ import {
   privateKeyToPublicKey,
   signTransaction,
 } from "web3-eth-accounts";
-import {Contract} from "web3-eth-contract";
-import {HttpProvider} from "web3-providers-http";
-import {fromWei, toHex, toWei} from "web3-utils";
-import {ArgumentError, NetworkRequestError, ProtocolTransactionError, RecoveryPhraseError,} from "../../../../errors";
-import {IEncryptionService} from "../../encryption/IEncryptionService";
-import {ProtocolFee} from "../ProtocolFee";
-import {INetwork} from "../INetwork";
-import {IAsset} from "../IAsset";
-import {NetworkStatus} from "../../values/NetworkStatus";
+import { Contract } from "web3-eth-contract";
+import { HttpProvider } from "web3-providers-http";
+import { fromWei, toHex, toWei } from "web3-utils";
+import {
+  ArgumentError,
+  NetworkRequestError,
+  ProtocolTransactionError,
+  RecoveryPhraseError,
+} from "../../../../errors";
+import { IEncryptionService } from "../../encryption/IEncryptionService";
+import { ProtocolFee } from "../ProtocolFee";
+import { INetwork } from "../INetwork";
+import { IAsset } from "../IAsset";
+import { NetworkStatus } from "../../values/NetworkStatus";
 import {
   EthereumProtocolFeeRequestSchema,
   EthereumProtocolNetworkSchema,
   EthereumProtocolSendTransactionForStatusResponseSchema,
 } from "./schemas";
-import {EthereumNetworkFeeRequestOptions} from "./EthereumNetworkFeeRequestOptions";
-import {SUGGESTED_GAS_FEES_URL} from "../../../../constants";
+import { EthereumNetworkFeeRequestOptions } from "./EthereumNetworkFeeRequestOptions";
+import { SUGGESTED_GAS_FEES_URL } from "../../../../constants";
 import ERC20Abi from "./contracts/ERC20Detailed";
-import {IProtocolTransactionResult} from "../ProtocolTransaction";
-import {Buffer} from "buffer";
-import {EthereumNetworkProtocolTransaction} from "./EthereumNetworkProtocolTransaction";
-import {EthereumNetworkTransactionTypes} from "./EthereumNetworkTransactionTypes";
-import {EthereumNetworkFee} from "./EthereumNetworkFee";
-import {SignTypedDataVersion, TypedDataUtils} from "@metamask/eth-sig-util";
-import {ecsign} from 'ethereumjs-util'
-import {mnemonicToSeed, validateMnemonic} from "@scure/bip39";
-import {wordlist} from "@scure/bip39/wordlists/english";
+import { IProtocolTransactionResult } from "../ProtocolTransaction";
+import { Buffer } from "buffer";
+import { EthereumNetworkProtocolTransaction } from "./EthereumNetworkProtocolTransaction";
+import { EthereumNetworkTransactionTypes } from "./EthereumNetworkTransactionTypes";
+import { EthereumNetworkFee } from "./EthereumNetworkFee";
+import { SignTypedDataVersion, TypedDataUtils } from "@metamask/eth-sig-util";
+import { ecsign } from "ethereumjs-util";
+import { mnemonicToSeed, validateMnemonic } from "@scure/bip39";
+import { wordlist } from "@scure/bip39/wordlists/english";
 import HDKey from "hdkey";
 
 interface SuggestedFeeSpeed {
@@ -65,32 +71,34 @@ interface SuggestedFees {
 }
 
 export interface SignTypedDataRequest {
-  data: any // TODO: Provide a EIP-712 request type
-  privateKey: string
+  data: any; // TODO: Provide a EIP-712 request type
+  privateKey: string;
 }
 
 export interface SignPersonalDataRequest {
-  challenge: string
-  privateKey: string
+  challenge: string;
+  privateKey: string;
 }
 
 export class EthereumNetworkProtocolService
-  implements IProtocolService<SupportedProtocols.Ethereum> {
-  constructor(private encryptionService: IEncryptionService) {
-  }
+  implements IProtocolService<SupportedProtocols.Ethereum>
+{
+  constructor(private encryptionService: IEncryptionService) {}
 
-  async createAccountsFromRecoveryPhrase(options: ImportRecoveryPhraseOptions): Promise<Account[]> {
-    const isValidMnemonic = validateMnemonic(options.recoveryPhrase, wordlist)
+  async createAccountsFromRecoveryPhrase(
+    options: ImportRecoveryPhraseOptions
+  ): Promise<Account[]> {
+    const isValidMnemonic = validateMnemonic(options.recoveryPhrase, wordlist);
 
     if (!isValidMnemonic) {
-      throw new RecoveryPhraseError('Invalid recovery phrase')
+      throw new RecoveryPhraseError("Invalid recovery phrase");
     }
 
-    const seed = await mnemonicToSeed(options.recoveryPhrase)
-    const masterKey = HDKey.fromMasterSeed(Buffer.from(seed))
+    const seed = await mnemonicToSeed(options.recoveryPhrase);
+    const masterKey = HDKey.fromMasterSeed(Buffer.from(seed));
 
     const seedAccount = new Account({
-      name: options.seedAccountName || 'HD Account',
+      name: options.seedAccountName || "HD Account",
       accountType: AccountType.HDSeed,
       protocol: SupportedProtocols.Ethereum,
       publicKey: masterKey.publicExtendedKey,
@@ -104,15 +112,20 @@ export class EthereumNetworkProtocolService
     return [seedAccount, childAccount];
   }
 
-  async createHDWalletAccount(options: AddHDWalletAccountOptions): Promise<Account[]> {
-    const accounts: Account[] = []
+  async createHDWalletAccount(
+    options: AddHDWalletAccountOptions
+  ): Promise<Account[]> {
+    const accounts: Account[] = [];
 
-    for(let i = 0; i < options.indexes?.length; i++) {
-      const account = await this.deriveHDAccountAtIndex(options.seedAccount, options.indexes[i])
-      accounts.push(account)
+    for (let i = 0; i < options.indexes?.length; i++) {
+      const account = await this.deriveHDAccountAtIndex(
+        options.seedAccount,
+        options.indexes[i]
+      );
+      accounts.push(account);
     }
 
-    return accounts
+    return accounts;
   }
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
@@ -159,7 +172,9 @@ export class EthereumNetworkProtocolService
     if (!options.privateKey) {
       throw new ArgumentError("options.privateKey");
     }
-    const {validatedPrivateKey, account} = this.createWeb3Account(options.privateKey);
+    const { validatedPrivateKey, account } = this.createWeb3Account(
+      options.privateKey
+    );
 
     let privateKey = validatedPrivateKey;
 
@@ -300,26 +315,39 @@ export class EthereumNetworkProtocolService
       },
     };
 
-    if (options.gasLimit || options.maxFeePerGas || options.maxPriorityFeePerGas) {
+    if (
+      options.gasLimit ||
+      options.maxFeePerGas ||
+      options.maxPriorityFeePerGas
+    ) {
       return {
         ...estimatedFee,
         site: {
           suggestedMaxFeePerGas: Number(
-            toWei(options.maxFeePerGas || suggestions.medium.suggestedMaxFeePerGas, "gwei")
+            toWei(
+              options.maxFeePerGas || suggestions.medium.suggestedMaxFeePerGas,
+              "gwei"
+            )
           ),
           suggestedMaxPriorityFeePerGas: Number(
-            toWei(options.maxPriorityFeePerGas || suggestions.medium.suggestedMaxPriorityFeePerGas, "gwei")
+            toWei(
+              options.maxPriorityFeePerGas ||
+                suggestions.medium.suggestedMaxPriorityFeePerGas,
+              "gwei"
+            )
           ),
           amount: calculateAmountForSpeed(
             suggestions.estimatedBaseFee,
             estimatedGas,
             {
               ...suggestions.medium,
-              suggestedMaxPriorityFeePerGas: options.maxPriorityFeePerGas || suggestions.medium.suggestedMaxPriorityFeePerGas,
+              suggestedMaxPriorityFeePerGas:
+                options.maxPriorityFeePerGas ||
+                suggestions.medium.suggestedMaxPriorityFeePerGas,
             }
           ),
-        }
-      }
+        },
+      };
     }
 
     return estimatedFee;
@@ -462,29 +490,39 @@ export class EthereumNetworkProtocolService
   }
 
   async signTypedData(request: SignTypedDataRequest) {
-    const hashedMessage = TypedDataUtils.eip712Hash(request.data, SignTypedDataVersion.V4)
-    const sig = ecsign(hashedMessage, Buffer.from(request.privateKey, 'hex'))
-    return `0x${sig.r.toString('hex')}${sig.s.toString('hex')}${sig.v.toString(16)}`
+    const hashedMessage = TypedDataUtils.eip712Hash(
+      request.data,
+      SignTypedDataVersion.V4
+    );
+    const sig = ecsign(hashedMessage, Buffer.from(request.privateKey, "hex"));
+    return `0x${sig.r.toString("hex")}${sig.s.toString("hex")}${sig.v.toString(
+      16
+    )}`;
   }
 
   async signPersonalData(request: SignPersonalDataRequest) {
-    const {account} = this.createWeb3Account(request.privateKey)
-    const result = account.sign(request.challenge)
+    const { account } = this.createWeb3Account(request.privateKey);
+    const result = account.sign(request.challenge);
     return result.signature;
   }
 
-  private async deriveHDAccountAtIndex(seedAccount: Account, index: number): Promise<Account> {
-    const derivedKey = HDKey.fromExtendedKey(seedAccount.privateKey).derive(`m/44'/60'/0'/0/${index}`);
-    const publicKey = privateKeyToPublicKey(derivedKey.privateKey, false)
-    const address = privateKeyToAddress(derivedKey.privateKey)
+  private async deriveHDAccountAtIndex(
+    seedAccount: Account,
+    index: number
+  ): Promise<Account> {
+    const derivedKey = HDKey.fromExtendedKey(seedAccount.privateKey).derive(
+      `m/44'/60'/0'/0/${index}`
+    );
+    const publicKey = privateKeyToPublicKey(derivedKey.privateKey, false);
+    const address = privateKeyToAddress(derivedKey.privateKey);
 
     return new Account({
       publicKey,
       address,
-      name: `HD Account ${index + 1}`,
+      name: `${seedAccount.name} ${index + 1}`,
       accountType: AccountType.HDChild,
       protocol: SupportedProtocols.Ethereum,
-      privateKey: derivedKey.privateKey.toString('hex'),
+      privateKey: derivedKey.privateKey.toString("hex"),
       parentId: seedAccount.id,
       hdwIndex: index,
       hdwAccountIndex: 0, // TODO: Parameterize this if we will allow users to use more than one account from the same seeds
@@ -496,7 +534,7 @@ export class EthereumNetworkProtocolService
     const validatedPrivateKey = this.parsePrivateKey(privateKey);
 
     const account = privateKeyToAccount(validatedPrivateKey);
-    return {validatedPrivateKey, account};
+    return { validatedPrivateKey, account };
   }
 
   private validateNetwork(network: INetwork) {
@@ -549,7 +587,7 @@ export class EthereumNetworkProtocolService
     // @ts-ignore
     const balance = await ethContract.methods.balanceOf(account.address).call();
 
-    const calculatedBalance = Number(balance) / (10 ** asset.decimals);
+    const calculatedBalance = Number(balance) / 10 ** asset.decimals;
     return Number(calculatedBalance.toFixed(5));
   }
 
@@ -684,8 +722,7 @@ export class EthereumNetworkProtocolService
     transactionParams: EthereumNetworkProtocolTransaction,
     asset: IAsset
   ): Promise<IProtocolTransactionResult<SupportedProtocols.Ethereum>> {
-    const amount =
-      Number(transactionParams.amount) * (10 ** asset.decimals);
+    const amount = Number(transactionParams.amount) * 10 ** asset.decimals;
     const ethContractClient = this.getEthContractClient(network, asset);
     const transferFn = ethContractClient.methods.transfer(
       transactionParams.to,
@@ -736,7 +773,10 @@ export class EthereumNetworkProtocolService
     const txParams = {
       from: transactionParams.from,
       to: transactionParams.to,
-      value: (transactionParams.amount && `0x${BigInt(transactionParams.amount).toString(16)}`) || '0x0',
+      value:
+        (transactionParams.amount &&
+          `0x${BigInt(transactionParams.amount).toString(16)}`) ||
+        "0x0",
       gasLimit: BigInt(Math.round(transactionParams.gasLimit || 21000)),
       chainId: Number(network.chainID),
       nonce,

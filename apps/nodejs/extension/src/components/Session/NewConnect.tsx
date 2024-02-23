@@ -16,6 +16,7 @@ import Skeleton from "@mui/material/Skeleton";
 import { useLocation } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import {
+  AccountType,
   type SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/keyring";
@@ -247,7 +248,11 @@ const NewConnect: React.FC = () => {
 
     return orderBy(
       accounts
-        .filter((item) => item.protocol === protocol)
+        .filter(
+          (item) =>
+            item.protocol === protocol &&
+            item.accountType !== AccountType.HDSeed
+        )
         .map((item) => ({
           ...item,
           balanceInfo: balancesById?.[item.address] as AccountBalanceInfo,

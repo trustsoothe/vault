@@ -72,6 +72,7 @@ import {
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
   EXPORT_VAULT_REQUEST,
   IMPORT_ACCOUNT_REQUEST,
+  IMPORT_HD_WALLET_REQUEST,
   IMPORT_VAULT_REQUEST,
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
@@ -85,6 +86,10 @@ import {
   UNLOCK_VAULT_REQUEST,
   UPDATE_ACCOUNT_REQUEST,
 } from "../../constants/communication";
+import {
+  ImportHdWalletReq,
+  ImportHdWalletRes,
+} from "../../types/communications/hdWallet";
 
 export default class AppToBackground {
   static async answerConnection(
@@ -300,6 +305,17 @@ export default class AppToBackground {
   ): Promise<SetRequirePasswordForOptsRes> {
     const message: SetRequirePasswordForOptsReq = {
       type: SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async importHdWallet(
+    data: ImportHdWalletReq["data"]
+  ): Promise<ImportHdWalletRes> {
+    const message: ImportHdWalletReq = {
+      type: IMPORT_HD_WALLET_REQUEST,
       data,
     };
 

@@ -4,10 +4,9 @@ import TextField from "@mui/material/TextField";
 import React, { useEffect, useState } from "react";
 import {
   Controller,
+  FormProvider,
   useForm,
   useFormContext,
-  FormProvider,
-  useFieldArray,
 } from "react-hook-form";
 import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -17,15 +16,17 @@ import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { AccountType, SupportedProtocols } from "@poktscan/keyring";
 import { nameRules } from "../Account/CreateModal";
 import { useAppSelector } from "../../hooks/redux";
+import { generateRecoveryPhrase } from "../../utils";
 import CopyIcon from "../../assets/img/copy_icon.svg";
 import OperationFailed from "../common/OperationFailed";
 import CircularLoading from "../common/CircularLoading";
 import { HD_WALLETS_PAGE } from "../../constants/routes";
 import ProtocolSelector from "../common/ProtocolSelector";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface FormValues {
   hdWalletName: string;
@@ -38,15 +39,9 @@ interface FormValues {
   understandPhraseWarning: boolean;
 }
 
-const words =
-  "spare catalog squeeze evoke rice jungle demise chat solve garage basic donor biology release salmon nature empty note lift equip cricket bullet logic fragile".split(
-    " "
-  );
-
 const FormStep: React.FC = () => {
   const theme = useTheme();
-  const { register, control, watch, handleSubmit, setValue } =
-    useFormContext<FormValues>();
+  const { register, control, watch } = useFormContext<FormValues>();
 
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   const [phraseSize, phrase] = watch(["phraseSize", "phrase"]);
@@ -192,6 +187,8 @@ const FormStep: React.FC = () => {
                 flexGrow={1}
                 lineHeight={"20px"}
                 minWidth={0}
+                noWrap={true}
+                maxWidth={65}
                 sx={{
                   height: 20,
                   paddingLeft: 0.7,
@@ -413,7 +410,7 @@ const CreateNewHdWallet: React.FC = () => {
       hdWalletName: "",
       phraseSize: "12",
       password: "",
-      phrase: words.slice(0, 12).join(" "),
+      phrase: "",
       wordsConfirmation: [],
       requiredWords: [],
       understandPhraseWarning: false,
@@ -427,7 +424,7 @@ const CreateNewHdWallet: React.FC = () => {
 
   useEffect(() => {
     const phraseSizeNum = Number(phraseSize);
-    const newPhrase = words.slice(0, Number(phraseSizeNum)).join(" ");
+    const newPhrase = generateRecoveryPhrase(phraseSizeNum);
 
     setValue("phrase", newPhrase);
 
@@ -461,10 +458,28 @@ const CreateNewHdWallet: React.FC = () => {
 
     if (status === "form") {
       setStatus("confirmation");
-    } else if (status === "confirmation") {
-      setStatus("success");
+    } else if (status === "confirmation" || status === "error") {
+      setStatus("loading");
+      AppToBackground.importHdWallet({
+        recoveryPhrase: data.phrase,
+        protocol: data.protocol,
+        isSendNodes: false,
+        seedAccountName: data.hdWalletName,
+      }).then((res) => {
+        if (res.error) {
+          setStatus("error");
+        } else {
+          if (res.data?.accounts) {
+            setStatus("success");
+            setAccountId(
+              res.data.accounts.find(
+                (account) => account.accountType === AccountType.HDSeed
+              )?.id
+            );
+          }
+        }
+      });
     }
-    console.log(data);
   };
 
   const onCancel = () => {

@@ -104,6 +104,8 @@ import {
   EXPORT_VAULT_RESPONSE,
   IMPORT_ACCOUNT_REQUEST,
   IMPORT_ACCOUNT_RESPONSE,
+  IMPORT_HD_WALLET_REQUEST,
+  IMPORT_HD_WALLET_RESPONSE,
   IMPORT_VAULT_REQUEST,
   IMPORT_VAULT_RESPONSE,
   INITIALIZE_VAULT_REQUEST,
@@ -155,6 +157,7 @@ import {
   addNewAccount,
   getPrivateKeyOfAccount,
   importAccount,
+  importHdWallet,
   removeAccount,
   sendTransfer,
   updateAccount,
@@ -173,7 +176,10 @@ import {
   hashString,
   importVault,
 } from "../../redux/slices/vault/backup";
-import { sign } from "web3-eth-accounts";
+import {
+  ImportHdWalletReq,
+  ImportHdWalletRes,
+} from "../../types/communications/hdWallet";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -204,6 +210,7 @@ const mapMessageType: Record<InternalRequests["type"], true> = {
   [SHOULD_EXPORT_VAULT_REQUEST]: true,
   [IMPORT_VAULT_REQUEST]: true,
   [SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST]: true,
+  [IMPORT_HD_WALLET_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -303,6 +310,10 @@ class InternalCommunicationController implements ICommunicationController {
 
     if (message?.type === SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST) {
       return this._setRequirePasswordForOpts(message);
+    }
+
+    if (message?.type === IMPORT_HD_WALLET_REQUEST) {
+      return this._handleImportHdWallet(message);
     }
   }
 
@@ -1176,6 +1187,42 @@ class InternalCommunicationController implements ICommunicationController {
       }
       return {
         type: IMPORT_ACCOUNT_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _handleImportHdWallet(
+    message: ImportHdWalletReq
+  ): Promise<ImportHdWalletRes> {
+    try {
+      const accounts = await store
+        .dispatch(importHdWallet(message.data))
+        .unwrap();
+
+      return {
+        type: IMPORT_HD_WALLET_RESPONSE,
+        data: {
+          answered: true,
+          accounts,
+        },
+        error: null,
+      };
+    } catch (error) {
+      if (error?.name === VaultRestoreErrorName) {
+        return {
+          type: IMPORT_HD_WALLET_RESPONSE,
+          data: {
+            answered: true,
+            accounts: [],
+          },
+          error: null,
+        };
+      }
+
+      return {
+        type: IMPORT_HD_WALLET_RESPONSE,
         data: null,
         error: UnknownError,
       };

@@ -95,6 +95,7 @@ import type {
 } from "./vault";
 import type { NetworkFeeReq, SetRequirePasswordForOptsReq } from "./app";
 import type { AnswerNewAccountReq } from "./newAccount";
+import type { ImportHdWalletReq } from "./hdWallet";
 
 export type ProxyRequests =
   | ProxyConnectionReq
@@ -142,6 +143,7 @@ export type InternalRequests =
   | UpdateAccountReq
   | RemoveAccountReq
   | ImportAccountReq
+  | ImportHdWalletReq
   | PrivateKeyAccountReq
   | RevokeExternalSessionsReq
   | AccountBalanceReq

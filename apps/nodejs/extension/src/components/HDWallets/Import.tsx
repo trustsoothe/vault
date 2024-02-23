@@ -15,14 +15,16 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { AccountType, SupportedProtocols } from "@poktscan/keyring";
 import { nameRules } from "../Account/CreateModal";
 import { useAppSelector } from "../../hooks/redux";
+import { recoveryPhraseIsValid } from "../../utils";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import { HD_WALLETS_PAGE } from "../../constants/routes";
 import ProtocolSelector from "../common/ProtocolSelector";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface FormValues {
   hdWalletName: string;
@@ -151,8 +153,10 @@ const FormStep: React.FC = () => {
           validate: (value) => {
             if (!value.every((value) => !!value.word)) return true;
 
-            // todo: call validatePhrase
-            return true || "Invalid recovery phrase";
+            return (
+              recoveryPhraseIsValid(value.map(({ word }) => word).join(" ")) ||
+              "Invalid recovery phrase"
+            );
           },
         }}
         render={({ field: { value: fields } }) => {
@@ -321,11 +325,32 @@ const ImportHdWallet: React.FC = () => {
   }, [phraseSize]);
 
   const onSubmit = (data: FormValues) => {
-    setStatus("loading");
-    setTimeout(() => {
-      setStatus(data.phraseSize === "18" ? "error" : "success");
-      setAccountId("HD Wallet 1");
-    }, 500);
+    if (status === "form" || status === "error") {
+      setStatus("loading");
+      const phrase = data.wordList.map(({ word }) => word).join(" ");
+      AppToBackground.importHdWallet({
+        recoveryPhrase: phrase,
+        protocol: data.protocol,
+        isSendNodes:
+          data.protocol === SupportedProtocols.Pocket
+            ? data.sendNodesDerivation
+            : false,
+        seedAccountName: data.hdWalletName,
+      }).then((res) => {
+        if (res.error) {
+          setStatus("error");
+        } else {
+          if (res.data?.accounts) {
+            setStatus("success");
+            setAccountId(
+              res.data.accounts.find(
+                (account) => account.accountType === AccountType.HDSeed
+              )?.id
+            );
+          }
+        }
+      });
+    }
   };
 
   const goToMyWallet = () => {

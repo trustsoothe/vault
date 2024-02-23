@@ -6,6 +6,7 @@ import set from "lodash/set";
 import {
   AccountReference,
   AccountUpdateOptions,
+  ImportRecoveryPhraseOptions,
   Passphrase,
   PrivateKeyRestoreErrorName,
   SerializedAccountReference,
@@ -24,6 +25,25 @@ import {
 const MAX_PASSWORDS_TRIES = 4;
 const VAULT_PASSWORD_ID = "vault";
 const ExtensionVaultInstance = getVault();
+
+export const importHdWallet = createAsyncThunk(
+  "vault/importHdWallet",
+  async (options: ImportRecoveryPhraseOptions, context) => {
+    const state = context.getState() as RootState;
+    const { vaultSession } = state.vault;
+
+    const vaultPassword = await getVaultPassword(vaultSession.id);
+    const vaultPassphrase = new Passphrase(vaultPassword);
+
+    const accountReferences = await ExtensionVaultInstance.importRecoveryPhrase(
+      vaultSession.id,
+      vaultPassphrase,
+      options
+    );
+
+    return accountReferences.map((account) => account.serialize());
+  }
+);
 
 export const addNewAccount = createAsyncThunk<
   {
@@ -234,6 +254,19 @@ const addAddNewAccountToBuilder = (builder: VaultSliceBuilder) => {
   });
 };
 
+const addImportHdWalletToBuilder = (builder: VaultSliceBuilder) => {
+  builder.addCase(importHdWallet.rejected, (state, action) => {
+    increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
+  });
+
+  builder.addCase(importHdWallet.fulfilled, (state, action) => {
+    const accounts = action.payload;
+    state.accounts.push(...accounts);
+
+    resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+  });
+};
+
 const addImportAccountToBuilder = (builder: VaultSliceBuilder) => {
   builder.addCase(importAccount.fulfilled, (state, action) => {
     const account = action.payload;
@@ -301,6 +334,7 @@ export const addAccountThunksToBuilder = (builder: VaultSliceBuilder) => {
   addRemoveAccountToBuilder(builder);
   addGetPrivateKeyToBuilder(builder);
   addSendTransferToBuilder(builder);
+  addImportHdWalletToBuilder(builder);
 };
 
 function resetWrongPasswordCounter(id: string, state: VaultSlice) {
