@@ -307,11 +307,13 @@ const ImportAccount: React.FC = () => {
 
     if (wasOpenToImportFile) {
       setValue("import_type", "json_file");
-      enqueueSnackbar({
-        variant: "info",
-        message:
-          "This page was open because you cannot import files in the popup.",
-      });
+      if (location.key === "default") {
+        enqueueSnackbar({
+          variant: "info",
+          message:
+            "This page was open because you cannot import files in the popup.",
+        });
+      }
     }
   }, []);
 

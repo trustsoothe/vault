@@ -379,8 +379,8 @@
         "@poktscan/keyring>@metamask/eth-sig-util>@ethereumjs/util": true,
         "@poktscan/keyring>@metamask/eth-sig-util>@metamask/abi-utils": true,
         "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils": true,
-        "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl": true,
         "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl-util": true,
+        "@poktscan/keyring>ed25519-hd-key>tweetnacl": true,
         "browserify>buffer": true,
         "ethereum-cryptography": true
       }
@@ -449,20 +449,27 @@
         "define": true
       }
     },
-    "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl": {
+    "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl-util": {
       "globals": {
-        "crypto": true,
-        "msCrypto": true,
-        "nacl": "write"
+        "atob": true,
+        "btoa": true
       },
       "packages": {
         "browserify>browser-resolve": true
       }
     },
-    "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl-util": {
+    "@poktscan/keyring>ed25519-hd-key": {
+      "packages": {
+        "@poktscan/keyring>ed25519-hd-key>tweetnacl": true,
+        "browserify>buffer": true,
+        "crypto-browserify>create-hmac": true
+      }
+    },
+    "@poktscan/keyring>ed25519-hd-key>tweetnacl": {
       "globals": {
-        "atob": true,
-        "btoa": true
+        "crypto": true,
+        "msCrypto": true,
+        "nacl": "write"
       },
       "packages": {
         "browserify>browser-resolve": true
@@ -490,7 +497,7 @@
     "@poktscan/keyring>ethereumjs-util>ethereum-cryptography": {
       "packages": {
         "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>keccak": true,
-        "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>secp256k1": true,
+        "@poktscan/keyring>hdkey>secp256k1": true,
         "browserify>buffer": true,
         "crypto-browserify>randombytes": true
       }
@@ -507,11 +514,6 @@
         "stream-http>readable-stream": true
       }
     },
-    "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>secp256k1": {
-      "packages": {
-        "crypto-browserify>create-ecdh>elliptic": true
-      }
-    },
     "@poktscan/keyring>ethereumjs-util>rlp": {
       "packages": {
         "@poktscan/keyring>ethereumjs-util>rlp>bn.js": true,
@@ -524,6 +526,52 @@
       },
       "packages": {
         "browserify>browser-resolve": true
+      }
+    },
+    "@poktscan/keyring>hdkey": {
+      "packages": {
+        "@poktscan/keyring>hdkey>bs58check": true,
+        "@poktscan/keyring>hdkey>ripemd160": true,
+        "@poktscan/keyring>hdkey>secp256k1": true,
+        "browserify>assert": true,
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify": true
+      }
+    },
+    "@poktscan/keyring>hdkey>bs58check": {
+      "packages": {
+        "@poktscan/keyring>hdkey>bs58check>bs58": true,
+        "browserify>browser-pack>safe-buffer": true,
+        "crypto-browserify>create-hash": true
+      }
+    },
+    "@poktscan/keyring>hdkey>bs58check>bs58": {
+      "packages": {
+        "@poktscan/keyring>hdkey>bs58check>bs58>base-x": true
+      }
+    },
+    "@poktscan/keyring>hdkey>bs58check>bs58>base-x": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true
+      }
+    },
+    "@poktscan/keyring>hdkey>ripemd160": {
+      "packages": {
+        "@poktscan/keyring>hdkey>ripemd160>hash-base": true,
+        "browserify>buffer": true,
+        "glob>inherits": true
+      }
+    },
+    "@poktscan/keyring>hdkey>ripemd160>hash-base": {
+      "packages": {
+        "browserify>browser-pack>safe-buffer": true,
+        "glob>inherits": true,
+        "stream-http>readable-stream": true
+      }
+    },
+    "@poktscan/keyring>hdkey>secp256k1": {
+      "packages": {
+        "crypto-browserify>create-ecdh>elliptic": true
       }
     },
     "@poktscan/keyring>protobufjs": {
@@ -1054,9 +1102,9 @@
     },
     "crypto-browserify>create-hash": {
       "packages": {
+        "@poktscan/keyring>hdkey>ripemd160": true,
         "crypto-browserify>create-hash>cipher-base": true,
         "crypto-browserify>create-hash>md5.js": true,
-        "crypto-browserify>pbkdf2>ripemd160": true,
         "crypto-browserify>pbkdf2>sha.js": true,
         "glob>inherits": true
       }
@@ -1071,17 +1119,17 @@
     },
     "crypto-browserify>create-hash>md5.js": {
       "packages": {
+        "@poktscan/keyring>hdkey>ripemd160>hash-base": true,
         "browserify>browser-pack>safe-buffer": true,
-        "crypto-browserify>pbkdf2>ripemd160>hash-base": true,
         "glob>inherits": true
       }
     },
     "crypto-browserify>create-hmac": {
       "packages": {
+        "@poktscan/keyring>hdkey>ripemd160": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify>create-hash": true,
         "crypto-browserify>create-hash>cipher-base": true,
-        "crypto-browserify>pbkdf2>ripemd160": true,
         "crypto-browserify>pbkdf2>sha.js": true,
         "glob>inherits": true
       }
@@ -1102,25 +1150,11 @@
     },
     "crypto-browserify>pbkdf2": {
       "packages": {
+        "@poktscan/keyring>hdkey>ripemd160": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify>create-hash": true,
-        "crypto-browserify>pbkdf2>ripemd160": true,
         "crypto-browserify>pbkdf2>sha.js": true,
         "process": true
-      }
-    },
-    "crypto-browserify>pbkdf2>ripemd160": {
-      "packages": {
-        "browserify>buffer": true,
-        "crypto-browserify>pbkdf2>ripemd160>hash-base": true,
-        "glob>inherits": true
-      }
-    },
-    "crypto-browserify>pbkdf2>ripemd160>hash-base": {
-      "packages": {
-        "browserify>browser-pack>safe-buffer": true,
-        "glob>inherits": true,
-        "stream-http>readable-stream": true
       }
     },
     "crypto-browserify>pbkdf2>sha.js": {
@@ -1230,10 +1264,8 @@
     },
     "external:../../../packages/nodejs/keyring-encryption-web/dist/index.js": {
       "globals": {
-        "TextEncoder": true,
         "crypto.getRandomValues": true,
         "crypto.subtle.decrypt": true,
-        "crypto.subtle.deriveBits": true,
         "crypto.subtle.deriveKey": true,
         "crypto.subtle.encrypt": true,
         "crypto.subtle.importKey": true
@@ -1259,7 +1291,9 @@
       "packages": {
         "@poktscan/keyring>@metamask/eth-sig-util": true,
         "@poktscan/keyring>@pokt-foundation/pocketjs-types": true,
+        "@poktscan/keyring>ed25519-hd-key": true,
         "@poktscan/keyring>ethereumjs-util": true,
+        "@poktscan/keyring>hdkey": true,
         "@poktscan/keyring>hex-lite": true,
         "@poktscan/keyring>protobufjs": true,
         "@poktscan/keyring>varint": true,
@@ -1267,11 +1301,74 @@
         "@poktscan/keyring>web3-eth-contract": true,
         "@poktscan/keyring>web3-providers-http": true,
         "browserify>buffer": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@scure/bip39/index.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@scure/bip39/wordlists/english.js": true,
         "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/index.js": true,
         "lodash": true,
         "uuid": true,
         "web3-eth-accounts": true,
         "zod": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_sha2.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_assert.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/crypto.js": {
+      "globals": {
+        "crypto": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/hmac.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_assert.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/pbkdf2.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_assert.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/hmac.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/sha256.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_sha2.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/sha512.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_sha2.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_u64.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": {
+      "globals": {
+        "TextEncoder": true
+      },
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/crypto.js": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/@scure/base/lib/index.js": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true
+      }
+    },
+    "external:../../../packages/nodejs/keyring/node_modules/@scure/bip39/index.js": {
+      "packages": {
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_assert.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/pbkdf2.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/sha256.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/sha512.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true,
+        "external:../../../packages/nodejs/keyring/node_modules/@scure/base/lib/index.js": true
       }
     },
     "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": {
@@ -1451,6 +1548,11 @@
       "packages": {
         "stream-http": true,
         "url": true
+      }
+    },
+    "lodash": {
+      "globals": {
+        "define": true
       }
     },
     "notistack": {

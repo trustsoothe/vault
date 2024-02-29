@@ -1,8 +1,12 @@
-import type { SerializedAccountReference } from "@poktscan/keyring";
+import {
+  AccountType,
+  SerializedAccountReference,
+  SupportedProtocols,
+} from "@poktscan/keyring";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material";
-import Stack from "@mui/material/Stack";
+import Stack, { StackProps } from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
@@ -15,17 +19,21 @@ import OperationFailed from "../common/OperationFailed";
 import { enqueueSnackbar } from "../../utils/ui";
 import Password from "../common/Password";
 import AccountInfo from "./AccountInfo";
+import { FormStep } from "../HDWallets/Import";
 import { useAppSelector } from "../../hooks/redux";
+import TooltipOverflow from "../common/TooltipOverflow";
 import { EXPORT_VAULT_PAGE } from "../../constants/routes";
 import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 import { getPrivateKey, ImportComponent } from "./Import";
 import { accountsImportedSelector } from "../../redux/selectors/account";
 import { getAddressFromPrivateKey } from "../../utils/networkOperations";
+import { labelByProtocolMap } from "../../constants/protocols";
 import { INVALID_FILE_PASSWORD } from "../../errors/account";
 
 interface RenameModalProps {
   account?: SerializedAccountReference;
   onClose: () => void;
+  containerProps?: StackProps;
 }
 
 interface FormValues {
@@ -34,6 +42,11 @@ interface FormValues {
   private_key?: string;
   json_file?: File | null;
   file_password?: string;
+  protocol?: SupportedProtocols;
+  wordList: Array<{ word: string }>;
+  phraseSize: "12" | "15" | "18" | "21" | "24";
+  sendNodesDerivation: boolean;
+  password: string;
 }
 
 const defaultValues: FormValues = {
@@ -42,9 +55,17 @@ const defaultValues: FormValues = {
   private_key: "",
   json_file: null,
   file_password: "",
+  password: "",
+  wordList: [],
+  phraseSize: "12",
+  sendNodesDerivation: false,
 };
 
-const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
+const RemoveModal: React.FC<RenameModalProps> = ({
+  account,
+  onClose,
+  containerProps,
+}) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const requirePassword = useAppSelector(
@@ -59,16 +80,31 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   const [stillShowModal, setStillShowModal] = useState(false);
 
   const methods = useForm<FormValues>({
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+    },
   });
 
-  const { handleSubmit, control, getValues, watch, reset } = methods;
-  const [pass, file_password, importType] = watch([
+  const { handleSubmit, control, setValue, getValues, watch, reset } = methods;
+  const [pass, file_password, importType, phraseSize] = watch([
     "vault_password",
     "file_password",
     "import_type",
+    "phraseSize",
   ]);
-  const shouldCheckPk = !accountsImported.includes(account?.address);
+
+  useEffect(() => {
+    setValue(
+      "wordList",
+      new Array(Number(phraseSize)).fill(null).map(() => ({ word: "" }))
+    );
+  }, [phraseSize]);
+
+  const accountIsHd = account?.accountType === AccountType.HDSeed;
+
+  const shouldCheckPk = accountIsHd
+    ? !accountsImported.includes(account?.id)
+    : !accountsImported.includes(account?.address);
 
   useEffect(() => {
     if (wrongPassword) {
@@ -88,6 +124,13 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
 
       reset({
         ...defaultValues,
+        protocol: account.protocol,
+        phraseSize: "12",
+        ...(phraseSize === "12" && {
+          wordList: Array(Number(phraseSize))
+            .fill(null)
+            .map(() => ({ word: "" })),
+        }),
       });
     } else {
       setTimeout(() => {
@@ -105,27 +148,49 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
       setStatus("loading");
 
       if (shouldCheckPk) {
-        let privateKey: string;
-        try {
-          privateKey = await getPrivateKey(data, account.protocol);
-        } catch (e) {
-          if (e?.name === INVALID_FILE_PASSWORD.name) {
-            setWrongFilePassword(true);
+        if (accountIsHd) {
+          const response = await AppToBackground.phraseGeneratedHdSeed({
+            accountId: account.id,
+            vaultPassword: data.vault_password,
+            phraseOptions: {
+              recoveryPhrase: data.wordList.map(({ word }) => word).join(" "),
+              protocol: data.protocol,
+              passphrase: data.password,
+              isSendNodes: false,
+            },
+          });
+
+          if (response.error) {
+            return setStatus("error");
+          } else if (response.data?.vaultPasswordWrong) {
             setStatus("normal");
-          } else {
-            setStatus("error");
+            setWrongPassword(true);
+          } else if (!response.data?.isPhraseValid) {
+            return setStatus("invalid_pk");
           }
-          return;
-        }
+        } else if (account.accountType === AccountType.Individual) {
+          let privateKey: string;
+          try {
+            privateKey = await getPrivateKey(data, account.protocol);
+          } catch (e) {
+            if (e?.name === INVALID_FILE_PASSWORD.name) {
+              setWrongFilePassword(true);
+              setStatus("normal");
+            } else {
+              setStatus("error");
+            }
+            return;
+          }
 
-        const addressOfPk = await getAddressFromPrivateKey(
-          privateKey,
-          account.protocol
-        );
+          const addressOfPk = await getAddressFromPrivateKey(
+            privateKey,
+            account.protocol
+          );
 
-        if (addressOfPk !== account.address) {
-          setStatus("invalid_pk");
-          return;
+          if (addressOfPk !== account.address) {
+            setStatus("invalid_pk");
+            return;
+          }
         }
       }
 
@@ -165,7 +230,7 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
         }
       });
     },
-    [account, navigate, requirePassword, shouldCheckPk]
+    [account, navigate, requirePassword, shouldCheckPk, accountIsHd]
   );
 
   const onClickAway = useCallback(() => {
@@ -177,9 +242,14 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
   }, [status, onClose, account, stillShowModal]);
 
   const onClickOkOfInvalidPk = useCallback(() => {
+    const phraseSize = getValues("phraseSize");
     reset({
       ...defaultValues,
       import_type: getValues("import_type"),
+      phraseSize,
+      wordList: new Array(Number(phraseSize))
+        .fill(null)
+        .map(() => ({ word: "" })),
     });
     setStatus("normal");
   }, [reset, getValues]);
@@ -219,13 +289,16 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
         </Stack>
       );
     } else if (status === "invalid_pk") {
+      const importedFromLabel = accountIsHd
+        ? "recovery phrase"
+        : importType === "private_key"
+        ? "private key"
+        : "portable wallet";
       component = (
         <Stack flexGrow={1}>
           {title}
           <OperationFailed
-            text={`The ${
-              importType === "private_key" ? "private key" : "portable wallet"
-            } you passed do not correspond to the account you are trying to remove. Please pass the correct private key or portable wallet of this account.`}
+            text={`The ${importedFromLabel} you passed do not correspond to the account you are trying to remove. Please pass the correct ${importedFromLabel} of this account.`}
             onCancel={onClose}
             textProps={{
               fontSize: 13,
@@ -245,44 +318,110 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
             <Typography
               color={theme.customColors.red100}
               fontWeight={700}
-              fontSize={14}
+              fontSize={12}
               lineHeight={"20px"}
               textAlign={"center"}
               marginTop={0.5}
               marginBottom={0.5}
               paddingX={0.5}
             >
-              Are you sure you want to remove the following account?
+              Are you sure you want to remove this {accountIsHd ? " HD " : ""}{" "}
+              account?
             </Typography>
-            {account && <AccountInfo account={account} compact={true} />}
-            {shouldCheckPk && (
-              <>
-                <Typography fontSize={12} marginLeft={0.8} marginTop={0.5}>
-                  To allow you to remove this account we have to make sure that
-                  you have it private key or portable wallet somewhere saved.
-                  Please import it:
-                </Typography>
+            {account ? (
+              accountIsHd ? (
                 <Stack
-                  spacing={2}
-                  height={1}
-                  width={1}
-                  marginTop={"-10px!important"}
-                  sx={{ transform: "scale(0.95)" }}
+                  bgcolor={theme.customColors.dark2}
+                  boxSizing={"border-box"}
+                  padding={0.7}
+                  direction={"row"}
+                  alignItems={"center"}
+                  justifyContent={"center"}
+                  spacing={0.7}
                 >
-                  <FormProvider {...methods}>
-                    <ImportComponent
-                      wrongFilePassword={wrongFilePassword}
-                      customMenuSxProps={{
-                        "& .MuiPaper-root": {
-                          top: "46px!important",
-                          left: "178px!important",
-                          height: 76,
-                          maxHeight: "unset",
-                        },
-                      }}
-                    />
-                  </FormProvider>
+                  <TooltipOverflow
+                    text={account.name}
+                    textProps={{
+                      fontSize: 14,
+                      fontWeight: 500,
+                    }}
+                  />
+                  <Typography
+                    fontSize={12}
+                    paddingX={0.5}
+                    bgcolor={theme.customColors.dark15}
+                    borderRadius={"4px"}
+                    whiteSpace={"nowrap"}
+                  >
+                    {labelByProtocolMap[account.protocol]}
+                  </Typography>
                 </Stack>
+              ) : (
+                <AccountInfo
+                  account={account}
+                  compact={true}
+                  protocol={account.protocol}
+                />
+              )
+            ) : null}
+
+            {account?.accountType === AccountType.HDChild && (
+              <Typography fontSize={12} marginLeft={0.7}>
+                You will be able to restore it from its HD account parent
+              </Typography>
+            )}
+            {shouldCheckPk && account?.accountType !== AccountType.HDChild && (
+              <>
+                <Typography fontSize={12} marginLeft={0.7}>
+                  {accountIsHd
+                    ? "To remove it you must provide its recovery phrase:"
+                    : "To allow you to remove this account we have to make sure that you have it private key or portable wallet somewhere saved. Please import it:"}
+                </Typography>
+                {accountIsHd ? (
+                  <Stack
+                    maxHeight={requirePassword ? 320 : 230}
+                    minHeight={188}
+                    sx={{ transform: "scale(0.95)", overflow: "auto" }}
+                  >
+                    <FormProvider {...methods}>
+                      <FormStep
+                        justImport={true}
+                        hideCustomDerivation={true}
+                        wordsContainer={{
+                          marginTop: 0,
+                          marginBottom: 0.2,
+                        }}
+                        optPasswordProps={{
+                          sx: {
+                            marginTop: -0.3,
+                          },
+                        }}
+                      />
+                    </FormProvider>
+                  </Stack>
+                ) : (
+                  <Stack
+                    spacing={2}
+                    height={1}
+                    width={1}
+                    marginTop={"-10px!important"}
+                    sx={{ transform: "scale(0.95)" }}
+                  >
+                    <FormProvider {...methods}>
+                      <ImportComponent
+                        wrongFilePassword={wrongFilePassword}
+                        customMenuSxProps={{
+                          "& .MuiPaper-root": {
+                            top: "46px!important",
+                            left: "178px!important",
+                            height: 76,
+                            maxHeight: "unset",
+                          },
+                        }}
+                      />
+                    </FormProvider>
+                  </Stack>
+                )}
               </>
             )}
             {requirePassword && (
@@ -290,15 +429,17 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
                 <Divider
                   sx={{
                     borderColor: theme.customColors.dark15,
-                    marginTop: `${shouldCheckPk ? 13 : 22}px!important`,
+                    marginTop: `${
+                      accountIsHd ? 5 : shouldCheckPk ? 13 : 22
+                    }px!important`,
                     marginBottom: `${shouldCheckPk ? 5 : 15}px!important`,
                   }}
                 />
                 <Typography
-                  fontSize={14}
+                  fontSize={13}
                   width={1}
                   fontWeight={500}
-                  lineHeight={"30px"}
+                  lineHeight={"26px"}
                   sx={{ userSelect: "none" }}
                 >
                   To continue, enter the vault password:
@@ -393,6 +534,7 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
     shouldCheckPk,
     onClose,
     requirePassword,
+    accountIsHd,
   ]);
 
   return (
@@ -407,6 +549,7 @@ const RemoveModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
         top={-60}
         left={0}
         bgcolor={"rgba(255,255,255,0.5)"}
+        {...containerProps}
       >
         {content}
       </Stack>

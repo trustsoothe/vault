@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   AccordionProps,
   AccordionSummaryProps,
@@ -12,6 +12,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import MuiAccordion from "@mui/material/Accordion";
+import CircularProgress from "@mui/material/CircularProgress";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import MuiAccordionDetails from "@mui/material/AccordionDetails";
 import MuiAccordionSummary from "@mui/material/AccordionSummary";
@@ -21,10 +22,82 @@ import { labelByProtocolMap } from "../../constants/protocols";
 import ExpandIcon from "../../assets/img/expand_icon.svg";
 import {
   CREATE_NEW_HD_WALLETS_PAGE,
+  EXPORT_VAULT_PAGE,
   IMPORT_HD_WALLET_PAGE,
 } from "../../constants/routes";
+import RenameModal from "../Account/RenameModal";
+import { enqueueSnackbar } from "../../utils/ui";
+import RemoveModal from "../Account/RemoveModal";
 import { useAppSelector } from "../../hooks/redux";
+import TooltipOverflow from "../common/TooltipOverflow";
+import CopyIcon from "../../assets/img/thin_copy_icon.svg";
 import { accountsSelector } from "../../redux/selectors/account";
+import AppToBackground from "../../controllers/communication/AppToBackground";
+
+interface ChildItemProps {
+  account: SerializedAccountReference;
+  onClickRename: (account: SerializedAccountReference) => void;
+  onClickRemove: (account: SerializedAccountReference) => void;
+}
+
+const ChildItem: React.FC<ChildItemProps> = ({
+  account,
+  onClickRemove,
+  onClickRename,
+}) => {
+  const { address, name } = account;
+  const theme = useTheme();
+  const [showCopyTooltip, setShowCopyTooltip] = useState(false);
+
+  const handleCopyAddress = useCallback(() => {
+    navigator.clipboard.writeText(account.address).then(() => {
+      setShowCopyTooltip(true);
+      setTimeout(() => setShowCopyTooltip(false), 500);
+    });
+  }, []);
+
+  return (
+    <Stack paddingLeft={1}>
+      <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
+        <Typography
+          fontSize={12}
+          marginRight={"3px!important"}
+          color={theme.customColors.primary500}
+          sx={{
+            textDecoration: "underline",
+            cursor: "pointer",
+          }}
+        >
+          {name}
+        </Typography>
+        <Tooltip title={"Rename Account"}>
+          <IconButton onClick={() => onClickRename(account)}>
+            <EditIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={"Remove Account"}>
+          <IconButton onClick={() => onClickRemove(account)}>
+            <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+      <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
+        <TooltipOverflow
+          text={address}
+          textProps={{ fontSize: 12 }}
+          enableTextCopy={false}
+          showTextOverflowTooltip={false}
+          tooltipSxProps={{ display: "none" }}
+        />
+        <Tooltip title={"Copied"} open={showCopyTooltip}>
+          <IconButton onClick={handleCopyAddress}>
+            <CopyIcon />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+    </Stack>
+  );
+};
 
 const Accordion = styled((props: AccordionProps) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
@@ -68,9 +141,182 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
   borderTop: "1px solid rgba(0, 0, 0, .125)",
 }));
 
+interface HDAccountItem {
+  seed: SerializedAccountReference;
+  child: SerializedAccountReference[];
+}
+
+interface HDAccountItemProps {
+  hdAccount: HDAccountItem;
+  defaultExpanded: boolean;
+  onClickRename: (account: SerializedAccountReference) => void;
+  onClickRemove: (account: SerializedAccountReference) => void;
+}
+
+const HDAccountItem: React.FC<HDAccountItemProps> = ({
+  defaultExpanded,
+  hdAccount: { seed, child },
+  onClickRename,
+  onClickRemove,
+}) => {
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const { name, protocol } = seed;
+
+  const onClickAddNew = () => {
+    setIsCreatingAccount(true);
+
+    const onError = () => {
+      enqueueSnackbar({
+        variant: "info",
+        message: `There was an error creating a new account from ${seed.name} HD Account`,
+      });
+    };
+
+    AppToBackground.createAccountFromHdSeed({
+      seedAccountId: seed.id,
+      protocol: seed.protocol,
+    })
+      .then((res) => {
+        if (res.error) {
+          onError();
+        } else {
+          enqueueSnackbar({
+            variant: "success",
+            autoHideDuration: 10000,
+            message: (onClickClose) => (
+              <Stack>
+                <span>Account created successfully.</span>
+                <span>
+                  The vault content changed.{" "}
+                  <Button
+                    onClick={() => {
+                      navigate(EXPORT_VAULT_PAGE);
+                      onClickClose();
+                    }}
+                    sx={{ padding: 0, minWidth: 0 }}
+                  >
+                    Backup now?
+                  </Button>
+                </span>
+              </Stack>
+            ),
+          });
+        }
+      })
+      .catch(onError)
+      .finally(() => setIsCreatingAccount(false));
+  };
+
+  return (
+    <Stack position={"relative"}>
+      <Accordion
+        key={`${name}-${protocol}`}
+        defaultExpanded={defaultExpanded}
+        sx={{
+          position: "relative",
+        }}
+      >
+        <AccordionSummary>
+          <Stack
+            direction={"row"}
+            alignItems={"center"}
+            justifyContent={"space-between"}
+            width={1}
+            paddingRight={0.3}
+          >
+            <Stack direction={"row"} spacing={0.7}>
+              <Typography fontSize={14} fontWeight={500}>
+                {name}
+              </Typography>
+              <Typography
+                fontSize={12}
+                paddingX={0.5}
+                bgcolor={theme.customColors.dark15}
+                borderRadius={"4px"}
+              >
+                {labelByProtocolMap[protocol]}
+              </Typography>
+            </Stack>
+          </Stack>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Stack spacing={1}>
+            <Stack
+              direction={"row"}
+              alignItems={"center"}
+              spacing={0.7}
+              marginBottom={"3px!important"}
+            >
+              <Typography fontSize={13} fontWeight={500}>
+                Accounts
+              </Typography>
+              <Button
+                variant={"outlined"}
+                sx={{
+                  height: 22,
+                  fontWeight: 600,
+                  fontSize: 12,
+                  paddingX: 0.8,
+                }}
+                onClick={isCreatingAccount ? undefined : onClickAddNew}
+              >
+                {isCreatingAccount && (
+                  <CircularProgress size={12} sx={{ marginRight: 0.5 }} />
+                )}
+                {isCreatingAccount ? "Adding" : "Add"} new
+              </Button>
+            </Stack>
+
+            {child.length === 0 ? (
+              <Typography fontSize={12} paddingLeft={1}>
+                None
+              </Typography>
+            ) : (
+              child.map((child) => (
+                <ChildItem
+                  key={child.address}
+                  account={child}
+                  onClickRemove={onClickRemove}
+                  onClickRename={onClickRename}
+                />
+              ))
+            )}
+          </Stack>
+        </AccordionDetails>
+      </Accordion>
+      <Stack
+        direction={"row"}
+        alignItems={"center"}
+        spacing={0.5}
+        position={"absolute"}
+        top={13}
+        right={10}
+      >
+        <Tooltip title={"Rename Account"}>
+          <IconButton onClick={() => onClickRename(seed)}>
+            <EditIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={"Remove Account"}>
+          <IconButton onClick={() => onClickRemove(seed)}>
+            <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+    </Stack>
+  );
+};
+
 const HDWallets: React.FC = () => {
   const theme = useTheme();
   const [searchParams] = useSearchParams();
+  const [modalToShow, setModalToShow] = useState<"none" | "rename" | "remove">(
+    "none"
+  );
+  const [accountSelected, setSelectedAccount] =
+    useState<SerializedAccountReference>(null);
   const navigate = useNavigate();
   const accounts = useAppSelector(accountsSelector);
   const seedsAndChild = useMemo(() => {
@@ -99,176 +345,102 @@ const HDWallets: React.FC = () => {
     }));
   }, [accounts]);
 
+  const openRenameAccount = (account: SerializedAccountReference) => {
+    setSelectedAccount(account);
+    setModalToShow("rename");
+  };
+
+  const openRemoveAccount = (account: SerializedAccountReference) => {
+    setSelectedAccount(account);
+    setModalToShow("remove");
+  };
+
+  const closeModal = () => {
+    setSelectedAccount(null);
+    setModalToShow("none");
+  };
+
   const accountIdFromParams = searchParams.get("account");
   return (
-    <Stack paddingTop={1.5} justifyContent={"space-between"} height={1}>
-      {seedsAndChild.length === 0 ? (
-        <Stack flexGrow={1} alignItems={"center"} justifyContent={"center"}>
-          <Typography
-            color={theme.customColors.primary999}
-            fontSize={14}
-            lineHeight={"20px"}
-            textAlign={"center"}
+    <>
+      <Stack paddingTop={1.5} justifyContent={"space-between"} height={1}>
+        {seedsAndChild.length === 0 ? (
+          <Stack flexGrow={1} alignItems={"center"} justifyContent={"center"}>
+            <Typography
+              color={theme.customColors.primary999}
+              fontSize={14}
+              lineHeight={"20px"}
+              textAlign={"center"}
+            >
+              You do not have any HD Wallet yet.
+              <br />
+              Please create new or import a HD Wallet.
+            </Typography>
+          </Stack>
+        ) : (
+          <Stack
+            maxHeight={450}
+            overflow={"auto"}
+            borderBottom={`1px solid ${theme.customColors.dark15}`}
           >
-            You do not have any HD Wallet yet.
-            <br />
-            Please create new or import a HD Wallet.
-          </Typography>
-        </Stack>
-      ) : (
+            {seedsAndChild.map((item) => (
+              <HDAccountItem
+                key={item.seed.id}
+                hdAccount={item}
+                defaultExpanded={accountIdFromParams === item.seed.id}
+                onClickRename={openRenameAccount}
+                onClickRemove={openRemoveAccount}
+              />
+            ))}
+          </Stack>
+        )}
+
         <Stack
-          maxHeight={450}
-          overflow={"auto"}
-          borderBottom={`1px solid ${theme.customColors.dark15}`}
+          direction={"row"}
+          spacing={2}
+          width={1}
+          height={35}
+          marginTop={2}
         >
-          {seedsAndChild.map(({ seed, child }) => {
-            const { name, protocol, id } = seed;
-            return (
-              <Stack position={"relative"}>
-                <Accordion
-                  key={`${name}-${protocol}`}
-                  defaultExpanded={accountIdFromParams === id}
-                  sx={{
-                    position: "relative",
-                  }}
-                >
-                  <AccordionSummary>
-                    <Stack
-                      direction={"row"}
-                      alignItems={"center"}
-                      justifyContent={"space-between"}
-                      width={1}
-                      paddingRight={0.3}
-                    >
-                      <Stack direction={"row"} spacing={0.7}>
-                        <Typography fontSize={14} fontWeight={500}>
-                          {name}
-                        </Typography>
-                        <Typography
-                          fontSize={12}
-                          paddingX={0.5}
-                          bgcolor={theme.customColors.dark15}
-                          borderRadius={"4px"}
-                        >
-                          {labelByProtocolMap[protocol]}
-                        </Typography>
-                      </Stack>
-                    </Stack>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Stack spacing={1}>
-                      <Stack
-                        direction={"row"}
-                        alignItems={"center"}
-                        spacing={0.7}
-                        marginBottom={"3px!important"}
-                      >
-                        <Typography fontSize={13} fontWeight={500}>
-                          Accounts
-                        </Typography>
-                        <Button
-                          variant={"outlined"}
-                          sx={{
-                            // backgroundColor: theme.customColors.primary500,
-                            height: 22,
-                            fontWeight: 600,
-                            fontSize: 12,
-                            paddingX: 0.8,
-                          }}
-                        >
-                          Add new
-                        </Button>
-                      </Stack>
-
-                      {child.map((child) => (
-                        <Stack
-                          paddingLeft={1}
-                          direction={"row"}
-                          alignItems={"center"}
-                          spacing={0.5}
-                          key={`${name}-${protocol}-${child.name}`}
-                        >
-                          <Typography
-                            fontSize={12}
-                            marginRight={"3px!important"}
-                            color={theme.customColors.primary500}
-                            sx={{
-                              textDecoration: "underline",
-                              cursor: "pointer",
-                            }}
-                          >
-                            {child.name}
-                          </Typography>
-                          <Tooltip title={"Rename Account"}>
-                            <IconButton>
-                              <EditIcon sx={{ fontSize: 16 }} />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title={"Remove Account"}>
-                            <IconButton>
-                              <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      ))}
-                    </Stack>
-                  </AccordionDetails>
-                </Accordion>
-                <Stack
-                  direction={"row"}
-                  alignItems={"center"}
-                  spacing={0.5}
-                  position={"absolute"}
-                  zIndex={10}
-                  top={13}
-                  right={10}
-                >
-                  <Tooltip title={"Rename Account"}>
-                    <IconButton>
-                      <EditIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={"Remove Account"}>
-                    <IconButton>
-                      <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-              </Stack>
-            );
-          })}
+          <Button
+            variant={"contained"}
+            fullWidth
+            sx={{
+              backgroundColor: theme.customColors.primary500,
+              height: 35,
+              fontWeight: 700,
+              fontSize: 16,
+            }}
+            onClick={() => navigate(IMPORT_HD_WALLET_PAGE)}
+          >
+            Import
+          </Button>
+          <Button
+            variant={"contained"}
+            fullWidth
+            sx={{
+              backgroundColor: theme.customColors.primary500,
+              height: 35,
+              fontWeight: 700,
+              fontSize: 16,
+            }}
+            onClick={() => navigate(CREATE_NEW_HD_WALLETS_PAGE)}
+          >
+            New
+          </Button>
         </Stack>
-      )}
-
-      <Stack direction={"row"} spacing={2} width={1} height={35} marginTop={2}>
-        <Button
-          variant={"contained"}
-          fullWidth
-          sx={{
-            backgroundColor: theme.customColors.primary500,
-            height: 35,
-            fontWeight: 700,
-            fontSize: 16,
-          }}
-          onClick={() => navigate(IMPORT_HD_WALLET_PAGE)}
-        >
-          Import
-        </Button>
-        <Button
-          variant={"contained"}
-          fullWidth
-          sx={{
-            backgroundColor: theme.customColors.primary500,
-            height: 35,
-            fontWeight: 700,
-            fontSize: 16,
-          }}
-          onClick={() => navigate(CREATE_NEW_HD_WALLETS_PAGE)}
-        >
-          New
-        </Button>
       </Stack>
-    </Stack>
+      <RenameModal
+        account={modalToShow === "rename" ? accountSelected : null}
+        onClose={closeModal}
+        containerProps={{ top: 0 }}
+      />
+      <RemoveModal
+        account={modalToShow === "remove" ? accountSelected : null}
+        onClose={closeModal}
+        containerProps={{ top: 0, left: -5 }}
+      />
+    </>
   );
 };
 

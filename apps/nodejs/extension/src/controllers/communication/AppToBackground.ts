@@ -70,6 +70,7 @@ import {
   ANSWER_SWITCH_CHAIN_REQUEST,
   ANSWER_TRANSFER_REQUEST,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
+  CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
   EXPORT_VAULT_REQUEST,
   IMPORT_ACCOUNT_REQUEST,
   IMPORT_HD_WALLET_REQUEST,
@@ -77,6 +78,7 @@ import {
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
   NETWORK_FEE_REQUEST,
+  PHRASE_GENERATED_HD_SEED_REQUEST,
   PK_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_REQUEST,
   REVOKE_EXTERNAL_SESSIONS_REQUEST,
@@ -87,8 +89,12 @@ import {
   UPDATE_ACCOUNT_REQUEST,
 } from "../../constants/communication";
 import {
+  CreateAccountFromHdSeedReq,
+  CreateAccountFromHdSeedRes,
   ImportHdWalletReq,
   ImportHdWalletRes,
+  PhraseGeneratedHdSeedReq,
+  PhraseGeneratedHdSeedRes,
 } from "../../types/communications/hdWallet";
 
 export default class AppToBackground {
@@ -316,6 +322,28 @@ export default class AppToBackground {
   ): Promise<ImportHdWalletRes> {
     const message: ImportHdWalletReq = {
       type: IMPORT_HD_WALLET_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async createAccountFromHdSeed(
+    data: CreateAccountFromHdSeedReq["data"]
+  ): Promise<CreateAccountFromHdSeedRes> {
+    const message: CreateAccountFromHdSeedReq = {
+      type: CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async phraseGeneratedHdSeed(
+    data: PhraseGeneratedHdSeedReq["data"]
+  ): Promise<PhraseGeneratedHdSeedRes> {
+    const message: PhraseGeneratedHdSeedReq = {
+      type: PHRASE_GENERATED_HD_SEED_REQUEST,
       data,
     };
 

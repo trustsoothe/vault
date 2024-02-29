@@ -6,6 +6,7 @@ import get from "lodash/get";
 import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
+  AccountType,
   SerializedAccountReference,
   Session,
   SupportedProtocols,
@@ -19,7 +20,7 @@ import {
   setGetAccountPending as setGetAccountPendingFromNetwork,
 } from "./network";
 import { SettingsSchema } from "../vault/backup";
-import {addContactThunksToBuilder, Contact} from "./contact";
+import { addContactThunksToBuilder, Contact } from "./contact";
 import { ChainChangedMessageToProxy } from "../../../types/communications/chainChanged";
 
 export interface AccountBalanceInfo {
@@ -360,6 +361,17 @@ export const changeSelectedAccountOfNetwork = createAsyncThunk(
   ) => {
     const state = context.getState() as RootState;
     const { selectedAccountByProtocol } = state.app;
+
+    const account = state.vault.accounts.find(
+      (item) =>
+        item.protocol === protocol &&
+        item.address === address &&
+        item.accountType !== AccountType.HDSeed
+    );
+
+    if (!account) {
+      throw new Error("account not found");
+    }
 
     const newSelectedAccount = {
       ...selectedAccountByProtocol,

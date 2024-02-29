@@ -12,17 +12,21 @@ import {
   useOutletContext,
   useSearchParams,
 } from "react-router-dom";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
 import { type SxProps, useTheme } from "@mui/material";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { AccountType, SupportedProtocols } from "@poktscan/keyring";
 import MoreIcon from "../../assets/img/account_more_icon.svg";
 import TransferIcon from "../../assets/img/transfer_icon.svg";
 import ExploreIcon from "../../assets/img/explore_icon.svg";
 import WPoktIcon from "../../assets/img/wpokt_icon.svg";
 import {
   ACCOUNT_PK_PAGE,
+  CREATE_NEW_HD_WALLETS_PAGE,
   IMPORT_ACCOUNT_PAGE,
+  IMPORT_HD_WALLET_PAGE,
   TRANSFER_PAGE,
 } from "../../constants/routes";
 import RenameModal from "./RenameModal";
@@ -112,6 +116,85 @@ const ButtonAction: React.FC<ButtonActionProps> = ({
   );
 };
 
+interface BaseButtonMenuProps {
+  label: string;
+  menuLabel?: string;
+  items: Array<{
+    label: string;
+    action: () => void;
+  }>;
+}
+
+const BaseButtonMenu: React.FC<BaseButtonMenuProps> = ({
+  label,
+  items,
+  menuLabel,
+}) => {
+  const theme = useTheme();
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const openMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const closeMenu = () => setAnchorEl(null);
+
+  return (
+    <Stack width={1}>
+      <Button
+        variant={"contained"}
+        fullWidth
+        sx={{
+          backgroundColor: theme.customColors.primary500,
+          fontSize: 16,
+          fontWeight: 700,
+        }}
+        onClick={openMenu}
+      >
+        {label}
+      </Button>
+      <Menu
+        open={open}
+        anchorEl={anchorEl}
+        onClose={closeMenu}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+      >
+        {menuLabel && (
+          <>
+            <Typography fontSize={14} paddingX={1.2} width={145}>
+              {menuLabel}
+            </Typography>
+
+            <Divider sx={{ marginY: 0.5 }} />
+          </>
+        )}
+        {items.map(({ label, action }) => (
+          <MenuItem
+            onClick={() => {
+              action();
+              closeMenu();
+            }}
+            sx={{
+              fontSize: 12,
+              minHeight: "36px!important",
+            }}
+            key={label}
+          >
+            {label}
+          </MenuItem>
+        ))}
+      </Menu>
+    </Stack>
+  );
+};
+
 const SelectedAccount: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -151,7 +234,9 @@ const SelectedAccount: React.FC = () => {
   useEffect(() => {
     if (!selectedAccount) {
       const accountOfNetwork = accounts.find(
-        (item) => item.protocol === selectedProtocol
+        (item) =>
+          item.protocol === selectedProtocol &&
+          item.accountType !== AccountType.HDSeed
       );
       if (accountOfNetwork) {
         dispatch(
@@ -272,10 +357,6 @@ const SelectedAccount: React.FC = () => {
     }
   }, [selectedAccount?.address, explorerAccountUrl, selectedAsset]);
 
-  const onClickImport = useCallback(() => {
-    navigate(IMPORT_ACCOUNT_PAGE);
-  }, [navigate]);
-
   const toggleWPoktVisible = useCallback(
     () => setWPoktVisible((prevState) => !prevState),
     []
@@ -371,26 +452,44 @@ const SelectedAccount: React.FC = () => {
           {[
             {
               label: "Import",
-              onClick: onClickImport,
+              menuLabel: "Import From:",
+              items: [
+                {
+                  label: "Private Key",
+                  action: () => navigate(IMPORT_ACCOUNT_PAGE),
+                },
+                {
+                  label: "Portable Wallet (PPK)",
+                  action: () =>
+                    navigate(`${IMPORT_ACCOUNT_PAGE}?openToImportFile=true`),
+                },
+                {
+                  label: "Recovery Phrase",
+                  action: () => navigate(IMPORT_HD_WALLET_PAGE),
+                },
+              ],
             },
             {
               label: "New",
-              onClick: toggleShowCreateAccount,
+              menuLabel: "Account Type:",
+              items: [
+                {
+                  label: "Standard",
+                  action: toggleShowCreateAccount,
+                },
+                {
+                  label: "HD Account",
+                  action: () => navigate(CREATE_NEW_HD_WALLETS_PAGE),
+                },
+              ],
             },
-          ].map(({ label, onClick }, index) => (
-            <Button
+          ].map(({ label, items, menuLabel }, index) => (
+            <BaseButtonMenu
               key={index}
-              variant={"contained"}
-              fullWidth
-              sx={{
-                backgroundColor: theme.customColors.primary500,
-                fontSize: 16,
-                fontWeight: 700,
-              }}
-              onClick={onClick}
-            >
-              {label}
-            </Button>
+              items={items}
+              label={label}
+              menuLabel={menuLabel}
+            />
           ))}
         </Stack>
       </Stack>

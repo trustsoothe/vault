@@ -5,8 +5,7 @@ import {
   useForm,
   useFormContext,
 } from "react-hook-form";
-import Stack from "@mui/material/Stack";
-import { useTheme } from "@mui/material";
+import Stack, { StackProps } from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import MenuItem from "@mui/material/MenuItem";
@@ -15,15 +14,17 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import { type TextFieldProps, useTheme } from "@mui/material";
 import { AccountType, SupportedProtocols } from "@poktscan/keyring";
 import { nameRules } from "../Account/CreateModal";
 import { useAppSelector } from "../../hooks/redux";
+import { enqueueSnackbar } from "../../utils/ui";
 import { recoveryPhraseIsValid } from "../../utils";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
-import { HD_WALLETS_PAGE } from "../../constants/routes";
 import ProtocolSelector from "../common/ProtocolSelector";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
+import { EXPORT_VAULT_PAGE, HD_WALLETS_PAGE } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface FormValues {
@@ -37,7 +38,19 @@ interface FormValues {
 
 type Status = "form" | "error" | "loading" | "success";
 
-const FormStep: React.FC = () => {
+interface FormStepProps {
+  justImport?: boolean;
+  hideCustomDerivation?: boolean;
+  wordsContainer?: StackProps;
+  optPasswordProps?: TextFieldProps;
+}
+
+export const FormStep: React.FC<FormStepProps> = ({
+  justImport,
+  wordsContainer,
+  hideCustomDerivation,
+  optPasswordProps,
+}) => {
   const theme = useTheme();
   const { control, register, watch, setValue } = useFormContext<FormValues>();
   const [phraseSize, protocol] = watch(["phraseSize", "protocol"]);
@@ -76,75 +89,79 @@ const FormStep: React.FC = () => {
 
   return (
     <>
-      <Stack
-        direction={"row"}
-        alignItems={"center"}
-        spacing={1}
-        marginBottom={1.5}
-      >
-        <Controller
-          control={control}
-          name={"hdWalletName"}
-          rules={nameRules}
-          render={({ field, fieldState: { error } }) => (
-            <TextField
-              label={"HD Wallet Name"}
-              required
-              autoComplete={"off"}
-              fullWidth
-              autoFocus
-              {...field}
-              error={!!error?.message}
-              helperText={error?.message}
+      {!justImport && (
+        <>
+          <Stack
+            direction={"row"}
+            alignItems={"center"}
+            spacing={1}
+            marginBottom={1.5}
+          >
+            <Controller
+              control={control}
+              name={"hdWalletName"}
+              rules={nameRules}
+              render={({ field, fieldState: { error } }) => (
+                <TextField
+                  label={"HD Wallet Name"}
+                  required
+                  autoComplete={"off"}
+                  fullWidth
+                  autoFocus
+                  {...field}
+                  error={!!error?.message}
+                  helperText={error?.message}
+                />
+              )}
             />
-          )}
-        />
-        <Controller
-          control={control}
-          name={"phraseSize"}
-          render={({ field }) => (
-            <TextField
-              label={"Phrase Size"}
-              select
-              sx={{
-                minWidth: 100,
-                "& .MuiSelect-icon": { top: 4 },
-              }}
-              {...field}
-              InputLabelProps={{
-                shrink: !!field.value,
-              }}
-            >
-              <MenuItem value={"12"}>12</MenuItem>
-              <MenuItem value={"15"}>15</MenuItem>
-              <MenuItem value={"18"}>18</MenuItem>
-              <MenuItem value={"21"}>21</MenuItem>
-              <MenuItem value={"24"}>24</MenuItem>
-            </TextField>
-          )}
-        />
-      </Stack>
-      <Controller
-        control={control}
-        name={"protocol"}
-        render={({ field }) => {
-          return (
-            <ProtocolSelector
-              {...field}
-              fullWidth
-              sx={{
-                "& .MuiFormHelperText-root": {
-                  left: 5,
-                  bottom: -18,
-                },
-              }}
-              helperText={`You'll be able to use this wallet for every network of the protocol selected`}
-              InputLabelProps={{ shrink: !!field.value }}
+            <Controller
+              control={control}
+              name={"phraseSize"}
+              render={({ field }) => (
+                <TextField
+                  label={"Phrase Size"}
+                  select
+                  sx={{
+                    minWidth: 100,
+                    "& .MuiSelect-icon": { top: 4 },
+                  }}
+                  {...field}
+                  InputLabelProps={{
+                    shrink: !!field.value,
+                  }}
+                >
+                  <MenuItem value={"12"}>12</MenuItem>
+                  <MenuItem value={"15"}>15</MenuItem>
+                  <MenuItem value={"18"}>18</MenuItem>
+                  <MenuItem value={"21"}>21</MenuItem>
+                  <MenuItem value={"24"}>24</MenuItem>
+                </TextField>
+              )}
             />
-          );
-        }}
-      />
-      <Typography marginTop={2}>Recovery Phrase</Typography>
+          </Stack>
+          <Controller
+            control={control}
+            name={"protocol"}
+            render={({ field }) => {
+              return (
+                <ProtocolSelector
+                  {...field}
+                  fullWidth
+                  sx={{
+                    "& .MuiFormHelperText-root": {
+                      left: 5,
+                      bottom: -18,
+                    },
+                  }}
+                  helperText={`You'll be able to use this wallet for every network of the protocol selected`}
+                  InputLabelProps={{ shrink: !!field.value }}
+                />
+              );
+            }}
+          />
+          <Typography marginTop={2}>Recovery Phrase</Typography>
+        </>
+      )}
 
       <Controller
         control={control}
@@ -177,6 +194,7 @@ const FormStep: React.FC = () => {
                 gridTemplateRows={`repeat(${Math.ceil(
                   Number(phraseSize) / 4
                 )}, 28px)`}
+                {...wordsContainer}
               >
                 {fields.map((field, index) => {
                   return (
@@ -249,8 +267,9 @@ const FormStep: React.FC = () => {
         fullWidth
         type={"password"}
         {...register("password")}
+        {...optPasswordProps}
       />
-      {protocol === SupportedProtocols.Pocket && (
+      {!hideCustomDerivation && protocol === SupportedProtocols.Pocket && (
         <Controller
           control={control}
           name={"sendNodesDerivation"}
@@ -330,12 +349,14 @@ const ImportHdWallet: React.FC = () => {
       const phrase = data.wordList.map(({ word }) => word).join(" ");
       AppToBackground.importHdWallet({
         recoveryPhrase: phrase,
+        imported: true,
         protocol: data.protocol,
         isSendNodes:
           data.protocol === SupportedProtocols.Pocket
             ? data.sendNodesDerivation
             : false,
         seedAccountName: data.hdWalletName,
+        passphrase: data.password,
       }).then((res) => {
         if (res.error) {
           setStatus("error");
@@ -356,6 +377,26 @@ const ImportHdWallet: React.FC = () => {
   const goToMyWallet = () => {
     if (accountId) {
       navigate(`${HD_WALLETS_PAGE}?account=${accountId}`);
+      enqueueSnackbar({
+        message: (onClickClose) => (
+          <Stack>
+            <span>Account imported successfully.</span>
+            <span>
+              The vault content changed.{" "}
+              <Button
+                onClick={() => {
+                  navigate(EXPORT_VAULT_PAGE);
+                  onClickClose();
+                }}
+                sx={{ padding: 0, minWidth: 0 }}
+              >
+                Backup now?
+              </Button>
+            </span>
+          </Stack>
+        ),
+        variant: "success",
+      });
     }
   };
 

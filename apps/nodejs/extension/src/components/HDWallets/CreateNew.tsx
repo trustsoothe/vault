@@ -19,13 +19,14 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import { AccountType, SupportedProtocols } from "@poktscan/keyring";
 import { nameRules } from "../Account/CreateModal";
 import { useAppSelector } from "../../hooks/redux";
+import { enqueueSnackbar } from "../../utils/ui";
 import { generateRecoveryPhrase } from "../../utils";
 import CopyIcon from "../../assets/img/copy_icon.svg";
 import OperationFailed from "../common/OperationFailed";
 import CircularLoading from "../common/CircularLoading";
-import { HD_WALLETS_PAGE } from "../../constants/routes";
 import ProtocolSelector from "../common/ProtocolSelector";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
+import { EXPORT_VAULT_PAGE, HD_WALLETS_PAGE } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface FormValues {
@@ -465,6 +466,7 @@ const CreateNewHdWallet: React.FC = () => {
         protocol: data.protocol,
         isSendNodes: false,
         seedAccountName: data.hdWalletName,
+        passphrase: data.password,
       }).then((res) => {
         if (res.error) {
           setStatus("error");
@@ -493,6 +495,26 @@ const CreateNewHdWallet: React.FC = () => {
   const goToMyWallet = () => {
     if (accountId) {
       navigate(`${HD_WALLETS_PAGE}?account=${accountId}`);
+      enqueueSnackbar({
+        message: (onClickClose) => (
+          <Stack>
+            <span>Account created successfully.</span>
+            <span>
+              The vault content changed.{" "}
+              <Button
+                onClick={() => {
+                  navigate(EXPORT_VAULT_PAGE);
+                  onClickClose();
+                }}
+                sx={{ padding: 0, minWidth: 0 }}
+              >
+                Backup now?
+              </Button>
+            </span>
+          </Stack>
+        ),
+        variant: "success",
+      });
     }
   };
 

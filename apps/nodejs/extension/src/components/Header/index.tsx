@@ -78,9 +78,9 @@ const titleMap = {
   [REMOVE_CONTACT_PAGE]: "Remove Contact",
   [PREFERENCES_PAGE]: "Preferences",
   [EXPORT_VAULT_PAGE]: "Export Vault",
-  [HD_WALLETS_PAGE]: "HD Wallets",
-  [CREATE_NEW_HD_WALLETS_PAGE]: "New HD Wallet",
-  [IMPORT_HD_WALLET_PAGE]: "Import HD Wallet",
+  [HD_WALLETS_PAGE]: "HD Accounts",
+  [CREATE_NEW_HD_WALLETS_PAGE]: "New HD Account",
+  [IMPORT_HD_WALLET_PAGE]: "Import HD Account",
 };
 
 const getTitle = (path: string, search: string) => {
@@ -347,7 +347,7 @@ const Header = () => {
             },
             {
               key: "hd_wallets_item",
-              label: "HD Wallets",
+              label: "HD Account",
               route: HD_WALLETS_PAGE,
               icon: () => (
                 <PhonelinkLockIcon
