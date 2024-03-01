@@ -448,8 +448,6 @@ const CreateNewHdWallet: React.FC = () => {
       .split(" ")
       .map((word, i) => ({ word: requiredWords.includes(i) ? "" : word }));
 
-    console.log(wordsToComplete, requiredWords);
-
     setValue("wordsConfirmation", wordsToComplete);
     setValue("requiredWords", requiredWords);
   }, [phraseSize]);

@@ -19,6 +19,9 @@ interface CustomColors {
   primary500: string;
   primary999: string;
   red100: string;
+  red50: string;
+  red25: string;
+  red5: string;
   green5: string;
   dark_green: string;
 }
@@ -48,6 +51,9 @@ const customColors: CustomColors = {
   primary500: "#1E70EB",
   primary999: "#152A48",
   red100: "#FF2835",
+  red50: "#FCA3BB",
+  red25: "#FED1DD",
+  red5: "#FFF6F8",
   green5: "#F4FDF8",
   dark_green: "#2ACE3A",
 };

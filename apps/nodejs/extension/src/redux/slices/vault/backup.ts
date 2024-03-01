@@ -21,7 +21,7 @@ const BACKUP_VAULT_KEY = "BACKUP_VAULT";
 
 const SupportedProtocolsSchema = z.nativeEnum(SupportedProtocols);
 
-const AccountReferenceSchema = z
+const ContactsSchema = z
   .object({
     id: z.string().uuid(),
     name: z.string(),
@@ -57,7 +57,7 @@ export const SettingsSchema = z.object({
   networksCanBeSelected: z.record(SupportedProtocolsSchema, z.string().array()),
   assetsIdByAccount: z.record(z.string(), z.string().array()),
   customRpcs: CustomRpcSchema.array(),
-  contacts: AccountReferenceSchema.array(),
+  contacts: ContactsSchema.array(),
   accountsImported: z.string().array().default([]),
   sessionsMaxAge: z
     .object({

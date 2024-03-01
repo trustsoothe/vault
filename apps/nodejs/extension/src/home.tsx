@@ -34,6 +34,8 @@ import {
 } from "./redux/selectors/session";
 import InfoIcon from "./components/common/InfoIcon";
 import OperationFailed from "./components/common/OperationFailed";
+import ErrorIcon from "./components/common/ErrorIcon";
+import WarningIcon from "./components/common/WarningIcon";
 
 const store = new Store();
 const storeWithMiddleware = applyMiddleware(
@@ -198,6 +200,10 @@ const Home: React.FC = () => {
               width: "380px!important",
               minWidth: "380px!important",
               maxWidth: "380px!important",
+              "&:has(.notistack-MuiContent-warning)": {
+                height: 60,
+                bottom: 15,
+              },
             },
             "& .notistack-CollapseWrapper": {
               padding: 0,
@@ -222,6 +228,17 @@ const Home: React.FC = () => {
               border: `1px solid ${theme.customColors.primary250}`,
               boxShadow: "none",
             },
+            "& .notistack-MuiContent-error": {
+              backgroundColor: theme.customColors.red25,
+              border: `1px solid ${theme.customColors.red50}`,
+              boxShadow: "none",
+            },
+            "& .notistack-MuiContent-warning": {
+              backgroundColor: "#fff5ec",
+              border: `1px solid #ffb850`,
+              boxShadow: "none",
+              height: "60px!important",
+            },
           }}
           elevation={2}
         >
@@ -242,6 +259,8 @@ const Home: React.FC = () => {
             iconVariant={{
               success: <SuccessIcon />,
               info: <InfoIcon />,
+              error: <ErrorIcon />,
+              warning: <WarningIcon />,
             }}
           />
           {content}

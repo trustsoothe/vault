@@ -153,6 +153,8 @@ interface HDAccountItemProps {
   onClickRemove: (account: SerializedAccountReference) => void;
 }
 
+const maxChildRecommended = 20;
+
 const HDAccountItem: React.FC<HDAccountItemProps> = ({
   defaultExpanded,
   hdAccount: { seed, child },
@@ -165,11 +167,47 @@ const HDAccountItem: React.FC<HDAccountItemProps> = ({
   const { name, protocol } = seed;
 
   const onClickAddNew = () => {
+    if (child.length >= maxChildRecommended) {
+      enqueueSnackbar({
+        variant: "warning",
+        autoHideDuration: 10000,
+        message: (onClickClose) => (
+          <Stack sx={{ "*": { fontSize: 11, lineHeight: "16px" } }}>
+            <span>
+              The recommended max amount of accounts for a HD account is{" "}
+              {maxChildRecommended} and this HD account already has{" "}
+              {child.length}.{" "}
+              <Button
+                onClick={() => {
+                  addNewChildAccount();
+                  onClickClose();
+                }}
+                sx={{
+                  padding: 0,
+                  minWidth: 0,
+                  fontSize: 12,
+                  height: 16,
+                  color: theme.customColors.primary500,
+                  fontWeight: 600,
+                }}
+              >
+                Proceed anyway
+              </Button>
+            </span>
+          </Stack>
+        ),
+      });
+    } else {
+      addNewChildAccount();
+    }
+  };
+
+  const addNewChildAccount = () => {
     setIsCreatingAccount(true);
 
     const onError = () => {
       enqueueSnackbar({
-        variant: "info",
+        variant: "error",
         message: `There was an error creating a new account from ${seed.name} HD Account`,
       });
     };
@@ -207,6 +245,19 @@ const HDAccountItem: React.FC<HDAccountItemProps> = ({
       })
       .catch(onError)
       .finally(() => setIsCreatingAccount(false));
+  };
+
+  const onClickRemoveSeed = () => {
+    if (child.length) {
+      enqueueSnackbar({
+        variant: "error",
+        message: `This HD account cannot be removed because it has child accounts.`,
+        key: "remove_seed_error",
+        preventDuplicate: true,
+      });
+    } else {
+      onClickRemove(seed);
+    }
   };
 
   return (
@@ -300,7 +351,7 @@ const HDAccountItem: React.FC<HDAccountItemProps> = ({
           </IconButton>
         </Tooltip>
         <Tooltip title={"Remove Account"}>
-          <IconButton onClick={() => onClickRemove(seed)}>
+          <IconButton onClick={onClickRemoveSeed}>
             <DeleteOutlineIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
@@ -380,6 +431,7 @@ const HDWallets: React.FC = () => {
         ) : (
           <Stack
             maxHeight={450}
+            width={360}
             overflow={"auto"}
             borderBottom={`1px solid ${theme.customColors.dark15}`}
           >

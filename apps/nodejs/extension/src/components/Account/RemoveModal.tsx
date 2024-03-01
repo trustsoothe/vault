@@ -247,12 +247,13 @@ const RemoveModal: React.FC<RenameModalProps> = ({
       ...defaultValues,
       import_type: getValues("import_type"),
       phraseSize,
+      protocol: account?.protocol,
       wordList: new Array(Number(phraseSize))
         .fill(null)
         .map(() => ({ word: "" })),
     });
     setStatus("normal");
-  }, [reset, getValues]);
+  }, [reset, getValues, account]);
 
   const content = useMemo(() => {
     const title = (
@@ -290,7 +291,7 @@ const RemoveModal: React.FC<RenameModalProps> = ({
       );
     } else if (status === "invalid_pk") {
       const importedFromLabel = accountIsHd
-        ? "recovery phrase"
+        ? "recovery phrase and/or password"
         : importType === "private_key"
         ? "private key"
         : "portable wallet";

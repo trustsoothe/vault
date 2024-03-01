@@ -94,7 +94,10 @@ export class EthereumNetworkProtocolService
       throw new RecoveryPhraseError("Invalid recovery phrase");
     }
 
-    const seed = await mnemonicToSeed(options.recoveryPhrase);
+    const seed = await mnemonicToSeed(
+      options.recoveryPhrase,
+      options.passphrase
+    );
     const masterKey = HDKey.fromMasterSeed(Buffer.from(seed));
 
     const seedAccount = new Account({

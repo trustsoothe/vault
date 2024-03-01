@@ -1,5 +1,5 @@
 // @ts-ignore
-import {fromUint8Array} from "hex-lite";
+import { fromUint8Array } from "hex-lite";
 import {
   AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
@@ -7,11 +7,11 @@ import {
   ImportRecoveryPhraseOptions,
   IProtocolService,
 } from "../IProtocolService";
-import {Account, AccountType} from "../../../vault";
-import {getPublicKeyAsync, signAsync, utils} from "@noble/ed25519";
-import {Buffer} from "buffer";
-import {IEncryptionService} from "../../encryption/IEncryptionService";
-import {AccountReference, SupportedProtocols} from "../../values";
+import { Account, AccountType } from "../../../vault";
+import { getPublicKeyAsync, signAsync, utils } from "@noble/ed25519";
+import { Buffer } from "buffer";
+import { IEncryptionService } from "../../encryption/IEncryptionService";
+import { AccountReference, SupportedProtocols } from "../../values";
 import urlJoin from "url-join";
 import {
   PocketProtocolNetworkSchema,
@@ -27,51 +27,67 @@ import {
   ProtocolTransactionError,
   RecoveryPhraseError,
 } from "../../../../errors";
-import {CoinDenom, MsgProtoSend, TxEncoderFactory, TxSignature,} from "./pocket-js";
-import {RawTxRequest} from "@pokt-foundation/pocketjs-types";
-import {ProtocolFee} from "../ProtocolFee";
-import {INetwork} from "../INetwork";
-import {NetworkStatus} from "../../values/NetworkStatus";
-import {IAsset} from "../IAsset";
-import {IProtocolTransactionResult} from "../ProtocolTransaction";
-import {PocketNetworkTransactionTypes} from "./PocketNetworkTransactionTypes";
-import {PocketNetworkProtocolTransaction} from "./PocketNetworkProtocolTransaction";
-import {derivePath, getMasterKeyFromSeed, getPublicKey} from 'ed25519-hd-key';
-import {mnemonicToSeed, validateMnemonic} from '@scure/bip39';
-import {wordlist} from "@scure/bip39/wordlists/english";
+import {
+  CoinDenom,
+  MsgProtoSend,
+  TxEncoderFactory,
+  TxSignature,
+} from "./pocket-js";
+import { RawTxRequest } from "@pokt-foundation/pocketjs-types";
+import { ProtocolFee } from "../ProtocolFee";
+import { INetwork } from "../INetwork";
+import { NetworkStatus } from "../../values/NetworkStatus";
+import { IAsset } from "../IAsset";
+import { IProtocolTransactionResult } from "../ProtocolTransaction";
+import { PocketNetworkTransactionTypes } from "./PocketNetworkTransactionTypes";
+import { PocketNetworkProtocolTransaction } from "./PocketNetworkProtocolTransaction";
+import { derivePath, getMasterKeyFromSeed, getPublicKey } from "ed25519-hd-key";
+import { mnemonicToSeed, validateMnemonic } from "@scure/bip39";
+import { wordlist } from "@scure/bip39/wordlists/english";
 
 export class PocketNetworkProtocolService
-  implements IProtocolService<SupportedProtocols.Pocket> {
-  constructor(private encryptionService: IEncryptionService) {
-  }
+  implements IProtocolService<SupportedProtocols.Pocket>
+{
+  constructor(private encryptionService: IEncryptionService) {}
 
-  async createAccountsFromRecoveryPhrase(options: ImportRecoveryPhraseOptions): Promise<Account[]> {
-    const isValidMnemonic = validateMnemonic(options.recoveryPhrase, wordlist)
+  async createAccountsFromRecoveryPhrase(
+    options: ImportRecoveryPhraseOptions
+  ): Promise<Account[]> {
+    const isValidMnemonic = validateMnemonic(options.recoveryPhrase, wordlist);
 
     if (!isValidMnemonic) {
-        throw new RecoveryPhraseError('Invalid recovery phrase')
+      throw new RecoveryPhraseError("Invalid recovery phrase");
     }
 
-    const seed = await mnemonicToSeed(options.recoveryPhrase)
-    const seedHex = Buffer.from(seed).toString('hex')
-    const masterKey = getMasterKeyFromSeed(seedHex)
+    const seed = await mnemonicToSeed(
+      options.recoveryPhrase,
+      options.passphrase
+    );
+    const seedHex = Buffer.from(seed).toString("hex");
+    const masterKey = getMasterKeyFromSeed(seedHex);
     const hdSeedAccount = options.isSendNodes
       ? await this.createSendNodesSeedAccountFromKey(masterKey, options)
-      : await this.createAccountFromKeyPair(masterKey, options.seedAccountName)
+      : await this.createAccountFromKeyPair(masterKey, options.seedAccountName);
 
-    const hdChildAccount = await this.deriveHDAccountAtIndex(hdSeedAccount, 0)
+    const hdChildAccount = await this.deriveHDAccountAtIndex(hdSeedAccount, 0);
 
-    return [hdSeedAccount, hdChildAccount]
+    return [hdSeedAccount, hdChildAccount];
   }
-  async createHDWalletAccount(options: AddHDWalletAccountOptions): Promise<Account[]> {
-    const accounts: Account[] = []
 
-    for(let i = 0; i < options.indexes?.length; i++) {
-      const account = await this.deriveHDAccountAtIndex(options.seedAccount, options.indexes[i])
-      accounts.push(account)
+  async createHDWalletAccount(
+    options: AddHDWalletAccountOptions
+  ): Promise<Account[]> {
+    const accounts: Account[] = [];
+
+    for (let i = 0; i < options.indexes?.length; i++) {
+      const account = await this.deriveHDAccountAtIndex(
+        options.seedAccount,
+        options.indexes[i]
+      );
+      accounts.push(account);
     }
 
-    return accounts
+    return accounts;
   }
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
@@ -336,9 +352,18 @@ export class PocketNetworkProtocolService
     return /^[0-9A-Fa-f]{128}$/.test(privateKey);
   }
 
-  private async createAccountFromKeyPair(masterKey: { key: Buffer }, name?: string, accountType: AccountType = AccountType.HDSeed, hdwAccountIndex?: number, hdwIndex?: number, parentId?: string): Promise<Account> {
-    const publicKey = getPublicKey(masterKey.key, false).toString('hex')
-    const address = await this.getAddressFromPublicKey(publicKey)
+  private async createAccountFromKeyPair(
+    masterKey: {
+      key: Buffer;
+    },
+    name?: string,
+    accountType: AccountType = AccountType.HDSeed,
+    hdwAccountIndex?: number,
+    hdwIndex?: number,
+    parentId?: string
+  ): Promise<Account> {
+    const publicKey = getPublicKey(masterKey.key, false).toString("hex");
+    const address = await this.getAddressFromPublicKey(publicKey);
     return new Account({
       address,
       publicKey,
@@ -348,19 +373,40 @@ export class PocketNetworkProtocolService
       hdwIndex,
       name: name || "HD Account",
       protocol: SupportedProtocols.Pocket,
-      privateKey: masterKey.key.toString('hex'),
+      privateKey: masterKey.key.toString("hex"),
       secure: false,
-    })
+    });
   }
 
-  private async createSendNodesSeedAccountFromKey(masterKey: { key: Buffer }, options: ImportRecoveryPhraseOptions): Promise<Account> {
-    const sendNodesKey = derivePath('m/44\'/635\'/0\'/0\'', masterKey.key.toString('hex'))
-    return this.createAccountFromKeyPair(sendNodesKey, options.seedAccountName)
+  private async createSendNodesSeedAccountFromKey(
+    masterKey: {
+      key: Buffer;
+    },
+    options: ImportRecoveryPhraseOptions
+  ): Promise<Account> {
+    const sendNodesKey = derivePath(
+      "m/44'/635'/0'/0'",
+      masterKey.key.toString("hex")
+    );
+    return this.createAccountFromKeyPair(sendNodesKey, options.seedAccountName);
   }
 
-  private async deriveHDAccountAtIndex(seedAccount: Account, index: number): Promise<Account> {
-    const derivedKeys = derivePath(`m/44'/635'/0'/0'/${index}'`, seedAccount.privateKey)
-    return this.createAccountFromKeyPair(derivedKeys, `${seedAccount.name} ${index + 1}`, AccountType.HDChild, 0, index, seedAccount.id)
+  private async deriveHDAccountAtIndex(
+    seedAccount: Account,
+    index: number
+  ): Promise<Account> {
+    const derivedKeys = derivePath(
+      `m/44'/635'/0'/0'/${index}'`,
+      seedAccount.privateKey
+    );
+    return this.createAccountFromKeyPair(
+      derivedKeys,
+      `${seedAccount.name} ${index + 1}`,
+      AccountType.HDChild,
+      0,
+      index,
+      seedAccount.id
+    );
   }
 
   private validateNetwork(network: INetwork) {

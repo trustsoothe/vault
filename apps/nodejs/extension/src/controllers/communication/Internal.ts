@@ -1336,17 +1336,6 @@ class InternalCommunicationController implements ICommunicationController {
         };
       }
 
-      if (error?.name === PrivateKeyRestoreErrorName) {
-        return {
-          type: PK_ACCOUNT_RESPONSE,
-          data: {
-            answered: true,
-            isAccountPasswordWrong: true,
-            privateKey: null,
-          },
-          error: null,
-        };
-      }
       return {
         type: PK_ACCOUNT_RESPONSE,
         data: null,

@@ -276,7 +276,7 @@ export const FormStep: React.FC<FormStepProps> = ({
           render={({ field, fieldState: { error } }) => (
             <FormControlLabel
               control={<Checkbox {...field} checked={field.value} />}
-              label="Use Send Nodes Derivation"
+              label="Use derivation of the other Pocket Wallets"
               sx={{
                 marginLeft: 0,
                 marginTop: 0.7,
