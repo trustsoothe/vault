@@ -21,6 +21,7 @@ import { AccountType, SerializedAccountReference } from "@poktscan/keyring";
 import { labelByProtocolMap } from "../../constants/protocols";
 import ExpandIcon from "../../assets/img/expand_icon.svg";
 import {
+  ACCOUNTS_PAGE,
   CREATE_NEW_HD_WALLETS_PAGE,
   EXPORT_VAULT_PAGE,
   IMPORT_HD_WALLET_PAGE,
@@ -28,11 +29,16 @@ import {
 import RenameModal from "../Account/RenameModal";
 import { enqueueSnackbar } from "../../utils/ui";
 import RemoveModal from "../Account/RemoveModal";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import TooltipOverflow from "../common/TooltipOverflow";
 import CopyIcon from "../../assets/img/thin_copy_icon.svg";
 import { accountsSelector } from "../../redux/selectors/account";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import {
+  changeSelectedAccountOfNetwork,
+  changeSelectedNetwork,
+} from "../../redux/slices/app";
+import { selectedChainByProtocolSelector } from "../../redux/selectors/network";
 
 interface ChildItemProps {
   account: SerializedAccountReference;
@@ -47,6 +53,11 @@ const ChildItem: React.FC<ChildItemProps> = ({
 }) => {
   const { address, name } = account;
   const theme = useTheme();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const selectedChainByProtocol = useAppSelector(
+    selectedChainByProtocolSelector
+  );
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
 
   const handleCopyAddress = useCallback(() => {
@@ -55,6 +66,32 @@ const ChildItem: React.FC<ChildItemProps> = ({
       setTimeout(() => setShowCopyTooltip(false), 500);
     });
   }, []);
+
+  const onClickAccount = () => {
+    Promise.all([
+      dispatch(
+        changeSelectedNetwork({
+          network: account.protocol,
+          chainId: selectedChainByProtocol[account.protocol],
+        })
+      ).unwrap(),
+      dispatch(
+        changeSelectedAccountOfNetwork({
+          protocol: account.protocol,
+          address: account.address,
+        })
+      ).unwrap(),
+    ])
+      .then(() => {
+        navigate(ACCOUNTS_PAGE);
+      })
+      .catch(() => {
+        enqueueSnackbar({
+          variant: "error",
+          message: "There was an error opening the account detail.",
+        });
+      });
+  };
 
   return (
     <Stack paddingLeft={1}>
@@ -67,6 +104,7 @@ const ChildItem: React.FC<ChildItemProps> = ({
             textDecoration: "underline",
             cursor: "pointer",
           }}
+          onClick={onClickAccount}
         >
           {name}
         </Typography>
