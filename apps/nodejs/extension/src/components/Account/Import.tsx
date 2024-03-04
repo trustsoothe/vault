@@ -32,10 +32,17 @@ import {
 } from "../../utils/networkOperations";
 import { enqueueSnackbar, readFile } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
-import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
-import { selectedProtocolSelector } from "../../redux/selectors/network";
+import {
+  changeSelectedAccountOfNetwork,
+  changeSelectedNetwork,
+} from "../../redux/slices/app";
+import {
+  selectedChainByProtocolSelector,
+  selectedProtocolSelector,
+} from "../../redux/selectors/network";
 import SelectFile from "../common/SelectFile";
 import useIsPopup from "../../hooks/useIsPopup";
+import ProtocolSelector from "../common/ProtocolSelector";
 import { INVALID_FILE_PASSWORD } from "../../errors/account";
 
 interface FormValues {
@@ -44,6 +51,7 @@ interface FormValues {
   json_file?: File | null;
   file_password?: string;
   account_name: string;
+  protocol?: SupportedProtocols;
 }
 
 const INVALID_PPK_MESSAGE = "File is not valid";
@@ -175,7 +183,12 @@ export const ImportComponent: React.FC<ImportComponentProps> = ({
                   return "Required";
                 }
 
-                if (!isValidPrivateKey(value, selectedProtocol)) {
+                if (
+                  !isValidPrivateKey(
+                    value,
+                    formValues.protocol || selectedProtocol
+                  )
+                ) {
                   return "Invalid Private Key";
                 }
               }
@@ -203,7 +216,12 @@ export const ImportComponent: React.FC<ImportComponentProps> = ({
 
                   const content = await readFile(value);
 
-                  if (!isValidPPK(content, selectedProtocol)) {
+                  if (
+                    !isValidPPK(
+                      content,
+                      formValues.protocol || selectedProtocol
+                    )
+                  ) {
                     return INVALID_PPK_MESSAGE;
                   }
                 }
@@ -265,6 +283,9 @@ const ImportAccount: React.FC = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const selectedChainByProtocol = useAppSelector(
+    selectedChainByProtocolSelector
+  );
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -284,6 +305,7 @@ const ImportAccount: React.FC = () => {
       json_file: null,
       file_password: "",
       account_name: "",
+      protocol: selectedProtocol,
     },
   });
   const {
@@ -322,6 +344,7 @@ const ImportAccount: React.FC = () => {
     setValue("json_file", null);
     setValue("file_password", "");
     clearErrors(["private_key", "json_file"]);
+    setValue("protocol", selectedProtocol);
     setWrongFilePassword(false);
   }, [type, selectedProtocol]);
 
@@ -352,13 +375,13 @@ const ImportAccount: React.FC = () => {
     }
   }, [navigate, location, passwordStep]);
 
-  const onClickCreate = useCallback(
+  const onSubmitImport = useCallback(
     async (data: FormValues) => {
       setStatus("loading");
 
       let privateKey: string;
       try {
-        privateKey = await getPrivateKey(data, selectedProtocol);
+        privateKey = await getPrivateKey(data, data.protocol);
       } catch (e) {
         if (e?.name === INVALID_FILE_PASSWORD.name) {
           setWrongFilePassword(true);
@@ -370,7 +393,7 @@ const ImportAccount: React.FC = () => {
       }
 
       AppToBackground.importAccount({
-        protocol: selectedProtocol,
+        protocol: data.protocol,
         name: data.account_name,
         privateKey,
       }).then(async (response) => {
@@ -382,14 +405,26 @@ const ImportAccount: React.FC = () => {
           } else {
             const address = await getAddressFromPrivateKey(
               privateKey,
-              selectedProtocol
+              data.protocol
             );
-            dispatch(
-              changeSelectedAccountOfNetwork({
-                protocol: selectedProtocol,
-                address,
-              })
-            ).then(() => {
+            Promise.all([
+              ...(selectedProtocol !== data.protocol
+                ? [
+                    dispatch(
+                      changeSelectedNetwork({
+                        network: data.protocol,
+                        chainId: selectedChainByProtocol[data.protocol],
+                      })
+                    ),
+                  ]
+                : []),
+              dispatch(
+                changeSelectedAccountOfNetwork({
+                  protocol: data.protocol,
+                  address: address,
+                })
+              ),
+            ]).then(() => {
               setTimeout(() => {
                 enqueueSnackbar({
                   message: (onClickClose) => (
@@ -418,7 +453,13 @@ const ImportAccount: React.FC = () => {
         }
       });
     },
-    [navigate, passwordStep, selectedProtocol, dispatch]
+    [
+      navigate,
+      passwordStep,
+      selectedProtocol,
+      dispatch,
+      selectedChainByProtocol,
+    ]
   );
 
   const onClickOkAccountExists = useCallback(() => {
@@ -429,8 +470,9 @@ const ImportAccount: React.FC = () => {
       json_file: null,
       private_key: "",
       file_password: "",
+      protocol: selectedProtocol,
     });
-  }, [reset, getValues]);
+  }, [reset, getValues, selectedProtocol]);
 
   const content = useMemo(() => {
     if (status === "loading") {
@@ -494,12 +536,35 @@ const ImportAccount: React.FC = () => {
           boxSizing={"border-box"}
           overflow={"hidden"}
         >
+          <Controller
+            control={control}
+            name={"protocol"}
+            render={({ field }) => {
+              return (
+                <ProtocolSelector
+                  {...field}
+                  fullWidth
+                  sx={{
+                    marginBottom: "5px!important",
+                    "& .MuiFormHelperText-root": {
+                      left: 4,
+                      bottom: -18,
+                      whiteSpace: "nowrap",
+                    },
+                  }}
+                  helperText={`You'll be able to use this account for every network of the protocol selected`}
+                  InputLabelProps={{ shrink: !!field.value }}
+                />
+              );
+            }}
+          />
           <TextField
             fullWidth
             required
             label={"Account Name"}
             autoComplete={"off"}
             size={"small"}
+            autoFocus={true}
             {...register("account_name", nameRules)}
             error={!!formState?.errors?.account_name}
             helperText={formState?.errors?.account_name?.message}
@@ -561,7 +626,7 @@ const ImportAccount: React.FC = () => {
   return (
     <Stack
       component={"form"}
-      onSubmit={handleSubmit(onClickCreate)}
+      onSubmit={handleSubmit(onSubmitImport)}
       alignItems={"center"}
       justifyContent={"center"}
       height={1}

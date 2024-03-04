@@ -111,7 +111,7 @@ const FormStep: React.FC = () => {
                   bottom: -18,
                 },
               }}
-              helperText={`You'll be able to use this wallet for every network of the protocol selected`}
+              helperText={`You'll be able to use this account for every network of the protocol selected`}
               InputLabelProps={{ shrink: !!field.value }}
             />
           );
