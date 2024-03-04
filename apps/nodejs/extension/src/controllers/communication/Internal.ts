@@ -100,10 +100,14 @@ import {
   CHECK_PERMISSION_FOR_SESSION_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
+  CREATE_ACCOUNT_FROM_HD_SEED_RESPONSE,
   EXPORT_VAULT_REQUEST,
   EXPORT_VAULT_RESPONSE,
   IMPORT_ACCOUNT_REQUEST,
   IMPORT_ACCOUNT_RESPONSE,
+  IMPORT_HD_WALLET_REQUEST,
+  IMPORT_HD_WALLET_RESPONSE,
   IMPORT_VAULT_REQUEST,
   IMPORT_VAULT_RESPONSE,
   INITIALIZE_VAULT_REQUEST,
@@ -114,6 +118,8 @@ import {
   NETWORK_FEE_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
+  PHRASE_GENERATED_HD_SEED_REQUEST,
+  PHRASE_GENERATED_HD_SEED_RESPONSE,
   PK_ACCOUNT_REQUEST,
   PK_ACCOUNT_RESPONSE,
   REMOVE_ACCOUNT_REQUEST,
@@ -153,8 +159,10 @@ import {
 } from "../../redux/slices/vault";
 import {
   addNewAccount,
+  createNewAccountFromHdSeed,
   getPrivateKeyOfAccount,
   importAccount,
+  importHdWallet,
   removeAccount,
   sendTransfer,
   updateAccount,
@@ -173,7 +181,14 @@ import {
   hashString,
   importVault,
 } from "../../redux/slices/vault/backup";
-import { sign } from "web3-eth-accounts";
+import {
+  CreateAccountFromHdSeedReq,
+  CreateAccountFromHdSeedRes,
+  ImportHdWalletReq,
+  ImportHdWalletRes,
+  PhraseGeneratedHdSeedReq,
+  PhraseGeneratedHdSeedRes,
+} from "../../types/communications/hdWallet";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -204,6 +219,9 @@ const mapMessageType: Record<InternalRequests["type"], true> = {
   [SHOULD_EXPORT_VAULT_REQUEST]: true,
   [IMPORT_VAULT_REQUEST]: true,
   [SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST]: true,
+  [IMPORT_HD_WALLET_REQUEST]: true,
+  [CREATE_ACCOUNT_FROM_HD_SEED_REQUEST]: true,
+  [PHRASE_GENERATED_HD_SEED_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -303,6 +321,17 @@ class InternalCommunicationController implements ICommunicationController {
 
     if (message?.type === SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST) {
       return this._setRequirePasswordForOpts(message);
+    }
+
+    if (message?.type === IMPORT_HD_WALLET_REQUEST) {
+      return this._handleImportHdWallet(message);
+    }
+
+    if (message?.type === CREATE_ACCOUNT_FROM_HD_SEED_REQUEST) {
+      return this._handleCreateAccountFromHdSeed(message);
+    }
+    if (message?.type === PHRASE_GENERATED_HD_SEED_REQUEST) {
+      return this._phraseGenerateHdSeed(message);
     }
   }
 
@@ -1182,6 +1211,102 @@ class InternalCommunicationController implements ICommunicationController {
     }
   }
 
+  private async _handleImportHdWallet(
+    message: ImportHdWalletReq
+  ): Promise<ImportHdWalletRes> {
+    try {
+      const accounts = await store
+        .dispatch(importHdWallet(message.data))
+        .unwrap();
+
+      return {
+        type: IMPORT_HD_WALLET_RESPONSE,
+        data: {
+          answered: true,
+          accounts,
+        },
+        error: null,
+      };
+    } catch (error) {
+      return {
+        type: IMPORT_HD_WALLET_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _handleCreateAccountFromHdSeed(
+    message: CreateAccountFromHdSeedReq
+  ): Promise<CreateAccountFromHdSeedRes> {
+    try {
+      const account = await store
+        .dispatch(createNewAccountFromHdSeed(message.data))
+        .unwrap();
+
+      return {
+        type: CREATE_ACCOUNT_FROM_HD_SEED_RESPONSE,
+        data: {
+          answered: true,
+          account,
+        },
+        error: null,
+      };
+    } catch (error) {
+      return {
+        type: CREATE_ACCOUNT_FROM_HD_SEED_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _phraseGenerateHdSeed(
+    message: PhraseGeneratedHdSeedReq
+  ): Promise<PhraseGeneratedHdSeedRes> {
+    try {
+      const { accountId, vaultPassword, phraseOptions } = message.data;
+      const vault = getVault();
+      const vaultState = store.getState().vault;
+      const vaultSessionId = vaultState.vaultSession.id;
+      const vaultPassphrase = new Passphrase(
+        vaultPassword ? vaultPassword : await getVaultPassword(vaultSessionId)
+      );
+
+      const isPhraseValid = await vault.recoveryPhraseGenerateHdSeed(
+        accountId,
+        vaultPassphrase,
+        phraseOptions
+      );
+
+      return {
+        type: PHRASE_GENERATED_HD_SEED_RESPONSE,
+        data: {
+          isPhraseValid,
+          vaultPasswordWrong: false,
+        },
+        error: null,
+      };
+    } catch (error) {
+      if (error?.name === VaultRestoreErrorName) {
+        return {
+          type: PHRASE_GENERATED_HD_SEED_RESPONSE,
+          data: {
+            isPhraseValid: false,
+            vaultPasswordWrong: true,
+          },
+          error: null,
+        };
+      }
+
+      return {
+        type: PHRASE_GENERATED_HD_SEED_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
   private async _getPrivateKeyOfAccount({
     data,
   }: PrivateKeyAccountReq): Promise<PrivateKeyAccountRes> {
@@ -1211,17 +1336,6 @@ class InternalCommunicationController implements ICommunicationController {
         };
       }
 
-      if (error?.name === PrivateKeyRestoreErrorName) {
-        return {
-          type: PK_ACCOUNT_RESPONSE,
-          data: {
-            answered: true,
-            isAccountPasswordWrong: true,
-            privateKey: null,
-          },
-          error: null,
-        };
-      }
       return {
         type: PK_ACCOUNT_RESPONSE,
         data: null,

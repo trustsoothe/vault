@@ -12,6 +12,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import PhonelinkLockIcon from "@mui/icons-material/PhonelinkLock";
 import DownloadIcon from "@mui/icons-material/FileDownloadOutlined";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import ContactIcon from "@mui/icons-material/AccountCircleOutlined";
@@ -25,8 +26,11 @@ import {
   BLOCK_SITE_PAGE,
   BLOCKED_SITES_PAGE,
   CONTACTS_PAGE,
+  CREATE_NEW_HD_WALLETS_PAGE,
   EXPORT_VAULT_PAGE,
+  HD_WALLETS_PAGE,
   IMPORT_ACCOUNT_PAGE,
+  IMPORT_HD_WALLET_PAGE,
   NETWORKS_PAGE,
   PREFERENCES_PAGE,
   REMOVE_CONTACT_PAGE,
@@ -74,6 +78,9 @@ const titleMap = {
   [REMOVE_CONTACT_PAGE]: "Remove Contact",
   [PREFERENCES_PAGE]: "Preferences",
   [EXPORT_VAULT_PAGE]: "Export Vault",
+  [HD_WALLETS_PAGE]: "HD Accounts",
+  [CREATE_NEW_HD_WALLETS_PAGE]: "New HD Account",
+  [IMPORT_HD_WALLET_PAGE]: "Import HD Account",
 };
 
 const getTitle = (path: string, search: string) => {
@@ -99,6 +106,10 @@ const ROUTES_WHERE_HIDE_SELECTORS = [
   SAVE_CONTACT_PAGE,
   PREFERENCES_PAGE,
   EXPORT_VAULT_PAGE,
+  HD_WALLETS_PAGE,
+  CREATE_NEW_HD_WALLETS_PAGE,
+  IMPORT_HD_WALLET_PAGE,
+  IMPORT_ACCOUNT_PAGE,
 ];
 
 const routesWhereAccountNotNeeded = [
@@ -334,6 +345,22 @@ const Header = () => {
               label: "Import Account",
               route: IMPORT_ACCOUNT_PAGE,
               icon: ImportIcon,
+            },
+            {
+              key: "hd_wallets_item",
+              label: "HD Account",
+              route: HD_WALLETS_PAGE,
+              icon: () => (
+                <PhonelinkLockIcon
+                  sx={{
+                    fontSize: "13px!important",
+                    marginLeft: 0.3,
+                    "& path": {
+                      color: `${theme.customColors.dark75}!important`,
+                    },
+                  }}
+                />
+              ),
             },
             {
               key: "transfer_item",

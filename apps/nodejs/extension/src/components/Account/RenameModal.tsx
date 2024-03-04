@@ -1,9 +1,9 @@
 import type { SerializedAccountReference } from "@poktscan/keyring";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Stack, { StackProps } from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import { useTheme } from "@mui/material";
-import Stack from "@mui/material/Stack";
 import Fade from "@mui/material/Fade";
 import Button from "@mui/material/Button";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +19,7 @@ import { EXPORT_VAULT_PAGE } from "../../constants/routes";
 interface RenameModalProps {
   account?: SerializedAccountReference;
   onClose: () => void;
+  containerProps?: StackProps;
 }
 
 interface FormValues {
@@ -26,7 +27,11 @@ interface FormValues {
   vault_password?: string;
 }
 
-const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
+const RenameModal: React.FC<RenameModalProps> = ({
+  account,
+  onClose,
+  containerProps,
+}) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [wrongPassword, setWrongPassword] = useState(false);
@@ -262,6 +267,7 @@ const RenameModal: React.FC<RenameModalProps> = ({ account, onClose }) => {
         top={-60}
         left={0}
         bgcolor={"rgba(255,255,255,0.5)"}
+        {...containerProps}
       >
         {content}
       </Stack>

@@ -8,13 +8,22 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
+import { SupportedProtocols } from "@poktscan/keyring";
 import { enqueueSnackbar } from "../../utils/ui";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
+import ProtocolSelector from "../common/ProtocolSelector";
+import useDidMountEffect from "../../hooks/useDidMountEffect";
 import { ACCOUNTS_PAGE, EXPORT_VAULT_PAGE } from "../../constants/routes";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
-import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
-import { selectedProtocolSelector } from "../../redux/selectors/network";
+import {
+  changeSelectedAccountOfNetwork,
+  changeSelectedNetwork,
+} from "../../redux/slices/app";
+import {
+  selectedChainByProtocolSelector,
+  selectedProtocolSelector,
+} from "../../redux/selectors/network";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface CreateModalProps {
@@ -24,6 +33,7 @@ interface CreateModalProps {
 
 interface FormValues {
   account_name: string;
+  protocol: SupportedProtocols;
 }
 
 type FormStatus = "normal" | "loading" | "error";
@@ -31,10 +41,10 @@ type FormStatus = "normal" | "loading" | "error";
 export const nameRules = {
   required: "Required",
   maxLength: {
-    value: 50,
-    message: "The max amount of characters is 50.",
+    value: 25,
+    message: "The max amount of characters is 25.",
   },
-  validate: (value) => {
+  validate: (value: string) => {
     if (!value.trim()) {
       return "Required";
     }
@@ -46,16 +56,24 @@ export const nameRules = {
 const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const protocol = useAppSelector(selectedProtocolSelector);
   const dispatch = useAppDispatch();
+  const protocol = useAppSelector(selectedProtocolSelector);
+  const selectedChainByProtocol = useAppSelector(
+    selectedChainByProtocolSelector
+  );
   const [status, setStatus] = useState<FormStatus>("normal");
   const [stillShowModal, setStillShowModal] = useState(false);
 
-  const { reset, control, handleSubmit } = useForm<FormValues>({
+  const { reset, control, handleSubmit, setValue } = useForm<FormValues>({
     defaultValues: {
       account_name: "",
+      protocol,
     },
   });
+
+  useDidMountEffect(() => {
+    setValue("protocol", protocol);
+  }, [protocol]);
 
   useEffect(() => {
     if (open) {
@@ -63,11 +81,13 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
 
       reset({
         account_name: "",
+        protocol,
       });
     } else {
       setTimeout(() => {
         reset({
           account_name: "",
+          protocol,
         });
         setStillShowModal(false);
       }, 225);
@@ -81,19 +101,31 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
         rejected: false,
         accountData: {
           name: data.account_name,
-          protocol,
+          protocol: data.protocol,
         },
       });
 
       if (result.error) {
         setStatus("error");
       } else {
-        dispatch(
-          changeSelectedAccountOfNetwork({
-            protocol: protocol,
-            address: result.data.address,
-          })
-        ).then(() => {
+        Promise.all([
+          ...(protocol !== data.protocol
+            ? [
+                dispatch(
+                  changeSelectedNetwork({
+                    network: data.protocol,
+                    chainId: selectedChainByProtocol[data.protocol],
+                  })
+                ),
+              ]
+            : []),
+          dispatch(
+            changeSelectedAccountOfNetwork({
+              protocol: data.protocol,
+              address: result.data.address,
+            })
+          ),
+        ]).then(() => {
           enqueueSnackbar({
             message: (onClickClose) => (
               <Stack>
@@ -120,7 +152,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
         });
       }
     },
-    [onClose, dispatch, navigate, protocol]
+    [onClose, dispatch, navigate, protocol, selectedChainByProtocol]
   );
 
   const onClickAway = useCallback(() => {
@@ -170,6 +202,32 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
         <Stack spacing={1.5}>
           {title}
           <Controller
+            control={control}
+            name={"protocol"}
+            render={({ field }) => {
+              return (
+                <ProtocolSelector
+                  {...field}
+                  fullWidth
+                  SelectProps={{
+                    MenuProps: {
+                      disablePortal: true,
+                    },
+                  }}
+                  sx={{
+                    "& .MuiFormHelperText-root": {
+                      left: 5,
+                      bottom: -27,
+                      lineHeight: "13px",
+                    },
+                  }}
+                  helperText={`You'll be able to use this account for every network of the protocol selected`}
+                  InputLabelProps={{ shrink: !!field.value }}
+                />
+              );
+            }}
+          />
+          <Controller
             name={"account_name"}
             control={control}
             rules={nameRules}
@@ -178,8 +236,12 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
                 label={"Account Name"}
                 autoFocus
                 required
+                autoComplete={"off"}
                 size={"small"}
                 fullWidth
+                sx={{
+                  marginTop: "37px!important",
+                }}
                 {...field}
                 InputLabelProps={{
                   shrink: !!field.value,
@@ -227,7 +289,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
     <ClickAwayListener onClickAway={onClickAway}>
       <Stack
         width={1}
-        height={180}
+        height={250}
         paddingX={2.5}
         paddingTop={1.5}
         paddingBottom={2}

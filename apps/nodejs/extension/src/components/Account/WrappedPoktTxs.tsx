@@ -625,7 +625,6 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
 
   const fetchTransactions = useCallback(() => {
     abortControllerRef.current = new AbortController();
-    setFetchStatus("loading");
     fetch(`${baseUrl}/${action}/active?recipient=${address}`, {
       signal: abortControllerRef.current.signal,
     })
@@ -641,6 +640,7 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
   }, [action, address]);
 
   useEffect(() => {
+    setFetchStatus("loading");
     fetchTransactions();
 
     const interval = setInterval(fetchTransactions, 30000);
@@ -763,7 +763,10 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
             width={370}
             flexGrow={1}
             sx={{
-              overflowY: fetchStatus === "loading" ? "hidden" : "auto",
+              overflowY:
+                fetchStatus === "loading" && transactions.length === 0
+                  ? "hidden"
+                  : "auto",
               overflowX: "hidden",
             }}
           >
@@ -790,7 +793,7 @@ const WrappedPoktTxs: React.FC<WrappedPoktTxsProps> = ({
               </Stack>
             ) : (
               <>
-                {fetchStatus === "loading"
+                {fetchStatus === "loading" && transactions.length === 0
                   ? new Array(5)
                       .fill(null)
                       .map((_, index) => (

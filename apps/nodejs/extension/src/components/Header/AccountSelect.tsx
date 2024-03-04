@@ -9,6 +9,7 @@ import IconButton from "@mui/material/IconButton";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  AccountType,
   type SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/keyring";
@@ -194,7 +195,11 @@ const AccountSelect: React.FC<AccountSelectProps> = ({
 
   const accountsOfNetwork = useMemo(() => {
     return accounts
-      .filter((account) => account.protocol === selectedProtocol)
+      .filter(
+        (account) =>
+          account.protocol === selectedProtocol &&
+          account.accountType !== AccountType.HDSeed
+      )
       .map((account) => ({
         ...account,
         symbol: networkSymbol || "",

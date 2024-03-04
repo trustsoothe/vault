@@ -5,7 +5,10 @@ import { SerializedError, createAsyncThunk } from "@reduxjs/toolkit";
 import set from "lodash/set";
 import {
   AccountReference,
+  AccountType,
   AccountUpdateOptions,
+  AddHDWalletAccountExternalRequest,
+  ImportRecoveryPhraseOptions,
   Passphrase,
   PrivateKeyRestoreErrorName,
   SerializedAccountReference,
@@ -24,6 +27,73 @@ import {
 const MAX_PASSWORDS_TRIES = 4;
 const VAULT_PASSWORD_ID = "vault";
 const ExtensionVaultInstance = getVault();
+
+export interface ImportHdAccountOptions extends ImportRecoveryPhraseOptions {
+  imported?: boolean;
+}
+
+export const importHdWallet = createAsyncThunk(
+  "vault/importHdWallet",
+  async ({ imported, ...options }: ImportHdAccountOptions, context) => {
+    const state = context.getState() as RootState;
+    const { vaultSession } = state.vault;
+
+    const vaultPassword = await getVaultPassword(vaultSession.id);
+    const vaultPassphrase = new Passphrase(vaultPassword);
+
+    const accountReferences = await ExtensionVaultInstance.importRecoveryPhrase(
+      vaultSession.id,
+      vaultPassphrase,
+      options
+    );
+
+    if (imported) {
+      for (const accountReference of accountReferences) {
+        const id =
+          accountReference.accountType === AccountType.HDSeed
+            ? accountReference.id
+            : accountReference.address;
+
+        await context.dispatch(addImportedAccountAddress(id));
+      }
+    }
+
+    return accountReferences.map((account) => account.serialize());
+  }
+);
+
+export type CreateNewAccountFromHdSeedArg = Omit<
+  AddHDWalletAccountExternalRequest,
+  "count"
+>;
+
+export const createNewAccountFromHdSeed = createAsyncThunk(
+  "vault/createNewAccountFromHdSeed",
+  async (options: CreateNewAccountFromHdSeedArg, context) => {
+    const {
+      vault: { vaultSession },
+      app: { accountsImported },
+    } = context.getState() as RootState;
+
+    const vaultPassword = await getVaultPassword(vaultSession.id);
+    const vaultPassphrase = new Passphrase(vaultPassword);
+
+    const accountArr = await ExtensionVaultInstance.addHDWalletAccount(
+      vaultSession.id,
+      vaultPassphrase,
+      { ...options }
+    );
+    const account = accountArr.pop().serialize();
+
+    const parentIsImported = accountsImported.includes(options.seedAccountId);
+
+    if (parentIsImported) {
+      await context.dispatch(addImportedAccountAddress(account.address));
+    }
+
+    return account;
+  }
+);
 
 export const addNewAccount = createAsyncThunk<
   {
@@ -234,6 +304,32 @@ const addAddNewAccountToBuilder = (builder: VaultSliceBuilder) => {
   });
 };
 
+const addCreateNewAccountFromHdSeedToBuilder = (builder: VaultSliceBuilder) => {
+  builder.addCase(createNewAccountFromHdSeed.rejected, (state, action) => {
+    increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
+  });
+
+  builder.addCase(createNewAccountFromHdSeed.fulfilled, (state, action) => {
+    const accountReference = action.payload;
+    state.accounts.push(accountReference);
+
+    resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+  });
+};
+
+const addImportHdWalletToBuilder = (builder: VaultSliceBuilder) => {
+  builder.addCase(importHdWallet.rejected, (state, action) => {
+    increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
+  });
+
+  builder.addCase(importHdWallet.fulfilled, (state, action) => {
+    const accounts = action.payload;
+    state.accounts.push(...accounts);
+
+    resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+  });
+};
+
 const addImportAccountToBuilder = (builder: VaultSliceBuilder) => {
   builder.addCase(importAccount.fulfilled, (state, action) => {
     const account = action.payload;
@@ -301,6 +397,8 @@ export const addAccountThunksToBuilder = (builder: VaultSliceBuilder) => {
   addRemoveAccountToBuilder(builder);
   addGetPrivateKeyToBuilder(builder);
   addSendTransferToBuilder(builder);
+  addImportHdWalletToBuilder(builder);
+  addCreateNewAccountFromHdSeedToBuilder(builder);
 };
 
 function resetWrongPasswordCounter(id: string, state: VaultSlice) {

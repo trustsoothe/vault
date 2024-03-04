@@ -113,5 +113,17 @@ export const generateRandomPassword = (
   return password;
 };
 
+export const generateRecoveryPhrase = (size = 12) => {
+  const vault = getVault();
+
+  return vault.createRecoveryPhrase(size);
+};
+
+export const recoveryPhraseIsValid = (phrase: string) => {
+  const vault = getVault();
+
+  return vault.validateRecoveryPhrase(phrase);
+};
+
 export const wait = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));

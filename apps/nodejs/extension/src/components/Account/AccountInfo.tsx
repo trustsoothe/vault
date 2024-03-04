@@ -32,7 +32,7 @@ import {
 } from "../../redux/selectors/session";
 import { balanceMapOfNetworkSelector } from "../../redux/selectors/account";
 import {
-  selectedChainSelector,
+  selectedChainByProtocolSelector,
   selectedProtocolSelector,
   symbolOfNetworkSelector,
 } from "../../redux/selectors/network";
@@ -96,9 +96,12 @@ const AccountInfo: React.FC<AccountComponentProps> = ({
   );
 
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
-  const selectedChain = useAppSelector(selectedChainSelector);
 
   const protocolToUse = protocol || selectedProtocol;
+  const selectedChainByProtocol = useAppSelector(
+    selectedChainByProtocolSelector
+  );
+  const selectedChain = selectedChainByProtocol[protocolToUse];
   const chainIdToUse = chainId || selectedChain;
 
   const balanceMap = useAppSelector(
