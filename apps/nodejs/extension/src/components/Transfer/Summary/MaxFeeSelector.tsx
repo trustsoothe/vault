@@ -1,5 +1,5 @@
 import type { Theme } from "@mui/material";
-import type { EthereumNetworkFee } from "@poktscan/keyring";
+import type { EthereumNetworkFee } from "@soothe/vault";
 import type { FeeSpeed } from "../index";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";

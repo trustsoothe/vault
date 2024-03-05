@@ -18,8 +18,8 @@ import {
   INetwork,
   ProtocolServiceFactory,
   SupportedProtocols,
-} from "@poktscan/keyring";
-import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
+} from "@soothe/vault";
+import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import {
   propertyIsNotValid,
   propertyIsRequired,

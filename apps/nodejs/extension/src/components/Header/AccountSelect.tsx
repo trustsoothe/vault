@@ -12,7 +12,7 @@ import {
   AccountType,
   type SerializedAccountReference,
   SupportedProtocols,
-} from "@poktscan/keyring";
+} from "@soothe/vault";
 import { getTruncatedText, roundAndSeparate } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import CloseIcon from "../../assets/img/close_icon.svg";

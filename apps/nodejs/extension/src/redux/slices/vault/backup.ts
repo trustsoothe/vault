@@ -6,7 +6,7 @@ import {
   EncryptedVault,
   SerializedEncryptedVault,
   SupportedProtocols,
-} from "@poktscan/keyring";
+} from "@soothe/vault";
 import { isValidAddress } from "../../../utils/networkOperations";
 import { RootState } from "../../store";
 import { importAppSettings } from "../app";

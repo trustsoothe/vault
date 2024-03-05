@@ -14,7 +14,7 @@ then
   echo ".env file loaded"
 fi
 
-yarn turbo prune --docker --scope=@poktscan/$app
+yarn turbo prune --docker --scope=@soothe/$app
 
 echo "copying packages/nodejs/graphql to out/full"
 cp -R packages/nodejs/graphql out/full/packages/nodejs

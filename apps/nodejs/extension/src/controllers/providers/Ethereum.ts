@@ -1,5 +1,5 @@
 import BaseProvider, { EthereumMethod } from "./base";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { SupportedProtocols } from "@soothe/vault";
 
 export default class EthereumProvider extends BaseProvider {
   constructor() {

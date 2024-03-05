@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { SupportedProtocols } from "@soothe/vault";
 import { useGetPricesQuery } from "../redux/slices/prices";
 import { useAppSelector } from "./redux";
 import { networksSelector } from "../redux/selectors/network";

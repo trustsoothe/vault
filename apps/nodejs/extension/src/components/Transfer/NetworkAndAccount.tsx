@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";
 import Typography from "@mui/material/Typography";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { SupportedProtocols } from "@soothe/vault";
 import { useAppSelector } from "../../hooks/redux";
 import { networksSelector } from "../../redux/selectors/network";
 import { accountsSelector } from "../../redux/selectors/account";

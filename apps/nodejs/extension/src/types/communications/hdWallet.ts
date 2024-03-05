@@ -1,7 +1,7 @@
 import type {
   ImportRecoveryPhraseOptions,
   SerializedAccountReference,
-} from "@poktscan/keyring";
+} from "@soothe/vault";
 import type {
   CreateNewAccountFromHdSeedArg,
   ImportHdAccountOptions,

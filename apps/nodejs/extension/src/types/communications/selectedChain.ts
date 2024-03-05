@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/keyring";
+import type { SupportedProtocols } from "@soothe/vault";
 import type { BaseErrors, BaseProxyRequest, BaseProxyResponse } from "./common";
 import {
   SELECTED_CHAIN_REQUEST,

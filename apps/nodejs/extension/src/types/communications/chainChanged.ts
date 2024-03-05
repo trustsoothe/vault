@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/keyring";
+import type { SupportedProtocols } from "@soothe/vault";
 import { SELECTED_CHAIN_CHANGED } from "../../constants/communication";
 
 export interface ChainChangedMessageToProxy {

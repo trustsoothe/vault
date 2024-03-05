@@ -1,0 +1,20 @@
+{
+  "name": "@soothe/vault-storage-filesystem",
+  "version": "0.0.0",
+  "description": "Filesystem based storage plugin for the Universal Crypto Wallet Manager",
+  "main": "dist/index.js",
+  "repository": "git@github.com:pokt-scan/soothe-vault.git",
+  "author": "Julio Henriquez <julio@poktscan.com>",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "yarn lint --fix",
+    "build": "node esbuild.js"
+  },
+  "dependencies": {
+    "@soothe/vault": "*"
+  }
+}

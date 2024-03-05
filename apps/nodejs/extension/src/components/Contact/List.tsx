@@ -1,4 +1,4 @@
-import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { SerializedAccountReference } from "@soothe/vault";
 import React, { useCallback, useState } from "react";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material";

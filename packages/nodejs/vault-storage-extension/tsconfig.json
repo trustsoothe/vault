@@ -1,0 +1,9 @@
+{
+  "extends": "@soothe/tsconfig/tsconfig.base.json",
+  "exclude": ["node_modules", "dist", "coverage"],
+  "compilerOptions": {
+    "outDir": "dist",
+    "noEmit": false,
+    "emitDeclarationOnly": true
+  }
+}

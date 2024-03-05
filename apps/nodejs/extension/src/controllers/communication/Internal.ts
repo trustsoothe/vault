@@ -78,8 +78,8 @@ import {
   PrivateKeyRestoreErrorName,
   SupportedProtocols,
   VaultRestoreErrorName,
-} from "@poktscan/keyring";
-import { WebEncryptionService } from "@poktscan/keyring-encryption-web";
+} from "@soothe/vault";
+import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import store from "../../redux/store";
 import {
   ACCOUNT_BALANCE_REQUEST,

@@ -1,4 +1,4 @@
-import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { SerializedAccountReference } from "@soothe/vault";
 import {
   EthereumNetworkFee,
   PocketNetworkFee,
@@ -6,7 +6,7 @@ import {
   SupportedTransferDestinations,
   SupportedTransferOrigins,
   WPOKTBridge,
-} from "@poktscan/keyring";
+} from "@soothe/vault";
 import type { IAsset } from "../../redux/slices/app";
 import type { AmountStatus } from "./Form/AmountFeeInputs";
 import React, {

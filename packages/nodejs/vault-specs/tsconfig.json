@@ -1,0 +1,3 @@
+{
+  "extends": "@soothe/tsconfig/tsconfig.base.json"
+}

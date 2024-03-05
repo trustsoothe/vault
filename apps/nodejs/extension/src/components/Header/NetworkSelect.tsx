@@ -11,7 +11,7 @@ import IconButton from "@mui/material/IconButton";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import React, { useCallback, useMemo, useState } from "react";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { SupportedProtocols } from "@soothe/vault";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import {
   changeSelectedNetwork,

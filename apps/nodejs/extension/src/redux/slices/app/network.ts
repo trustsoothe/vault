@@ -5,7 +5,7 @@ import { v4 } from "uuid";
 import set from "lodash/set";
 import get from "lodash/get";
 import browser from "webextension-polyfill";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { SupportedProtocols } from "@soothe/vault";
 import {
   CUSTOM_RPCS_KEY,
   CustomRPC,

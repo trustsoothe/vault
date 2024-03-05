@@ -1,4 +1,4 @@
-import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { SerializedAccountReference } from "@soothe/vault";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTheme } from "@mui/material";

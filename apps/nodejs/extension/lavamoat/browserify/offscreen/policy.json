@@ -6,19 +6,19 @@
         "File": true
       }
     },
-    "@poktscan/keyring>web3-eth": {
+    "@soothe/vault>web3-eth": {
       "globals": {
         "XMLHttpRequest": true,
         "fetch": true
       }
     },
-    "@poktscan/keyring>web3-providers-http": {
+    "@soothe/vault>web3-providers-http": {
       "globals": {
         "XMLHttpRequest": true,
         "fetch": true
       }
     },
-    "@poktscan/keyring>web3-providers-http>cross-fetch": {
+    "@soothe/vault>web3-providers-http>cross-fetch": {
       "globals": {
         "XMLHttpRequest": true,
         "fetch": true
@@ -50,7 +50,7 @@
         "crypto": true
       }
     },
-    "external:../../../packages/nodejs/keyring/dist/index.js": {
+    "external:../../../packages/nodejs/vault/dist/index.js": {
       "globals": {
         "XMLHttpRequest": true,
         "fetch": true

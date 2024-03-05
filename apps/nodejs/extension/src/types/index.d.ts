@@ -1,5 +1,5 @@
 import type { ActionReducerMapBuilder } from "@reduxjs/toolkit";
-import type { SerializedAccountReference } from "@poktscan/keyring";
+import type { SerializedAccountReference } from "@soothe/vault";
 import type { Storage as OriginalStorage } from "webextension-polyfill/namespaces/storage";
 import type {
   ProxyBalanceRes,

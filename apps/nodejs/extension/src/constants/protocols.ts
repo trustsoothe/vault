@@ -1,4 +1,4 @@
-import { SupportedProtocols } from "@poktscan/keyring";
+import { SupportedProtocols } from "@soothe/vault";
 
 export const labelByProtocolMap: Record<SupportedProtocols, string> = {
   [SupportedProtocols.Pocket]: "Pocket Network",
