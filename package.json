@@ -5,7 +5,7 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pokt-scan/keyring.git"
+    "url": "git+https://github.com/pokt-scan/soothe-vault.git"
   },
   "workspaces": [
     "apps/nodejs/*",

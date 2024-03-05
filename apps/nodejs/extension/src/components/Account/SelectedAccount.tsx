@@ -17,7 +17,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
 import { type SxProps, useTheme } from "@mui/material";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
-import { AccountType, SupportedProtocols } from "@poktscan/keyring";
+import { AccountType, SupportedProtocols } from "@soothe/vault";
 import MoreIcon from "../../assets/img/account_more_icon.svg";
 import TransferIcon from "../../assets/img/transfer_icon.svg";
 import ExploreIcon from "../../assets/img/explore_icon.svg";

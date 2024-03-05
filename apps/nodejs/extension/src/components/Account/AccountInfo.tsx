@@ -1,7 +1,7 @@
 import type {
   SerializedAccountReference,
   SupportedProtocols,
-} from "@poktscan/keyring";
+} from "@soothe/vault";
 import type { IAsset } from "../../redux/slices/app";
 import React, { useCallback, useEffect, useState } from "react";
 import Stack from "@mui/material/Stack";

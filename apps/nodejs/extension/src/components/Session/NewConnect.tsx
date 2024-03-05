@@ -19,7 +19,7 @@ import {
   AccountType,
   type SerializedAccountReference,
   SupportedProtocols,
-} from "@poktscan/keyring";
+} from "@soothe/vault";
 import Requester from "../common/Requester";
 import { getTruncatedText, roundAndSeparate } from "../../utils/ui";
 import { useAppSelector } from "../../hooks/redux";

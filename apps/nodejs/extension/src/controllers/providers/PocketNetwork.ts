@@ -1,5 +1,5 @@
 import BaseProvider, { PocketNetworkMethod } from "./base";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { SupportedProtocols } from "@soothe/vault";
 
 export default class PocketNetworkProvider extends BaseProvider {
   constructor() {

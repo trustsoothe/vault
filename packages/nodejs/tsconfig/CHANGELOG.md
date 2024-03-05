@@ -1,4 +1,4 @@
-# @poktscan/tsconfig
+# @soothe/tsconfig
 
 ## 0.0.1
 

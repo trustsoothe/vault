@@ -2,7 +2,7 @@ import type { TextFieldProps } from "@mui/material";
 import React from "react";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { SupportedProtocols } from "@soothe/vault";
 import PocketIcon from "../../assets/img/networks/pocket.svg";
 import { labelByProtocolMap } from "../../constants/protocols";
 import EthereumIcon from "../../assets/img/networks/ethereum.svg";

@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/keyring";
+import type { SupportedProtocols } from "@soothe/vault";
 import type { GetAccountBalanceParam } from "../../redux/slices/app/network";
 import type {
   BaseErrors,

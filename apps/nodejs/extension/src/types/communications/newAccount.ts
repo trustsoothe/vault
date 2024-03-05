@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/keyring";
+import type { SupportedProtocols } from "@soothe/vault";
 import type { BaseData, BaseResponse } from "./common";
 import {
   ANSWER_NEW_ACCOUNT_REQUEST,

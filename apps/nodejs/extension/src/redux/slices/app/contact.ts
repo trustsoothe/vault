@@ -1,4 +1,4 @@
-import {SerializedAccountReference, SupportedProtocols} from "@poktscan/keyring";
+import {SerializedAccountReference, SupportedProtocols} from "@soothe/vault";
 import type { RootState } from "../../store";
 import type { AppSliceBuilder } from "../../../types";
 import { v4 } from "uuid";

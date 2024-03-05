@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/keyring";
+import type { SupportedProtocols } from "@soothe/vault";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Controller,

@@ -17,7 +17,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import MuiAccordionDetails from "@mui/material/AccordionDetails";
 import MuiAccordionSummary from "@mui/material/AccordionSummary";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { AccountType, SerializedAccountReference } from "@poktscan/keyring";
+import { AccountType, SerializedAccountReference } from "@soothe/vault";
 import { labelByProtocolMap } from "../../constants/protocols";
 import ExpandIcon from "../../assets/img/expand_icon.svg";
 import {

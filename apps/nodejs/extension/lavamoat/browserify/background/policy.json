@@ -6,29 +6,29 @@
         "File": true
       }
     },
-    "@poktscan/keyring-encryption-web>@noble/hashes": {
+    "@soothe/vault-encryption-web>@noble/hashes": {
       "globals": {
         "TextEncoder": true,
         "crypto": true
       }
     },
-    "@poktscan/keyring>@metamask/eth-sig-util": {
+    "@soothe/vault>@metamask/eth-sig-util": {
       "packages": {
-        "@poktscan/keyring>@metamask/eth-sig-util>@ethereumjs/util": true,
-        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/abi-utils": true,
-        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils": true,
-        "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl-util": true,
-        "@poktscan/keyring>ed25519-hd-key>tweetnacl": true,
+        "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/abi-utils": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils": true,
+        "@soothe/vault>@metamask/eth-sig-util>tweetnacl-util": true,
+        "@soothe/vault>ed25519-hd-key>tweetnacl": true,
         "browserify>buffer": true,
         "ethereum-cryptography": true
       }
     },
-    "@poktscan/keyring>@metamask/eth-sig-util>@ethereumjs/util": {
+    "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util": {
       "globals": {
         "console.warn": true
       },
       "packages": {
-        "@poktscan/keyring>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": true,
+        "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": true,
         "browserify>buffer": true,
         "browserify>insert-module-globals>is-buffer": true,
         "ethereum-cryptography": true,
@@ -36,7 +36,7 @@
         "web3-eth-accounts>@ethereumjs/rlp": true
       }
     },
-    "@poktscan/keyring>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": {
+    "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": {
       "globals": {
         "Headers": true,
         "TextDecoder": true,
@@ -54,40 +54,40 @@
         "url": true
       }
     },
-    "@poktscan/keyring>@metamask/eth-sig-util>@metamask/abi-utils": {
+    "@soothe/vault>@metamask/eth-sig-util>@metamask/abi-utils": {
       "packages": {
-        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils": true,
-        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>superstruct": true
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": true
       }
     },
-    "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils": {
+    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils": {
       "globals": {
         "TextDecoder": true,
         "TextEncoder": true
       },
       "packages": {
-        "@poktscan/keyring-encryption-web>@noble/hashes": true,
-        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>@scure/base": true,
-        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>pony-cause": true,
-        "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>superstruct": true,
+        "@soothe/vault-encryption-web>@noble/hashes": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>pony-cause": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": true,
         "browserify>buffer": true,
         "ts-jest>@babel/core>debug": true,
         "ts-jest>semver": true
       }
     },
-    "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>@scure/base": {
+    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": {
       "globals": {
         "TextDecoder": true,
         "TextEncoder": true
       }
     },
-    "@poktscan/keyring>@metamask/eth-sig-util>@metamask/utils>superstruct": {
+    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": {
       "globals": {
         "console.warn": true,
         "define": true
       }
     },
-    "@poktscan/keyring>@metamask/eth-sig-util>tweetnacl-util": {
+    "@soothe/vault>@metamask/eth-sig-util>tweetnacl-util": {
       "globals": {
         "atob": true,
         "btoa": true
@@ -96,14 +96,14 @@
         "browserify>browser-resolve": true
       }
     },
-    "@poktscan/keyring>ed25519-hd-key": {
+    "@soothe/vault>ed25519-hd-key": {
       "packages": {
-        "@poktscan/keyring>ed25519-hd-key>tweetnacl": true,
+        "@soothe/vault>ed25519-hd-key>tweetnacl": true,
         "browserify>buffer": true,
         "crypto-browserify>create-hmac": true
       }
     },
-    "@poktscan/keyring>ed25519-hd-key>tweetnacl": {
+    "@soothe/vault>ed25519-hd-key>tweetnacl": {
       "globals": {
         "crypto": true,
         "msCrypto": true,
@@ -113,18 +113,18 @@
         "browserify>browser-resolve": true
       }
     },
-    "@poktscan/keyring>ethereumjs-util": {
+    "@soothe/vault>ethereumjs-util": {
       "packages": {
-        "@poktscan/keyring>ethereumjs-util>bn.js": true,
-        "@poktscan/keyring>ethereumjs-util>ethereum-cryptography": true,
-        "@poktscan/keyring>ethereumjs-util>rlp": true,
+        "@soothe/vault>ethereumjs-util>bn.js": true,
+        "@soothe/vault>ethereumjs-util>ethereum-cryptography": true,
+        "@soothe/vault>ethereumjs-util>rlp": true,
         "browserify>assert": true,
         "browserify>buffer": true,
         "browserify>insert-module-globals>is-buffer": true,
         "crypto-browserify>create-hash": true
       }
     },
-    "@poktscan/keyring>ethereumjs-util>bn.js": {
+    "@soothe/vault>ethereumjs-util>bn.js": {
       "globals": {
         "Buffer": true
       },
@@ -132,33 +132,33 @@
         "browserify>browser-resolve": true
       }
     },
-    "@poktscan/keyring>ethereumjs-util>ethereum-cryptography": {
+    "@soothe/vault>ethereumjs-util>ethereum-cryptography": {
       "packages": {
-        "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>keccak": true,
-        "@poktscan/keyring>hdkey>secp256k1": true,
+        "@soothe/vault>ethereumjs-util>ethereum-cryptography>keccak": true,
+        "@soothe/vault>hdkey>secp256k1": true,
         "browserify>buffer": true,
         "crypto-browserify>randombytes": true
       }
     },
-    "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>hash.js": {
+    "@soothe/vault>ethereumjs-util>ethereum-cryptography>hash.js": {
       "packages": {
         "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
         "glob>inherits": true
       }
     },
-    "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>keccak": {
+    "@soothe/vault>ethereumjs-util>ethereum-cryptography>keccak": {
       "packages": {
         "browserify>buffer": true,
         "stream-http>readable-stream": true
       }
     },
-    "@poktscan/keyring>ethereumjs-util>rlp": {
+    "@soothe/vault>ethereumjs-util>rlp": {
       "packages": {
-        "@poktscan/keyring>ethereumjs-util>rlp>bn.js": true,
+        "@soothe/vault>ethereumjs-util>rlp>bn.js": true,
         "browserify>buffer": true
       }
     },
-    "@poktscan/keyring>ethereumjs-util>rlp>bn.js": {
+    "@soothe/vault>ethereumjs-util>rlp>bn.js": {
       "globals": {
         "Buffer": true
       },
@@ -166,67 +166,67 @@
         "browserify>browser-resolve": true
       }
     },
-    "@poktscan/keyring>hdkey": {
+    "@soothe/vault>hdkey": {
       "packages": {
-        "@poktscan/keyring>hdkey>bs58check": true,
-        "@poktscan/keyring>hdkey>ripemd160": true,
-        "@poktscan/keyring>hdkey>secp256k1": true,
+        "@soothe/vault>hdkey>bs58check": true,
+        "@soothe/vault>hdkey>ripemd160": true,
+        "@soothe/vault>hdkey>secp256k1": true,
         "browserify>assert": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify": true
       }
     },
-    "@poktscan/keyring>hdkey>bs58check": {
+    "@soothe/vault>hdkey>bs58check": {
       "packages": {
-        "@poktscan/keyring>hdkey>bs58check>bs58": true,
+        "@soothe/vault>hdkey>bs58check>bs58": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify>create-hash": true
       }
     },
-    "@poktscan/keyring>hdkey>bs58check>bs58": {
+    "@soothe/vault>hdkey>bs58check>bs58": {
       "packages": {
-        "@poktscan/keyring>hdkey>bs58check>bs58>base-x": true
+        "@soothe/vault>hdkey>bs58check>bs58>base-x": true
       }
     },
-    "@poktscan/keyring>hdkey>bs58check>bs58>base-x": {
+    "@soothe/vault>hdkey>bs58check>bs58>base-x": {
       "packages": {
         "browserify>browser-pack>safe-buffer": true
       }
     },
-    "@poktscan/keyring>hdkey>ripemd160": {
+    "@soothe/vault>hdkey>ripemd160": {
       "packages": {
-        "@poktscan/keyring>hdkey>ripemd160>hash-base": true,
+        "@soothe/vault>hdkey>ripemd160>hash-base": true,
         "browserify>buffer": true,
         "glob>inherits": true
       }
     },
-    "@poktscan/keyring>hdkey>ripemd160>hash-base": {
+    "@soothe/vault>hdkey>ripemd160>hash-base": {
       "packages": {
         "browserify>browser-pack>safe-buffer": true,
         "glob>inherits": true,
         "stream-http>readable-stream": true
       }
     },
-    "@poktscan/keyring>hdkey>secp256k1": {
+    "@soothe/vault>hdkey>secp256k1": {
       "packages": {
         "crypto-browserify>create-ecdh>elliptic": true
       }
     },
-    "@poktscan/keyring>protobufjs": {
+    "@soothe/vault>protobufjs": {
       "globals": {
         "setTimeout": true
       },
       "packages": {
-        "@poktscan/keyring>protobufjs>@protobufjs/aspromise": true,
-        "@poktscan/keyring>protobufjs>@protobufjs/base64": true,
-        "@poktscan/keyring>protobufjs>@protobufjs/eventemitter": true,
-        "@poktscan/keyring>protobufjs>@protobufjs/float": true,
-        "@poktscan/keyring>protobufjs>@protobufjs/inquire": true,
-        "@poktscan/keyring>protobufjs>@protobufjs/pool": true,
-        "@poktscan/keyring>protobufjs>@protobufjs/utf8": true
+        "@soothe/vault>protobufjs>@protobufjs/aspromise": true,
+        "@soothe/vault>protobufjs>@protobufjs/base64": true,
+        "@soothe/vault>protobufjs>@protobufjs/eventemitter": true,
+        "@soothe/vault>protobufjs>@protobufjs/float": true,
+        "@soothe/vault>protobufjs>@protobufjs/inquire": true,
+        "@soothe/vault>protobufjs>@protobufjs/pool": true,
+        "@soothe/vault>protobufjs>@protobufjs/utf8": true
       }
     },
-    "@poktscan/keyring>web3-eth": {
+    "@soothe/vault>web3-eth": {
       "globals": {
         "XMLHttpRequest": true,
         "clearInterval": true,
@@ -237,11 +237,11 @@
         "setTimeout": true
       },
       "packages": {
-        "@poktscan/keyring>web3-eth>setimmediate": true,
-        "@poktscan/keyring>web3-eth>web3-core": true,
-        "@poktscan/keyring>web3-eth>web3-eth-abi": true,
-        "@poktscan/keyring>web3-eth>web3-net": true,
-        "@poktscan/keyring>web3-eth>web3-rpc-methods": true,
+        "@soothe/vault>web3-eth>setimmediate": true,
+        "@soothe/vault>web3-eth>web3-core": true,
+        "@soothe/vault>web3-eth>web3-eth-abi": true,
+        "@soothe/vault>web3-eth>web3-net": true,
+        "@soothe/vault>web3-eth>web3-rpc-methods": true,
         "browserify>timers-browserify": true,
         "web3-eth-accounts": true,
         "web3-eth-accounts>web3-utils": true,
@@ -250,18 +250,18 @@
         "web3-validator": true
       }
     },
-    "@poktscan/keyring>web3-eth-contract": {
+    "@soothe/vault>web3-eth-contract": {
       "packages": {
-        "@poktscan/keyring>web3-eth-contract>web3-eth": true,
-        "@poktscan/keyring>web3-eth>web3-core": true,
-        "@poktscan/keyring>web3-eth>web3-eth-abi": true,
+        "@soothe/vault>web3-eth-contract>web3-eth": true,
+        "@soothe/vault>web3-eth>web3-core": true,
+        "@soothe/vault>web3-eth>web3-eth-abi": true,
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
         "web3-validator": true
       }
     },
-    "@poktscan/keyring>web3-eth-contract>web3-eth": {
+    "@soothe/vault>web3-eth-contract>web3-eth": {
       "globals": {
         "clearInterval": true,
         "clearTimeout": true,
@@ -270,11 +270,11 @@
         "setTimeout": true
       },
       "packages": {
-        "@poktscan/keyring>web3-eth>setimmediate": true,
-        "@poktscan/keyring>web3-eth>web3-core": true,
-        "@poktscan/keyring>web3-eth>web3-eth-abi": true,
-        "@poktscan/keyring>web3-eth>web3-net": true,
-        "@poktscan/keyring>web3-eth>web3-rpc-methods": true,
+        "@soothe/vault>web3-eth>setimmediate": true,
+        "@soothe/vault>web3-eth>web3-core": true,
+        "@soothe/vault>web3-eth>web3-eth-abi": true,
+        "@soothe/vault>web3-eth>web3-net": true,
+        "@soothe/vault>web3-eth>web3-rpc-methods": true,
         "browserify>timers-browserify": true,
         "web3-eth-accounts": true,
         "web3-eth-accounts>web3-utils": true,
@@ -283,7 +283,7 @@
         "web3-validator": true
       }
     },
-    "@poktscan/keyring>web3-eth>setimmediate": {
+    "@soothe/vault>web3-eth>setimmediate": {
       "globals": {
         "MessageChannel": true,
         "setTimeout": true
@@ -292,11 +292,11 @@
         "process": true
       }
     },
-    "@poktscan/keyring>web3-eth>web3-core": {
+    "@soothe/vault>web3-eth>web3-core": {
       "packages": {
-        "@poktscan/keyring>web3-eth>web3-core>web3-eth-iban": true,
-        "@poktscan/keyring>web3-eth>web3-providers-ws": true,
-        "@poktscan/keyring>web3-providers-http": true,
+        "@soothe/vault>web3-eth>web3-core>web3-eth-iban": true,
+        "@soothe/vault>web3-eth>web3-providers-ws": true,
+        "@soothe/vault>web3-providers-http": true,
         "web3-eth-accounts": true,
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-errors": true,
@@ -304,63 +304,63 @@
         "web3-validator": true
       }
     },
-    "@poktscan/keyring>web3-eth>web3-core>web3-eth-iban": {
+    "@soothe/vault>web3-eth>web3-core>web3-eth-iban": {
       "packages": {
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-validator": true
       }
     },
-    "@poktscan/keyring>web3-eth>web3-eth-abi": {
+    "@soothe/vault>web3-eth>web3-eth-abi": {
       "globals": {
         "Buffer": true,
         "console.error": true
       },
       "packages": {
-        "@poktscan/keyring>web3-eth>web3-eth-abi>abitype": true,
+        "@soothe/vault>web3-eth>web3-eth-abi>abitype": true,
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-validator": true
       }
     },
-    "@poktscan/keyring>web3-eth>web3-net": {
+    "@soothe/vault>web3-eth>web3-net": {
       "packages": {
-        "@poktscan/keyring>web3-eth>web3-core": true,
-        "@poktscan/keyring>web3-eth>web3-rpc-methods": true,
+        "@soothe/vault>web3-eth>web3-core": true,
+        "@soothe/vault>web3-eth>web3-rpc-methods": true,
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-types": true
       }
     },
-    "@poktscan/keyring>web3-eth>web3-providers-ws": {
+    "@soothe/vault>web3-eth>web3-providers-ws": {
       "packages": {
-        "@poktscan/keyring>web3-eth>web3-providers-ws>isomorphic-ws": true,
+        "@soothe/vault>web3-eth>web3-providers-ws>isomorphic-ws": true,
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-errors": true
       }
     },
-    "@poktscan/keyring>web3-eth>web3-providers-ws>isomorphic-ws": {
+    "@soothe/vault>web3-eth>web3-providers-ws>isomorphic-ws": {
       "globals": {
         "MozWebSocket": true,
         "WebSocket": true
       }
     },
-    "@poktscan/keyring>web3-eth>web3-rpc-methods": {
+    "@soothe/vault>web3-eth>web3-rpc-methods": {
       "packages": {
         "web3-validator": true
       }
     },
-    "@poktscan/keyring>web3-providers-http": {
+    "@soothe/vault>web3-providers-http": {
       "globals": {
         "XMLHttpRequest": true,
         "fetch": true
       },
       "packages": {
-        "@poktscan/keyring>web3-providers-http>cross-fetch": true,
+        "@soothe/vault>web3-providers-http>cross-fetch": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true
       }
     },
-    "@poktscan/keyring>web3-providers-http>cross-fetch": {
+    "@soothe/vault>web3-providers-http>cross-fetch": {
       "globals": {
         "Blob": true,
         "FileReader": true,
@@ -713,7 +713,7 @@
     },
     "crypto-browserify>create-ecdh>elliptic": {
       "packages": {
-        "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>hash.js": true,
+        "@soothe/vault>ethereumjs-util>ethereum-cryptography>hash.js": true,
         "crypto-browserify>create-ecdh>bn.js": true,
         "crypto-browserify>create-ecdh>elliptic>brorand": true,
         "crypto-browserify>create-ecdh>elliptic>hmac-drbg": true,
@@ -733,14 +733,14 @@
     },
     "crypto-browserify>create-ecdh>elliptic>hmac-drbg": {
       "packages": {
-        "@poktscan/keyring>ethereumjs-util>ethereum-cryptography>hash.js": true,
+        "@soothe/vault>ethereumjs-util>ethereum-cryptography>hash.js": true,
         "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
         "crypto-browserify>create-ecdh>elliptic>minimalistic-crypto-utils": true
       }
     },
     "crypto-browserify>create-hash": {
       "packages": {
-        "@poktscan/keyring>hdkey>ripemd160": true,
+        "@soothe/vault>hdkey>ripemd160": true,
         "crypto-browserify>create-hash>cipher-base": true,
         "crypto-browserify>create-hash>md5.js": true,
         "crypto-browserify>pbkdf2>sha.js": true,
@@ -757,14 +757,14 @@
     },
     "crypto-browserify>create-hash>md5.js": {
       "packages": {
-        "@poktscan/keyring>hdkey>ripemd160>hash-base": true,
+        "@soothe/vault>hdkey>ripemd160>hash-base": true,
         "browserify>browser-pack>safe-buffer": true,
         "glob>inherits": true
       }
     },
     "crypto-browserify>create-hmac": {
       "packages": {
-        "@poktscan/keyring>hdkey>ripemd160": true,
+        "@soothe/vault>hdkey>ripemd160": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify>create-hash": true,
         "crypto-browserify>create-hash>cipher-base": true,
@@ -788,7 +788,7 @@
     },
     "crypto-browserify>pbkdf2": {
       "packages": {
-        "@poktscan/keyring>hdkey>ripemd160": true,
+        "@soothe/vault>hdkey>ripemd160": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify>create-hash": true,
         "crypto-browserify>pbkdf2>sha.js": true,
@@ -900,7 +900,7 @@
         "console": true
       }
     },
-    "external:../../../packages/nodejs/keyring-encryption-web/dist/index.js": {
+    "external:../../../packages/nodejs/vault-encryption-web/dist/index.js": {
       "globals": {
         "crypto.getRandomValues": true,
         "crypto.subtle.decrypt": true,
@@ -912,13 +912,13 @@
         "browserify>buffer": true
       }
     },
-    "external:../../../packages/nodejs/keyring-storage-extension/dist/index.js": {
+    "external:../../../packages/nodejs/vault-storage-extension/dist/index.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/dist/index.js": true,
+        "external:../../../packages/nodejs/vault/dist/index.js": true,
         "webextension-polyfill": true
       }
     },
-    "external:../../../packages/nodejs/keyring/dist/index.js": {
+    "external:../../../packages/nodejs/vault/dist/index.js": {
       "globals": {
         "WebAssembly.Instance": true,
         "WebAssembly.Module": true,
@@ -927,89 +927,89 @@
         "fetch": true
       },
       "packages": {
-        "@poktscan/keyring>@metamask/eth-sig-util": true,
-        "@poktscan/keyring>@pokt-foundation/pocketjs-types": true,
-        "@poktscan/keyring>ed25519-hd-key": true,
-        "@poktscan/keyring>ethereumjs-util": true,
-        "@poktscan/keyring>hdkey": true,
-        "@poktscan/keyring>hex-lite": true,
-        "@poktscan/keyring>protobufjs": true,
-        "@poktscan/keyring>varint": true,
-        "@poktscan/keyring>web3-eth": true,
-        "@poktscan/keyring>web3-eth-contract": true,
-        "@poktscan/keyring>web3-providers-http": true,
+        "@soothe/vault>@metamask/eth-sig-util": true,
+        "@soothe/vault>@pokt-foundation/pocketjs-types": true,
+        "@soothe/vault>ed25519-hd-key": true,
+        "@soothe/vault>ethereumjs-util": true,
+        "@soothe/vault>hdkey": true,
+        "@soothe/vault>hex-lite": true,
+        "@soothe/vault>protobufjs": true,
+        "@soothe/vault>varint": true,
+        "@soothe/vault>web3-eth": true,
+        "@soothe/vault>web3-eth-contract": true,
+        "@soothe/vault>web3-providers-http": true,
         "browserify>buffer": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@scure/bip39/index.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@scure/bip39/wordlists/english.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/index.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@scure/bip39/index.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@scure/bip39/wordlists/english.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/index.js": true,
         "lodash": true,
         "uuid": true,
         "web3-eth-accounts": true,
         "zod": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_sha2.js": {
+    "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/_sha2.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_assert.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/_assert.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/utils.js": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/crypto.js": {
+    "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/crypto.js": {
       "globals": {
         "crypto": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/hmac.js": {
+    "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/hmac.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_assert.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/_assert.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/utils.js": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/pbkdf2.js": {
+    "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/pbkdf2.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_assert.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/hmac.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/_assert.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/hmac.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/utils.js": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/sha256.js": {
+    "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/sha256.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_sha2.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/_sha2.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/utils.js": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/sha512.js": {
+    "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/sha512.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_sha2.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_u64.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/_sha2.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/_u64.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/utils.js": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": {
+    "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/utils.js": {
       "globals": {
         "TextEncoder": true
       },
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/crypto.js": true
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/crypto.js": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/@scure/base/lib/index.js": {
+    "external:../../../packages/nodejs/vault/node_modules/@scure/base/lib/index.js": {
       "globals": {
         "TextDecoder": true,
         "TextEncoder": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/@scure/bip39/index.js": {
+    "external:../../../packages/nodejs/vault/node_modules/@scure/bip39/index.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/_assert.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/pbkdf2.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/sha256.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/sha512.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@noble/hashes/utils.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/@scure/base/lib/index.js": true
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/_assert.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/pbkdf2.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/sha256.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/sha512.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/utils.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/@scure/base/lib/index.js": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": {
       "globals": {
         "clearTimeout": true,
         "setTimeout": true
@@ -1018,7 +1018,7 @@
         "web3-utils>web3-errors": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": {
       "globals": {
         "TextDecoder": true,
         "TextEncoder": true
@@ -1029,7 +1029,7 @@
         "web3-validator": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/event_emitter.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/event_emitter.js": {
       "globals": {
         "CustomEvent": true,
         "EventTarget": true
@@ -1038,60 +1038,60 @@
         "events": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/formatter.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/formatter.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/objects.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/uint8array.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/objects.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/uint8array.js": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
         "web3-validator": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/hash.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/hash.js": {
       "packages": {
         "ethereum-cryptography": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
         "web3-utils>web3-errors": true,
         "web3-validator": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/index.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/index.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/event_emitter.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/formatter.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/hash.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/objects.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/promise_helpers.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/random.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/socket_provider.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/uint8array.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/uuid.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/validation.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": true
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/event_emitter.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/formatter.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/hash.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/objects.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/promise_helpers.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/random.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/socket_provider.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/uint8array.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/uuid.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/validation.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/json_rpc.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/json_rpc.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/uuid.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/uuid.js": true,
         "web3-utils>web3-errors": true,
         "web3-validator": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/objects.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/objects.js": {
       "packages": {
         "web3-utils>web3-types": true,
         "web3-validator": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/promise_helpers.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/promise_helpers.js": {
       "globals": {
         "clearInterval": true,
         "clearTimeout": true,
@@ -1102,47 +1102,47 @@
         "web3-validator": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/random.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/random.js": {
       "packages": {
         "ethereum-cryptography": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/socket_provider.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/socket_provider.js": {
       "globals": {
         "setTimeout": true
       },
       "packages": {
         "browserify>timers-browserify": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/validation.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/validation.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": true,
         "web3-utils>web3-errors": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/string_manipulation.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/string_manipulation.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true,
         "web3-utils>web3-errors": true,
         "web3-validator": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/uuid.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/uuid.js": {
       "packages": {
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/converters.js": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/random.js": true
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/random.js": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/validation.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/validation.js": {
       "packages": {
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
         "web3-validator": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": {
       "globals": {
         "clearTimeout": true,
         "setTimeout": true
@@ -1151,13 +1151,13 @@
         "web3-utils>web3-errors": true
       }
     },
-    "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": {
+    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": {
       "globals": {
         "console.error": true
       },
       "packages": {
         "events": true,
-        "external:../../../packages/nodejs/keyring/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
+        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true
       }

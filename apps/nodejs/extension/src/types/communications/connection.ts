@@ -1,4 +1,4 @@
-import type { SerializedSession, SupportedProtocols } from "@poktscan/keyring";
+import type { SerializedSession, SupportedProtocols } from "@soothe/vault";
 import type {
   BaseProxyRequest,
   BaseExternalRequestBody,

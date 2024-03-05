@@ -9,7 +9,7 @@ import type {
 } from "../../types/provider";
 import { v4 } from "uuid";
 import { EventEmitter } from "events";
-import { SupportedProtocols } from "@poktscan/keyring";
+import { SupportedProtocols } from "@soothe/vault";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,
