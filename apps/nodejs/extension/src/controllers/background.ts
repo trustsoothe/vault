@@ -201,10 +201,17 @@ export default class BackgroundController {
         store.dispatch(loadNetworksFromStorage()).unwrap(),
         store.dispatch(loadAssetsFromStorage()).unwrap(),
       ]);
-      await Promise.allSettled([
-        store.dispatch(loadNetworksFromCdn()),
-        store.dispatch(loadAssetsFromCdn()),
+      const [networkResult, assetResult] = await Promise.allSettled([
+        store.dispatch(loadNetworksFromCdn()).unwrap(),
+        store.dispatch(loadAssetsFromCdn()).unwrap(),
       ]);
+
+      const {networks, assets} = store.getState().app
+
+      if (!networks.length &&networkResult.status === 'rejected' || !assets.length && assetResult.status === 'rejected') {
+        throw new Error('could not load networks and/or assets')
+      }
+
       await store.dispatch(loadSelectedNetworkAndAccount()).unwrap();
       store.dispatch(setAppIsReadyStatus("yes"));
     } catch (e) {
