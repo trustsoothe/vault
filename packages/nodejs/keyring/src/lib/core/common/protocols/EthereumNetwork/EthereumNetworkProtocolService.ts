@@ -529,7 +529,7 @@ export class EthereumNetworkProtocolService
       parentId: seedAccount.id,
       hdwIndex: index,
       hdwAccountIndex: 0, // TODO: Parameterize this if we will allow users to use more than one account from the same seeds
-      secure: true,
+      secure: false, // TODO: Parameterize this if we will allow users to set a password per account
     });
   }
 
