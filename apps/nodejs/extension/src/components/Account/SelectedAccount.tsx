@@ -264,7 +264,7 @@ const SelectedAccount: React.FC = () => {
 
     setModalToShow("none");
     setWPoktVisible(false);
-  }, [selectedAccount]);
+  }, [selectedAccount, selectedProtocol]);
 
   useEffect(() => {
     if (selectedAsset?.symbol !== "wPOKT") {

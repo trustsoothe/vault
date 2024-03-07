@@ -109,6 +109,7 @@ const FormStep: React.FC = () => {
                 "& .MuiFormHelperText-root": {
                   left: 5,
                   bottom: -18,
+                  whiteSpace: 'nowrap'
                 },
               }}
               helperText={`You'll be able to use this account for every network of the protocol selected`}

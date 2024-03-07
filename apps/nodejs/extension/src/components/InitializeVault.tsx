@@ -130,23 +130,26 @@ const InfoView: React.FC<InfoViewProps> = ({
           >
             Back
           </Button>
-          <Button
-            variant={"contained"}
-            fullWidth
-            disabled={!hasReachBottom}
-            type={"submit"}
-            {...submitButtonProps}
-            sx={{
-              height: 35,
-              backgroundColor: theme.customColors.primary500,
-              fontSize: 16,
-              fontWeight: 700,
-              marginTop: 0.3,
-              ...submitButtonProps?.sx,
-            }}
-          >
-            {submitButtonText}
-          </Button>
+          {/*This is being rendered to avoid a bug causing pressing enter on text field not submitting the form */}
+          {show && (
+            <Button
+              variant={"contained"}
+              fullWidth
+              disabled={!hasReachBottom}
+              type={"submit"}
+              {...submitButtonProps}
+              sx={{
+                height: 35,
+                backgroundColor: theme.customColors.primary500,
+                fontSize: 16,
+                fontWeight: 700,
+                marginTop: 0.3,
+                ...submitButtonProps?.sx,
+              }}
+            >
+              {submitButtonText}
+            </Button>
+          )}
         </Stack>
       </Stack>
     </Fade>

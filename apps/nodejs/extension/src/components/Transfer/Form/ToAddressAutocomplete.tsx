@@ -6,7 +6,7 @@ import type {
   SxProps,
   Theme,
 } from "@mui/material";
-import type { SerializedAccountReference } from "@soothe/vault";
+import {AccountType, SerializedAccountReference} from '@soothe/vault'
 import type { AccountWithBalance } from "../../../types";
 import type { FormValues } from "../index";
 import Paper from "@mui/material/Paper";
@@ -117,7 +117,8 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
   const accounts = useAppSelector(accountsSelector);
   const contacts = useAppSelector(contactsSelector);
   const accountsWithBalance = useMemo(() => {
-    return [...accounts, ...contacts].filter(
+    const accountsWithNoSeeds = accounts.filter((item) => item.accountType !== AccountType.HDSeed)
+    return [...accountsWithNoSeeds, ...contacts].filter(
       (item) => protocol === item.protocol && item.address !== fromAddress
     );
   }, [accounts, protocol, fromAddress, contacts]);

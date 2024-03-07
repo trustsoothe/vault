@@ -14,7 +14,11 @@ import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";
 import ProtocolSelector from "../common/ProtocolSelector";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
-import { ACCOUNTS_PAGE, EXPORT_VAULT_PAGE } from "../../constants/routes";
+import {
+  ACCOUNTS_PAGE,
+  EXPORT_VAULT_PAGE,
+  HD_WALLETS_PAGE,
+} from "../../constants/routes";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import {
   changeSelectedAccountOfNetwork,
@@ -155,6 +159,11 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
     [onClose, dispatch, navigate, protocol, selectedChainByProtocol]
   );
 
+  const onClickCreateAccountFromHD = useCallback(() => {
+    navigate(HD_WALLETS_PAGE);
+    onClose();
+  }, [onClose, navigate]);
+
   const onClickAway = useCallback(() => {
     if (open && stillShowModal) {
       if (status === "loading") return;
@@ -201,6 +210,33 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
       <>
         <Stack spacing={1.5}>
           {title}
+          <Typography
+            color={theme.customColors.dark75}
+            fontSize={10}
+            lineHeight={"16px"}
+            textAlign={"center"}
+            paddingX={0.5}
+            marginTop={"8px!important"}
+            marginBottom={"5px!important"}
+          >
+            This account will not be linked to any HD account (recovery phrase).
+            To create an account linked to an HD Account,{" "}
+            <Typography
+              fontSize={10}
+              component={"span"}
+              lineHeight={"16px"}
+              sx={{
+                textDecoration: "underline",
+                cursor: "pointer",
+                "&:hover": {
+                  color: theme.customColors.primary500,
+                },
+              }}
+              onClick={onClickCreateAccountFromHD}
+            >
+              click here
+            </Typography>
+          </Typography>
           <Controller
             control={control}
             name={"protocol"}
@@ -289,7 +325,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ open, onClose }) => {
     <ClickAwayListener onClickAway={onClickAway}>
       <Stack
         width={1}
-        height={250}
+        height={300}
         paddingX={2.5}
         paddingTop={1.5}
         paddingBottom={2}

@@ -1,6 +1,6 @@
 import type { RootState } from "../store";
 import type { IAsset } from "../slices/app";
-import { SupportedProtocols } from "@soothe/vault";
+import {AccountType, SupportedProtocols} from '@soothe/vault'
 
 export const accountBalancesSelector = (state: RootState) =>
   state.app.accountBalances;
@@ -40,7 +40,7 @@ export const selectedAccountSelector = (state: RootState) => {
     state.app.selectedAccountByProtocol[selectedProtocol];
 
   return state.vault.accounts.find(
-    (account) => account.address === selectedAccountAddress
+    (account) => account.address === selectedAccountAddress && account.accountType !== AccountType.HDSeed
   );
 };
 
