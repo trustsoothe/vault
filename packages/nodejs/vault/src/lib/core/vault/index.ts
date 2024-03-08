@@ -3,10 +3,11 @@ import { Account, SerializedAccount } from "./entities/Account";
 import IEntity from "../common/IEntity";
 import { AccountReference } from "../common/values";
 import { AccountExistError } from "../../errors";
+import { AccountType } from "./values/AccountType";
 
-export * from './values/AccountReference'
-export * from './entities/Account'
-export * from './values/AccountType'
+export * from "./values/AccountReference";
+export * from "./entities/Account";
+export * from "./values/AccountType";
 
 export interface SerializedVault extends IEntity {
   id: string;
@@ -44,10 +45,7 @@ export class Vault implements IEntity {
   }
 
   static FromVault(vault: Vault): Vault {
-    return new Vault(
-      v4(),
-      vault.accounts.slice(),
-    );
+    return new Vault(v4(), vault.accounts.slice());
   }
 
   get id(): string {
@@ -87,8 +85,11 @@ export class Vault implements IEntity {
 
   addAccount(account: Account, replace = false) {
     const accountExists = this._accounts.some((a) => {
+      const propertyToCompare =
+        account.accountType === AccountType.HDSeed ? "privateKey" : "address";
+
       return (
-        a.address === account.address &&
+        a[propertyToCompare] === account[propertyToCompare] &&
         a.protocol === account.protocol
       );
     });
@@ -99,10 +100,7 @@ export class Vault implements IEntity {
 
     if (accountExists && replace) {
       this._accounts = this._accounts.filter((a) => {
-        return (
-          a.address !== account.address &&
-          a.protocol === account.protocol
-        );
+        return a.address !== account.address && a.protocol === account.protocol;
       });
     }
 

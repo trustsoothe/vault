@@ -25,7 +25,8 @@ export interface ImportHdWalletRes {
   type: typeof IMPORT_HD_WALLET_RESPONSE;
   data: {
     answered: true;
-    accounts: SerializedAccountReference[];
+    hdAccountAlreadyExists?: boolean;
+    accounts: SerializedAccountReference[] | null;
   };
   error: typeof UnknownError | null;
 }

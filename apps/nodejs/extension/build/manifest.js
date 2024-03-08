@@ -57,7 +57,7 @@ const baseFirefoxManifest = {
 const getContentScript = (isFirefox, isLavamoat) => [
   {
     matches: ["http://*/*", "https://*/*"],
-    run_at: isLavamoat ? "document_idle" : "document_start",
+    run_at: "document_start",
     js: isLavamoat ? ["js/proxy.js"] : ["js/vendor.js", "js/proxy.js"],
   },
   {
@@ -65,7 +65,7 @@ const getContentScript = (isFirefox, isLavamoat) => [
     js: ["js/provider.js"],
     matches: ["http://*/*", "https://*/*"],
     world: isFirefox ? undefined : "MAIN",
-    run_at: isLavamoat ? "document_idle" : "document_start",
+    run_at: "document_start",
   },
 ];
 

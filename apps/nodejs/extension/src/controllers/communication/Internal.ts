@@ -1228,6 +1228,18 @@ class InternalCommunicationController implements ICommunicationController {
         error: null,
       };
     } catch (error) {
+      if (error?.name === AccountExistErrorName) {
+        return {
+          type: IMPORT_HD_WALLET_RESPONSE,
+          data: {
+            answered: true,
+            hdAccountAlreadyExists: true,
+            accounts: null,
+          },
+          error: null,
+        };
+      }
+
       return {
         type: IMPORT_HD_WALLET_RESPONSE,
         data: null,

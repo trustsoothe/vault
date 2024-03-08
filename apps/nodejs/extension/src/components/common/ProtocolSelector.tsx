@@ -3,14 +3,16 @@ import React from "react";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import { SupportedProtocols } from "@soothe/vault";
-import PocketIcon from "../../assets/img/networks/pocket.svg";
+import { useAppSelector } from "../../hooks/redux";
 import { labelByProtocolMap } from "../../constants/protocols";
-import EthereumIcon from "../../assets/img/networks/ethereum.svg";
+import { networksSelector } from "../../redux/selectors/network";
 
 const ProtocolSelector: React.ForwardRefRenderFunction<
   HTMLInputElement,
   Partial<TextFieldProps>
 > = (props, ref) => {
+  const networks = useAppSelector(networksSelector);
+
   return (
     <TextField
       select
@@ -30,27 +32,37 @@ const ProtocolSelector: React.ForwardRefRenderFunction<
         ...props.sx,
       }}
     >
-      {Object.values(SupportedProtocols).map((protocol) => (
-        <MenuItem
-          key={protocol}
-          value={protocol}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            columnGap: 0.3,
-            "& svg": {
-              transform: "scale(0.9)",
-            },
-          }}
-        >
-          {protocol === SupportedProtocols.Ethereum ? (
-            <EthereumIcon />
-          ) : (
-            <PocketIcon />
-          )}
-          {labelByProtocolMap[protocol]}
-        </MenuItem>
-      ))}
+      {Object.values(SupportedProtocols).map((protocol) => {
+        const iconUrl = networks.find(
+          (network) =>
+            network.protocol === protocol &&
+            network.chainId ===
+              (protocol === SupportedProtocols.Ethereum ? "1" : "mainnet")
+        )?.iconUrl;
+
+        return (
+          <MenuItem
+            key={protocol}
+            value={protocol}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              columnGap: 0.3,
+              "& svg": {
+                transform: "scale(0.9)",
+              },
+            }}
+          >
+            <img
+              src={iconUrl}
+              alt={`${protocol}-icon`}
+              width={22}
+              height={22}
+            />
+            {labelByProtocolMap[protocol]}
+          </MenuItem>
+        );
+      })}
     </TextField>
   );
 };

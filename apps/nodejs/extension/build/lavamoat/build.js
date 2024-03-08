@@ -126,8 +126,8 @@ for (const file of files) {
   // cannot apply lavamoat to provider.ts because this script is not isolated, so it will break things in the websites it will be injected if lavamoat is applied.
   if (file !== "provider.ts") {
     const lavamoatOpts = {
-      policy: `./lavamoat/browserify/${fileWithoutExt}/policy.json`,
-      override: `./lavamoat/browserify/policy-override.json`,
+      policy: path.join(__dirname, "browserify", fileWithoutExt, "policy.json"),
+      override: path.join(__dirname, "browserify", "policy-override.json"),
       writeAutoPolicy: process.env.LAVAMOAT_AUTO_POLICY === "true",
       scuttleGlobalThis: {
         enabled: true,
