@@ -1,19 +1,27 @@
 const webpack = require("webpack");
 const path = require("path");
-const CopyPlugin = require("copy-webpack-plugin");
-const srcDir = path.join(__dirname, "..", "src");
 const Dotenv = require("dotenv-webpack");
+const CopyPlugin = require("copy-webpack-plugin");
+const getManifest = require("../manifest");
+
+const srcDir = path.join(__dirname, "..", "..", "src");
+const distDir = path.join(__dirname, "..", "..", "dist");
+const jsDistDir = path.join(distDir, "js");
+
+const isFirefox = process.env.BROWSER === "Firefox";
 
 module.exports = {
   entry: {
     home: path.join(srcDir, "home.tsx"),
     background: path.join(srcDir, "background.ts"),
-    offscreen: path.join(srcDir, "offscreen.ts"),
     proxy: path.join(srcDir, "proxy.ts"),
     provider: path.join(srcDir, "provider.ts"),
+    ...(!isFirefox && {
+      offscreen: path.join(srcDir, "offscreen.ts"),
+    }),
   },
   output: {
-    path: path.join(__dirname, "../dist/js"),
+    path: jsDistDir,
     filename: "[name].js",
   },
   optimization: {
@@ -65,13 +73,27 @@ module.exports = {
           to: "../",
           context: "public",
           priority: 0,
-          filter: (resourcePath) => !resourcePath.includes("vendor"),
+          filter: (resourcePath) => {
+            if (resourcePath.includes("vendor")) {
+              return false;
+            }
+
+            if (isFirefox && resourcePath.includes("offscreen")) {
+              return false;
+            }
+
+            return true;
+          },
         },
         {
-          from: "public/manifest-w.json",
+          from: ".",
           to: "../manifest.json",
-          force: true,
           priority: 1,
+          transform: {
+            transformer: () => {
+              return getManifest(isFirefox, false);
+            },
+          },
         },
       ],
       options: {},

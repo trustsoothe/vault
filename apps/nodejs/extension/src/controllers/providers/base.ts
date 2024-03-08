@@ -78,6 +78,7 @@ export default class BaseProvider extends EventEmitter {
     this.send = this.send.bind(this);
     this.sendAsync = this.sendAsync.bind(this);
     this.request = this.request.bind(this);
+    this.on = this.on.bind(this);
 
     window.addEventListener(
       "message",
@@ -146,7 +147,7 @@ export default class BaseProvider extends EventEmitter {
       .catch((err) => callback(err, null));
   }
 
-  async request(args: Method) {
+  request(args: Method) {
     const { method, params } = args;
 
     let sootheRequestType: ProxyRequests["type"];
@@ -293,7 +294,7 @@ export default class BaseProvider extends EventEmitter {
       window.location.origin
     );
 
-    return new Promise((resolve, reject) => {
+    return new window.Promise((resolve, reject) => {
       const listener = (event: MessageEvent<ProxyResponses>) => {
         if (
           (responseType === event.data.type ||
@@ -333,6 +334,11 @@ export default class BaseProvider extends EventEmitter {
                 // data is expected to be the chain selected for pocket
                 dataToResolve = { chain: data };
               }
+            }
+
+            if (navigator.userAgent.includes("Firefox")) {
+              // @ts-ignore
+              dataToResolve = cloneInto(dataToResolve, window);
             }
 
             return resolve(dataToResolve);

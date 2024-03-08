@@ -36,6 +36,8 @@ const providerInfo: EIP6963ProviderInfo = {
   rdns: process.env.PROVIDER_INFO_RDNS || "io.trustsoothe",
 };
 
+const isFirefox = navigator.userAgent.includes("Firefox");
+
 const initAnnounceProvider = ({
   announceType,
   requestType,
@@ -47,9 +49,20 @@ const initAnnounceProvider = ({
       provider,
     });
 
+    let detailToReturn: EIP6963ProviderDetail;
+
+    if (isFirefox) {
+      // @ts-ignore
+      detailToReturn = cloneInto(detail, window, {
+        cloneFunctions: true,
+      });
+    } else {
+      detailToReturn = detail;
+    }
+
     window.dispatchEvent(
       new CustomEvent(announceType, {
-        detail,
+        detail: detailToReturn,
       })
     );
   };
@@ -59,7 +72,14 @@ const initAnnounceProvider = ({
 };
 
 const pocketProvider = new PocketNetworkProvider();
-window.pocketNetwork = pocketProvider;
+if (isFirefox) {
+  // @ts-ignore
+  window.wrappedJSObject.pocketNetwork = cloneInto(pocketProvider, window, {
+    cloneFunctions: true,
+  });
+} else {
+  window.pocketNetwork = pocketProvider;
+}
 
 initAnnounceProvider({
   requestType: PocketRequestType,
@@ -68,7 +88,14 @@ initAnnounceProvider({
 });
 
 const ethProvider = new EthereumProvider();
-window.ethereum = ethProvider;
+if (isFirefox) {
+  // @ts-ignore
+  window.wrappedJSObject.ethereum = cloneInto(ethProvider, window, {
+    cloneFunctions: true,
+  });
+} else {
+  window.ethereum = ethProvider;
+}
 
 initAnnounceProvider({
   requestType: EIP6963EthRequestType,

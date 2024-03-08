@@ -3,24 +3,42 @@ const tsify = require("tsify");
 const fs = require("fs");
 const fsExtra = require("fs-extra");
 const path = require("path");
+const getManifest = require("../manifest");
+
+const isFirefox = process.env.BROWSER === "Firefox";
 
 // entry files
-const files = [
-  "home.tsx",
-  "offscreen.ts",
-  "provider.ts",
-  "proxy.ts",
-  "background.ts",
-];
+const files = ["home.tsx", "provider.ts", "proxy.ts", "background.ts"];
+
+if (!isFirefox) {
+  files.push("offscreen.ts");
+}
 
 // create dist folder
 fs.mkdirSync(path.join("dist", "js"), { recursive: true });
 // copy contents from public to dist
-fsExtra.copySync("public", "dist", { override: true });
+fsExtra.copySync("public", "dist", {
+  override: true,
+  filter: (file) => {
+    if (isFirefox && file.includes("offscreen")) {
+      return false;
+    }
+
+    return true;
+  },
+});
+
+// write manifest
+fs.writeFileSync(
+  path.join("dist", "manifest.json"),
+  getManifest(isFirefox, true),
+  { encoding: "utf8", flag: "w" }
+);
 
 // copy contents from snow to dist
 const snowFilePath = path.resolve(
   __dirname,
+  "..",
   "..",
   "..",
   "..",
@@ -30,20 +48,29 @@ const snowFilePath = path.resolve(
   "snow",
   "snow.prod.js"
 );
-const snowOutputPath = path.resolve(__dirname, "..", "dist", "js", "snow.js");
+const snowOutputPath = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "dist",
+  "js",
+  "snow.js"
+);
 
 fs.copyFileSync(snowFilePath, snowOutputPath);
 
-// THIS IS REQUIRED BECAUSE WE NEED TO INSERT THE SCUTTLER IF NOT PRESENTED INSTEAD OF RETURN AN ERROR (IN SERVICE WORKER WE ARE NOT ALLOWED TO DO THIS)
+// THIS IS REQUIRED BECAUSE WE NEED TO INSERT THE SCUTLER IF NOT PRESENTED INSTEAD OF RETURN AN ERROR (IN SERVICE WORKER WE ARE NOT ALLOWED TO DO THIS)
 // AND BECAUSE WE NEED TO ADD CUSTOM OPTIONS TO LOCKDOWN
 const editedLavamoatPath = path.resolve(
   __dirname,
+  "..",
   "..",
   "resources",
   "lavamoat_runtime.js"
 );
 const editedLavamaoutOutputPath = path.resolve(
   __dirname,
+  "..",
   "..",
   "..",
   "..",
@@ -70,6 +97,7 @@ for (const file of files) {
 
   const web3ValidatorPath = path.resolve(
     __dirname,
+    "..",
     "..",
     "..",
     "..",

@@ -2,13 +2,15 @@
   "name": "@soothe/extension",
   "version": "0.0.1",
   "description": "Soothe Vault Browser Extension",
-  "main": "lavamoat/build.js",
+  "main": "build/lavamoat/build.js",
   "scripts": {
-    "dev": "webpack --config webpack/webpack.dev.js --watch",
-    "build": "webpack --config webpack/webpack.prod.js",
-    "build:lavamoat": "NODE_ENV=production node -r dotenv/config lavamoat/build.js",
-    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
-    "style": "prettier --write \"src/**/*.{ts,tsx}\""
+    "dev": "webpack --config build/webpack/webpack.dev.js --watch",
+    "dev:firefox": "BROWSER=Firefox webpack --config build/webpack/webpack.dev.js --watch",
+    "build": "webpack --config build/webpack/webpack.prod.js",
+    "build:firefox": "BROWSER=Firefox webpack --config build/webpack/webpack.prod.js",
+    "build:lavamoat": "NODE_ENV=production node -r dotenv/config build/lavamoat/build.js",
+    "build:lavamoat:firefox": "NODE_ENV=production BROWSER=Firefox node -r dotenv/config build/lavamoat/build.js",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo"
   },
   "repository": "git@github.com:pokt-scan/soothe-vault.git",
   "author": "Alan Rojas <alan@poktscan.com>",

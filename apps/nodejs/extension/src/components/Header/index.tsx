@@ -374,7 +374,7 @@ const Header = () => {
             },
             {
               key: "sites_item",
-              label: "Sites Connection",
+              label: "Site Connections",
               route: SITES_PAGE,
               icon: SitesIcon,
             },
