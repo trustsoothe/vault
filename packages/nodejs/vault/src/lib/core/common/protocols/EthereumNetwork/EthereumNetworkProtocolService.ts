@@ -656,6 +656,9 @@ export class EthereumNetworkProtocolService
     try {
       const response = await fetch(network.rpcUrl, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: Date.now(),
@@ -666,11 +669,22 @@ export class EthereumNetworkProtocolService
 
       const jsonResponse = await response.json();
 
+      if (jsonResponse.error) {
+        throw new ProtocolTransactionError(
+          "Failed to send transaction",
+          new Error(JSON.stringify(jsonResponse.error))
+        );
+      }
+
       return {
         protocol: SupportedProtocols.Ethereum,
         transactionHash: jsonResponse.result,
       };
     } catch (e) {
+      if (e instanceof ProtocolTransactionError) {
+        throw e;
+      }
+
       throw new ProtocolTransactionError(
         "Failed to send transaction",
         e as Error
