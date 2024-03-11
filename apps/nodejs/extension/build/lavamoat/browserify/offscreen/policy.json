@@ -61,12 +61,6 @@
         "HTMLIFrameElement": true
       }
     },
-    "web3-utils>web3-errors": {
-      "globals": {
-        "new": true,
-        "target": true
-      }
-    },
     "web3-validator": {
       "packages": {
         "ethereum-cryptography": true,
@@ -77,9 +71,7 @@
     },
     "web3-validator>zod": {
       "globals": {
-        "URL": true,
-        "new": true,
-        "target": true
+        "URL": true
       }
     }
   }

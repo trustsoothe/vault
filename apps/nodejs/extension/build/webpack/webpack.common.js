@@ -16,9 +16,6 @@ module.exports = {
     background: path.join(srcDir, "background.ts"),
     proxy: path.join(srcDir, "proxy.ts"),
     provider: path.join(srcDir, "provider.ts"),
-    ...(!isFirefox && {
-      offscreen: path.join(srcDir, "offscreen.ts"),
-    }),
   },
   output: {
     path: jsDistDir,
@@ -75,10 +72,6 @@ module.exports = {
           priority: 0,
           filter: (resourcePath) => {
             if (resourcePath.includes("vendor")) {
-              return false;
-            }
-
-            if (isFirefox && resourcePath.includes("offscreen")) {
               return false;
             }
 

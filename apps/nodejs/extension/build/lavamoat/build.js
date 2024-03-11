@@ -10,22 +10,11 @@ const isFirefox = process.env.BROWSER === "Firefox";
 // entry files
 const files = ["home.tsx", "provider.ts", "proxy.ts", "background.ts"];
 
-if (!isFirefox) {
-  files.push("offscreen.ts");
-}
-
 // create dist folder
 fs.mkdirSync(path.join("dist", "js"), { recursive: true });
 // copy contents from public to dist
 fsExtra.copySync("public", "dist", {
   override: true,
-  filter: (file) => {
-    if (isFirefox && file.includes("offscreen")) {
-      return false;
-    }
-
-    return true;
-  },
 });
 
 // write manifest

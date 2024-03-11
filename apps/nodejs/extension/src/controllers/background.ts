@@ -50,27 +50,9 @@ export default class BackgroundController {
 
   /** To keep the service worker (or background script in Firefox) active */
   private _initializeKeepAlive() {
-    // @ts-ignore
-    if (browser.offscreen) {
-      async function createOffscreen() {
-        // @ts-ignore
-        await browser.offscreen
-          .createDocument({
-            url: "offscreen.html",
-            reasons: ["BLOBS"],
-            justification: "keep service worker running",
-          })
-          .catch(() => {});
-      }
-
-      browser.runtime.onStartup.addListener(createOffscreen);
-      self.onmessage = () => {}; // keepAlive
-      createOffscreen().catch();
-    } else {
-      setInterval(async () => {
-        await browser.runtime.getBrowserInfo();
-      }, 20000);
-    }
+    setInterval(async () => {
+      await browser.runtime.getPlatformInfo();
+    }, 20000);
   }
 
   /** To open extension page after install to allow the user to initialize their vault */

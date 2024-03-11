@@ -26,10 +26,8 @@ const baseManifest = {
     default_popup: "home.html?popup=true",
   },
   host_permissions: ["http://*/*", "https://*/*"],
+  permissions: ["storage", "unlimitedStorage", "tabs"],
 };
-
-const basePermissions = ["storage", "unlimitedStorage", "tabs"];
-const chromiumPermissions = [...basePermissions, "offscreen"];
 
 const baseChromiumManifest = {
   ...baseManifest,
@@ -40,7 +38,6 @@ const baseChromiumManifest = {
     ids: [],
     matches: [],
   },
-  permissions: chromiumPermissions,
 };
 
 const baseFirefoxManifest = {
@@ -48,7 +45,6 @@ const baseFirefoxManifest = {
   background: {
     scripts: ["js/background.js"],
   },
-  permissions: basePermissions,
   content_security_policy: {
     extension_pages: "script-src 'self'; object-src 'self';",
   },
