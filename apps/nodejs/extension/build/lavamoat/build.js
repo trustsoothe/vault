@@ -8,7 +8,7 @@ const getManifest = require("../manifest");
 const isFirefox = process.env.BROWSER === "Firefox";
 
 // entry files
-const files = ["home.tsx", "provider.ts", "proxy.ts", "background.ts"];
+const files = ["home.tsx", "background.ts"];
 
 // create dist folder
 fs.mkdirSync(path.join("dist", "js"), { recursive: true });

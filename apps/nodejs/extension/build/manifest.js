@@ -1,7 +1,8 @@
 const baseManifest = {
   manifest_version: 3,
-  name: "Soothe Vault",
-  description: "Extension to manage your vault of wallets",
+  name: "Soothe Vault (BETA)",
+  description:
+    "THIS EXTENSION IS FOR BETA TESTING. Extension to manage your EVM and Pocket wallets",
   version: "0.0.1",
   icons: {
     16: "icons/16.png",
@@ -25,9 +26,10 @@ const baseManifest = {
     },
     default_popup: "home.html?popup=true",
   },
-  host_permissions: ["http://*/*", "https://*/*"],
-  permissions: ["storage", "unlimitedStorage", "tabs"],
+  permissions: ["storage", "unlimitedStorage"],
 };
+
+const basePermissions = ["storage", "unlimitedStorage"];
 
 const baseChromiumManifest = {
   ...baseManifest,
@@ -38,6 +40,7 @@ const baseChromiumManifest = {
     ids: [],
     matches: [],
   },
+  permissions: [...basePermissions, "activeTab", "tabs"],
 };
 
 const baseFirefoxManifest = {
@@ -47,6 +50,13 @@ const baseFirefoxManifest = {
   },
   content_security_policy: {
     extension_pages: "script-src 'self'; object-src 'self';",
+  },
+  permissions: [...basePermissions],
+  host_permissions: ["http://*/*", "https://*/*"],
+  browser_specific_settings: {
+    gecko: {
+      id: "{d2abee6f-9c77-4f41-acd8-a88b48d01a91}",
+    },
   },
 };
 
