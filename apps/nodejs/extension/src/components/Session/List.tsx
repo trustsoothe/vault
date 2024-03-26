@@ -89,6 +89,8 @@ const ListItem: React.FC<ListItemProps> = ({ session }) => {
       });
   }, [accountsExpanded, accounts, session]);
 
+  if (session.maxAge && secsToExpire < 0) return null;
+
   return (
     <Stack
       paddingY={0.5}

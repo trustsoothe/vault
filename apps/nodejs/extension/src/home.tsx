@@ -41,6 +41,10 @@ const store = new Store();
 const storeWithMiddleware = applyMiddleware(
   store,
   thunkMiddleware,
+  // this middleware is a fix for firefox and the rtk queries, because Store complains about not being able to clone objects
+  (_) => (next) => (action) => {
+    return next(JSON.parse(JSON.stringify(action)));
+  },
   pricesApi.middleware
 );
 Object.assign(storeWithMiddleware, {
@@ -113,7 +117,7 @@ const Home: React.FC = () => {
     if (appStatus === "error") {
       return (
         <OperationFailed
-          text={"Error trying to initialized the extension."}
+          text={"Error trying to initialize the extension."}
           retryBtnProps={{
             type: "button",
           }}
@@ -150,9 +154,9 @@ const Home: React.FC = () => {
       <GlobalStyles
         styles={{
           body: {
-            width: isPopup ? 400 : undefined,
-            marginLeft: isPopup ? 0 : undefined,
-            marginRight: isPopup ? 0 : undefined,
+            width: isPopup ? WIDTH : undefined,
+            height: isPopup ? HEIGHT : undefined,
+            margin: "0!important",
             scrollbarColor: `${theme.customColors.dark25} ${theme.customColors.dark5}`,
             "&::-webkit-scrollbar, & *::-webkit-scrollbar": {
               width: "8px",
@@ -173,14 +177,12 @@ const Home: React.FC = () => {
       />
       <Box
         sx={{
-          width: isPopup ? "calc(100% + 31px)" : "calc(100% + 16px)",
+          width: "100vw",
           maxWidth: isPopup ? WIDTH : undefined,
-          marginY: "-8px",
           height: "calc(100vh)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          marginLeft: isPopup ? 0 : "-8px",
           maxHeight: isPopup ? HEIGHT : undefined,
         }}
       >

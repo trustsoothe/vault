@@ -36,7 +36,7 @@ interface FormValues {
   password: string;
 }
 
-type Status = "form" | "error" | "loading" | "success";
+type Status = "form" | "error" | "loading" | "success" | "account_exists";
 
 interface FormStepProps {
   justImport?: boolean;
@@ -333,7 +333,7 @@ const ImportHdWallet: React.FC = () => {
       sendNodesDerivation: false,
     },
   });
-  const { watch, setValue, handleSubmit } = methods;
+  const { watch, setValue, getValues, reset, handleSubmit } = methods;
   const [phraseSize] = watch(["phraseSize"]);
 
   useEffect(() => {
@@ -368,6 +368,8 @@ const ImportHdWallet: React.FC = () => {
                 (account) => account.accountType === AccountType.HDSeed
               )?.id
             );
+          } else if (res.data?.hdAccountAlreadyExists) {
+            setStatus("account_exists");
           }
         }
       });
@@ -404,6 +406,18 @@ const ImportHdWallet: React.FC = () => {
     navigate(HD_WALLETS_PAGE);
   };
 
+  const onClickOkAccountExists = () => {
+    setStatus("form");
+    reset({
+      hdWalletName: "",
+      password: "",
+      phraseSize: "12",
+      wordList: new Array(12).fill(null).map(() => ({ word: "" })),
+      protocol: getValues("protocol"),
+      sendNodesDerivation: false,
+    });
+  };
+
   const getContent = () => {
     let content: React.ReactNode;
 
@@ -419,6 +433,35 @@ const ImportHdWallet: React.FC = () => {
           <OperationFailed
             text={"There was an error importing your HD wallet"}
             onCancel={onCancel}
+          />
+        );
+        break;
+      case "account_exists":
+        content = (
+          <OperationFailed
+            text={
+              "This HD account already exists and cannot be imported again. Import another one."
+            }
+            retryBtnProps={{
+              type: "button",
+            }}
+            textProps={{
+              width: 300,
+              fontSize: 15,
+            }}
+            retryBtnText={"Ok"}
+            onCancel={onCancel}
+            onRetry={onClickOkAccountExists}
+            buttonsContainerProps={{
+              width: 275,
+              marginTop: "20px!important",
+              sx: {
+                "& button": {
+                  width: 130,
+                  height: 30,
+                },
+              },
+            }}
           />
         );
         break;
@@ -466,6 +509,7 @@ const ImportHdWallet: React.FC = () => {
               fontWeight: 700,
               height: 36,
               fontSize: 16,
+              display: status === "account_exists" ? "none" : undefined,
             }}
             variant={"contained"}
             fullWidth

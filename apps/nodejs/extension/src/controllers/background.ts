@@ -35,7 +35,7 @@ export default class BackgroundController {
   private readonly external = new ExternalCommunicationController();
 
   constructor() {
-    this._setOffScreen();
+    this._initializeKeepAlive();
     this._initializeExtension().catch();
 
     browser.tabs.onUpdated.addListener(this._onTabUpdated.bind(this));
@@ -48,22 +48,11 @@ export default class BackgroundController {
     );
   }
 
-  /** To enable offscreen and keep the service worker active */
-  private _setOffScreen() {
-    async function createOffscreen() {
-      // @ts-ignore
-      await browser.offscreen
-        .createDocument({
-          url: "offscreen.html",
-          reasons: ["BLOBS"],
-          justification: "keep service worker running",
-        })
-        .catch(() => {});
-    }
-
-    browser.runtime.onStartup.addListener(createOffscreen);
-    self.onmessage = () => {}; // keepAlive
-    createOffscreen().catch();
+  /** To keep the service worker (or background script in Firefox) active */
+  private _initializeKeepAlive() {
+    setInterval(async () => {
+      await browser.runtime.getPlatformInfo();
+    }, 20000);
   }
 
   /** To open extension page after install to allow the user to initialize their vault */
@@ -206,10 +195,13 @@ export default class BackgroundController {
         store.dispatch(loadAssetsFromCdn()).unwrap(),
       ]);
 
-      const {networks, assets} = store.getState().app
+      const { networks, assets } = store.getState().app;
 
-      if (!networks.length &&networkResult.status === 'rejected' || !assets.length && assetResult.status === 'rejected') {
-        throw new Error('could not load networks and/or assets')
+      if (
+        (!networks.length && networkResult.status === "rejected") ||
+        (!assets.length && assetResult.status === "rejected")
+      ) {
+        throw new Error("could not load networks and/or assets");
       }
 
       await store.dispatch(loadSelectedNetworkAndAccount()).unwrap();

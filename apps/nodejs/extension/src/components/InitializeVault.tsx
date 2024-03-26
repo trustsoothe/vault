@@ -44,7 +44,7 @@ const InfoView: React.FC<InfoViewProps> = ({
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (show && enableSubmitAfterTime) {
-      timeout = setTimeout(() => setHasReachBottom(true), 2000);
+      timeout = setTimeout(() => setHasReachBottom(true), 500);
     }
 
     return () => {
@@ -168,31 +168,113 @@ const SecurityAndPrivacyView: React.FC<CustomInfoViewProps> = (infoProps) => {
       title={"Security & Privacy"}
       submitButtonText={"Accept"}
     >
-      <Typography fontSize={14} fontWeight={500}>
-        About this policy
+      <Typography fontSize={14} fontWeight={600}>
+        Effective Date: December 14, 2023
       </Typography>
       <Typography fontSize={13}>
-        Lorem ipsum dolor sit amet consectetur. Amet amet ipsum a et. In
-        faucibus at amet id ultrices in amet elit ut. Est vitae velit et
-        vulputate elementum gravida. Morbi mauris nibh pharetra viverra amet.
-        Volutpat nunc habitant at commodo non. Lobortis convallis vitae
-        pellentesque sollicitudin. Magna diam odio auctor mauris nulla in.
-        Sociis augue tincidunt urna lectus vulputate sem. Interdum morbi sed
-        ullamcorper ultricies in consequat nec. Varius volutpat nisi integer
-        netus nisl at. Diam morbi et viverra venenatis velit dignissim at. Morbi
-        sed turpis consectetur eros volutpat eu enim sit.
+        This Privacy Policy ("Policy") explains how Soothe Vault ("Soothe" or
+        "Wallet") handles your personal data. We understand the importance of
+        protecting your privacy and are committed to being transparent about how
+        we collect and use your information. Please note: Soothe is designed to
+        be a privacy-focused wallet. We do not collect any personal information
+        from you or your device. All your data, including private keys,
+        transaction history, and wallet balances, is stored solely on your
+        device.
       </Typography>
-      <br />
       <br />
       <Typography fontSize={14} fontWeight={500}>
-        Keeping your information secure
+        Information We Do Not Collect:
       </Typography>
+      <Stack component={"ul"} sx={{ marginY: 0.5, "& li": { fontSize: 13 } }}>
+        <Typography component={"li"}>
+          Personally identifiable information (PII): We do not collect your
+          name, email address, phone numb er, IP address, or any other
+          identifying information.
+        </Typography>
+        <Typography component={"li"}>
+          Device information: We do not collect information about your device
+          model, operating system, or any other technical specifications.
+        </Typography>
+        <Typography component={"li"}>
+          Transaction data: We do not track or store any information about your
+          transactions, including sender, receiver, or amount.
+        </Typography>
+      </Stack>
+      <br />
+      <Typography fontSize={14} fontWeight={500}>
+        Data Storage and Security:
+      </Typography>
+      <Stack component={"ul"} sx={{ marginY: 0.5, "& li": { fontSize: 13 } }}>
+        <Typography component={"li"}>
+          All your data, including private keys and holdings, is stored locally
+          on your device. We do not store or access any of this information on
+          our servers.
+        </Typography>
+        <Typography component={"li"}>
+          The Soothe Vault uses industry-standard encryption to protect your
+          data from unauthorized access.
+        </Typography>
+        <Typography component={"li"}>
+          We recommend using a secure password or passphrase to protect your
+          wallet and private keys.
+        </Typography>
+      </Stack>
+      <br />
+      <Typography fontSize={14} fontWeight={500}>
+        Sharing Your Data:
+      </Typography>
+      <Stack component={"ul"} sx={{ marginY: 0.5, "& li": { fontSize: 13 } }}>
+        <Typography component={"li"}>
+          We will never share your data with any third party, for any purpose,
+          without your explicit consent.
+        </Typography>
+        <Typography component={"li"}>
+          We may be required to disclose your data if we are legally compelled
+          to do so, such as in response to a court order or subpoena.
+        </Typography>
+      </Stack>
+      <br />
+      <Typography fontSize={14} fontWeight={500}>
+        Changes to this Policy:
+      </Typography>
+      <Stack component={"ul"} sx={{ marginY: 0.5, "& li": { fontSize: 13 } }}>
+        <Typography component={"li"}>
+          We may update this Policy from time to time. We will notify you of any
+          changes by posting the updated Policy on our website. You are advised
+          to review this Policy periodically for any changes.
+        </Typography>
+      </Stack>
+      <br />
+      <Typography fontSize={14} fontWeight={500}>
+        Your Rights:
+      </Typography>
+      <Stack component={"ul"} sx={{ marginY: 0.5, "& li": { fontSize: 13 } }}>
+        <Typography component={"li"}>
+          You have the right to access, rectify, erase, or restrict the
+          processing of your data, although this right is not applicable to
+          Soothe as we do not collect any data from you.
+        </Typography>
+        <Typography component={"li"}>
+          You have the right to object to the processing of your data and to
+          withdraw your consent at any time.
+        </Typography>
+      </Stack>
+      <br />
+      <Typography fontSize={14} fontWeight={500}>
+        Additional Notes:
+      </Typography>
+      <Stack component={"ul"} sx={{ marginY: 0.5, "& li": { fontSize: 13 } }}>
+        <Typography component={"li"}>
+          This Policy applies only to the Soothe Vault.
+        </Typography>
+        <Typography component={"li"}>
+          This Policy does not apply to any third-party services or applications
+          that you may use with the Soothe Vault.
+        </Typography>
+      </Stack>
       <Typography fontSize={13}>
-        Cursus elementum facilisis accumsan ridiculus sit amet imperdiet. Nunc
-        malesuada nisl ipsum risus ut. Condimentum tellus dignissim vestibulum
-        erat dictumst velit pretium. Donec augue volutpat congue feugiat Varius
-        volutpat nisi integer netus nisl at. Diam morbi et viverra venenatis
-        velit dignissim at. Morbi sed turpis consectetur.
+        Thank you for choosing Soothe! We are committed to protecting your
+        privacy and providing you with a secure and private wallet experience.
       </Typography>
     </InfoView>
   );

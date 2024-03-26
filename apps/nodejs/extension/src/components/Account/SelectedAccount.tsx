@@ -167,13 +167,13 @@ const BaseButtonMenu: React.FC<BaseButtonMenuProps> = ({
         }}
       >
         {menuLabel && (
-          <>
+          <div>
             <Typography fontSize={14} paddingX={1.2} width={145}>
               {menuLabel}
             </Typography>
 
             <Divider sx={{ marginY: 0.5 }} />
-          </>
+          </div>
         )}
         {items.map(({ label, action }) => (
           <MenuItem
