@@ -47,12 +47,12 @@ import type {
 import type { ICommunicationController } from "../../types";
 import { toWei } from "web3-utils";
 import browser, { type Runtime } from "webextension-polyfill";
-import { WebEncryptionService } from "@soothe/vault-encryption-web";
+import { WebEncryptionService } from "@poktscan/vault-encryption-web";
 import {
   INetwork,
   PocketNetworkProtocolService,
   SupportedProtocols,
-} from "@soothe/vault";
+} from "@poktscan/vault";
 import {
   propertyIsRequired,
   RequestConnectionExists,

@@ -6,7 +6,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
 import {useTheme} from "@mui/material";
 import Stack from "@mui/material/Stack";
-import {AccountType, SerializedAccountReference, SupportedProtocols,} from "@soothe/vault";
+import {AccountType, SerializedAccountReference, SupportedProtocols,} from "@poktscan/vault";
 import {nameRules} from "../Account/CreateModal";
 import {enqueueSnackbar} from "../../utils/ui";
 import {CONTACTS_PAGE} from "../../constants/routes";

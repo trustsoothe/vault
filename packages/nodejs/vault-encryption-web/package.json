@@ -1,5 +1,5 @@
 {
-  "name": "@soothe/vault-encryption-web",
+  "name": "@poktscan/vault-encryption-web",
   "version": "0.0.1",
   "description": "Web Crypto API based encryption plugin for the Universal Crypto Wallet Manager",
   "main": "dist/index.js",
@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.3.1",
-    "@soothe/vault": "*"
+    "@poktscan/vault": "*"
   },
   "devDependencies": {
     "vitest": "0.32.0"

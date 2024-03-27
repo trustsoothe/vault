@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material";
 import Button from "@mui/material/Button";
 import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
-import { Session } from "@soothe/vault";
+import { Session } from "@poktscan/vault";
 import { DISCONNECT_SITE_PAGE } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import CircularLoading from "../common/CircularLoading";

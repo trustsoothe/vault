@@ -1,5 +1,5 @@
-import type { SerializedNetwork } from '@soothe/vault'
-import { NetworkStorage } from '@soothe/vault'
+import type { SerializedNetwork } from '@poktscan/vault'
+import { NetworkStorage } from '@poktscan/vault'
 import { GenericExtensionStorage } from './GenericExtensionStorage'
 
 export class ExtensionNetworkStorage extends NetworkStorage {

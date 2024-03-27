@@ -2,7 +2,7 @@ import type {
   IVaultStore,
   EncryptedVault,
   SerializedEncryptedVault,
-} from "@soothe/vault";
+} from "@poktscan/vault";
 import * as browser from "webextension-polyfill";
 
 export class ExtensionVaultStorage implements IVaultStore {

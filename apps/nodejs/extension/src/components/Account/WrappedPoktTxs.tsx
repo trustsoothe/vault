@@ -18,7 +18,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { type PocketNetworkFee, SupportedProtocols } from "@soothe/vault";
+import { type PocketNetworkFee, SupportedProtocols } from "@poktscan/vault";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import ToAddressAutocomplete from "../Transfer/Form/ToAddressAutocomplete";
 import { getTruncatedText, roundAndSeparate } from "../../utils/ui";

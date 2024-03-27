@@ -6,14 +6,14 @@ import {
   SerializedAsset,
   SupportedProtocols,
   VaultTeller,
-} from "@soothe/vault";
+} from "@poktscan/vault";
 import {
   ExtensionAssetStorage,
   ExtensionNetworkStorage,
   ExtensionSessionStorage,
   ExtensionVaultStorage,
-} from "@soothe/vault-storage-extension";
-import { WebEncryptionService } from "@soothe/vault-encryption-web";
+} from "@poktscan/vault-storage-extension";
+import { WebEncryptionService } from "@poktscan/vault-encryption-web";
 import {
   UnauthorizedError,
   UnauthorizedErrorSessionInvalid,

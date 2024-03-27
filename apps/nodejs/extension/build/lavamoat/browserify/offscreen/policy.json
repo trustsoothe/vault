@@ -6,19 +6,19 @@
         "File": true
       }
     },
-    "@soothe/vault>web3-eth": {
+    "@poktscan/vault>web3-eth": {
       "globals": {
         "XMLHttpRequest": true,
         "fetch": true
       }
     },
-    "@soothe/vault>web3-providers-http": {
+    "@poktscan/vault>web3-providers-http": {
       "globals": {
         "XMLHttpRequest": true,
         "fetch": true
       }
     },
-    "@soothe/vault>web3-providers-http>cross-fetch": {
+    "@poktscan/vault>web3-providers-http>cross-fetch": {
       "globals": {
         "XMLHttpRequest": true,
         "fetch": true

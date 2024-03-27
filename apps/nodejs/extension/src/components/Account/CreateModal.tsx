@@ -8,7 +8,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
 import { ClickAwayListener } from "@mui/base/ClickAwayListener";
-import { SupportedProtocols } from "@soothe/vault";
+import { SupportedProtocols } from "@poktscan/vault";
 import { enqueueSnackbar } from "../../utils/ui";
 import CircularLoading from "../common/CircularLoading";
 import OperationFailed from "../common/OperationFailed";

@@ -1,4 +1,4 @@
-import type { SerializedAccountReference } from "@soothe/vault";
+import type { SerializedAccountReference } from "@poktscan/vault";
 import type { ImportAccountParam } from "../../redux/slices/vault/account";
 import type { BaseData, BaseResponse, UnknownErrorType } from "./common";
 import {

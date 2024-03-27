@@ -6,7 +6,7 @@ import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Skeleton from "@mui/material/Skeleton";
-import { SupportedProtocols } from "@soothe/vault";
+import { SupportedProtocols } from "@poktscan/vault";
 import RowSpaceBetween from "../../common/RowSpaceBetween";
 import { getTruncatedText, returnNumWithTwoDecimals } from "../../../utils/ui";
 import { useAppSelector } from "../../../hooks/redux";
