@@ -1,5 +1,5 @@
 import {describe, test, expect} from "vitest"
-import {Permission, PermissionsBuilder} from "@soothe/vault"
+import {Permission, PermissionsBuilder} from "@poktscan/vault"
 
 describe('PermissionsBuilder', () => {
   test('Allows creating permissions for specific actions', () => {

@@ -1,6 +1,6 @@
 import type { RootState } from "../store";
 import type { CustomRPC, Network } from "../slices/app";
-import { SupportedProtocols } from "@soothe/vault";
+import { SupportedProtocols } from "@poktscan/vault";
 
 export const networksSelector = (state: RootState) => state.app.networks;
 

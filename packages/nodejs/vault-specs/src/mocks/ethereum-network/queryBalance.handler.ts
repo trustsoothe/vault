@@ -1,7 +1,7 @@
 import Url from "node:url";
 import {rest} from "msw";
 import {withMethod} from "./withMethod";
-import {INetwork} from "@soothe/vault";
+import {INetwork} from "@poktscan/vault";
 
 export const queryBalanceHandlerFactory = (network: INetwork) => {
   const url = new Url.URL(network.rpcUrl);

@@ -2,7 +2,7 @@ import {
   AccountType,
   SerializedAccountReference,
   SupportedProtocols,
-} from "@soothe/vault";
+} from "@poktscan/vault";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material";

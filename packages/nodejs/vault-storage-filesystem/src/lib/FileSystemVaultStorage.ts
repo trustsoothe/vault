@@ -1,4 +1,4 @@
-import {IVaultStore, EncryptedVault, SerializedEncryptedVault} from "@soothe/vault"
+import {IVaultStore, EncryptedVault, SerializedEncryptedVault} from "@poktscan/vault"
 import * as fs from "fs";
 
 export class FileSystemVaultStorage implements IVaultStore {

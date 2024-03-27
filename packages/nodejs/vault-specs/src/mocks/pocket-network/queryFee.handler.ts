@@ -1,7 +1,7 @@
 import {rest} from "msw";
 import Url from 'node:url';
 import urlJoin from "url-join";
-import {INetwork} from "@soothe/vault";
+import {INetwork} from "@poktscan/vault";
 
 export const queryFeeHandlerFactory = (network: INetwork) => {
   const url = new Url.URL(urlJoin(network.rpcUrl, '/v1/query/param'));

@@ -28,7 +28,7 @@ import {
   VaultRestoreError,
   VaultTeller,
   VaultUninitializedError,
-} from '@soothe/vault'
+} from '@poktscan/vault'
 import {afterEach, beforeAll, beforeEach, describe, expect, test} from 'vitest'
 import sinon from 'sinon'
 import {v4} from "uuid";

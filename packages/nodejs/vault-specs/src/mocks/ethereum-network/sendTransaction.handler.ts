@@ -1,6 +1,6 @@
 import Url from "node:url";
 import {rest} from "msw";
-import {INetwork} from "@soothe/vault";
+import {INetwork} from "@poktscan/vault";
 import {withMethod} from "./withMethod";
 
 export const sendTransactionHandlerFactory = (network: INetwork) => {

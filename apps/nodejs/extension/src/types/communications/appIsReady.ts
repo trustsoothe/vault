@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@soothe/vault";
+import type { SupportedProtocols } from "@poktscan/vault";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,

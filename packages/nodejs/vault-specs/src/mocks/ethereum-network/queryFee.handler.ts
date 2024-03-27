@@ -1,7 +1,7 @@
 import Url from "node:url";
 import {rest} from "msw";
 import {withMethod} from "./withMethod";
-import {INetwork, SUGGESTED_GAS_FEES_URL} from "@soothe/vault";
+import {INetwork, SUGGESTED_GAS_FEES_URL} from "@poktscan/vault";
 
 export const queryFeeHandlerFactory = (network: INetwork) => {
   const url = new Url.URL(network.rpcUrl);

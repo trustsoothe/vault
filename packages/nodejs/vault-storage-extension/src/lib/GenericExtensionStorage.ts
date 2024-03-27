@@ -1,4 +1,4 @@
-import type { IEntity, IStorage } from "@soothe/vault";
+import type { IEntity, IStorage } from "@poktscan/vault";
 import * as browser from "webextension-polyfill";
 
 export class GenericExtensionStorage<T extends IEntity> implements IStorage<T> {

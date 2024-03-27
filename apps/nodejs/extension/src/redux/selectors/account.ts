@@ -1,6 +1,6 @@
 import type { RootState } from "../store";
 import type { IAsset } from "../slices/app";
-import {AccountType, SupportedProtocols} from '@soothe/vault'
+import {AccountType, SupportedProtocols} from '@poktscan/vault'
 
 export const accountBalancesSelector = (state: RootState) =>
   state.app.accountBalances;

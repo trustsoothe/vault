@@ -1,8 +1,8 @@
 import type { FormValues } from "../components/Transfer";
-import type { EthereumNetworkFee, PocketNetworkFee } from "@soothe/vault";
+import type { EthereumNetworkFee, PocketNetworkFee } from "@poktscan/vault";
 import React, { createContext, useContext } from "react";
 import { useFormContext } from "react-hook-form";
-import { SupportedProtocols } from "@soothe/vault";
+import { SupportedProtocols } from "@poktscan/vault";
 
 export type FetchStatus = "not-fetched" | "loading" | "error" | "fetched";
 

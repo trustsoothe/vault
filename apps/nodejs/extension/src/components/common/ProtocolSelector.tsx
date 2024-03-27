@@ -2,7 +2,7 @@ import type { TextFieldProps } from "@mui/material";
 import React from "react";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
-import { SupportedProtocols } from "@soothe/vault";
+import { SupportedProtocols } from "@poktscan/vault";
 import { useAppSelector } from "../../hooks/redux";
 import { labelByProtocolMap } from "../../constants/protocols";
 import { networksSelector } from "../../redux/selectors/network";

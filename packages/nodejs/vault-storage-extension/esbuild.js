@@ -1,5 +1,5 @@
 const { nodeExternalsPlugin } = require('esbuild-node-externals')
-const esbuildBase = require('@soothe/tsconfig/esbuild.base')
+const esbuildBase = require('@poktscan/tsconfig/esbuild.base')
 
 const configOverrides = {
     plugins: [
