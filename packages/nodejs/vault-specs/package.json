@@ -1,6 +1,6 @@
 {
   "name": "@soothe/vault-specs",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Automated Specs for the Universal Crypto Wallet Manager",
   "repository": "git@github.com:pokt-scan/soothe-vault.git",
   "author": "Julio Henriquez <julio@poktscan.com>",

@@ -1,6 +1,6 @@
 {
   "name": "@soothe/vault-storage-filesystem",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Filesystem based storage plugin for the Universal Crypto Wallet Manager",
   "main": "dist/index.js",
   "repository": "git@github.com:pokt-scan/soothe-vault.git",
