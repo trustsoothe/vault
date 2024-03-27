@@ -1,6 +1,6 @@
 {
   "name": "@soothe/vault-encryption-web",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Web Crypto API based encryption plugin for the Universal Crypto Wallet Manager",
   "main": "dist/index.js",
   "types": "dist/src/index.d.ts",
