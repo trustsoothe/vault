@@ -127,3 +127,5 @@ export const recoveryPhraseIsValid = (phrase: string) => {
 
 export const wait = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+export const isFirefox = () => navigator.userAgent.includes("Firefox");

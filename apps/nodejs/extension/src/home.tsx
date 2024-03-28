@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import GlobalStyles from "@mui/material/GlobalStyles";
 import { RouterProvider } from "react-router-dom";
 import { createRoot } from "react-dom/client";
-import browser from "webextension-polyfill";
+import browser, { Permissions } from "webextension-polyfill";
 import { useTheme } from "@mui/material";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -36,6 +36,9 @@ import InfoIcon from "./components/common/InfoIcon";
 import OperationFailed from "./components/common/OperationFailed";
 import ErrorIcon from "./components/common/ErrorIcon";
 import WarningIcon from "./components/common/WarningIcon";
+import { isFirefox } from "./utils";
+import { requiredOrigins } from "./constants/permissions";
+import RequestOriginsPermission from "./components/RequestOriginsPermission";
 
 const store = new Store();
 const storeWithMiddleware = applyMiddleware(
@@ -58,11 +61,52 @@ const Home: React.FC = () => {
   const theme = useTheme();
   const [view, setView] = useState("loading");
   const isPopup = useIsPopup();
+  const [hasOriginPermissionsStatus, setHasOriginPermissionsStatus] = useState<
+    "yes" | "no" | "loading"
+  >(isFirefox() ? "loading" : "yes");
 
   useEffect(() => {
     // todo: improve this?
     const isSessionRequest = window.location.search.includes("view=request");
     setView(isSessionRequest ? "session-request" : "normal");
+
+    // this is to handle the origins permissions in firefox because in firefox with manifest v3 this permission is optional by default
+    // so we are ensuring the user granted the extension this permission before using it to be sure the extension is going to work properly
+    const onRemovedPermissionListener = (
+      permissions: Permissions.Permissions
+    ) => {
+      if (
+        !permissions.permissions?.length &&
+        permissions.origins?.length === 2 &&
+        permissions.origins.at(0) === requiredOrigins.at(0) &&
+        permissions.origins.at(1) === requiredOrigins.at(1)
+      ) {
+        setHasOriginPermissionsStatus("no");
+      }
+    };
+
+    let listenerAdded = false;
+
+    if (isFirefox()) {
+      browser.permissions
+        .contains({
+          origins: requiredOrigins,
+        })
+        .then((containsPermission) => {
+          setHasOriginPermissionsStatus(!containsPermission ? "no" : "yes");
+        });
+
+      browser.permissions.onRemoved.addListener(onRemovedPermissionListener);
+      listenerAdded = true;
+    }
+
+    return () => {
+      if (listenerAdded) {
+        browser.permissions.onRemoved.removeListener(
+          onRemovedPermissionListener
+        );
+      }
+    };
   }, []);
 
   const externalRequests = useAppSelector(externalRequestsSelector);
@@ -109,7 +153,8 @@ const Home: React.FC = () => {
     if (
       initializeStatus === "loading" ||
       view === "loading" ||
-      appStatus === "loading"
+      appStatus === "loading" ||
+      hasOriginPermissionsStatus === "loading"
     ) {
       return <CircularLoading />;
     }
@@ -122,6 +167,14 @@ const Home: React.FC = () => {
             type: "button",
           }}
           onRetry={retryInitExtension}
+        />
+      );
+    }
+
+    if (hasOriginPermissionsStatus === "no") {
+      return (
+        <RequestOriginsPermission
+          onGranted={() => setHasOriginPermissionsStatus("yes")}
         />
       );
     }
@@ -147,6 +200,7 @@ const Home: React.FC = () => {
     view,
     appStatus,
     retryInitExtension,
+    hasOriginPermissionsStatus,
   ]);
 
   return (

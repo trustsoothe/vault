@@ -46,6 +46,11 @@
         "Blob": true,
         "File": true
       }
+    },
+    "web3-utils>web3-validator": {
+      "packages": {
+        "web3-utils>web3-errors": true
+      }
     }
   }
 }
