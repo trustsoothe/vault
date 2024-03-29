@@ -6,9 +6,13 @@
   "scripts": {
     "dev": "webpack --config build/webpack/webpack.dev.js --watch",
     "dev:firefox": "BROWSER=Firefox webpack --config build/webpack/webpack.dev.js --watch",
-    "build": "NODE_ENV=production node -r dotenv/config build/lavamoat/build.js && webpack --config build/webpack/chromium.prod.js",
+    "build": "yarn build:chromium",
+    "build:chromium": "NODE_ENV=production node -r dotenv/config build/lavamoat/build.js && webpack --config build/webpack/chromium.prod.js",
     "build:firefox": "BROWSER=Firefox webpack --config build/webpack/firefox.prod.js",
-    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo"
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
+    "clean:dist": "rm -rf dist",
+    "release:chromium": "yarn clean:dist && yarn build:chromium && mkdir -p releases && zip -r releases/soothe-vault-chromium.zip dist/*",
+    "release:firefox": "yarn clean:dist && yarn build:firefox && mkdir -p releases && zip -r releases/soothe-vault-firefox.zip dist/*"
   },
   "repository": "git@github.com:pokt-scan/soothe-vault.git",
   "author": "Alan Rojas <alan@poktscan.com>",

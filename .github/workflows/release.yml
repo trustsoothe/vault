@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+jobs:
+  release:
+    # Only run this job if the pull request was merged and the title is 'Release Packages', this title is defined in the "version-packages.yml" workflow.
+    if: github.event.pull_request.merged == true && github.event.pull_request.title == 'Release Packages'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Setup Node.js 16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install Dependencies
+        run: yarn
+      - name: Build Extension Dependencies
+        run: yarn turbo run build --filter=\!@poktscan/extension
+      - name: Prepare Chromium Release Asset
+        run: yarn release:chromium
+      - name: Prepare Firefox Release Asset
+        run: yarn release:firefox
+      - name: Extract Extension Package Version
+        uses: sergeysova/jq-action@v2.3.0
+        id: version
+        with:
+          cmd: 'jq .version apps/nodejs/extension/package.json -r'
+      - name: Create Release
+        id: release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.value }}
+          release_name: v${{ steps.version.outputs.value }}
+          body: ${{ github.event.pull_request.body }}
+          draft: false
+          prerelease: false
+      - name: Upload Chromium Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: apps/nodejs/extension/releases/soothe-vault-chromium.zip
+          asset_name: soothe-vault-chromium-v${{ steps.version.outputs.value }}.zip
+          asset_content_type: application/zip
+      - name: Upload Firefox Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: apps/nodejs/extension/releases/soothe-vault-firefox.zip
+          asset_name: soothe-vault-firefox-v${{ steps.version.outputs.value }}.zip
+          asset_content_type: application/zip
