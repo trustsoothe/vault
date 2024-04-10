@@ -51,7 +51,7 @@ jobs:
           name: Release Candidate (${{ steps.version.outputs.value }})
           prerelease: true
           draft: false
-          tag_name: rc${{ github.event.pull_request.number }}
+          tag_name: ${{ steps.version.outputs.value }}-rc
           generate_release_notes: true
           fail_on_unmatched_files: false
           token: ${{ secrets.GITHUB_TOKEN }}
