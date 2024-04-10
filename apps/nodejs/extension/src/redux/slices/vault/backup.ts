@@ -41,7 +41,7 @@ const CustomRpcSchema = z.object({
   isPreferred: z.boolean().default(false),
 });
 
-const validVersions = ["0.0.1"] as const;
+const validVersions = ["0.0.1", "0.0.2"] as const;
 
 export const SettingsSchema = z.object({
   selectedProtocol: SupportedProtocolsSchema.default(SupportedProtocols.Pocket),

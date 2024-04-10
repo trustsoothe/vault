@@ -72,7 +72,7 @@ const RequestHandler: React.FC = () => {
               toAddress: transferData.to,
               data: transferData.data,
               amount: transferData.value
-                ? fromWei(transferData.value.substring(2), "ether").toString()
+                ? fromWei(transferData.value, "ether").toString()
                 : undefined,
               gasLimit: transferData.gas,
               maxFeePerGas: transferData.maxFeePerGas,

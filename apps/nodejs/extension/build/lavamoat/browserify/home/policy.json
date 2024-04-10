@@ -668,10 +668,10 @@
         "@soothe/vault>web3-eth>web3-rpc-methods": true,
         "browserify>timers-browserify": true,
         "web3-eth-accounts": true,
-        "web3-eth-accounts>web3-utils": true,
+        "web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
-        "web3-validator": true
+        "web3-utils>web3-validator": true
       }
     },
     "@soothe/vault>web3-eth-contract": {
@@ -679,10 +679,10 @@
         "@soothe/vault>web3-eth-contract>web3-eth": true,
         "@soothe/vault>web3-eth>web3-core": true,
         "@soothe/vault>web3-eth>web3-eth-abi": true,
-        "web3-eth-accounts>web3-utils": true,
+        "web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
-        "web3-validator": true
+        "web3-utils>web3-validator": true
       }
     },
     "@soothe/vault>web3-eth-contract>web3-eth": {
@@ -701,10 +701,10 @@
         "@soothe/vault>web3-eth>web3-rpc-methods": true,
         "browserify>timers-browserify": true,
         "web3-eth-accounts": true,
-        "web3-eth-accounts>web3-utils": true,
+        "web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
-        "web3-validator": true
+        "web3-utils>web3-validator": true
       }
     },
     "@soothe/vault>web3-eth>setimmediate": {
@@ -722,17 +722,17 @@
         "@soothe/vault>web3-eth>web3-providers-ws": true,
         "@soothe/vault>web3-providers-http": true,
         "web3-eth-accounts": true,
-        "web3-eth-accounts>web3-utils": true,
+        "web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
-        "web3-validator": true
+        "web3-utils>web3-validator": true
       }
     },
     "@soothe/vault>web3-eth>web3-core>web3-eth-iban": {
       "packages": {
-        "web3-eth-accounts>web3-utils": true,
+        "web3-utils": true,
         "web3-utils>web3-errors": true,
-        "web3-validator": true
+        "web3-utils>web3-validator": true
       }
     },
     "@soothe/vault>web3-eth>web3-eth-abi": {
@@ -742,23 +742,23 @@
       },
       "packages": {
         "@soothe/vault>web3-eth>web3-eth-abi>abitype": true,
-        "web3-eth-accounts>web3-utils": true,
+        "web3-utils": true,
         "web3-utils>web3-errors": true,
-        "web3-validator": true
+        "web3-utils>web3-validator": true
       }
     },
     "@soothe/vault>web3-eth>web3-net": {
       "packages": {
         "@soothe/vault>web3-eth>web3-core": true,
         "@soothe/vault>web3-eth>web3-rpc-methods": true,
-        "web3-eth-accounts>web3-utils": true,
+        "web3-utils": true,
         "web3-utils>web3-types": true
       }
     },
     "@soothe/vault>web3-eth>web3-providers-ws": {
       "packages": {
         "@soothe/vault>web3-eth>web3-providers-ws>isomorphic-ws": true,
-        "web3-eth-accounts>web3-utils": true,
+        "web3-utils": true,
         "web3-utils>web3-errors": true
       }
     },
@@ -770,7 +770,7 @@
     },
     "@soothe/vault>web3-eth>web3-rpc-methods": {
       "packages": {
-        "web3-validator": true
+        "web3-utils>web3-validator": true
       }
     },
     "@soothe/vault>web3-providers-http": {
@@ -1303,10 +1303,10 @@
         "browserify>buffer": true,
         "external:../../../packages/nodejs/vault/node_modules/@scure/bip39/index.js": true,
         "external:../../../packages/nodejs/vault/node_modules/@scure/bip39/wordlists/english.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/index.js": true,
         "lodash": true,
         "uuid": true,
         "web3-eth-accounts": true,
+        "web3-utils": true,
         "zod": true
       }
     },
@@ -1369,159 +1369,6 @@
         "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/sha512.js": true,
         "external:../../../packages/nodejs/vault/node_modules/@noble/hashes/utils.js": true,
         "external:../../../packages/nodejs/vault/node_modules/@scure/base/lib/index.js": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": {
-      "globals": {
-        "clearTimeout": true,
-        "setTimeout": true
-      },
-      "packages": {
-        "web3-utils>web3-errors": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": {
-      "globals": {
-        "TextDecoder": true,
-        "TextEncoder": true
-      },
-      "packages": {
-        "ethereum-cryptography": true,
-        "web3-utils>web3-errors": true,
-        "web3-validator": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/event_emitter.js": {
-      "globals": {
-        "CustomEvent": true,
-        "EventTarget": true
-      },
-      "packages": {
-        "events": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/formatter.js": {
-      "packages": {
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/objects.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/uint8array.js": true,
-        "web3-utils>web3-errors": true,
-        "web3-utils>web3-types": true,
-        "web3-validator": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/hash.js": {
-      "packages": {
-        "ethereum-cryptography": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
-        "web3-utils>web3-errors": true,
-        "web3-validator": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/index.js": {
-      "packages": {
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/event_emitter.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/formatter.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/hash.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/objects.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/promise_helpers.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/random.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/socket_provider.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/string_manipulation.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/uint8array.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/uuid.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/validation.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/json_rpc.js": {
-      "packages": {
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/uuid.js": true,
-        "web3-utils>web3-errors": true,
-        "web3-validator": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/objects.js": {
-      "packages": {
-        "web3-utils>web3-types": true,
-        "web3-validator": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/promise_helpers.js": {
-      "globals": {
-        "clearInterval": true,
-        "clearTimeout": true,
-        "setInterval": true,
-        "setTimeout": true
-      },
-      "packages": {
-        "web3-validator": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/random.js": {
-      "packages": {
-        "ethereum-cryptography": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/socket_provider.js": {
-      "globals": {
-        "setTimeout": true
-      },
-      "packages": {
-        "browserify>timers-browserify": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/chunk_response_parser.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/validation.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": true,
-        "web3-utils>web3-errors": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/string_manipulation.js": {
-      "packages": {
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true,
-        "web3-utils>web3-errors": true,
-        "web3-validator": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/uuid.js": {
-      "packages": {
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/converters.js": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/random.js": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/validation.js": {
-      "packages": {
-        "web3-utils>web3-errors": true,
-        "web3-utils>web3-types": true,
-        "web3-validator": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_deferred_promise.js": {
-      "globals": {
-        "clearTimeout": true,
-        "setTimeout": true
-      },
-      "packages": {
-        "web3-utils>web3-errors": true
-      }
-    },
-    "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/web3_eip1193_provider.js": {
-      "globals": {
-        "console.error": true
-      },
-      "packages": {
-        "events": true,
-        "external:../../../packages/nodejs/vault/node_modules/web3-utils/lib/commonjs/json_rpc.js": true,
-        "web3-utils>web3-errors": true,
-        "web3-utils>web3-types": true
       }
     },
     "file-saver": {
@@ -1861,10 +1708,10 @@
         "ethereum-cryptography": true,
         "web3-eth-accounts>@ethereumjs/rlp": true,
         "web3-eth-accounts>crc-32": true,
-        "web3-eth-accounts>web3-utils": true,
+        "web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
-        "web3-validator": true
+        "web3-utils>web3-validator": true
       }
     },
     "web3-eth-accounts>@ethereumjs/rlp": {
@@ -1878,31 +1725,8 @@
         "define": true
       }
     },
-    "web3-eth-accounts>web3-utils": {
-      "globals": {
-        "CustomEvent": true,
-        "EventTarget": true,
-        "TextDecoder": true,
-        "TextEncoder": true,
-        "clearInterval": true,
-        "clearTimeout": true,
-        "console.error": true,
-        "setInterval": true,
-        "setTimeout": true
-      },
-      "packages": {
-        "browserify>timers-browserify": true,
-        "ethereum-cryptography": true,
-        "events": true,
-        "web3-utils>web3-errors": true,
-        "web3-utils>web3-types": true,
-        "web3-validator": true
-      }
-    },
     "web3-utils": {
       "globals": {
-        "CustomEvent": true,
-        "EventTarget": true,
         "TextDecoder": true,
         "TextEncoder": true,
         "clearInterval": true,
@@ -1914,21 +1738,21 @@
       "packages": {
         "browserify>timers-browserify": true,
         "ethereum-cryptography": true,
-        "events": true,
+        "web3-utils>eventemitter3": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
-        "web3-validator": true
+        "web3-utils>web3-validator": true
       }
     },
-    "web3-validator": {
+    "web3-utils>web3-validator": {
       "packages": {
         "ethereum-cryptography": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
-        "web3-validator>zod": true
+        "web3-utils>web3-validator>zod": true
       }
     },
-    "web3-validator>zod": {
+    "web3-utils>web3-validator>zod": {
       "globals": {
         "URL": true
       }
