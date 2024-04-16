@@ -7,8 +7,13 @@
       "inputs": ["src/**"],
       "outputs": ["dist/**"]
     },
-    "build:prod": {
-      "dependsOn": ["^build"],
+    "release:chromium": {
+      "cache": false,
+      "inputs": ["src/**"],
+      "outputs": ["dist/**"]
+    },
+    "release:firefox": {
+      "cache": false,
       "inputs": ["src/**"],
       "outputs": ["dist/**"]
     },

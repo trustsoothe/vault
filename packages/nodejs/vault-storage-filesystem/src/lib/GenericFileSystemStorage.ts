@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import {IEntity, IStorage} from "@soothe/vault";
+import {IEntity, IStorage} from "@poktscan/vault";
 
 export class GenericFileSystemStorage<T extends IEntity> implements IStorage<T> {
   constructor(private readonly filePath: string) {

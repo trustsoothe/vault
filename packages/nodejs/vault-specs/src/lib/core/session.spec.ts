@@ -8,7 +8,7 @@ import {
   PermissionsBuilder,
   Session,
   SupportedProtocols
-} from "@soothe/vault";
+} from "@poktscan/vault";
 
 describe('session', () => {
   let  clock: sinon.SinonFakeTimers

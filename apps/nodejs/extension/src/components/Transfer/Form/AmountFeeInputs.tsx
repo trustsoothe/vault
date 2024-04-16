@@ -13,7 +13,7 @@ import {
   EthereumNetworkFee,
   PocketNetworkFee,
   SupportedProtocols,
-} from "@soothe/vault";
+} from "@poktscan/vault";
 import { useAppSelector } from "../../../hooks/redux";
 import { isValidAddress } from "../../../utils/networkOperations";
 import { AccountBalanceInfo } from "../../../redux/slices/app";

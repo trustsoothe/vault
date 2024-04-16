@@ -1,7 +1,7 @@
 import type { RootState } from "../store";
 import type { IAsset } from "../slices/app";
 import { createSelector } from "@reduxjs/toolkit";
-import { SupportedProtocols } from "@soothe/vault";
+import { SupportedProtocols } from "@poktscan/vault";
 import { selectedAccountAddressSelector } from "./account";
 import { selectedChainSelector, selectedProtocolSelector } from "./network";
 

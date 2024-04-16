@@ -1,14 +1,18 @@
 {
-  "name": "@soothe/extension",
+  "name": "@poktscan/extension",
   "version": "0.0.1",
   "description": "Soothe Vault: browser web extension app for Firefox and Chromium based browsers to manage EVM and Pocket based wallets",
   "main": "build/lavamoat/build.js",
   "scripts": {
     "dev": "webpack --config build/webpack/webpack.dev.js --watch",
     "dev:firefox": "BROWSER=Firefox webpack --config build/webpack/webpack.dev.js --watch",
-    "build": "NODE_ENV=production node -r dotenv/config build/lavamoat/build.js && webpack --config build/webpack/chromium.prod.js",
+    "build": "yarn build:chromium",
+    "build:chromium": "NODE_ENV=production node -r dotenv/config build/lavamoat/build.js && webpack --config build/webpack/chromium.prod.js",
     "build:firefox": "BROWSER=Firefox webpack --config build/webpack/firefox.prod.js",
-    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo"
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
+    "clean:dist": "rm -rf dist",
+    "release:chromium": "yarn clean:dist && yarn build:chromium && mkdir -p releases && zip -r releases/soothe-vault-chromium-$(jq .version package.json -r).zip dist/*",
+    "release:firefox": "yarn clean:dist && yarn build:firefox && mkdir -p releases && zip -r releases/soothe-vault-firefox-$(jq .version package.json -r).zip dist/*"
   },
   "repository": "git@github.com:pokt-scan/soothe-vault.git",
   "author": "Alan Rojas <alan@poktscan.com>",
@@ -63,9 +67,9 @@
     "@browserify/uglifyify": "6.0.0",
     "@lavamoat/allow-scripts": "3.0.0",
     "@lavamoat/snow": "2.0.1",
-    "@soothe/vault": "*",
-    "@soothe/vault-encryption-web": "*",
-    "@soothe/vault-storage-extension": "*",
+    "@poktscan/vault": "*",
+    "@poktscan/vault-encryption-web": "*",
+    "@poktscan/vault-storage-extension": "*",
     "@svgr/webpack": "8.1.0",
     "@types/chrome": "0.0.237",
     "@types/events": "3.0.3",
@@ -115,14 +119,14 @@
   },
   "lavamoat": {
     "allowScripts": {
-      "@soothe/vault>protobufjs": false,
-      "@soothe/vault>vitest>jsdom>ws>bufferutil": false,
-      "@soothe/vault>vitest>jsdom>ws>utf-8-validate": false,
-      "@soothe/vault>vitest>vite>esbuild": false,
+      "@poktscan/vault>protobufjs": false,
+      "@poktscan/vault>vitest>jsdom>ws>bufferutil": false,
+      "@poktscan/vault>vitest>jsdom>ws>utf-8-validate": false,
+      "@poktscan/vault>vitest>vite>esbuild": false,
       "net-browserify>express-ws>ws": false,
-      "@soothe/vault>ethereumjs-util>ethereum-cryptography>keccak": false,
-      "@soothe/vault>ethereumjs-util>ethereum-cryptography>secp256k1": false,
-      "@soothe/vault>hdkey>secp256k1": false
+      "@poktscan/vault>ethereumjs-util>ethereum-cryptography>keccak": false,
+      "@poktscan/vault>ethereumjs-util>ethereum-cryptography>secp256k1": false,
+      "@poktscan/vault>hdkey>secp256k1": false
     }
   }
 }

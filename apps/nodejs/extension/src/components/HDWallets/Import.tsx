@@ -15,7 +15,7 @@ import Typography from "@mui/material/Typography";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import { type TextFieldProps, useTheme } from "@mui/material";
-import { AccountType, SupportedProtocols } from "@soothe/vault";
+import { AccountType, SupportedProtocols } from "@poktscan/vault";
 import { nameRules } from "../Account/CreateModal";
 import { useAppSelector } from "../../hooks/redux";
 import { enqueueSnackbar } from "../../utils/ui";

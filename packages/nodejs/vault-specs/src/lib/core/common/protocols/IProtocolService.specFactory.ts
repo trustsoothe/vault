@@ -7,7 +7,7 @@ import {
   AccountReference,
   ArgumentError,
   NetworkRequestError, SupportedProtocols, INetwork, IAsset,
-} from "@soothe/vault";
+} from "@poktscan/vault";
 import { webcrypto } from 'node:crypto';
 import {MockServerFactory} from "../../../../mocks/mock-server-factory";
 

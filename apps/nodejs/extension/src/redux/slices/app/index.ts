@@ -10,7 +10,7 @@ import {
   SerializedAccountReference,
   Session,
   SupportedProtocols,
-} from "@soothe/vault";
+} from "@poktscan/vault";
 import {
   SELECTED_ACCOUNT_CHANGED,
   SELECTED_CHAIN_CHANGED,

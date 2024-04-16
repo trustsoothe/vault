@@ -8,10 +8,10 @@ import {
   NetworkRequestError,
   PocketNetworkProtocolService,
   SupportedProtocols
-} from "@soothe/vault";
+} from "@poktscan/vault";
 
 // @ts-ignore
-import {WebEncryptionService} from '@soothe/vault-encryption-web'
+import {WebEncryptionService} from '@poktscan/vault-encryption-web'
 import {MockServerFactory} from "../../../../../mocks/mock-server-factory";
 
 describe('PocketNetworkProtocolService', () => {

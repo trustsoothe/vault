@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@soothe/vault";
+import type { SupportedProtocols } from "@poktscan/vault";
 import { OriginNotPresented, UnknownError } from "../../errors/communication";
 import { REQUEST_BEING_HANDLED } from "../../constants/communication";
 
