@@ -73,6 +73,7 @@ export interface IAsset {
   mintContractAddress?: string;
   decimals: 6;
   iconUrl: string;
+  coinGeckoId?: string;
   /**only presented in wPOKT assets at the moment*/
   vaultAddress?: string;
 }
