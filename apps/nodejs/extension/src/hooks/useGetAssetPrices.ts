@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useAppSelector } from "./redux";
-import { useLazyGetAssetPricesQuery } from "../redux/slices/prices";
-import {
-  selectedChainSelector,
-  selectedProtocolSelector,
-} from "../redux/selectors/network";
+import { useLazyGetPricesQuery } from "../redux/slices/prices";
 import {
   assetsIdByAccountSelector,
   assetsSelector,
@@ -21,53 +17,30 @@ export interface UseGetAssetPricesResult {
 const useGetAssetPrices = (
   fetchAutomatically = true
 ): UseGetAssetPricesResult => {
-  const selectedProtocol = useAppSelector(selectedProtocolSelector);
-  const selectedChain = useAppSelector(selectedChainSelector);
   const assets = useAppSelector(assetsSelector);
   const assetsIdByAccount = useAppSelector(assetsIdByAccountSelector);
 
-  const currentPlatform = useAppSelector(
-    (state) =>
-      state.app.networks.find(
-        (network) =>
-          network.protocol === selectedProtocol &&
-          network.chainId === selectedChain
-      )?.assetPlatformId
-  );
-
-  const contractAddressToFetch = useMemo(() => {
+  const assetsToFetch = useMemo(() => {
     const selectedAssets = Object.values(assetsIdByAccount).reduce(
       (acc, assetsId) => [...acc, ...assetsId],
       []
     );
-    return assets
-      .filter(
-        (asset) =>
-          asset.protocol === selectedProtocol &&
-          asset.chainId === selectedChain &&
-          selectedAssets.includes(asset.id)
-      )
-      .map((asset) => asset.contractAddress)
-      .join(",");
-  }, [selectedProtocol, selectedChain, assets, assetsIdByAccount]);
+    return assets.filter(
+      (asset) => selectedAssets.includes(asset.id) && !!asset.coinGeckoId
+    );
+  }, [assets, assetsIdByAccount]);
 
-  const [fetchAssetPrices, result] = useLazyGetAssetPricesQuery({
+  const ids = assetsToFetch.map((asset) => asset.coinGeckoId).join(",");
+
+  const [fetchAssetPrices, result] = useLazyGetPricesQuery({
     pollingInterval: 1000 * 60,
   });
 
-  const canFetch = !!currentPlatform && !!contractAddressToFetch;
-
   const fetchAssetPricesMemoized = useCallback(() => {
-    if (canFetch) {
-      return fetchAssetPrices(
-        {
-          platformId: currentPlatform,
-          contractAddresses: contractAddressToFetch,
-        },
-        true
-      );
+    if (ids) {
+      return fetchAssetPrices(ids, true);
     }
-  }, [currentPlatform, contractAddressToFetch]);
+  }, [ids]);
 
   useEffect(() => {
     if (!fetchAutomatically) return;
@@ -84,22 +57,28 @@ const useGetAssetPrices = (
     const data = result?.data;
     const dataProcessed = {};
 
-    for (const contractAddress in data || {}) {
-      dataProcessed[contractAddress] = data?.[contractAddress]?.usd;
+    const contractAddressById = assetsToFetch.reduce((acc, item) => ({
+      ...acc,
+      [item.coinGeckoId]: item.contractAddress,
+    }));
+
+    for (const id in contractAddressById) {
+      dataProcessed[contractAddressById[id]] = data?.[id]?.usd;
     }
 
     return {
-      data: canFetch ? dataProcessed || {} : {},
-      isLoading: canFetch ? result?.isLoading || false : false,
-      isError: canFetch ? result?.isError || false : false,
-      canFetch,
+      data: ids ? dataProcessed || {} : {},
+      isLoading: ids ? result?.isLoading || false : false,
+      isError: ids ? result?.isError || false : false,
+      canFetch: !!ids,
       refetch: fetchAssetPricesMemoized,
     };
   }, [
     result?.data,
     result?.isError,
     result?.isLoading,
-    canFetch,
+    ids,
+    assetsToFetch,
     fetchAssetPricesMemoized,
   ]);
 };
