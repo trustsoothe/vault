@@ -1,4 +1,4 @@
-name: Release Packages
+name: Process Version Packages Pull Request
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  release:
-    name: Release
+  process-release-pull-request:
+    name: Process Version Packages Pull Request
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -24,3 +24,5 @@ jobs:
         uses: changesets/action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  execute-pre-release:
+    uses: ./.github/workflows/pre-release.yml
