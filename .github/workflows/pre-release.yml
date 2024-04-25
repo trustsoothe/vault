@@ -5,21 +5,19 @@ on:
 
 jobs:
   create-pre-release:
-    # Only run the job if the PR is from the changeset-release branch
-    if: startsWith(github.head_ref, 'changeset-release/')
     runs-on: ubuntu-latest
     environment: production
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref }}
       - name: Setup Node.js 16
         uses: actions/setup-node@v3
         with:
           node-version: 16
       - name: Install Dependencies
         run: yarn
+      - name: Version Packages
+        run: yarn changeset version
       - name: Build Extension Dependencies
         run: yarn turbo run build --filter=\!@poktscan/extension
       - name: Prepare Chromium Release Asset
@@ -35,7 +33,7 @@ jobs:
         uses: mknejp/delete-release-assets@v1
         with:
           token: ${{ github.token }}
-          tag: rc${{ github.event.pull_request.number }}
+          tag: rc-${{ steps.version.outputs.value }}
           assets: 'soothe-vault*.zip'
           fail-if-no-assets: false
           fail-if-no-release: false
