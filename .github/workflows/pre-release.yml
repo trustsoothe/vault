@@ -1,13 +1,7 @@
 name: Pre Release
 
 on:
-  pull_request:
-    branches:
-      - main
-    types:
-      - synchronize
-      - opened
-      - edited
+  workflow_call:
 
 jobs:
   create-pre-release:
