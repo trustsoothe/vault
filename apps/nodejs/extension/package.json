@@ -11,8 +11,8 @@
     "build:firefox": "BROWSER=Firefox webpack --config build/webpack/firefox.prod.js",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
     "clean:dist": "rm -rf dist",
-    "release:chromium": "yarn clean:dist && yarn build:chromium && mkdir -p releases && zip -r releases/soothe-vault-chromium-$(jq .version package.json -r).zip dist/*",
-    "release:firefox": "yarn clean:dist && yarn build:firefox && mkdir -p releases && zip -r releases/soothe-vault-firefox-$(jq .version package.json -r).zip dist/*"
+    "release:chromium": "yarn clean:dist && yarn build:chromium && mkdir -p releases && cd dist && zip -r ../releases/soothe-vault-chromium-$(jq .version ../package.json -r).zip *",
+    "release:firefox": "yarn clean:dist && yarn build:firefox && mkdir -p releases && cd dist && zip -r ../releases/soothe-vault-firefox-$(jq .version ../package.json -r).zip *"
   },
   "repository": "git@github.com:pokt-scan/soothe-vault.git",
   "author": "Alan Rojas <alan@poktscan.com>",

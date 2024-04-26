@@ -175,6 +175,7 @@ export const ImportComponent: React.FC<ImportComponentProps> = ({
           size={"small"}
           fullWidth
           required
+          type={"password"}
           autoComplete={"off"}
           {...register("private_key", {
             validate: async (value, formValues) => {

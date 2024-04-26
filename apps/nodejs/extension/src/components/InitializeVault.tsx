@@ -341,7 +341,7 @@ const VaultPreferences: React.FC<CustomInfoViewProps> = (infoProps) => {
         marginTop={"10px!important"}
       >
         <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
-          <Typography fontSize={12}>Enabled:</Typography>
+          <Typography fontSize={12}>Enable:</Typography>
           <Controller
             control={control}
             name={"sessionsMaxAge.enabled"}
