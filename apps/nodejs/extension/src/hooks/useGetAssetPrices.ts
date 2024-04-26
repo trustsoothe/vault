@@ -57,10 +57,13 @@ const useGetAssetPrices = (
     const data = result?.data;
     const dataProcessed = {};
 
-    const contractAddressById = assetsToFetch.reduce((acc, item) => ({
-      ...acc,
-      [item.coinGeckoId]: item.contractAddress,
-    }));
+    const contractAddressById = assetsToFetch.reduce(
+      (acc, item) => ({
+        ...acc,
+        [item.coinGeckoId]: item.contractAddress,
+      }),
+      {}
+    );
 
     for (const id in contractAddressById) {
       dataProcessed[contractAddressById[id]] = data?.[id]?.usd;
