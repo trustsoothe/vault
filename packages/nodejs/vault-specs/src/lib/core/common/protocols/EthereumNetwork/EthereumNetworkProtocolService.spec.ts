@@ -12,8 +12,8 @@ import {
   INetwork,
   SignTypedDataRequest,
   SignPersonalDataRequest,
-} from '@soothe/vault';
-import { WebEncryptionService } from '@soothe/vault-encryption-web';
+} from '@poktscan/vault';
+import { WebEncryptionService } from '@poktscan/vault-encryption-web';
 import {MockServerFactory} from '../../../../../mocks/mock-server-factory';
 
 describe('EthereumNetworkProtocolService', () => {

@@ -1,4 +1,4 @@
-import type { IProtocolTransactionResult } from "@soothe/vault/dist/lib/core/common/protocols/ProtocolTransaction";
+import type { IProtocolTransactionResult } from "@poktscan/vault/dist/lib/core/common/protocols/ProtocolTransaction";
 import type { RootState } from "../../store";
 import type { VaultSliceBuilder } from "../../../types";
 import { SerializedError, createAsyncThunk } from "@reduxjs/toolkit";
@@ -16,7 +16,7 @@ import {
   SupportedProtocols,
   TransferOptions,
   VaultRestoreErrorName,
-} from "@soothe/vault";
+} from "@poktscan/vault";
 import { getVaultPassword, VaultSlice } from "./index";
 import { getVault } from "../../../utils";
 import {

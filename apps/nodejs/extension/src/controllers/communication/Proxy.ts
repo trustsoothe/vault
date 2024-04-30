@@ -74,7 +74,7 @@ import type {
 import type { AccountsChangedToProvider } from "../../types/communications/accountChanged";
 import browser from "webextension-polyfill";
 import { z, ZodError } from "zod";
-import { SupportedProtocols } from "@soothe/vault";
+import { SupportedProtocols } from "@poktscan/vault";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,

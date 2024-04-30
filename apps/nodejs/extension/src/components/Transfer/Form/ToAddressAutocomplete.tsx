@@ -6,7 +6,7 @@ import type {
   SxProps,
   Theme,
 } from "@mui/material";
-import {AccountType, SerializedAccountReference} from '@soothe/vault'
+import {AccountType, SerializedAccountReference} from '@poktscan/vault'
 import type { AccountWithBalance } from "../../../types";
 import type { FormValues } from "../index";
 import Paper from "@mui/material/Paper";
@@ -17,7 +17,7 @@ import Typography from "@mui/material/Typography";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Controller, useFormContext } from "react-hook-form";
 import React, { useCallback, useMemo, useState } from "react";
-import { SupportedProtocols } from "@soothe/vault";
+import { SupportedProtocols } from "@poktscan/vault";
 import { isValidAddress } from "../../../utils/networkOperations";
 import { useAppSelector } from "../../../hooks/redux";
 import { getTruncatedText } from "../../../utils/ui";

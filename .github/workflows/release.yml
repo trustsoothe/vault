@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+jobs:
+  release:
+    # Only run this job if the pull request was merged and the source branch was a changeset-release branch
+    if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'changeset-release/')
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      LAVAMOAT_AUTO_POLICY: ${{ vars.LAVAMOAT_AUTO_POLICY }}
+      PROVIDER_INFO_NAME: ${{ vars.PROVIDER_INFO_NAME }}
+      PROVIDER_INFO_ICON: ${{ vars.PROVIDER_INFO_ICON }}
+      PROVIDER_INFO_RDNS: ${{ vars.PROVIDER_INFO_RDNS }}
+      WPOKT_TESTNET_API_BASE_URL: ${{ vars.WPOKT_TESTNET_API_BASE_URL }}
+      WPOKT_MAINNET_API_BASE_URL: ${{ vars.WPOKT_MAINNET_API_BASE_URL }}
+      PRICE_API_BASE_URL: ${{ vars.PRICE_API_BASE_URL }}
+      NETWORKS_CDN_URL: ${{ vars.NETWORKS_CDN_URL }}
+      ASSETS_CDN_URL: ${{ vars.ASSETS_CDN_URL }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Setup Node.js 16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install Dependencies
+        run: yarn
+      - name: Build Extension Dependencies
+        run: yarn turbo run build --filter=\!@poktscan/extension
+      - name: Prepare Chromium Release Asset
+        run: yarn release:chromium
+      - name: Prepare Firefox Release Asset
+        run: yarn release:firefox
+      - name: Extract Extension Package Version
+        uses: sergeysova/jq-action@v2.3.0
+        id: version
+        with:
+          cmd: 'jq .version apps/nodejs/extension/package.json -r'
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.version.outputs.value }}
+          prerelease: false
+          draft: false
+          tag_name: v${{ steps.version.outputs.value }}
+          make_latest: true
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            apps/nodejs/extension/releases/soothe-vault-chromium-${{ steps.version.outputs.value }}.zip
+            apps/nodejs/extension/releases/soothe-vault-firefox-${{ steps.version.outputs.value }}.zip

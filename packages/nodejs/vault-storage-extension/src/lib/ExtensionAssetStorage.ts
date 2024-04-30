@@ -1,5 +1,5 @@
-import {AssetStorage} from '@soothe/vault'
-import type {IStorage, SerializedAsset} from '@soothe/vault'
+import {AssetStorage} from '@poktscan/vault'
+import type {IStorage, SerializedAsset} from '@poktscan/vault'
 import {GenericExtensionStorage} from './GenericExtensionStorage'
 
 export class ExtensionAssetStorage extends AssetStorage {

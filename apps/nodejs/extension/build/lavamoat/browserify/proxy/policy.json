@@ -6,29 +6,29 @@
         "File": true
       }
     },
-    "@soothe/vault-encryption-web>@noble/hashes": {
+    "@poktscan/vault-encryption-web>@noble/hashes": {
       "globals": {
         "TextEncoder": true,
         "crypto": true
       }
     },
-    "@soothe/vault>@metamask/eth-sig-util": {
+    "@poktscan/vault>@metamask/eth-sig-util": {
       "packages": {
-        "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util": true,
-        "@soothe/vault>@metamask/eth-sig-util>@metamask/abi-utils": true,
-        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils": true,
-        "@soothe/vault>@metamask/eth-sig-util>tweetnacl-util": true,
-        "@soothe/vault>ed25519-hd-key>tweetnacl": true,
+        "@poktscan/vault>@metamask/eth-sig-util>@ethereumjs/util": true,
+        "@poktscan/vault>@metamask/eth-sig-util>@metamask/abi-utils": true,
+        "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils": true,
+        "@poktscan/vault>@metamask/eth-sig-util>tweetnacl-util": true,
+        "@poktscan/vault>ed25519-hd-key>tweetnacl": true,
         "browserify>buffer": true,
         "ethereum-cryptography": true
       }
     },
-    "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util": {
+    "@poktscan/vault>@metamask/eth-sig-util>@ethereumjs/util": {
       "globals": {
         "console.warn": true
       },
       "packages": {
-        "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": true,
+        "@poktscan/vault>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": true,
         "browserify>buffer": true,
         "browserify>insert-module-globals>is-buffer": true,
         "ethereum-cryptography": true,
@@ -36,7 +36,7 @@
         "web3-eth-accounts>@ethereumjs/rlp": true
       }
     },
-    "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": {
+    "@poktscan/vault>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": {
       "globals": {
         "Headers": true,
         "TextDecoder": true,
@@ -54,40 +54,40 @@
         "url": true
       }
     },
-    "@soothe/vault>@metamask/eth-sig-util>@metamask/abi-utils": {
+    "@poktscan/vault>@metamask/eth-sig-util>@metamask/abi-utils": {
       "packages": {
-        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils": true,
-        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": true
+        "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils": true,
+        "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": true
       }
     },
-    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils": {
+    "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils": {
       "globals": {
         "TextDecoder": true,
         "TextEncoder": true
       },
       "packages": {
-        "@soothe/vault-encryption-web>@noble/hashes": true,
-        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": true,
-        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>pony-cause": true,
-        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": true,
+        "@poktscan/vault-encryption-web>@noble/hashes": true,
+        "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": true,
+        "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils>pony-cause": true,
+        "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": true,
         "browserify>buffer": true,
         "ts-jest>@babel/core>debug": true,
         "ts-jest>semver": true
       }
     },
-    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": {
+    "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": {
       "globals": {
         "TextDecoder": true,
         "TextEncoder": true
       }
     },
-    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": {
+    "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": {
       "globals": {
         "console.warn": true,
         "define": true
       }
     },
-    "@soothe/vault>@metamask/eth-sig-util>tweetnacl-util": {
+    "@poktscan/vault>@metamask/eth-sig-util>tweetnacl-util": {
       "globals": {
         "atob": true,
         "btoa": true
@@ -96,14 +96,14 @@
         "browserify>browser-resolve": true
       }
     },
-    "@soothe/vault>ed25519-hd-key": {
+    "@poktscan/vault>ed25519-hd-key": {
       "packages": {
-        "@soothe/vault>ed25519-hd-key>tweetnacl": true,
+        "@poktscan/vault>ed25519-hd-key>tweetnacl": true,
         "browserify>buffer": true,
         "crypto-browserify>create-hmac": true
       }
     },
-    "@soothe/vault>ed25519-hd-key>tweetnacl": {
+    "@poktscan/vault>ed25519-hd-key>tweetnacl": {
       "globals": {
         "crypto": true,
         "msCrypto": true,
@@ -113,18 +113,18 @@
         "browserify>browser-resolve": true
       }
     },
-    "@soothe/vault>ethereumjs-util": {
+    "@poktscan/vault>ethereumjs-util": {
       "packages": {
-        "@soothe/vault>ethereumjs-util>bn.js": true,
-        "@soothe/vault>ethereumjs-util>ethereum-cryptography": true,
-        "@soothe/vault>ethereumjs-util>rlp": true,
+        "@poktscan/vault>ethereumjs-util>bn.js": true,
+        "@poktscan/vault>ethereumjs-util>ethereum-cryptography": true,
+        "@poktscan/vault>ethereumjs-util>rlp": true,
         "browserify>assert": true,
         "browserify>buffer": true,
         "browserify>insert-module-globals>is-buffer": true,
         "crypto-browserify>create-hash": true
       }
     },
-    "@soothe/vault>ethereumjs-util>bn.js": {
+    "@poktscan/vault>ethereumjs-util>bn.js": {
       "globals": {
         "Buffer": true
       },
@@ -132,33 +132,33 @@
         "browserify>browser-resolve": true
       }
     },
-    "@soothe/vault>ethereumjs-util>ethereum-cryptography": {
+    "@poktscan/vault>ethereumjs-util>ethereum-cryptography": {
       "packages": {
-        "@soothe/vault>ethereumjs-util>ethereum-cryptography>keccak": true,
-        "@soothe/vault>hdkey>secp256k1": true,
+        "@poktscan/vault>ethereumjs-util>ethereum-cryptography>keccak": true,
+        "@poktscan/vault>hdkey>secp256k1": true,
         "browserify>buffer": true,
         "crypto-browserify>randombytes": true
       }
     },
-    "@soothe/vault>ethereumjs-util>ethereum-cryptography>hash.js": {
+    "@poktscan/vault>ethereumjs-util>ethereum-cryptography>hash.js": {
       "packages": {
         "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
         "glob>inherits": true
       }
     },
-    "@soothe/vault>ethereumjs-util>ethereum-cryptography>keccak": {
+    "@poktscan/vault>ethereumjs-util>ethereum-cryptography>keccak": {
       "packages": {
         "browserify>buffer": true,
         "stream-http>readable-stream": true
       }
     },
-    "@soothe/vault>ethereumjs-util>rlp": {
+    "@poktscan/vault>ethereumjs-util>rlp": {
       "packages": {
-        "@soothe/vault>ethereumjs-util>rlp>bn.js": true,
+        "@poktscan/vault>ethereumjs-util>rlp>bn.js": true,
         "browserify>buffer": true
       }
     },
-    "@soothe/vault>ethereumjs-util>rlp>bn.js": {
+    "@poktscan/vault>ethereumjs-util>rlp>bn.js": {
       "globals": {
         "Buffer": true
       },
@@ -166,67 +166,67 @@
         "browserify>browser-resolve": true
       }
     },
-    "@soothe/vault>hdkey": {
+    "@poktscan/vault>hdkey": {
       "packages": {
-        "@soothe/vault>hdkey>bs58check": true,
-        "@soothe/vault>hdkey>ripemd160": true,
-        "@soothe/vault>hdkey>secp256k1": true,
+        "@poktscan/vault>hdkey>bs58check": true,
+        "@poktscan/vault>hdkey>ripemd160": true,
+        "@poktscan/vault>hdkey>secp256k1": true,
         "browserify>assert": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify": true
       }
     },
-    "@soothe/vault>hdkey>bs58check": {
+    "@poktscan/vault>hdkey>bs58check": {
       "packages": {
-        "@soothe/vault>hdkey>bs58check>bs58": true,
+        "@poktscan/vault>hdkey>bs58check>bs58": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify>create-hash": true
       }
     },
-    "@soothe/vault>hdkey>bs58check>bs58": {
+    "@poktscan/vault>hdkey>bs58check>bs58": {
       "packages": {
-        "@soothe/vault>hdkey>bs58check>bs58>base-x": true
+        "@poktscan/vault>hdkey>bs58check>bs58>base-x": true
       }
     },
-    "@soothe/vault>hdkey>bs58check>bs58>base-x": {
+    "@poktscan/vault>hdkey>bs58check>bs58>base-x": {
       "packages": {
         "browserify>browser-pack>safe-buffer": true
       }
     },
-    "@soothe/vault>hdkey>ripemd160": {
+    "@poktscan/vault>hdkey>ripemd160": {
       "packages": {
-        "@soothe/vault>hdkey>ripemd160>hash-base": true,
+        "@poktscan/vault>hdkey>ripemd160>hash-base": true,
         "browserify>buffer": true,
         "glob>inherits": true
       }
     },
-    "@soothe/vault>hdkey>ripemd160>hash-base": {
+    "@poktscan/vault>hdkey>ripemd160>hash-base": {
       "packages": {
         "browserify>browser-pack>safe-buffer": true,
         "glob>inherits": true,
         "stream-http>readable-stream": true
       }
     },
-    "@soothe/vault>hdkey>secp256k1": {
+    "@poktscan/vault>hdkey>secp256k1": {
       "packages": {
         "crypto-browserify>create-ecdh>elliptic": true
       }
     },
-    "@soothe/vault>protobufjs": {
+    "@poktscan/vault>protobufjs": {
       "globals": {
         "setTimeout": true
       },
       "packages": {
-        "@soothe/vault>protobufjs>@protobufjs/aspromise": true,
-        "@soothe/vault>protobufjs>@protobufjs/base64": true,
-        "@soothe/vault>protobufjs>@protobufjs/eventemitter": true,
-        "@soothe/vault>protobufjs>@protobufjs/float": true,
-        "@soothe/vault>protobufjs>@protobufjs/inquire": true,
-        "@soothe/vault>protobufjs>@protobufjs/pool": true,
-        "@soothe/vault>protobufjs>@protobufjs/utf8": true
+        "@poktscan/vault>protobufjs>@protobufjs/aspromise": true,
+        "@poktscan/vault>protobufjs>@protobufjs/base64": true,
+        "@poktscan/vault>protobufjs>@protobufjs/eventemitter": true,
+        "@poktscan/vault>protobufjs>@protobufjs/float": true,
+        "@poktscan/vault>protobufjs>@protobufjs/inquire": true,
+        "@poktscan/vault>protobufjs>@protobufjs/pool": true,
+        "@poktscan/vault>protobufjs>@protobufjs/utf8": true
       }
     },
-    "@soothe/vault>web3-eth": {
+    "@poktscan/vault>web3-eth": {
       "globals": {
         "XMLHttpRequest": true,
         "clearInterval": true,
@@ -237,11 +237,11 @@
         "setTimeout": true
       },
       "packages": {
-        "@soothe/vault>web3-eth>setimmediate": true,
-        "@soothe/vault>web3-eth>web3-core": true,
-        "@soothe/vault>web3-eth>web3-eth-abi": true,
-        "@soothe/vault>web3-eth>web3-net": true,
-        "@soothe/vault>web3-eth>web3-rpc-methods": true,
+        "@poktscan/vault>web3-eth>setimmediate": true,
+        "@poktscan/vault>web3-eth>web3-core": true,
+        "@poktscan/vault>web3-eth>web3-eth-abi": true,
+        "@poktscan/vault>web3-eth>web3-net": true,
+        "@poktscan/vault>web3-eth>web3-rpc-methods": true,
         "browserify>timers-browserify": true,
         "web3-eth-accounts": true,
         "web3-eth-accounts>web3-utils": true,
@@ -250,18 +250,18 @@
         "web3-validator": true
       }
     },
-    "@soothe/vault>web3-eth-contract": {
+    "@poktscan/vault>web3-eth-contract": {
       "packages": {
-        "@soothe/vault>web3-eth-contract>web3-eth": true,
-        "@soothe/vault>web3-eth>web3-core": true,
-        "@soothe/vault>web3-eth>web3-eth-abi": true,
+        "@poktscan/vault>web3-eth-contract>web3-eth": true,
+        "@poktscan/vault>web3-eth>web3-core": true,
+        "@poktscan/vault>web3-eth>web3-eth-abi": true,
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true,
         "web3-validator": true
       }
     },
-    "@soothe/vault>web3-eth-contract>web3-eth": {
+    "@poktscan/vault>web3-eth-contract>web3-eth": {
       "globals": {
         "clearInterval": true,
         "clearTimeout": true,
@@ -270,11 +270,11 @@
         "setTimeout": true
       },
       "packages": {
-        "@soothe/vault>web3-eth>setimmediate": true,
-        "@soothe/vault>web3-eth>web3-core": true,
-        "@soothe/vault>web3-eth>web3-eth-abi": true,
-        "@soothe/vault>web3-eth>web3-net": true,
-        "@soothe/vault>web3-eth>web3-rpc-methods": true,
+        "@poktscan/vault>web3-eth>setimmediate": true,
+        "@poktscan/vault>web3-eth>web3-core": true,
+        "@poktscan/vault>web3-eth>web3-eth-abi": true,
+        "@poktscan/vault>web3-eth>web3-net": true,
+        "@poktscan/vault>web3-eth>web3-rpc-methods": true,
         "browserify>timers-browserify": true,
         "web3-eth-accounts": true,
         "web3-eth-accounts>web3-utils": true,
@@ -283,7 +283,7 @@
         "web3-validator": true
       }
     },
-    "@soothe/vault>web3-eth>setimmediate": {
+    "@poktscan/vault>web3-eth>setimmediate": {
       "globals": {
         "MessageChannel": true,
         "setTimeout": true
@@ -292,11 +292,11 @@
         "process": true
       }
     },
-    "@soothe/vault>web3-eth>web3-core": {
+    "@poktscan/vault>web3-eth>web3-core": {
       "packages": {
-        "@soothe/vault>web3-eth>web3-core>web3-eth-iban": true,
-        "@soothe/vault>web3-eth>web3-providers-ws": true,
-        "@soothe/vault>web3-providers-http": true,
+        "@poktscan/vault>web3-eth>web3-core>web3-eth-iban": true,
+        "@poktscan/vault>web3-eth>web3-providers-ws": true,
+        "@poktscan/vault>web3-providers-http": true,
         "web3-eth-accounts": true,
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-errors": true,
@@ -304,63 +304,63 @@
         "web3-validator": true
       }
     },
-    "@soothe/vault>web3-eth>web3-core>web3-eth-iban": {
+    "@poktscan/vault>web3-eth>web3-core>web3-eth-iban": {
       "packages": {
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-validator": true
       }
     },
-    "@soothe/vault>web3-eth>web3-eth-abi": {
+    "@poktscan/vault>web3-eth>web3-eth-abi": {
       "globals": {
         "Buffer": true,
         "console.error": true
       },
       "packages": {
-        "@soothe/vault>web3-eth>web3-eth-abi>abitype": true,
+        "@poktscan/vault>web3-eth>web3-eth-abi>abitype": true,
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-errors": true,
         "web3-validator": true
       }
     },
-    "@soothe/vault>web3-eth>web3-net": {
+    "@poktscan/vault>web3-eth>web3-net": {
       "packages": {
-        "@soothe/vault>web3-eth>web3-core": true,
-        "@soothe/vault>web3-eth>web3-rpc-methods": true,
+        "@poktscan/vault>web3-eth>web3-core": true,
+        "@poktscan/vault>web3-eth>web3-rpc-methods": true,
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-types": true
       }
     },
-    "@soothe/vault>web3-eth>web3-providers-ws": {
+    "@poktscan/vault>web3-eth>web3-providers-ws": {
       "packages": {
-        "@soothe/vault>web3-eth>web3-providers-ws>isomorphic-ws": true,
+        "@poktscan/vault>web3-eth>web3-providers-ws>isomorphic-ws": true,
         "web3-eth-accounts>web3-utils": true,
         "web3-utils>web3-errors": true
       }
     },
-    "@soothe/vault>web3-eth>web3-providers-ws>isomorphic-ws": {
+    "@poktscan/vault>web3-eth>web3-providers-ws>isomorphic-ws": {
       "globals": {
         "MozWebSocket": true,
         "WebSocket": true
       }
     },
-    "@soothe/vault>web3-eth>web3-rpc-methods": {
+    "@poktscan/vault>web3-eth>web3-rpc-methods": {
       "packages": {
         "web3-validator": true
       }
     },
-    "@soothe/vault>web3-providers-http": {
+    "@poktscan/vault>web3-providers-http": {
       "globals": {
         "XMLHttpRequest": true,
         "fetch": true
       },
       "packages": {
-        "@soothe/vault>web3-providers-http>cross-fetch": true,
+        "@poktscan/vault>web3-providers-http>cross-fetch": true,
         "web3-utils>web3-errors": true,
         "web3-utils>web3-types": true
       }
     },
-    "@soothe/vault>web3-providers-http>cross-fetch": {
+    "@poktscan/vault>web3-providers-http>cross-fetch": {
       "globals": {
         "Blob": true,
         "FileReader": true,
@@ -651,7 +651,7 @@
     },
     "crypto-browserify>create-ecdh>elliptic": {
       "packages": {
-        "@soothe/vault>ethereumjs-util>ethereum-cryptography>hash.js": true,
+        "@poktscan/vault>ethereumjs-util>ethereum-cryptography>hash.js": true,
         "crypto-browserify>create-ecdh>bn.js": true,
         "crypto-browserify>create-ecdh>elliptic>brorand": true,
         "crypto-browserify>create-ecdh>elliptic>hmac-drbg": true,
@@ -671,14 +671,14 @@
     },
     "crypto-browserify>create-ecdh>elliptic>hmac-drbg": {
       "packages": {
-        "@soothe/vault>ethereumjs-util>ethereum-cryptography>hash.js": true,
+        "@poktscan/vault>ethereumjs-util>ethereum-cryptography>hash.js": true,
         "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
         "crypto-browserify>create-ecdh>elliptic>minimalistic-crypto-utils": true
       }
     },
     "crypto-browserify>create-hash": {
       "packages": {
-        "@soothe/vault>hdkey>ripemd160": true,
+        "@poktscan/vault>hdkey>ripemd160": true,
         "crypto-browserify>create-hash>cipher-base": true,
         "crypto-browserify>create-hash>md5.js": true,
         "crypto-browserify>pbkdf2>sha.js": true,
@@ -695,14 +695,14 @@
     },
     "crypto-browserify>create-hash>md5.js": {
       "packages": {
-        "@soothe/vault>hdkey>ripemd160>hash-base": true,
+        "@poktscan/vault>hdkey>ripemd160>hash-base": true,
         "browserify>browser-pack>safe-buffer": true,
         "glob>inherits": true
       }
     },
     "crypto-browserify>create-hmac": {
       "packages": {
-        "@soothe/vault>hdkey>ripemd160": true,
+        "@poktscan/vault>hdkey>ripemd160": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify>create-hash": true,
         "crypto-browserify>create-hash>cipher-base": true,
@@ -726,7 +726,7 @@
     },
     "crypto-browserify>pbkdf2": {
       "packages": {
-        "@soothe/vault>hdkey>ripemd160": true,
+        "@poktscan/vault>hdkey>ripemd160": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify>create-hash": true,
         "crypto-browserify>pbkdf2>sha.js": true,
@@ -859,17 +859,17 @@
         "fetch": true
       },
       "packages": {
-        "@soothe/vault>@metamask/eth-sig-util": true,
-        "@soothe/vault>@pokt-foundation/pocketjs-types": true,
-        "@soothe/vault>ed25519-hd-key": true,
-        "@soothe/vault>ethereumjs-util": true,
-        "@soothe/vault>hdkey": true,
-        "@soothe/vault>hex-lite": true,
-        "@soothe/vault>protobufjs": true,
-        "@soothe/vault>varint": true,
-        "@soothe/vault>web3-eth": true,
-        "@soothe/vault>web3-eth-contract": true,
-        "@soothe/vault>web3-providers-http": true,
+        "@poktscan/vault>@metamask/eth-sig-util": true,
+        "@poktscan/vault>@pokt-foundation/pocketjs-types": true,
+        "@poktscan/vault>ed25519-hd-key": true,
+        "@poktscan/vault>ethereumjs-util": true,
+        "@poktscan/vault>hdkey": true,
+        "@poktscan/vault>hex-lite": true,
+        "@poktscan/vault>protobufjs": true,
+        "@poktscan/vault>varint": true,
+        "@poktscan/vault>web3-eth": true,
+        "@poktscan/vault>web3-eth-contract": true,
+        "@poktscan/vault>web3-providers-http": true,
         "browserify>buffer": true,
         "external:../../../packages/nodejs/vault/node_modules/@scure/bip39/index.js": true,
         "external:../../../packages/nodejs/vault/node_modules/@scure/bip39/wordlists/english.js": true,

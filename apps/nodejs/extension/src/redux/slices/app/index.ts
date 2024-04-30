@@ -10,7 +10,7 @@ import {
   SerializedAccountReference,
   Session,
   SupportedProtocols,
-} from "@soothe/vault";
+} from "@poktscan/vault";
 import {
   SELECTED_ACCOUNT_CHANGED,
   SELECTED_CHAIN_CHANGED,
@@ -73,6 +73,7 @@ export interface IAsset {
   mintContractAddress?: string;
   decimals: 6;
   iconUrl: string;
+  coinGeckoId?: string;
   /**only presented in wPOKT assets at the moment*/
   vaultAddress?: string;
 }

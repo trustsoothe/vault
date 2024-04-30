@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@soothe/vault";
+import type { SupportedProtocols } from "@poktscan/vault";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Controller,
@@ -175,6 +175,7 @@ export const ImportComponent: React.FC<ImportComponentProps> = ({
           size={"small"}
           fullWidth
           required
+          type={"password"}
           autoComplete={"off"}
           {...register("private_key", {
             validate: async (value, formValues) => {

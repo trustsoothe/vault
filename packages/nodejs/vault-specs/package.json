@@ -1,6 +1,6 @@
 {
-  "name": "@soothe/vault-specs",
-  "version": "0.0.0",
+  "name": "@poktscan/vault-specs",
+  "version": "0.0.1",
   "description": "Automated Specs for the Universal Crypto Wallet Manager",
   "repository": "git@github.com:pokt-scan/soothe-vault.git",
   "author": "Julio Henriquez <julio@poktscan.com>",
@@ -16,10 +16,10 @@
     "build": "yarn typecheck"
   },
   "dependencies": {
-    "@soothe/vault": "*",
-    "@soothe/vault-encryption-web": "*",
-    "@soothe/vault-storage-extension": "*",
-    "@soothe/vault-storage-filesystem": "*",
+    "@poktscan/vault": "*",
+    "@poktscan/vault-encryption-web": "*",
+    "@poktscan/vault-storage-extension": "*",
+    "@poktscan/vault-storage-filesystem": "*",
     "url-join": "^5.0.0",
     "uuid": "9.0.0"
   },

@@ -10,7 +10,7 @@ import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import { useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
-import { SupportedProtocols } from "@soothe/vault";
+import { SupportedProtocols } from "@poktscan/vault";
 import { enqueueSnackbar } from "../../utils/ui";
 import { RPC_ALREADY_EXISTS } from "../../errors/rpc";
 import { NETWORKS_PAGE } from "../../constants/routes";

@@ -1,5 +1,5 @@
 import {setupServer} from 'msw/node';
-import {INetwork, ProtocolNotSupported, SupportedProtocols} from '@soothe/vault';
+import {INetwork, ProtocolNotSupported, SupportedProtocols} from '@poktscan/vault';
 import {DefaultBodyType, MockedRequest, RestHandler} from "msw";
 import {
   queryBalanceHandlerFactory as pocketQueryBalanceHandlerFactory,

@@ -1,6 +1,6 @@
 {
-  "name": "@soothe/vault-storage-extension",
-  "version": "0.0.0",
+  "name": "@poktscan/vault-storage-extension",
+  "version": "0.0.1",
   "description": "Web extensions based storage plugin for the Universal Crypto Wallet Manager",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
@@ -16,11 +16,11 @@
     "build": "node esbuild.js && tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@soothe/vault": "*",
+    "@poktscan/vault": "*",
     "webextension-polyfill": "0.10.0"
   },
   "devDependencies": {
-    "@soothe/tsconfig": "*",
+    "@poktscan/tsconfig": "*",
     "@types/chrome": "0.0.237",
     "@types/webextension-polyfill": "0.10.0",
     "web-ext-types": "3.2.1"

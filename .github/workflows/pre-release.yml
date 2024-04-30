@@ -1,0 +1,62 @@
+name: Pre Release
+
+on:
+  workflow_call:
+
+jobs:
+  create-pre-release:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      LAVAMOAT_AUTO_POLICY: ${{ vars.LAVAMOAT_AUTO_POLICY }}
+      PROVIDER_INFO_NAME: ${{ vars.PROVIDER_INFO_NAME }}
+      PROVIDER_INFO_ICON: ${{ vars.PROVIDER_INFO_ICON }}
+      PROVIDER_INFO_RDNS: ${{ vars.PROVIDER_INFO_RDNS }}
+      WPOKT_TESTNET_API_BASE_URL: ${{ vars.WPOKT_TESTNET_API_BASE_URL }}
+      WPOKT_MAINNET_API_BASE_URL: ${{ vars.WPOKT_MAINNET_API_BASE_URL }}
+      PRICE_API_BASE_URL: ${{ vars.PRICE_API_BASE_URL }}
+      NETWORKS_CDN_URL: ${{ vars.NETWORKS_CDN_URL }}
+      ASSETS_CDN_URL: ${{ vars.ASSETS_CDN_URL }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Setup Node.js 16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install Dependencies
+        run: yarn
+      - name: Version Packages
+        run: yarn changeset version
+      - name: Build Extension Dependencies
+        run: yarn turbo run build --filter=\!@poktscan/extension
+      - name: Prepare Chromium Release Asset
+        run: yarn release:chromium
+      - name: Prepare Firefox Release Asset
+        run: yarn release:firefox
+      - name: Extract Extension Package Version
+        uses: sergeysova/jq-action@v2.3.0
+        id: version
+        with:
+          cmd: 'jq .version apps/nodejs/extension/package.json -r'
+      - name: Delete old release assets
+        uses: mknejp/delete-release-assets@v1
+        with:
+          token: ${{ github.token }}
+          tag: rc-${{ steps.version.outputs.value }}
+          assets: 'soothe-vault*.zip'
+          fail-if-no-assets: false
+          fail-if-no-release: false
+      - name: Create or Update Pre-Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release Candidate (${{ steps.version.outputs.value }})
+          prerelease: true
+          draft: false
+          tag_name: ${{ steps.version.outputs.value }}-rc
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+              apps/nodejs/extension/releases/soothe-vault-chromium-${{ steps.version.outputs.value }}.zip
+              apps/nodejs/extension/releases/soothe-vault-firefox-${{ steps.version.outputs.value }}.zip

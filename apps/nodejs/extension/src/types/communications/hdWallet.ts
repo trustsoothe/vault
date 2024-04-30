@@ -1,7 +1,7 @@
 import type {
   ImportRecoveryPhraseOptions,
   SerializedAccountReference,
-} from "@soothe/vault";
+} from "@poktscan/vault";
 import type {
   CreateNewAccountFromHdSeedArg,
   ImportHdAccountOptions,

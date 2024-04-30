@@ -1,0 +1,33 @@
+name: Process Version Packages Pull Request
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  process-release-pull-request:
+    name: Process Version Packages Pull Request
+    runs-on: ubuntu-latest
+    outputs:
+      has-changesets: ${{ steps.changeset.outputs.hasChangesets }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Setup Node.js 16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install Dependencies
+        run: yarn
+      - name: Create Release Pull Request
+        id: changeset
+        uses: changesets/action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  execute-pre-release:
+    needs: process-release-pull-request
+    if: needs.process-release-pull-request.outputs.has-changesets == 'true'
+    uses: ./.github/workflows/pre-release.yml

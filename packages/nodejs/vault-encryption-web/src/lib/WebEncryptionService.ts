@@ -1,4 +1,4 @@
-import {IEncryptionService, Passphrase} from "@soothe/vault";
+import {IEncryptionService, Passphrase} from "@poktscan/vault";
 
 const DERIVED_KEY_FORMAT = 'AES-GCM';
 const STRING_ENCODING = 'utf-8';
