@@ -23,7 +23,9 @@
     "build:ci": "./build-ci.sh",
     "test": "turbo run test",
     "commit": "turbo run commit",
-    "ci:test": "turbo run ci:test"
+    "ci:test": "turbo run ci:test",
+    "release:chromium": "turbo run release:chromium",
+    "release:firefox": "turbo run release:firefox"
   },
   "dependencies": {
     "@changesets/cli": "^2.26.1",
