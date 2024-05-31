@@ -13,7 +13,6 @@ import { Store, applyMiddleware } from "webext-redux";
 import { Provider } from "react-redux";
 import thunkMiddleware from "redux-thunk";
 import CircularLoading from "./components/common/CircularLoading";
-import ThemeProvider from "./theme";
 import { SnackbarProvider } from "notistack";
 import { closeCurrentWindow, removeRequestWithRes } from "./utils/ui";
 import {
@@ -39,6 +38,7 @@ import WarningIcon from "./components/common/WarningIcon";
 import { isFirefox } from "./utils";
 import { requiredOrigins } from "./constants/permissions";
 import RequestOriginsPermission from "./components/RequestOriginsPermission";
+import App from "./ui";
 
 const store = new Store();
 const storeWithMiddleware = applyMiddleware(
@@ -333,9 +333,10 @@ browser.runtime.sendMessage({ type: APP_IS_READY_REQUEST }).then(() => {
 
     root.render(
       <Provider store={storeWithMiddleware}>
-        <ThemeProvider>
-          <Home />
-        </ThemeProvider>
+        <App />
+        {/*<ThemeProvider>*/}
+        {/*  <Home />*/}
+        {/*</ThemeProvider>*/}
       </Provider>
     );
   });
