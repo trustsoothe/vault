@@ -1,5 +1,6 @@
 import Box from "@mui/material/Box";
 import React, { useState } from "react";
+import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { FormProvider, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
@@ -78,22 +79,41 @@ export default function InitializeVault() {
 
   return (
     <Box
-      width={1}
       height={1}
-      paddingX={2.4}
-      paddingTop={4.8}
       display={"flex"}
-      alignItems={"center"}
       flexDirection={"column"}
-      sx={{
-        "& .strength-bar": {
-          marginTop: 1.3,
-        },
-      }}
-      component={"form"}
-      onSubmit={handleSubmit(onSubmit)}
+      justifyContent={"space-between"}
     >
-      {content}
+      <Box
+        flexGrow={1}
+        paddingX={2.4}
+        paddingTop={4.8}
+        display={"flex"}
+        alignItems={"center"}
+        flexDirection={"column"}
+        sx={{
+          "& .strength-bar": {
+            marginTop: 1.3,
+          },
+          boxShadow: "0 1px 0 0 #eff1f4",
+        }}
+        component={"form"}
+        onSubmit={handleSubmit(onSubmit)}
+      >
+        {content}
+      </Box>
+      <Box
+        height={40}
+        paddingX={2.4}
+        display={"flex"}
+        alignItems={"center"}
+        justifyContent={"space-between"}
+        borderTop={"1px solid #eff1f4"}
+        bgcolor={"#fff"}
+      >
+        <Typography>Have a Vault Backup?</Typography>
+        <Button>Import</Button>
+      </Box>
     </Box>
   );
 }

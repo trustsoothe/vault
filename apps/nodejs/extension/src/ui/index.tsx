@@ -36,7 +36,6 @@ export default function App() {
           sx={{
             height: HEIGHT,
             width: WIDTH,
-            paddingBottom: "20px",
             boxSizing: "border-box",
             position: "relative",
             display: "flex",

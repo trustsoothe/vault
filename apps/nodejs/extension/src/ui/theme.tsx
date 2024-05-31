@@ -16,6 +16,9 @@ const theme = createTheme({
       primary: "#11161c",
       secondary: "#636a74",
     },
+    background: {
+      paper: "#f7f8f9",
+    },
   },
   typography: {
     fontFamily: [`Lexend`, "sans-serif"].join(","),
@@ -85,6 +88,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           height: 37,
+          backgroundColor: "#fff",
           boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
           "& fieldset": {
             borderColor: "#d5d8dc",
