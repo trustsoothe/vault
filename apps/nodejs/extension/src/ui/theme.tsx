@@ -1,23 +1,30 @@
 import { createTheme, ThemeProvider as ThemeProviderMui } from "@mui/material";
 import React from "react";
 
-const colors = {
+export const themeColors = Object.freeze({
   primary: "#3739b9",
-};
+  bgLightGray: "#f7f8f9",
+  borderLightGray: "#eff1f4",
+  white: "#ffffff",
+  black: "#11161c",
+  textSecondary: "#636a74",
+  gray: "#a2a9b6",
+  success: "#7db83d",
+});
 
 const theme = createTheme({
   customColors: null,
   spacing: 10,
   palette: {
     primary: {
-      main: colors.primary,
+      main: themeColors.primary,
     },
     text: {
-      primary: "#11161c",
-      secondary: "#636a74",
+      primary: themeColors.black,
+      secondary: themeColors.textSecondary,
     },
     background: {
-      paper: "#f7f8f9",
+      paper: themeColors.bgLightGray,
     },
   },
   typography: {
@@ -33,7 +40,7 @@ const theme = createTheme({
     },
     body1: {
       fontSize: 13,
-      color: "#636a74",
+      color: themeColors.textSecondary,
     },
     body2: {
       fontSize: 11,
@@ -43,26 +50,33 @@ const theme = createTheme({
     },
   },
   components: {
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          padding: "0px",
+        },
+      },
+    },
     MuiSwitch: {
       styleOverrides: {
         root: {
           width: 37,
-          height: 21,
+          height: 22,
           padding: 0,
-          boxShadow: "inset 0 0 3px 0 rgba(0, 0, 0, 0.08)",
         },
         track: {
           display: "block",
           width: 37,
           opacity: "1!important",
-          height: 21,
-          borderRadius: "10px",
+          height: 22,
+          borderRadius: "16px",
           backgroundColor: "#dadfe5",
+          boxShadow: "inset 0 0 3px 0 rgba(0, 0, 0, 0.08)",
         },
         switchBase: {
           padding: "0!important",
           left: 2,
-          top: 2,
+          top: 3,
         },
         thumb: {
           color: "#fff",
@@ -74,6 +88,13 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           textTransform: "none",
+          borderRadius: "8px",
+          "&.Mui-disabled": {
+            color: "#a2a9b6",
+            "&.MuiButton-contained": {
+              backgroundColor: "#eff1f4",
+            },
+          },
         },
         contained: {
           borderRadius: "8px",
@@ -101,10 +122,11 @@ const theme = createTheme({
           },
           "& .MuiInputBase-root": {
             height: 37,
+            borderRadius: "6px",
             paddingRight: "15px",
             "&:hover": {
               "& fieldset": {
-                borderColor: colors.primary,
+                borderColor: themeColors.primary,
               },
             },
             "&.Mui-focused": {

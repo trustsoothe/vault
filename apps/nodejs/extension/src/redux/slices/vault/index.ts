@@ -201,7 +201,6 @@ const vaultSlice = createSlice({
       state.dateUntilVaultIsLocked = undefined;
     });
     builder.addCase(unlockVault.rejected, (state, action) => {
-      debugger;
       if (action.error?.name === VaultRestoreErrorName) {
         const currentCounter =
           state.wrongPasswordCounter[LOCKED_VAULT_PASS_ID] || 0;
