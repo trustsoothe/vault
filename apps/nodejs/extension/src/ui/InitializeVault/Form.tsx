@@ -80,7 +80,13 @@ export default function InitializeVaultForm() {
         justifyContent={"space-between"}
       >
         <Typography variant={"subtitle2"}>Keep Session Active</Typography>
-        <Switch size={"small"} />
+        <Controller
+          control={control}
+          name={"keepSessionActive"}
+          render={({ field }) => (
+            <Switch size={"small"} {...field} checked={field.value} />
+          )}
+        />
       </Stack>
       <Button
         variant={"contained"}

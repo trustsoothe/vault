@@ -5,6 +5,7 @@ import Typography from "@mui/material/Typography";
 import { FormProvider, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import InitializeVaultForm from "./Form";
+import ImportVaultModal from "./ImportVaultModal";
 
 export interface InitializeVaultFormValues {
   password: string;
@@ -13,6 +14,7 @@ export interface InitializeVaultFormValues {
 }
 
 export default function InitializeVault() {
+  const [showImportModal, setShowImportModal] = useState(false);
   const [status, setStatus] = useState<"normal" | "loading" | "error">(
     "normal"
   );
@@ -25,6 +27,9 @@ export default function InitializeVault() {
     },
   });
   const { handleSubmit } = methods;
+
+  const toggleShowImportModal = () =>
+    setShowImportModal((prevState) => !prevState);
 
   const onSubmit = (data: InitializeVaultFormValues) => {
     if (status !== "loading") {
@@ -78,42 +83,48 @@ export default function InitializeVault() {
   }
 
   return (
-    <Box
-      height={1}
-      display={"flex"}
-      flexDirection={"column"}
-      justifyContent={"space-between"}
-    >
+    <>
+      <ImportVaultModal
+        open={showImportModal}
+        onClose={toggleShowImportModal}
+      />
       <Box
-        flexGrow={1}
-        paddingX={2.4}
-        paddingTop={4.8}
+        height={1}
         display={"flex"}
-        alignItems={"center"}
         flexDirection={"column"}
-        sx={{
-          "& .strength-bar": {
-            marginTop: 1.3,
-          },
-          boxShadow: "0 1px 0 0 #eff1f4",
-        }}
-        component={"form"}
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        {content}
-      </Box>
-      <Box
-        height={40}
-        paddingX={2.4}
-        display={"flex"}
-        alignItems={"center"}
         justifyContent={"space-between"}
-        borderTop={"1px solid #eff1f4"}
-        bgcolor={"#fff"}
       >
-        <Typography>Have a Vault Backup?</Typography>
-        <Button>Import</Button>
+        <Box
+          flexGrow={1}
+          paddingX={2.4}
+          paddingTop={4.8}
+          display={"flex"}
+          alignItems={"center"}
+          flexDirection={"column"}
+          sx={{
+            "& .strength-bar": {
+              marginTop: 1.3,
+            },
+            boxShadow: "0 1px 0 0 #eff1f4",
+          }}
+          component={"form"}
+          onSubmit={handleSubmit(onSubmit)}
+        >
+          {content}
+        </Box>
+        <Box
+          height={40}
+          paddingX={2.4}
+          display={"flex"}
+          alignItems={"center"}
+          justifyContent={"space-between"}
+          borderTop={"1px solid #eff1f4"}
+          bgcolor={"#fff"}
+        >
+          <Typography>Have a Vault Backup?</Typography>
+          <Button onClick={toggleShowImportModal}>Import</Button>
+        </Box>
       </Box>
-    </Box>
+    </>
   );
 }
