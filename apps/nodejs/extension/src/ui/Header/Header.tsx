@@ -1,49 +1,53 @@
-import React, { useState } from "react";
-import Stack from "@mui/material/Stack";
-import { Outlet } from "react-router-dom";
-import { themeColors } from "../theme";
-import { HEIGHT, WIDTH } from "../../constants/ui";
-import NetworkSelect from "./NetworkSelect/NetworkSelect";
-import AccountSelect from "./AccountSelect/AccountSelect";
-import ConnectionStatus from "./ConnectionStatus";
-import Menu from "./Menu";
+import React, { useState } from 'react'
+import Stack from '@mui/material/Stack'
+import { Outlet } from 'react-router-dom'
+import { themeColors } from '../theme'
+import { HEIGHT, WIDTH } from '../../constants/ui'
+import NetworkSelect from './NetworkSelect/NetworkSelect'
+import AccountSelect from './AccountSelect/AccountSelect'
+import ConnectionStatus from './ConnectionStatus'
+import Menu from './Menu'
+import NewAccountModal from '../NewAccount/NewAccountModal'
 
-const headerHeight = 64;
+const headerHeight = 64
 
 export default function Header() {
-  const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [showCreateAccount, setShowCreateAccount] = useState(true)
 
   const toggleShowCreateAccount = () => {
-    setShowCreateAccount((prevState) => !prevState);
+    setShowCreateAccount((prevState) => !prevState)
     // closeMenu();
-  };
+  }
 
   return (
-    <Stack width={WIDTH} height={HEIGHT} position={"relative"}>
-      <Stack
-        width={1}
-        padding={1.6}
-        direction={"row"}
-        height={headerHeight}
-        boxSizing={"border-box"}
-        bgcolor={themeColors.bgLightGray}
-        borderBottom={`1px solid ${themeColors.borderLightGray}`}
-      >
-        <NetworkSelect />
-        <AccountSelect />
-        <Stack direction={"row-reverse"} flexGrow={1} spacing={1.6}>
-          <Menu />
-          <ConnectionStatus />
+    <>
+      <NewAccountModal open={showCreateAccount} onClose={toggleShowCreateAccount}/>
+      <Stack width={WIDTH} height={HEIGHT} position={'relative'}>
+        <Stack
+          width={1}
+          padding={1.6}
+          direction={'row'}
+          height={headerHeight}
+          boxSizing={'border-box'}
+          bgcolor={themeColors.bgLightGray}
+          borderBottom={`1px solid ${themeColors.borderLightGray}`}
+        >
+          <NetworkSelect/>
+          <AccountSelect/>
+          <Stack direction={'row-reverse'} flexGrow={1} spacing={1.6}>
+            <Menu toggleShowCreateAccount={toggleShowCreateAccount}/>
+            <ConnectionStatus/>
+          </Stack>
+        </Stack>
+        <Stack
+          flexGrow={1}
+          height={`calc(100% - ${headerHeight}px)`}
+          paddingX={2}
+          position={'relative'}
+        >
+          <Outlet context={{ toggleShowCreateAccount }}/>
         </Stack>
       </Stack>
-      <Stack
-        flexGrow={1}
-        height={`calc(100% - ${headerHeight}px)`}
-        paddingX={2}
-        position={"relative"}
-      >
-        <Outlet context={{ toggleShowCreateAccount }} />
-      </Stack>
-    </Stack>
-  );
+    </>
+  )
 }
