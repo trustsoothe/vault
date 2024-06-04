@@ -9,6 +9,7 @@ import { HEIGHT, WIDTH } from "../../constants/ui";
 import NetworkSelect from "./NetworkSelect/NetworkSelect";
 import AccountSelect from "./AccountSelect/AccountSelect";
 import { PREFERENCES_PAGE } from "../../constants/routes";
+import NewAccountModal from "../NewAccount/NewAccountModal";
 import ConnectionStatus from "./ConnectionStatus";
 import Menu from "./Menu";
 
@@ -39,32 +40,38 @@ export default function Header() {
   };
 
   return (
-    <Stack width={WIDTH} height={HEIGHT} position={"relative"}>
-      {location.pathname === "/" ? (
-        <HeaderContainer>
-          <NetworkSelect />
-          <AccountSelect />
-          <Stack direction={"row-reverse"} flexGrow={1} spacing={1.6}>
-            <Menu />
-            <ConnectionStatus />
-          </Stack>
-        </HeaderContainer>
-      ) : (
-        <HeaderContainer justifyContent={"space-between"}>
-          <BackButton />
-          <Typography variant={"subtitle2"} textAlign={"center"}>
-            {getLabelByRoute(location.pathname)}
-          </Typography>
-          <Menu />
-        </HeaderContainer>
-      )}
-      <Stack
-        flexGrow={1}
-        height={`calc(100% - ${headerHeight}px)`}
-        position={"relative"}
-      >
-        <Outlet context={{ toggleShowCreateAccount }} />
+    <>
+      <NewAccountModal
+        open={showCreateAccount}
+        onClose={toggleShowCreateAccount}
+      />
+      <Stack width={WIDTH} height={HEIGHT} position={"relative"}>
+        {location.pathname === "/" ? (
+          <HeaderContainer>
+            <NetworkSelect />
+            <AccountSelect />
+            <Stack direction={"row-reverse"} flexGrow={1} spacing={1.6}>
+              <Menu toggleShowCreateAccount={toggleShowCreateAccount} />
+              <ConnectionStatus />
+            </Stack>
+          </HeaderContainer>
+        ) : (
+          <HeaderContainer justifyContent={"space-between"}>
+            <BackButton />
+            <Typography variant={"subtitle2"} textAlign={"center"}>
+              {getLabelByRoute(location.pathname)}
+            </Typography>
+            <Menu toggleShowCreateAccount={toggleShowCreateAccount} />
+          </HeaderContainer>
+        )}
+        <Stack
+          flexGrow={1}
+          height={`calc(100% - ${headerHeight}px)`}
+          position={"relative"}
+        >
+          <Outlet context={{ toggleShowCreateAccount }} />
+        </Stack>
       </Stack>
-    </Stack>
+    </>
   );
 }

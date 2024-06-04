@@ -35,7 +35,11 @@ const CustomDivider = styled(Divider)<DividerProps>(() => ({
   marginBottom: "6px!important",
 }));
 
-export default function Menu() {
+interface MenuProps {
+  toggleShowCreateAccount: () => void;
+}
+
+export default function Menu({ toggleShowCreateAccount }: MenuProps) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLButtonElement>(
     null
   );
@@ -56,7 +60,10 @@ export default function Menu() {
     {
       type: "button",
       label: "New Account",
-      onClick: handleClose,
+      onClick: () => {
+        toggleShowCreateAccount();
+        handleClose();
+      },
     },
     {
       type: "button",

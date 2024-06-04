@@ -1,17 +1,19 @@
-import { createTheme, ThemeProvider as ThemeProviderMui } from "@mui/material";
-import React from "react";
+import { createTheme, ThemeProvider as ThemeProviderMui } from '@mui/material'
+import React from 'react'
+import ExpandIcon from './assets/img/expand_select_icon.svg'
 
 export const themeColors = Object.freeze({
-  primary: "#3739b9",
-  bgLightGray: "#f7f8f9",
-  borderLightGray: "#eff1f4",
-  white: "#ffffff",
-  black: "#11161c",
-  textSecondary: "#636a74",
-  gray: "#a2a9b6",
+  primary: '#3739b9',
+  bgLightGray: '#f7f8f9',
+  borderLightGray: '#eff1f4',
+  white: '#ffffff',
+  black: '#11161c',
+  textSecondary: '#636a74',
+  gray: '#a2a9b6',
   dark_gray1: "#8b93a0",
-  success: "#7db83d",
-});
+  success: '#7db83d',
+  successLight: '#ebf5de'
+})
 
 const theme = createTheme({
   customColors: null,
@@ -29,9 +31,9 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: [`Lexend`, "sans-serif"].join(","),
+    fontFamily: [`Lexend`, 'sans-serif'].join(','),
     allVariants: {
-      letterSpacing: "normal",
+      letterSpacing: 'normal',
     },
     button: {
       fontSize: 13,
@@ -58,7 +60,7 @@ const theme = createTheme({
     MuiIconButton: {
       styleOverrides: {
         root: {
-          padding: "0px",
+          padding: '0px',
         },
       },
     },
@@ -70,40 +72,52 @@ const theme = createTheme({
           padding: 0,
         },
         track: {
-          display: "block",
+          display: 'block',
           width: 37,
-          opacity: "1!important",
+          opacity: '1!important',
           height: 22,
-          borderRadius: "16px",
-          backgroundColor: "#dadfe5",
-          boxShadow: "inset 0 0 3px 0 rgba(0, 0, 0, 0.08)",
+          borderRadius: '16px',
+          backgroundColor: '#dadfe5',
+          boxShadow: 'inset 0 0 3px 0 rgba(0, 0, 0, 0.08)',
         },
         switchBase: {
-          padding: "0!important",
+          padding: '0!important',
           left: 2,
           top: 3,
         },
         thumb: {
-          color: "#fff",
-          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.24)",
+          color: '#fff',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.24)',
         },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: "none",
-          borderRadius: "8px",
-          "&.Mui-disabled": {
-            color: "#a2a9b6",
-            "&.MuiButton-contained": {
-              backgroundColor: "#eff1f4",
+          textTransform: 'none',
+          borderRadius: '8px',
+          '&.Mui-disabled': {
+            color: '#a2a9b6',
+            '&.MuiButton-contained': {
+              backgroundColor: '#eff1f4',
             },
           },
         },
         contained: {
-          borderRadius: "8px",
+          borderRadius: '8px',
           height: 37,
+        },
+      },
+    },
+    MuiSelect: {
+      defaultProps: {
+        IconComponent: ExpandIcon,
+      },
+      styleOverrides: {
+        icon: {
+          top: '15px!important',
+          right: 15,
+
         },
       },
     },
@@ -114,42 +128,42 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           height: 37,
-          backgroundColor: "#fff",
-          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
-          "& fieldset": {
-            borderColor: "#d5d8dc",
-            borderWidth: "1px!important",
+          backgroundColor: '#fff',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.08)',
+          '& fieldset': {
+            borderColor: '#d5d8dc',
+            borderWidth: '1px!important',
           },
           input: {
             paddingLeft: 15,
             paddingTop: 9,
             paddingBottom: 9,
           },
-          "& .MuiInputBase-root": {
+          '& .MuiInputBase-root': {
             height: 37,
-            borderRadius: "6px",
-            paddingRight: "15px",
-            "&:hover": {
-              "& fieldset": {
+            borderRadius: '6px',
+            paddingRight: '15px',
+            '&:hover': {
+              '& fieldset': {
                 borderColor: themeColors.primary,
               },
             },
-            "&.Mui-focused": {
-              boxShadow: "0 0 0 2px #ceceff",
+            '&.Mui-focused': {
+              boxShadow: '0 0 0 2px #ceceff',
             },
           },
         },
       },
     },
   },
-});
+})
 
 interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
 const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  return <ThemeProviderMui theme={theme}>{children}</ThemeProviderMui>;
-};
+  return <ThemeProviderMui theme={theme}>{children}</ThemeProviderMui>
+}
 
-export default ThemeProvider;
+export default ThemeProvider
