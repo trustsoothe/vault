@@ -18,14 +18,18 @@ import { labelByProtocolMap } from "../../constants/protocols";
 import SuccessIcon from "../assets/img/success_icon.svg";
 import useGetPrices from "../../hooks/useGetPrices";
 import { useAppSelector } from "../../hooks/redux";
-import Summary from "../components/Summary";
 import { themeColors } from "../theme";
+import Summary from "./Summary";
 
 interface AccountCreatedProps {
   account: SerializedAccountReference;
+  successLabel: string;
 }
 
-export default function AccountCreated({ account }: AccountCreatedProps) {
+export default function AccountAdded({
+  account,
+  successLabel,
+}: AccountCreatedProps) {
   const networkSymbol = useAppSelector(networkSymbolSelector);
   const selectedChainByProtocol = useAppSelector(
     selectedChainByProtocolSelector
@@ -70,7 +74,7 @@ export default function AccountCreated({ account }: AccountCreatedProps) {
         direction={"row"}
       >
         <SuccessIcon />
-        <Typography variant={"subtitle2"}>Account Created</Typography>
+        <Typography variant={"subtitle2"}>{successLabel}</Typography>
       </Stack>
       <Summary
         rows={[

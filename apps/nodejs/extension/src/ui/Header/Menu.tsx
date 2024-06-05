@@ -36,10 +36,14 @@ const CustomDivider = styled(Divider)<DividerProps>(() => ({
 }));
 
 interface MenuProps {
-  toggleShowCreateAccount: () => void;
+  showCreateAccount: () => void;
+  showImportAccount: () => void;
 }
 
-export default function Menu({ toggleShowCreateAccount }: MenuProps) {
+export default function Menu({
+  showCreateAccount,
+  showImportAccount,
+}: MenuProps) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLButtonElement>(
     null
   );
@@ -55,20 +59,12 @@ export default function Menu({ toggleShowCreateAccount }: MenuProps) {
     {
       type: "button",
       label: "Import Account",
-      onClick: handleClose,
+      onClick: showImportAccount,
     },
     {
       type: "button",
       label: "New Account",
-      onClick: () => {
-        toggleShowCreateAccount();
-        handleClose();
-      },
-    },
-    {
-      type: "button",
-      label: "HD Account",
-      onClick: handleClose,
+      onClick: showCreateAccount,
     },
     {
       type: "divider",
@@ -146,7 +142,7 @@ export default function Menu({ toggleShowCreateAccount }: MenuProps) {
                 key={index}
                 onClick={() => {
                   menuItem.onClick();
-                  // handleClose()
+                  handleClose();
                 }}
               >
                 {menuItem.label}

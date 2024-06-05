@@ -10,6 +10,7 @@ import NetworkSelect from "./NetworkSelect/NetworkSelect";
 import AccountSelect from "./AccountSelect/AccountSelect";
 import { PREFERENCES_PAGE } from "../../constants/routes";
 import NewAccountModal from "../NewAccount/NewAccountModal";
+import ImportAccountModal from "../ImportAccount/ImportAccountModal";
 import ConnectionStatus from "./ConnectionStatus";
 import Menu from "./Menu";
 
@@ -32,18 +33,23 @@ function getLabelByRoute(pathname: string) {
 
 export default function Header() {
   const location = useLocation();
-  const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [modalToShow, setModalToShow] = useState<
+    "none" | "create_account" | "import_account"
+  >("none");
 
-  const toggleShowCreateAccount = () => {
-    setShowCreateAccount((prevState) => !prevState);
-    // closeMenu();
-  };
+  const showCreateAccount = () => setModalToShow("create_account");
+  const showImportAccount = () => setModalToShow("import_account");
+  const closeModal = () => setModalToShow("none");
 
   return (
     <>
       <NewAccountModal
-        open={showCreateAccount}
-        onClose={toggleShowCreateAccount}
+        open={modalToShow === "create_account"}
+        onClose={closeModal}
+      />
+      <ImportAccountModal
+        open={modalToShow === "import_account"}
+        onClose={closeModal}
       />
       <Stack width={WIDTH} height={HEIGHT} position={"relative"}>
         {location.pathname === "/" ? (
@@ -51,7 +57,10 @@ export default function Header() {
             <NetworkSelect />
             <AccountSelect />
             <Stack direction={"row-reverse"} flexGrow={1} spacing={1.6}>
-              <Menu toggleShowCreateAccount={toggleShowCreateAccount} />
+              <Menu
+                showCreateAccount={showCreateAccount}
+                showImportAccount={showImportAccount}
+              />
               <ConnectionStatus />
             </Stack>
           </HeaderContainer>
@@ -61,7 +70,10 @@ export default function Header() {
             <Typography variant={"subtitle2"} textAlign={"center"}>
               {getLabelByRoute(location.pathname)}
             </Typography>
-            <Menu toggleShowCreateAccount={toggleShowCreateAccount} />
+            <Menu
+              showCreateAccount={showCreateAccount}
+              showImportAccount={showImportAccount}
+            />
           </HeaderContainer>
         )}
         <Stack
@@ -69,7 +81,7 @@ export default function Header() {
           height={`calc(100% - ${headerHeight}px)`}
           position={"relative"}
         >
-          <Outlet context={{ toggleShowCreateAccount }} />
+          <Outlet context={{}} />
         </Stack>
       </Stack>
     </>

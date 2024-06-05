@@ -62,8 +62,9 @@ const ProtocolSelector: React.ForwardRefRenderFunction<
               },
               paddingRight: 3,
               position: "relative",
+              color: themeColors.black,
               backgroundColor: isSelected
-                ? themeColors.bgLightGray
+                ? `${themeColors.bgLightGray}!important`
                 : themeColors.white,
             }}
           >
