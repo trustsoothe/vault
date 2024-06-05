@@ -22,8 +22,8 @@ import ProtocolSelector from "../components/ProtocolSelector";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
+import AccountAdded from "../components/AccountAdded";
 import BaseDialog from "../components/BaseDialog";
-import AccountCreated from "./AccountCreated";
 import { themeColors } from "../theme";
 
 interface FormValues {
@@ -142,7 +142,6 @@ export default function NewAccountModal({
             </Typography>
             <Controller
               control={control}
-              rules={nameRules}
               name={"protocol"}
               render={({ field }) => <ProtocolSelector {...field} />}
             />
@@ -158,6 +157,7 @@ export default function NewAccountModal({
             <Controller
               control={control}
               name={"account_name"}
+              rules={nameRules}
               render={({ field, fieldState: { error } }) => (
                 <TextField
                   placeholder={"Account Name"}
@@ -190,7 +190,10 @@ export default function NewAccountModal({
       content = (
         <>
           <DialogContent sx={{ padding: "0px!important" }}>
-            <AccountCreated account={selectedAccount} />
+            <AccountAdded
+              account={selectedAccount}
+              successLabel={"Account Created"}
+            />
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>
             <DialogButtons

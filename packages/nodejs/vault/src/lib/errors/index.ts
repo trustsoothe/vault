@@ -84,13 +84,14 @@ export class VaultRestoreError extends KeyringError {
   }
 }
 
-export const VaultUninitializedErrorName = 'VaultUninitializedError'
+export const VaultUninitializedErrorName = "VaultUninitializedError";
 
 export class VaultUninitializedError extends KeyringError {
   constructor() {
     super({
       name: VaultUninitializedErrorName,
-      message: 'Vault could not be restored from store. Has it been initialized?',
+      message:
+        "Vault could not be restored from store. Has it been initialized?",
     });
   }
 }
@@ -156,10 +157,12 @@ export class ProtocolMismatchError extends KeyringError {
   }
 }
 
+export const InvalidPrivateKeyErrorName = "InvalidPrivateKeyError";
+
 export class InvalidPrivateKeyError extends KeyringError {
   constructor(message?: string) {
     super({
-      name: "InvalidPrivateKeyError",
+      name: "InvalidPrivateKeyErrorName",
       message: message || "The provided private key is invalid",
     });
   }
