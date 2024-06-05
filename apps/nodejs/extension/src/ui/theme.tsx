@@ -9,6 +9,7 @@ export const themeColors = Object.freeze({
   black: "#11161c",
   textSecondary: "#636a74",
   gray: "#a2a9b6",
+  dark_gray1: "#8b93a0",
   success: "#7db83d",
 });
 
@@ -34,6 +35,10 @@ const theme = createTheme({
     },
     button: {
       fontSize: 13,
+    },
+    h1: {
+      fontSize: 30,
+      fontWeight: 400,
     },
     h3: {
       fontSize: 17,

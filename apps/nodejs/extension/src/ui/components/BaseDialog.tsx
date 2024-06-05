@@ -41,7 +41,6 @@ export default function BaseDialog(props: BaseDialogProps) {
         backdrop: {
           ...props?.slotProps?.backdrop,
           sx: {
-            position: "absolute",
             backgroundColor: "rgba(17, 22, 28, 0.5)",
             //@ts-ignore
             ...props?.slotProps?.backdrop?.sx,
