@@ -1,13 +1,12 @@
 import React from "react";
-import { styled } from "@mui/material";
 import { Link } from "react-router-dom";
 import MuiMenu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
-import Divider, { DividerProps } from "@mui/material/Divider";
 import MoreIcon from "../assets/img/more_icon.svg";
 import { themeColors } from "../theme";
-import { PREFERENCES_PAGE } from "../../constants/routes";
+import { PREFERENCES_PAGE, SEEDS_PAGE } from "../../constants/routes";
+import MenuDivider from "../components/MenuDivider";
 
 interface RouteItem {
   type: "route";
@@ -26,14 +25,6 @@ interface DividerItem {
 }
 
 type MenuItem = RouteItem | ButtonItem | DividerItem;
-
-const CustomDivider = styled(Divider)<DividerProps>(() => ({
-  borderColor: themeColors.borderLightGray,
-  marginLeft: "-6px",
-  marginRight: "-6px",
-  marginTop: "6px!important",
-  marginBottom: "6px!important",
-}));
 
 interface MenuProps {
   showCreateAccount: () => void;
@@ -65,6 +56,11 @@ export default function Menu({
       type: "button",
       label: "New Account",
       onClick: showCreateAccount,
+    },
+    {
+      type: "route",
+      label: "Seeds",
+      route: SEEDS_PAGE,
     },
     {
       type: "divider",
@@ -107,33 +103,13 @@ export default function Menu({
             sx: {
               width: 190,
               marginTop: 0.8,
-              // todo: move this styles to theme
-              borderRadius: "8px",
-              backgroundColor: themeColors.white,
-              boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.16)",
-              "& ul": {
-                padding: 0.6,
-              },
-              "& li": {
-                height: 40,
-                minHeight: 40,
-                maxHeight: 40,
-                paddingX: 1.4,
-                paddingY: 1.2,
-                boxSizing: "border-box",
-                color: themeColors.black,
-                "& a": {
-                  color: themeColors.black,
-                  textDecoration: "none",
-                },
-              },
             },
           },
         }}
       >
         {menuItems.map((menuItem, index) => {
           if (menuItem.type === "divider") {
-            return <CustomDivider key={index} />;
+            return <MenuDivider key={index} />;
           }
 
           if (menuItem.type === "button") {

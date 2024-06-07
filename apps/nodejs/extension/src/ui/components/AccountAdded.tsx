@@ -15,10 +15,10 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 import { balanceMapConsideringAsset } from "../../redux/selectors/account";
 import { getTruncatedText, roundAndSeparate } from "../../utils/ui";
 import { labelByProtocolMap } from "../../constants/protocols";
-import SuccessIcon from "../assets/img/success_icon.svg";
+import SuccessActionBanner from "./SuccessActionBanner";
 import useGetPrices from "../../hooks/useGetPrices";
 import { useAppSelector } from "../../hooks/redux";
-import { themeColors } from "../theme";
+import AccountInfo from "./AccountInfo";
 import Summary from "./Summary";
 
 interface AccountCreatedProps {
@@ -62,38 +62,24 @@ export default function AccountAdded({
 
   return (
     <Stack padding={2.4} spacing={1.6}>
-      <Stack
-        height={40}
-        spacing={1}
-        paddingX={1.4}
-        paddingY={1.2}
-        alignItems={"center"}
-        borderRadius={"8px"}
-        boxSizing={"border-box"}
-        bgcolor={themeColors.successLight}
-        direction={"row"}
-      >
-        <SuccessIcon />
-        <Typography variant={"subtitle2"}>{successLabel}</Typography>
-      </Stack>
+      <SuccessActionBanner label={successLabel} />
       <Summary
         rows={[
           {
+            type: "row",
             label: "Name",
             value: (
-              <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
-                {/*todo: change for account img*/}
-                <Avatar sx={{ height: 15, width: 15 }} />
-                <Typography variant={"subtitle2"}>{account.name}</Typography>
-              </Stack>
+              <AccountInfo address={account.address} name={account.name} />
             ),
           },
           {
+            type: "row",
             label: "Address",
             // todo: change for CopyAddressButton component
             value: getTruncatedText(account.address, 5),
           },
           {
+            type: "row",
             label: "Protocol",
             value: labelByProtocolMap[account.protocol],
           },
@@ -102,10 +88,13 @@ export default function AccountAdded({
       <Summary
         rows={[
           {
+            type: "row",
             label: "Balance",
             value: loadingBalance ? (
               <Skeleton variant={"rectangular"} width={100} height={20} />
             ) : (
+              // todo: create component
+
               <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
                 <Typography noWrap={true} variant={"subtitle2"}>
                   {roundAndSeparate(
