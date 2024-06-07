@@ -1,9 +1,9 @@
 import Stack from "@mui/material/Stack";
-import React, { useEffect } from "react";
 import Button from "@mui/material/Button";
 import { shallowEqual } from "react-redux";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
+import React, { useEffect, useState } from "react";
 import { SupportedProtocols } from "@poktscan/vault";
 import ActivityIcon from "../assets/img/activity_icon.svg";
 import AppToBackground from "../../controllers/communication/AppToBackground";
@@ -22,12 +22,22 @@ import {
   networkSymbolSelector,
   selectedChainSelector,
 } from "../../redux/selectors/network";
+import SendModal from "../Transaction/SendModal";
+import GrayContainer from "../components/GrayContainer";
+import useDidMountEffect from "../../hooks/useDidMountEffect";
 
 export default function SelectedAccount() {
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const selectedChain = useAppSelector(selectedChainSelector);
   const balanceMap = useAppSelector(balanceMapConsideringAsset(undefined));
   const networkSymbol = useAppSelector(networkSymbolSelector);
+  const [showSendModal, setShowSendModal] = useState(false);
+
+  const toggleShowSendModal = () => setShowSendModal((prev) => !prev);
+
+  useDidMountEffect(() => {
+    setShowSendModal(false);
+  }, [selectedAccount.address]);
 
   useEffect(() => {
     AppToBackground.getAccountBalance({
@@ -65,84 +75,85 @@ export default function SelectedAccount() {
     (balanceMap?.[selectedAccount.address]?.loading && !balance) || false;
 
   return (
-    <Stack
-      width={1}
-      height={250}
-      paddingTop={4}
-      alignItems={"center"}
-      boxSizing={"border-box"}
-      boxShadow={"0 1px 0 0 #eff1f4"}
-      borderBottom={`1px solid ${themeColors.borderLightGray}`}
-    >
-      {loadingBalance ? (
-        <Skeleton width={150} variant={"rectangular"} height={35} />
-      ) : (
-        <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
-          <Typography variant={"h1"} noWrap={true} maxWidth={275}>
-            {roundAndSeparate(
-              balance,
-              selectedAccount.protocol === SupportedProtocols.Ethereum ? 18 : 6,
-              "0"
-            )}
-          </Typography>
-          <Typography variant={"h1"} color={themeColors.gray} fontWeight={300}>
-            {networkSymbol}
-          </Typography>
-        </Stack>
-      )}
+    <>
+      <SendModal open={showSendModal} onClose={toggleShowSendModal} />
+      <GrayContainer>
+        {loadingBalance ? (
+          <Skeleton width={150} variant={"rectangular"} height={35} />
+        ) : (
+          <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
+            <Typography variant={"h1"} noWrap={true} maxWidth={275}>
+              {roundAndSeparate(
+                balance,
+                selectedAccount.protocol === SupportedProtocols.Ethereum
+                  ? 18
+                  : 6,
+                "0"
+              )}
+            </Typography>
+            <Typography
+              variant={"h1"}
+              color={themeColors.gray}
+              fontWeight={300}
+            >
+              {networkSymbol}
+            </Typography>
+          </Stack>
+        )}
 
-      {isLoadingNetworkPrices || loadingBalance ? (
-        <Skeleton
-          width={70}
-          height={20}
-          variant={"rectangular"}
+        {isLoadingNetworkPrices || loadingBalance ? (
+          <Skeleton
+            width={70}
+            height={20}
+            variant={"rectangular"}
+            sx={{
+              marginTop: 0.8,
+              marginBottom: 2,
+            }}
+          />
+        ) : (
+          <Typography marginTop={0.8} marginBottom={2}>
+            $ {roundAndSeparate(balance * usdPrice, 2, "0.00")}
+          </Typography>
+        )}
+
+        <CopyAddressButton address={selectedAccount?.address} />
+        <Stack
+          width={1}
+          spacing={1.3}
+          marginTop={4.6}
+          direction={"row"}
+          alignItems={"center"}
+          justifyContent={"center"}
           sx={{
-            marginTop: 0.8,
-            marginBottom: 2,
-          }}
-        />
-      ) : (
-        <Typography marginTop={0.8} marginBottom={2}>
-          $ {roundAndSeparate(balance * usdPrice, 2, "0.00")}
-        </Typography>
-      )}
-
-      <CopyAddressButton address={selectedAccount?.address} />
-      <Stack
-        width={1}
-        spacing={1.3}
-        marginTop={4.6}
-        direction={"row"}
-        alignItems={"center"}
-        justifyContent={"center"}
-        sx={{
-          "& button": {
-            width: 102,
-            height: 37,
-            paddingLeft: 1.3,
-            paddingRight: 1.1,
-            justifyContent: "space-between",
-            backgroundColor: themeColors.white,
-            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
-            "&:not(.send-btn)": {
-              color: themeColors.black,
+            "& button": {
+              width: 102,
+              height: 37,
+              paddingLeft: 1.3,
+              paddingRight: 1.1,
+              justifyContent: "space-between",
+              backgroundColor: themeColors.white,
+              boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+              "&:not(.send-btn)": {
+                color: themeColors.black,
+              },
             },
-          },
-        }}
-      >
-        <Button className={"send-btn"}>
-          <span>Send</span>
-          <SendIcon />
-        </Button>
-        <Button>
-          <span>Swap</span>
-          <SwapIcon />
-        </Button>
-        <Button>
-          <span>Activity</span>
-          <ActivityIcon />
-        </Button>
-      </Stack>
-    </Stack>
+          }}
+        >
+          <Button className={"send-btn"} onClick={toggleShowSendModal}>
+            <span>Send</span>
+            <SendIcon />
+          </Button>
+          <Button>
+            <span>Swap</span>
+            <SwapIcon />
+          </Button>
+          <Button>
+            <span>Activity</span>
+            <ActivityIcon />
+          </Button>
+        </Stack>
+      </GrayContainer>
+    </>
   );
 }

@@ -3,21 +3,13 @@ import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import PuzzleIcon from "../assets/img/puzzle_icon.svg";
+import GrayContainer from "../components/GrayContainer";
 import { themeColors } from "../theme";
 
 export default function NoAccounts() {
   return (
     <>
-      <Stack
-        width={1}
-        height={250}
-        paddingTop={4.8}
-        paddingBottom={2.4}
-        alignItems={"center"}
-        boxSizing={"border-box"}
-        boxShadow={"0 1px 0 0 #eff1f4"}
-        borderBottom={`1px solid ${themeColors.borderLightGray}`}
-      >
+      <GrayContainer>
         <PuzzleIcon />
         <Typography width={252} marginTop={1.4} textAlign={"center"}>
           You don’t have any accounts yet. Please import or create a new
@@ -43,7 +35,7 @@ export default function NoAccounts() {
           <Button>Import</Button>
           <Button sx={{ color: themeColors.black }}>Create New</Button>
         </Stack>
-      </Stack>
+      </GrayContainer>
       <Stack flexGrow={1} bgcolor={themeColors.white} />
     </>
   );

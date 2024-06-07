@@ -8,7 +8,12 @@ import { themeColors } from "../theme";
 import { HEIGHT, WIDTH } from "../../constants/ui";
 import NetworkSelect from "./NetworkSelect/NetworkSelect";
 import AccountSelect from "./AccountSelect/AccountSelect";
-import { PREFERENCES_PAGE } from "../../constants/routes";
+import {
+  IMPORT_SEEDS_PAGE,
+  NEW_SEEDS_PAGE,
+  PREFERENCES_PAGE,
+  SEEDS_PAGE,
+} from "../../constants/routes";
 import NewAccountModal from "../NewAccount/NewAccountModal";
 import ImportAccountModal from "../ImportAccount/ImportAccountModal";
 import ConnectionStatus from "./ConnectionStatus";
@@ -28,7 +33,22 @@ export const HeaderContainer = styled(Stack)<StackProps>(() => ({
 }));
 
 function getLabelByRoute(pathname: string) {
-  if (pathname === PREFERENCES_PAGE) return "Preferences";
+  switch (pathname) {
+    case PREFERENCES_PAGE:
+      return "Preferences";
+
+    case SEEDS_PAGE:
+      return "Seeds";
+
+    case NEW_SEEDS_PAGE:
+      return "New Seed";
+
+    case IMPORT_SEEDS_PAGE:
+      return "Import Seed";
+
+    default:
+      return "Unknown";
+  }
 }
 
 export default function Header() {
