@@ -3,6 +3,7 @@ import { createHashRouter } from "react-router-dom";
 import Preferences from "./Preferences/Preferences";
 import {
   IMPORT_SEEDS_PAGE,
+  MANAGE_ACCOUNTS_PAGE,
   NEW_SEEDS_PAGE,
   PREFERENCES_PAGE,
   SEEDS_PAGE,
@@ -12,6 +13,7 @@ import Home from "./Home/Home";
 import Seeds from "./Seeds/Seeds";
 import ImportSeed from "./Seeds/ImportSeed";
 import CreateNewSeed from "./Seeds/CreateNewSeed";
+import ManageAccounts from "./ManageAccounts/ManageAccounts";
 
 export const router = createHashRouter([
   {
@@ -37,6 +39,10 @@ export const router = createHashRouter([
       {
         path: NEW_SEEDS_PAGE,
         element: <CreateNewSeed />,
+      },
+      {
+        path: MANAGE_ACCOUNTS_PAGE,
+        element: <ManageAccounts />,
       },
     ],
   },

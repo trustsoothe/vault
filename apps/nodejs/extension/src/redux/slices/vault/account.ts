@@ -78,12 +78,11 @@ export const createNewAccountFromHdSeed = createAsyncThunk(
     const vaultPassword = await getVaultPassword(vaultSession.id);
     const vaultPassphrase = new Passphrase(vaultPassword);
 
-    const accountArr = await ExtensionVaultInstance.addHDWalletAccount(
+    const account = await ExtensionVaultInstance.addHDWalletAccount(
       vaultSession.id,
       vaultPassphrase,
       { ...options }
     );
-    const account = accountArr.pop().serialize();
 
     const parentIsImported = accountsImported.includes(options.seedAccountId);
 
@@ -91,7 +90,7 @@ export const createNewAccountFromHdSeed = createAsyncThunk(
       await context.dispatch(addImportedAccountAddress(account.address));
     }
 
-    return account;
+    return account.serialize();
   }
 );
 

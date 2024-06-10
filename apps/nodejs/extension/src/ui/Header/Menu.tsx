@@ -5,7 +5,11 @@ import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
 import MoreIcon from "../assets/img/more_icon.svg";
 import { themeColors } from "../theme";
-import { PREFERENCES_PAGE, SEEDS_PAGE } from "../../constants/routes";
+import {
+  MANAGE_ACCOUNTS_PAGE,
+  PREFERENCES_PAGE,
+  SEEDS_PAGE,
+} from "../../constants/routes";
 import MenuDivider from "../components/MenuDivider";
 
 interface RouteItem {
@@ -61,6 +65,11 @@ export default function Menu({
       type: "route",
       label: "Seeds",
       route: SEEDS_PAGE,
+    },
+    {
+      type: "route",
+      label: "Manage Accounts",
+      route: MANAGE_ACCOUNTS_PAGE,
     },
     {
       type: "divider",

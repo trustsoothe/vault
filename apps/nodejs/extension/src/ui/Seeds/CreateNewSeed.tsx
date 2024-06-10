@@ -1,16 +1,15 @@
 import Stack from "@mui/material/Stack";
-import Button from "@mui/material/Button";
 import Switch from "@mui/material/Switch";
 import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import React, { useEffect, useState } from "react";
 import { SEEDS_PAGE } from "../../constants/routes";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import SuccessIcon from "../assets/img/success_icon.svg";
 import DialogButtons from "../components/DialogButtons";
 import WordPhraseContainer from "./WordPhraseContainer";
 import { generateRecoveryPhrase } from "../../utils";
 import NameAndWordsInput from "./NameAndWordsInput";
+import CopyButton from "../components/CopyButton";
 import PassphraseInput from "./PassphraseInput";
 import FillSeedPhrase from "./FillSeedPhrase";
 import { themeColors } from "../theme";
@@ -37,7 +36,6 @@ interface NewSeedFormValues {
 
 export default function CreateNewSeed() {
   const navigate = useNavigate();
-  const [showSeedWasCopied, setShowSeedWasCopied] = useState(false);
   const [status, setStatus] = useState<Status>("form");
 
   const methods = useForm<NewSeedFormValues>({
@@ -88,13 +86,6 @@ export default function CreateNewSeed() {
     setValue("wordList", wordsToComplete);
     setValue("requiredWords", requiredWords);
   }, [phraseSize]);
-
-  const copySeed = () => {
-    navigator.clipboard.writeText(phrase).then(() => {
-      setShowSeedWasCopied(true);
-      setTimeout(() => setShowSeedWasCopied(false), 2000);
-    });
-  };
 
   const onSubmit = (data: NewSeedFormValues) => {
     if (status === "form") {
@@ -152,23 +143,7 @@ export default function CreateNewSeed() {
                   </Typography>
                 ))}
               </WordPhraseContainer>
-              <Button
-                sx={{
-                  width: 1,
-                  backgroundColor: themeColors.white,
-                  boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
-                }}
-                onClick={!showSeedWasCopied ? copySeed : undefined}
-              >
-                {!showSeedWasCopied ? (
-                  "Copy Seed"
-                ) : (
-                  <>
-                    <SuccessIcon style={{ marginRight: "7px" }} />
-                    Seed Copied
-                  </>
-                )}
-              </Button>
+              <CopyButton label={"Copy Seed"} textToCopy={phrase} />
             </Stack>
             <PassphraseInput />
           </Stack>
