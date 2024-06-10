@@ -1,47 +1,27 @@
+import type { StackProps } from "@mui/material/Stack";
 import React from "react";
-import Stack, { StackProps } from "@mui/material/Stack";
-import Button, { ButtonProps } from "@mui/material/Button";
-import { themeColors } from "../theme";
+import { useNavigate } from "react-router-dom";
+import NewEntitiesButtons from "../components/NewEntitiesButtons";
+import { IMPORT_SEEDS_PAGE, NEW_SEEDS_PAGE } from "../../constants/routes";
 
-interface NewEntitiesButtonsProps {
+interface NewSeedButtonsProps {
   containerProps?: StackProps;
-  importProps?: ButtonProps;
-  createProps?: ButtonProps;
 }
 
-export default function NewEntitiesButtons({
+export default function NewSeedButtons({
   containerProps,
-  importProps,
-  createProps,
-}: NewEntitiesButtonsProps) {
+}: NewSeedButtonsProps) {
+  const navigate = useNavigate();
+
   return (
-    <Stack
-      width={1}
-      spacing={1.2}
-      marginTop={5}
-      paddingX={2.4}
-      direction={"row"}
-      alignItems={"center"}
-      boxSizing={"border-box"}
-      {...containerProps}
-      sx={{
-        ...containerProps.sx,
-        button: {
-          width: 160,
-          height: 37,
-          backgroundColor: themeColors.white,
-          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
-          ...containerProps.sx?.["button"],
-        },
+    <NewEntitiesButtons
+      containerProps={containerProps}
+      importProps={{
+        onClick: () => navigate(IMPORT_SEEDS_PAGE),
       }}
-    >
-      <Button {...importProps}>Import</Button>
-      <Button
-        {...createProps}
-        sx={{ color: themeColors.black, ...createProps?.sx }}
-      >
-        Create New
-      </Button>
-    </Stack>
+      createProps={{
+        onClick: () => navigate(NEW_SEEDS_PAGE),
+      }}
+    />
   );
 }

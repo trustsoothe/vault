@@ -76,18 +76,12 @@ export class PocketNetworkProtocolService
 
   async createHDWalletAccount(
     options: AddHDWalletAccountOptions
-  ): Promise<Account[]> {
-    const accounts: Account[] = [];
-
-    for (let i = 0; i < options.indexes?.length; i++) {
-      const account = await this.deriveHDAccountAtIndex(
-        options.seedAccount,
-        options.indexes[i]
-      );
-      accounts.push(account);
-    }
-
-    return accounts;
+  ): Promise<Account> {
+    return this.deriveHDAccountAtIndex(
+      options.seedAccount,
+      options.index,
+      options.name
+    );
   }
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
@@ -393,7 +387,8 @@ export class PocketNetworkProtocolService
 
   private async deriveHDAccountAtIndex(
     seedAccount: Account,
-    index: number
+    index: number,
+    name?: string
   ): Promise<Account> {
     const derivedKeys = derivePath(
       `m/44'/635'/0'/0'/${index}'`,
@@ -401,7 +396,7 @@ export class PocketNetworkProtocolService
     );
     return this.createAccountFromKeyPair(
       derivedKeys,
-      `${seedAccount.name} ${index + 1}`,
+      name ? name : `${seedAccount.name} ${index + 1}`,
       AccountType.HDChild,
       0,
       index,

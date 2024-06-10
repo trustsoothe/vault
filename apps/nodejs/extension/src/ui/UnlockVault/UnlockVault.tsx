@@ -84,9 +84,10 @@ export default function UnlockVault() {
             name={"password"}
             render={({ field, fieldState: { error } }) => (
               <PasswordInput
-                placeholder={"Vault Password"}
                 required
+                autoFocus
                 {...field}
+                placeholder={"Vault Password"}
                 error={!!error || wrongPassword}
                 helperText={wrongPassword ? "Wrong password" : error?.message}
               />

@@ -1,12 +1,13 @@
 import { shallowEqual } from "react-redux";
+import MenuItem from "@mui/material/MenuItem";
 import { useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import { SupportedProtocols } from "@poktscan/vault";
+import { AccountType, SupportedProtocols } from "@poktscan/vault";
 import {
   selectedChainByProtocolSelector,
   selectedProtocolSelector,
@@ -16,17 +17,23 @@ import {
   changeSelectedNetwork,
 } from "../../redux/slices/app";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { selectedAccountSelector } from "../../redux/selectors/account";
+import {
+  accountsSelector,
+  selectedAccountSelector,
+} from "../../redux/selectors/account";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import ProtocolSelector from "../components/ProtocolSelector";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
 import AccountAdded from "../components/AccountAdded";
+import MenuDivider from "../components/MenuDivider";
+import AccountInfo from "../components/AccountInfo";
 import BaseDialog from "../components/BaseDialog";
 import { themeColors } from "../theme";
 
 interface FormValues {
+  type: "standalone" | string;
   account_name: string;
   protocol: SupportedProtocols;
 }
@@ -59,6 +66,7 @@ export default function NewAccountModal({
 }: NewAccountModalProps) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const accounts = useAppSelector(accountsSelector);
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const protocol = useAppSelector(selectedProtocolSelector);
   const selectedChainByProtocol = useAppSelector(
@@ -70,6 +78,7 @@ export default function NewAccountModal({
     defaultValues: {
       account_name: "",
       protocol,
+      type: "",
     },
   });
 
@@ -79,7 +88,7 @@ export default function NewAccountModal({
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      reset({ account_name: "", protocol });
+      reset({ account_name: "", protocol, type: "" });
       setStatus("normal");
     }, 150);
 
@@ -88,17 +97,8 @@ export default function NewAccountModal({
 
   const onSubmit = async (data: FormValues) => {
     setStatus("loading");
-    const result = await AppToBackground.answerNewAccount({
-      rejected: false,
-      accountData: {
-        name: data.account_name,
-        protocol: data.protocol,
-      },
-    });
 
-    if (result.error) {
-      setStatus("error");
-    } else {
+    const updateSelection = (address: string) => {
       Promise.all([
         ...(protocol !== data.protocol
           ? [
@@ -113,12 +113,46 @@ export default function NewAccountModal({
         dispatch(
           changeSelectedAccountOfNetwork({
             protocol: data.protocol,
-            address: result.data.address,
+            address,
           })
         ),
       ]).then(() => setStatus("success"));
+    };
+
+    if (data.type === "standalone") {
+      const result = await AppToBackground.answerNewAccount({
+        rejected: false,
+        accountData: {
+          name: data.account_name,
+          protocol: data.protocol,
+        },
+      });
+
+      if (result.error) {
+        setStatus("error");
+      } else {
+        updateSelection(result.data.address);
+      }
+    } else {
+      const result = await AppToBackground.createAccountFromHdSeed({
+        seedAccountId: data.type,
+        protocol: data.protocol,
+        name: data.account_name,
+      });
+
+      if (result.error) {
+        setStatus("error");
+      } else {
+        updateSelection(result.data.account.address);
+      }
     }
   };
+
+  const seedAccounts = useMemo(() => {
+    return accounts.filter(
+      (account) => account.accountType === AccountType.HDSeed
+    );
+  }, [accounts]);
 
   let content: React.ReactNode;
 
@@ -133,12 +167,48 @@ export default function NewAccountModal({
               paddingBottom: 2.4,
             }}
           >
+            <Controller
+              name={"type"}
+              control={control}
+              rules={{
+                required: "Required",
+              }}
+              render={({ field, fieldState: { error } }) => (
+                <TextField
+                  select
+                  required
+                  error={!!error}
+                  label={"Account Type"}
+                  helperText={error?.message}
+                  {...field}
+                  InputLabelProps={{ shrink: false }}
+                  sx={{
+                    marginBottom: error ? 1 : 0,
+                    "& .MuiFormLabel-root": {
+                      marginTop: -0.5,
+                      color: "#8b93a0",
+                      display: field.value ? "none" : undefined,
+                    },
+                  }}
+                >
+                  {seedAccounts.map((account) => (
+                    <MenuItem key={account.id} value={account.id}>
+                      <AccountInfo address={account.id} name={account.name} />
+                    </MenuItem>
+                  ))}
+                  {seedAccounts.length > 0 && <MenuDivider />}
+                  <MenuItem value={"standalone"}>Standalone</MenuItem>
+                </TextField>
+              )}
+            />
             <Typography
               variant={"body2"}
               marginBottom={2}
+              marginTop={0.8}
               color={themeColors.textSecondary}
             >
-              This account won’t be linked to any HD Account (Recovery Phrase).
+              Select an existing seed if you want an account linked to your Seed
+              Phrase.{" "}
             </Typography>
             <Controller
               control={control}
@@ -160,6 +230,7 @@ export default function NewAccountModal({
               rules={nameRules}
               render={({ field, fieldState: { error } }) => (
                 <TextField
+                  autoComplete={"off"}
                   placeholder={"Account Name"}
                   {...field}
                   error={!!error}

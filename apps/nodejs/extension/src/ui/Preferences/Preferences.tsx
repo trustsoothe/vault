@@ -2,7 +2,7 @@ import React from "react";
 import Stack from "@mui/material/Stack";
 import { themeColors } from "../theme";
 import KeepSessionActive from "./KeepSessionActive/KeepSessionActive";
-import ProtectSensitiveOperations from "./ProtectSensitiveOperations";
+import ProtectSensitiveOperations from "./ProtectSensitiveOperations/ProtectSensitiveOperations";
 
 export default function Preferences() {
   return (

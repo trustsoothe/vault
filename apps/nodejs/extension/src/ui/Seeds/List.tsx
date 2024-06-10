@@ -2,14 +2,15 @@ import Menu from "@mui/material/Menu";
 import Stack from "@mui/material/Stack";
 import React, { useState } from "react";
 import MenuItem from "@mui/material/MenuItem";
-import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
-import { IMPORT_SEEDS_PAGE, NEW_SEEDS_PAGE } from "../../constants/routes";
+import SmallGrayContainer from "../components/SmallGrayContainer";
 import MenuDivider from "../components/MenuDivider";
 import MoreIcon from "../assets/img/more_icon.svg";
-import NewEntitiesButtons from "./NewSeedButtons";
+import NewSeedButtons from "./NewSeedButtons";
 import { themeColors } from "../theme";
+import { useNavigate } from "react-router-dom";
+import { MANAGE_ACCOUNTS_PAGE } from "../../constants/routes";
 
 interface SeedItemProps {
   seed: {
@@ -20,6 +21,7 @@ interface SeedItemProps {
 }
 
 function SeedItem({ seed: { name, accounts } }: SeedItemProps) {
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -30,18 +32,7 @@ function SeedItem({ seed: { name, accounts } }: SeedItemProps) {
   };
   return (
     <>
-      <Stack
-        width={1}
-        height={56}
-        spacing={1.2}
-        paddingX={1.6}
-        paddingY={1.1}
-        direction={"row"}
-        borderRadius={"8px"}
-        alignItems={"center"}
-        boxSizing={"border-box"}
-        bgcolor={themeColors.bgLightGray}
-      >
+      <SmallGrayContainer>
         {/*todo: change for icon*/}
         <Stack
           width={15}
@@ -67,7 +58,7 @@ function SeedItem({ seed: { name, accounts } }: SeedItemProps) {
         >
           <MoreIcon />
         </IconButton>
-      </Stack>
+      </SmallGrayContainer>
       <Menu
         anchorEl={anchorEl}
         open={open}
@@ -89,7 +80,14 @@ function SeedItem({ seed: { name, accounts } }: SeedItemProps) {
           },
         }}
       >
-        <MenuItem>Manage Accounts</MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            navigate(MANAGE_ACCOUNTS_PAGE);
+          }}
+        >
+          Manage Accounts
+        </MenuItem>
         <MenuItem>Rename</MenuItem>
         <MenuDivider />
         <MenuItem className={"sensitive"}>Remove Seed</MenuItem>
@@ -99,7 +97,6 @@ function SeedItem({ seed: { name, accounts } }: SeedItemProps) {
 }
 
 export default function SeedsList() {
-  const navigate = useNavigate();
   const seeds = [
     {
       id: "1",
@@ -128,7 +125,7 @@ export default function SeedsList() {
           <SeedItem key={seed.id + i} seed={seed} />
         ))}
       </Stack>
-      <NewEntitiesButtons
+      <NewSeedButtons
         containerProps={{
           width: 1,
           height: 86,
@@ -140,12 +137,6 @@ export default function SeedsList() {
               width: 1,
             },
           },
-        }}
-        importProps={{
-          onClick: () => navigate(IMPORT_SEEDS_PAGE),
-        }}
-        createProps={{
-          onClick: () => navigate(NEW_SEEDS_PAGE),
         }}
       />
     </>

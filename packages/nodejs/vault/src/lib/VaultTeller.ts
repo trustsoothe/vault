@@ -85,7 +85,7 @@ export interface VaultOptions {
 export interface AddHDWalletAccountExternalRequest {
   seedAccountId: string;
   protocol: SupportedProtocols;
-  count?: number;
+  name?: string;
 }
 
 export class VaultTeller {
@@ -764,7 +764,7 @@ export class VaultTeller {
     sessionId: string,
     vaultPassphrase: Passphrase,
     options: AddHDWalletAccountExternalRequest
-  ): Promise<AccountReference[]> {
+  ): Promise<AccountReference> {
     await this.validateSessionForPermissions(sessionId, "account", "create");
 
     const seedAccount = await this.getVaultAccountById(
@@ -779,32 +779,33 @@ export class VaultTeller {
       .map((a) => a.hdwIndex)
       .sort((a, b) => a! - b!);
 
+    // to only create one account
+    const count = 1;
     // Based on a sorted list of hdwIndex values from the seedAccountChildren array, determine the missing indexes
     const missingIndexes = Array.from(
-      { length: seedAccountChildrenIndexes.length + (options.count || 1) },
+      { length: seedAccountChildrenIndexes.length + count },
       (_, i) => i
     )
       .filter((i) => !seedAccountChildrenIndexes.some((a) => a === i))
-      .slice(0, options.count || 1);
+      .slice(0, count);
 
     const protocolService = ProtocolServiceFactory.getProtocolService(
       options.protocol,
       this.encryptionService
     );
 
-    const accounts = await protocolService.createHDWalletAccount({
+    const account = await protocolService.createHDWalletAccount({
       seedAccount,
-      indexes: missingIndexes,
+      index: missingIndexes.at(0)!,
+      name: options.name,
     });
 
-    for (const account of accounts) {
-      await this.addVaultAccount(account, vaultPassphrase);
-      await this.addAccountToSession(sessionId, account);
-    }
+    await this.addVaultAccount(account, vaultPassphrase);
+    await this.addAccountToSession(sessionId, account);
 
     await this.updateSessionLastActivity(sessionId);
 
-    return accounts.map((a) => a.asAccountReference());
+    return account.asAccountReference();
   }
 
   private async encryptVault(

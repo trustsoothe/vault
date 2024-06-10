@@ -10,6 +10,7 @@ import NetworkSelect from "./NetworkSelect/NetworkSelect";
 import AccountSelect from "./AccountSelect/AccountSelect";
 import {
   IMPORT_SEEDS_PAGE,
+  MANAGE_ACCOUNTS_PAGE,
   NEW_SEEDS_PAGE,
   PREFERENCES_PAGE,
   SEEDS_PAGE,
@@ -45,6 +46,9 @@ function getLabelByRoute(pathname: string) {
 
     case IMPORT_SEEDS_PAGE:
       return "Import Seed";
+
+    case MANAGE_ACCOUNTS_PAGE:
+      return "Manage Accounts";
 
     default:
       return "Unknown";
