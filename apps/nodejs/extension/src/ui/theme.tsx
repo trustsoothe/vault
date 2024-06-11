@@ -1,6 +1,7 @@
 import { createTheme, ThemeProvider as ThemeProviderMui } from "@mui/material";
 import React from "react";
 import ExpandIcon from "./assets/img/expand_select_icon.svg";
+import TooltipArrowIcon from "./assets/img/tooltip_arrow.svg";
 
 export const themeColors = Object.freeze({
   primary: "#3739b9",
@@ -96,6 +97,9 @@ const theme = createTheme({
     MuiTooltip: {
       defaultProps: {
         arrow: true,
+        components: {
+          Arrow: TooltipArrowIcon,
+        },
       },
       styleOverrides: {
         tooltip: {
@@ -103,11 +107,21 @@ const theme = createTheme({
           borderRadius: "4px",
           padding: "3px 7px",
           marginBottom: "10px!important",
-        },
-        arrow: {
-          color: themeColors.black,
-          fontSize: 8,
-          marginBottom: "-6px!important",
+          "& svg": {
+            position: "absolute",
+            bottom: "-3px!important",
+            marginBottom: "0px!important",
+            right: "calc(50% - 4px)",
+          },
+          "&.MuiTooltip-tooltipPlacementBottom": {
+            marginTop: "10px!important",
+            "& svg": {
+              transform: "rotate(180deg)",
+              top: "-2px!important",
+              bottom: "0px!important",
+              marginTop: "0px!important",
+            },
+          },
         },
       },
     },

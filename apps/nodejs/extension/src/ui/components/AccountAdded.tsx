@@ -1,6 +1,5 @@
 import Stack from "@mui/material/Stack";
 import React, { useEffect } from "react";
-import Avatar from "@mui/material/Avatar";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import {
@@ -13,12 +12,14 @@ import {
 } from "../../redux/selectors/network";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { balanceMapConsideringAsset } from "../../redux/selectors/account";
-import { getTruncatedText, roundAndSeparate } from "../../utils/ui";
 import { labelByProtocolMap } from "../../constants/protocols";
+import CopyAddressButton from "../Home/CopyAddressButton";
 import SuccessActionBanner from "./SuccessActionBanner";
 import useGetPrices from "../../hooks/useGetPrices";
 import { useAppSelector } from "../../hooks/redux";
+import { roundAndSeparate } from "../../utils/ui";
 import AccountInfo from "./AccountInfo";
+import { themeColors } from "../theme";
 import Summary from "./Summary";
 
 interface AccountCreatedProps {
@@ -75,8 +76,17 @@ export default function AccountAdded({
           {
             type: "row",
             label: "Address",
-            // todo: change for CopyAddressButton component
-            value: getTruncatedText(account.address, 5),
+            value: (
+              <CopyAddressButton
+                address={account.address}
+                sxProps={{
+                  boxShadow: "none",
+                  marginRight: -0.8,
+                  color: themeColors.black,
+                  backgroundColor: "transparent",
+                }}
+              />
+            ),
           },
           {
             type: "row",

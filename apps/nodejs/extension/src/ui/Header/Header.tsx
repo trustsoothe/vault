@@ -17,6 +17,7 @@ import {
 } from "../../constants/routes";
 import NewAccountModal from "../NewAccount/NewAccountModal";
 import ImportAccountModal from "../ImportAccount/ImportAccountModal";
+import AccountDialogsProvider from "./context/AccountDialogs";
 import ConnectionStatus from "./ConnectionStatus";
 import Menu from "./Menu";
 
@@ -66,7 +67,10 @@ export default function Header() {
   const closeModal = () => setModalToShow("none");
 
   return (
-    <>
+    <AccountDialogsProvider
+      showImportAccount={showImportAccount}
+      showCreateAccount={showCreateAccount}
+    >
       <NewAccountModal
         open={modalToShow === "create_account"}
         onClose={closeModal}
@@ -81,10 +85,7 @@ export default function Header() {
             <NetworkSelect />
             <AccountSelect />
             <Stack direction={"row-reverse"} flexGrow={1} spacing={1.6}>
-              <Menu
-                showCreateAccount={showCreateAccount}
-                showImportAccount={showImportAccount}
-              />
+              <Menu />
               <ConnectionStatus />
             </Stack>
           </HeaderContainer>
@@ -94,10 +95,7 @@ export default function Header() {
             <Typography variant={"subtitle2"} textAlign={"center"}>
               {getLabelByRoute(location.pathname)}
             </Typography>
-            <Menu
-              showCreateAccount={showCreateAccount}
-              showImportAccount={showImportAccount}
-            />
+            <Menu />
           </HeaderContainer>
         )}
         <Stack
@@ -105,9 +103,9 @@ export default function Header() {
           height={`calc(100% - ${headerHeight}px)`}
           position={"relative"}
         >
-          <Outlet context={{}} />
+          <Outlet />
         </Stack>
       </Stack>
-    </>
+    </AccountDialogsProvider>
   );
 }

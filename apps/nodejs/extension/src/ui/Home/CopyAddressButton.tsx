@@ -1,3 +1,4 @@
+import type { SxProps } from "@mui/material";
 import React, { useState } from "react";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
@@ -7,9 +8,13 @@ import { themeColors } from "../theme";
 
 interface CopyAddressButtonProps {
   address: string;
+  sxProps?: SxProps;
 }
 
-export default function CopyAddressButton({ address }: CopyAddressButtonProps) {
+export default function CopyAddressButton({
+  address,
+  sxProps,
+}: CopyAddressButtonProps) {
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
 
   const handleCopyAddress = () => {
@@ -34,6 +39,7 @@ export default function CopyAddressButton({ address }: CopyAddressButtonProps) {
           color: themeColors.textSecondary,
           backgroundColor: themeColors.white,
           boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+          ...sxProps,
         }}
       >
         {getTruncatedText(address, 5)} <CopyIcon />

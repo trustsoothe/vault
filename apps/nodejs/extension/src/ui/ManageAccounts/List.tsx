@@ -8,10 +8,10 @@ import Typography from "@mui/material/Typography";
 import { AccountType, SerializedAccountReference } from "@poktscan/vault";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import SmallGrayContainer from "../components/SmallGrayContainer";
-import NewEntitiesButtons from "../components/NewEntitiesButtons";
 import { accountsSelector } from "../../redux/selectors/account";
 import { labelByProtocolMap } from "../../constants/protocols";
-import { AccountAvatar } from "../components/AccountInfo";
+import NewAccountsButtons from "../Home/NewAccountsButtons";
+import AvatarByString from "../components/AvatarByString";
 import ViewPrivateKeyModal from "./ViewPrivateKeyModal";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
 import RenameAccountModal from "./RenameAccountModal";
@@ -84,7 +84,7 @@ function AccountItem({
   return (
     <>
       <SmallGrayContainer>
-        <AccountAvatar type={"known"} address={account.address} />
+        <AvatarByString string={account.address} />
         <Stack spacing={0.4} flexGrow={1}>
           <Typography variant={"subtitle2"} lineHeight={"16px"}>
             {account.name}
@@ -233,7 +233,7 @@ export default function ListAccounts() {
           />
         ))}
       </Stack>
-      <NewEntitiesButtons
+      <NewAccountsButtons
         containerProps={{
           width: 1,
           height: 86,

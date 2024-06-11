@@ -11,6 +11,7 @@ import {
   SEEDS_PAGE,
 } from "../../constants/routes";
 import MenuDivider from "../components/MenuDivider";
+import { useAccountDialogs } from "./context/AccountDialogs";
 
 interface RouteItem {
   type: "route";
@@ -30,15 +31,8 @@ interface DividerItem {
 
 type MenuItem = RouteItem | ButtonItem | DividerItem;
 
-interface MenuProps {
-  showCreateAccount: () => void;
-  showImportAccount: () => void;
-}
-
-export default function Menu({
-  showCreateAccount,
-  showImportAccount,
-}: MenuProps) {
+export default function Menu() {
+  const { showCreateAccount, showImportAccount } = useAccountDialogs();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLButtonElement>(
     null
   );

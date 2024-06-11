@@ -79,7 +79,12 @@ export default function SelectedAccount() {
       <SendModal open={showSendModal} onClose={toggleShowSendModal} />
       <GrayContainer>
         {loadingBalance ? (
-          <Skeleton width={150} variant={"rectangular"} height={35} />
+          <Skeleton
+            width={100}
+            variant={"rectangular"}
+            height={35}
+            sx={{ minHeight: 35 }}
+          />
         ) : (
           <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
             <Typography variant={"h1"} noWrap={true} maxWidth={275}>
@@ -109,6 +114,7 @@ export default function SelectedAccount() {
             sx={{
               marginTop: 0.8,
               marginBottom: 2,
+              minHeight: 20,
             }}
           />
         ) : (

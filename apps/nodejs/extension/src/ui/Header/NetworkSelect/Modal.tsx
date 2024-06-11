@@ -13,8 +13,10 @@ import { NETWORKS_PAGE } from "../../../constants/routes";
 import BaseDialog from "../../components/BaseDialog";
 import { NetworkOption } from "./NetworkSelect";
 import {
+  networksCanBeSelectedSelector,
   selectedChainSelector,
   selectedProtocolSelector,
+  showTestNetworkSelector,
 } from "../../../redux/selectors/network";
 import {
   changeSelectedNetwork,
@@ -36,14 +38,8 @@ export default function NetworkSelectModal({
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedChain = useAppSelector(selectedChainSelector);
   const networks = useAppSelector((state) => state.app.networks);
-  const networksCanBeSelected = useAppSelector(
-    // todo: create selector
-    (state) => state.app.networksCanBeSelected
-  );
-  const showTestNetworks = useAppSelector(
-    // todo: create selector
-    (state) => state.app.showTestNetworks
-  );
+  const networksCanBeSelected = useAppSelector(networksCanBeSelectedSelector);
+  const showTestNetworks = useAppSelector(showTestNetworkSelector);
 
   const onClickAddNetwork = () => {
     onClose();

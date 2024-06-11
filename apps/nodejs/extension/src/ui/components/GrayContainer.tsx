@@ -5,7 +5,7 @@ import { themeColors } from "../theme";
 const GrayContainer = styled(Stack)<StackProps>(() => ({
   width: "100%",
   height: 250,
-  paddingTop: "48px",
+  paddingTop: "40px",
   paddingBottom: "24px",
   alignItems: "center",
   boxSizing: `border-box`,
