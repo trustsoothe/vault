@@ -18,7 +18,7 @@ export default function SendModal({ open, onClose }: SendModalProps) {
   const [status, setStatus] = useState<Status>("submitted");
 
   useEffect(() => {
-    // const timeout = setTimeout(() => setStatus("form"), 500);
+    // const timeout = setTimeout(() => setStatus("form"), 150);
     // return () => clearTimeout(timeout);
   }, [open]);
 

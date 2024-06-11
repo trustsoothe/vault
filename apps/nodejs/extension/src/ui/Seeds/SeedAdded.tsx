@@ -3,7 +3,9 @@ import Stack from "@mui/material/Stack";
 import capitalize from "lodash/capitalize";
 import { useNavigate } from "react-router-dom";
 import { useFormContext } from "react-hook-form";
+import Typography from "@mui/material/Typography";
 import SuccessActionBanner from "../components/SuccessActionBanner";
+import AvatarByString from "../components/AvatarByString";
 import DialogButtons from "../components/DialogButtons";
 import { SEEDS_PAGE } from "../../constants/routes";
 import Summary from "../components/Summary";
@@ -31,8 +33,17 @@ export default function SeedAdded({ type }: SeedAddedProps) {
             {
               type: "row",
               label: "Name",
-              // todo: add phrase size icon
-              value: name,
+              value: (
+                <Stack
+                  spacing={0.7}
+                  direction={"row"}
+                  alignItems={"center"}
+                  justifyContent={"flex-end"}
+                >
+                  <AvatarByString string={name} type={"square"} />
+                  <Typography variant={"subtitle2"}>{name}</Typography>
+                </Stack>
+              ),
             },
             {
               type: "row",

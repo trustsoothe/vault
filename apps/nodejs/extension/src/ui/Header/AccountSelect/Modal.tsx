@@ -29,6 +29,7 @@ import {
   selectedChainSelector,
   selectedProtocolSelector,
 } from "../../../redux/selectors/network";
+import AvatarByString from "../../components/AvatarByString";
 import { changeSelectedAccountOfNetwork } from "../../../redux/slices/app";
 import AppToBackground from "../../../controllers/communication/AppToBackground";
 
@@ -86,8 +87,7 @@ function AccountItem({ account, handleSelectAccount }: AccountItemProps) {
       onClick={() => handleSelectAccount(account)}
     >
       <Stack width={1} spacing={1.2} direction={"row"} alignItems={"center"}>
-        {/*todo: change for account img*/}
-        <Avatar sx={{ width: 15, height: 15 }} />
+        <AvatarByString string={account.address} />
         <Stack
           spacing={0.4}
           width={"calc(100% - 30px - 27px)"}
@@ -109,7 +109,7 @@ function AccountItem({ account, handleSelectAccount }: AccountItemProps) {
               {account.name}
             </Typography>
             {loadingBalance ? (
-              <Skeleton variant={"text"} width={100} height={20} />
+              <Skeleton variant={"rectangular"} width={75} height={16} />
             ) : (
               <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
                 <Typography
@@ -150,7 +150,7 @@ function AccountItem({ account, handleSelectAccount }: AccountItemProps) {
               {getTruncatedText(account.address, 5)}
             </Typography>
             {isLoadingNetworkPrices || loadingBalance ? (
-              <Skeleton variant={"text"} width={70} height={20} />
+              <Skeleton variant={"rectangular"} width={50} height={14} />
             ) : (
               <Typography
                 variant={"body2"}
@@ -201,7 +201,14 @@ export default function AccountSelectModal({
   };
 
   return (
-    <BaseDialog open={open} onClose={onClose} title={"Select Account"}>
+    <BaseDialog
+      open={open}
+      onClose={onClose}
+      title={"Select Account"}
+      TransitionProps={{
+        timeout: { exit: 300 },
+      }}
+    >
       <DialogContent
         sx={{
           rowGap: 0.2,
@@ -232,7 +239,7 @@ export default function AccountSelectModal({
           borderTop: `1px solid ${themeColors.borderLightGray}`,
         }}
       >
-        <AddAccountButton />
+        <AddAccountButton closeSelectModal={onClose} />
       </DialogActions>
     </BaseDialog>
   );

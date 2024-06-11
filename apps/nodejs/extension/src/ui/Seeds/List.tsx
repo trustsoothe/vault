@@ -2,15 +2,16 @@ import Menu from "@mui/material/Menu";
 import Stack from "@mui/material/Stack";
 import React, { useState } from "react";
 import MenuItem from "@mui/material/MenuItem";
+import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import SmallGrayContainer from "../components/SmallGrayContainer";
+import { MANAGE_ACCOUNTS_PAGE } from "../../constants/routes";
+import AvatarByString from "../components/AvatarByString";
 import MenuDivider from "../components/MenuDivider";
 import MoreIcon from "../assets/img/more_icon.svg";
 import NewSeedButtons from "./NewSeedButtons";
 import { themeColors } from "../theme";
-import { useNavigate } from "react-router-dom";
-import { MANAGE_ACCOUNTS_PAGE } from "../../constants/routes";
 
 interface SeedItemProps {
   seed: {
@@ -30,16 +31,11 @@ function SeedItem({ seed: { name, accounts } }: SeedItemProps) {
   const handleClose = () => {
     setAnchorEl(null);
   };
+
   return (
     <>
       <SmallGrayContainer>
-        {/*todo: change for icon*/}
-        <Stack
-          width={15}
-          height={15}
-          border={"1px solid black"}
-          borderRadius={"4px"}
-        />
+        <AvatarByString string={name} type={"square"} />
         <Stack spacing={0.4} flexGrow={1}>
           <Typography variant={"subtitle2"} lineHeight={"16px"}>
             {name}

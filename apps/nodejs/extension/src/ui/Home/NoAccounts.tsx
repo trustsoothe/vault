@@ -1,9 +1,9 @@
 import React from "react";
 import Stack from "@mui/material/Stack";
-import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import PuzzleIcon from "../assets/img/puzzle_icon.svg";
 import GrayContainer from "../components/GrayContainer";
+import NewAccountsButtons from "./NewAccountsButtons";
 import { themeColors } from "../theme";
 
 export default function NoAccounts() {
@@ -32,8 +32,7 @@ export default function NoAccounts() {
             },
           }}
         >
-          <Button>Import</Button>
-          <Button sx={{ color: themeColors.black }}>Create New</Button>
+          <NewAccountsButtons />
         </Stack>
       </GrayContainer>
       <Stack flexGrow={1} bgcolor={themeColors.white} />

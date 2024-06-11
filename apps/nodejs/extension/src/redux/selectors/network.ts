@@ -3,7 +3,10 @@ import type { CustomRPC, Network } from "../slices/app";
 import { SupportedProtocols } from "@poktscan/vault";
 
 export const networksSelector = (state: RootState) => state.app.networks;
-
+export const showTestNetworkSelector = (state: RootState) =>
+  state.app.showTestNetworks;
+export const networksCanBeSelectedSelector = (state: RootState) =>
+  state.app.networksCanBeSelected;
 export const selectedProtocolSelector = (state: RootState) =>
   state.app.selectedProtocol;
 export const selectedChainByProtocolSelector = (state: RootState) =>
