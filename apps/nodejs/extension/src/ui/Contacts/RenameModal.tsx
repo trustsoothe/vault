@@ -1,46 +1,51 @@
-import type { SerializedAccountReference } from "@poktscan/vault";
-import React from "react";
 import TextField from "@mui/material/TextField";
-import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import DialogButtons from "../components/DialogButtons";
-import AppToBackground from "../../controllers/communication/AppToBackground";
+import DialogContent from "@mui/material/DialogContent";
+import React, { useEffect, useRef, useState } from "react";
+import { Contact, saveContact } from "../../redux/slices/app/contact";
 import { nameRules } from "../NewAccount/NewAccountModal";
-import AccountFeedback from "../components/AccountFeedback";
+import DialogButtons from "../components/DialogButtons";
+import { useAppDispatch } from "../../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
+import ContactFeedback from "./ContactFeedback";
 
-interface RenameAccountModalProps {
-  account?: SerializedAccountReference;
+interface RenameFormValues {
+  name: string;
+}
+
+interface RenameModalProps {
+  contact?: Contact;
   onClose: () => void;
 }
 
-export default function RenameAccountModal({
-  account,
+export default function RenameContactModal({
+  contact,
   onClose,
-}: RenameAccountModalProps) {
-  const [status, setStatus] = useState<
-    "form" | "loading" | "error" | "success"
-  >("form");
-  const lastUpdatedAccountRef = useRef<SerializedAccountReference>(null);
-  const { reset, control, handleSubmit, watch } = useForm({
+}: RenameModalProps) {
+  const dispatch = useAppDispatch();
+  const lastUpdatedContactRef = useRef<Contact>(null);
+  const { reset, control, handleSubmit, watch } = useForm<RenameFormValues>({
     defaultValues: {
       name: "",
     },
   });
+
   const name = watch("name");
+  const [status, setStatus] = useState<
+    "form" | "loading" | "error" | "success"
+  >("form");
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
 
-    if (account) {
+    if (contact) {
       reset({ name: "" });
     } else {
       timeout = setTimeout(() => {
         reset({ name: "" });
         setStatus("form");
-        lastUpdatedAccountRef.current = undefined;
+        lastUpdatedContactRef.current = undefined;
       }, 150);
     }
 
@@ -49,24 +54,31 @@ export default function RenameAccountModal({
         clearTimeout(timeout);
       }
     };
-  }, [account]);
+  }, [contact]);
 
   const onSubmit = (data) => {
-    if (!account) return;
+    if (!contact) return;
 
     setStatus("loading");
-    AppToBackground.updateAccount({
-      id: account.id,
-      name: data.name,
-    }).then((result) => {
-      if (result.error) {
-        setStatus("error");
-        return;
-      }
-      lastUpdatedAccountRef.current = account;
 
-      setStatus("success");
-    });
+    dispatch(
+      saveContact({
+        idToReplace: contact.id,
+        contact: {
+          name: data.name,
+          address: contact.address,
+          protocol: contact.protocol,
+        },
+      })
+    )
+      .unwrap()
+      .then(() => {
+        lastUpdatedContactRef.current = contact;
+        setStatus("success");
+      })
+      .catch(() => {
+        setStatus("error");
+      });
   };
 
   let content: React.ReactNode;
@@ -85,7 +97,7 @@ export default function RenameAccountModal({
                   required
                   autoFocus
                   autoComplete={"off"}
-                  placeholder={account?.name}
+                  placeholder={contact?.name}
                   {...field}
                   error={!!error}
                   helperText={error?.message}
@@ -98,7 +110,7 @@ export default function RenameAccountModal({
               primaryButtonProps={{
                 children: "Rename",
                 type: "submit",
-                disabled: !name || account?.name === name,
+                disabled: !name || contact?.name === name,
               }}
               secondaryButtonProps={{ children: "Cancel", onClick: onClose }}
             />
@@ -114,12 +126,12 @@ export default function RenameAccountModal({
       content = (
         <>
           <DialogContent sx={{ padding: "0px!important" }}>
-            <AccountFeedback
-              account={{
-                ...(account || lastUpdatedAccountRef.current),
+            <ContactFeedback
+              type={"renamed"}
+              contact={{
+                ...(contact || lastUpdatedContactRef.current),
                 name: name,
               }}
-              label={"Account Renamed"}
             />
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>
@@ -137,9 +149,9 @@ export default function RenameAccountModal({
 
   return (
     <BaseDialog
-      open={!!account}
+      open={!!contact}
       onClose={onClose}
-      title={"Rename Account"}
+      title={"Rename Contact"}
       PaperProps={{
         component: "form",
         onSubmit: handleSubmit(onSubmit),

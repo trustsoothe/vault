@@ -6,6 +6,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import InitializeVaultForm from "./Form";
 import ImportVaultModal from "./ImportVaultModal";
+import Logo from "../assets/logo/isologo.svg";
 
 export interface InitializeVaultFormValues {
   password: string;
@@ -53,9 +54,7 @@ export default function InitializeVault() {
     case "normal":
       content = (
         <>
-          <Box height={46} width={46} border={"1px solid black"}>
-            logo
-          </Box>
+          <Logo />
           <Typography variant={"h3"} textAlign={"center"} marginTop={2.7}>
             Let's Get Started
           </Typography>

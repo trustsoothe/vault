@@ -9,6 +9,7 @@ import { HEIGHT, WIDTH } from "../../constants/ui";
 import NetworkSelect from "./NetworkSelect/NetworkSelect";
 import AccountSelect from "./AccountSelect/AccountSelect";
 import {
+  CONTACTS_PAGE,
   IMPORT_SEEDS_PAGE,
   MANAGE_ACCOUNTS_PAGE,
   NEW_SEEDS_PAGE,
@@ -50,6 +51,9 @@ function getLabelByRoute(pathname: string) {
 
     case MANAGE_ACCOUNTS_PAGE:
       return "Manage Accounts";
+
+    case CONTACTS_PAGE:
+      return "Contacts";
 
     default:
       return "Unknown";

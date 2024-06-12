@@ -1,4 +1,7 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+import type {
+  SerializedAccountReference,
+  SupportedProtocols,
+} from "@poktscan/vault";
 import { shallowEqual } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
@@ -19,14 +22,17 @@ import ImportForm from "./ImportForm";
 import { themeColors } from "../theme";
 import { getPrivateKey } from "./utils";
 import BaseDialog from "../components/BaseDialog";
-import AccountAdded from "../components/AccountAdded";
+import AccountFeedback from "../components/AccountFeedback";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
 import DialogButtons from "../components/DialogButtons";
 import { nameRules } from "../NewAccount/NewAccountModal";
 import { INVALID_FILE_PASSWORD } from "../../errors/account";
 import ProtocolSelector from "../components/ProtocolSelector";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
-import { selectedAccountSelector } from "../../redux/selectors/account";
+import {
+  accountsSelector,
+  selectedAccountSelector,
+} from "../../redux/selectors/account";
 import { getAddressFromPrivateKey } from "../../utils/networkOperations";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 
@@ -51,6 +57,7 @@ export default function ImportAccountModal({
   onClose,
 }: ImportAccountModalProps) {
   const dispatch = useAppDispatch();
+  const accounts = useAppSelector(accountsSelector);
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const selectedChainByProtocol = useAppSelector(
@@ -59,6 +66,8 @@ export default function ImportAccountModal({
   const navigate = useNavigate();
   const [status, setStatus] = useState<FormStatus>("normal");
   const [wrongFilePassword, setWrongFilePassword] = useState(false);
+  const [accountAlreadyExists, setAccountAlreadyExists] =
+    useState<SerializedAccountReference>(null);
 
   const methods = useForm<ImportAccountFormValues>({
     defaultValues: {
@@ -77,7 +86,6 @@ export default function ImportAccountModal({
     watch,
     clearErrors,
     setValue,
-    getValues,
     reset,
   } = methods;
 
@@ -137,13 +145,22 @@ export default function ImportAccountModal({
       if (response.error) {
         setStatus("error");
       } else {
+        const address = await getAddressFromPrivateKey(
+          privateKey,
+          data.protocol
+        );
         if (response.data.accountAlreadyExists) {
-          setStatus("account_exists");
-        } else {
-          const address = await getAddressFromPrivateKey(
-            privateKey,
-            data.protocol
+          const account = accounts.find(
+            (a) => a.address === address && a.protocol === data.protocol
           );
+
+          if (account) {
+            setAccountAlreadyExists(account);
+            setStatus("account_exists");
+          } else {
+            setStatus("error");
+          }
+        } else {
           Promise.all([
             ...(selectedProtocol !== data.protocol
               ? [
@@ -168,18 +185,6 @@ export default function ImportAccountModal({
             .catch(() => setStatus("error"));
         }
       }
-    });
-  };
-
-  const onClickOkAccountExists = () => {
-    setStatus("normal");
-    reset({
-      import_type: getValues("import_type"),
-      account_name: "",
-      json_file: null,
-      private_key: "",
-      file_password: "",
-      protocol: getValues("protocol"),
     });
   };
 
@@ -251,15 +256,15 @@ export default function ImportAccountModal({
       content = "Error...";
       break;
     case "account_exists":
-      content = "Account exists...";
-      break;
     case "success":
+      const isSuccess = status === "success";
       content = (
         <>
           <DialogContent sx={{ padding: "0px!important" }}>
-            <AccountAdded
-              account={selectedAccount}
-              successLabel={"Account Imported"}
+            <AccountFeedback
+              account={isSuccess ? selectedAccount : accountAlreadyExists}
+              label={isSuccess ? "Account Imported" : "Account Already Exists"}
+              type={isSuccess ? "success" : "warning"}
             />
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>
@@ -267,7 +272,9 @@ export default function ImportAccountModal({
               primaryButtonProps={{
                 children: "Done",
                 onClick: () => {
-                  navigate(ACCOUNTS_PAGE);
+                  if (isSuccess) {
+                    navigate(ACCOUNTS_PAGE);
+                  }
                   onClose();
                 },
               }}
