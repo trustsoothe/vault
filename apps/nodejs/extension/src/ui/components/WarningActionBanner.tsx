@@ -1,16 +1,16 @@
 import React from "react";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import SuccessIcon from "../assets/img/success_icon.svg";
+import WarningIcon from "../assets/img/rounded_close_icon.svg";
 import { themeColors } from "../theme";
 
-interface SuccessActionBannerProps {
+interface WarningActionBannerProps {
   label: React.ReactNode;
 }
 
-export default function SuccessActionBanner({
+export default function WarningActionBanner({
   label,
-}: SuccessActionBannerProps) {
+}: WarningActionBannerProps) {
   return (
     <Stack
       height={40}
@@ -20,10 +20,10 @@ export default function SuccessActionBanner({
       alignItems={"center"}
       borderRadius={"8px"}
       boxSizing={"border-box"}
-      bgcolor={themeColors.successLight}
+      bgcolor={themeColors.warningLight}
       direction={"row"}
     >
-      <SuccessIcon />
+      <WarningIcon />
       {typeof label === "string" ? (
         <Typography variant={"subtitle2"}>{label}</Typography>
       ) : (

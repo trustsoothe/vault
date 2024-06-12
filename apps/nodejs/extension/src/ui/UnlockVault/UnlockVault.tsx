@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import PasswordInput from "../components/PasswordInput";
+import Logo from "../assets/logo/isologo.svg";
 
 interface UnlockVaultForm {
   password: string;
@@ -64,9 +65,7 @@ export default function UnlockVault() {
     case "normal":
       content = (
         <>
-          <Box height={46} width={46} border={"1px solid black"}>
-            logo
-          </Box>
+          <Logo />
           <Typography variant={"h3"} textAlign={"center"} marginTop={2.7}>
             Unlock Your Vault{" "}
           </Typography>

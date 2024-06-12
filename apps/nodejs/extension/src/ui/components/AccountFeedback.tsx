@@ -14,6 +14,7 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 import { balanceMapConsideringAsset } from "../../redux/selectors/account";
 import { labelByProtocolMap } from "../../constants/protocols";
 import CopyAddressButton from "../Home/CopyAddressButton";
+import WarningActionBanner from "./WarningActionBanner";
 import SuccessActionBanner from "./SuccessActionBanner";
 import useGetPrices from "../../hooks/useGetPrices";
 import { useAppSelector } from "../../hooks/redux";
@@ -24,12 +25,14 @@ import Summary from "./Summary";
 
 interface AccountCreatedProps {
   account: SerializedAccountReference;
-  successLabel: string;
+  label: React.ReactNode;
+  type?: "success" | "warning";
 }
 
-export default function AccountAdded({
+export default function AccountFeedback({
   account,
-  successLabel,
+  label,
+  type = "success",
 }: AccountCreatedProps) {
   const networkSymbol = useAppSelector(networkSymbolSelector);
   const selectedChainByProtocol = useAppSelector(
@@ -62,8 +65,23 @@ export default function AccountAdded({
     (balanceMap?.[account.address]?.loading && !balance) || false;
 
   return (
-    <Stack padding={2.4} spacing={1.6}>
-      <SuccessActionBanner label={successLabel} />
+    <Stack
+      padding={2.4}
+      spacing={1.6}
+      sx={{
+        svg: {
+          width: 17,
+          minWidth: 17,
+          height: 17,
+          minHeight: 17,
+        },
+      }}
+    >
+      {type === "success" ? (
+        <SuccessActionBanner label={label} />
+      ) : (
+        <WarningActionBanner label={label} />
+      )}
       <Summary
         rows={[
           {

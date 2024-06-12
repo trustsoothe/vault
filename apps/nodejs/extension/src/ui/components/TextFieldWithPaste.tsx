@@ -8,10 +8,10 @@ interface TextFieldWithPasteProps
   onPaste: (value: string) => void;
 }
 
-export default function TextFieldWithPaste({
-  onPaste,
-  ...props
-}: TextFieldWithPasteProps) {
+function TextFieldWithPaste(
+  { onPaste, ...props }: TextFieldWithPasteProps,
+  ref: React.ForwardedRef<HTMLInputElement>
+) {
   const pasteText = () => {
     navigator.clipboard.readText().then((pk) => {
       onPaste(pk);
@@ -41,3 +41,5 @@ export default function TextFieldWithPaste({
     />
   );
 }
+
+export default React.forwardRef(TextFieldWithPaste);

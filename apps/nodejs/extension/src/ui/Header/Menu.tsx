@@ -6,6 +6,7 @@ import IconButton from "@mui/material/IconButton";
 import MoreIcon from "../assets/img/more_icon.svg";
 import { themeColors } from "../theme";
 import {
+  CONTACTS_PAGE,
   MANAGE_ACCOUNTS_PAGE,
   PREFERENCES_PAGE,
   SEEDS_PAGE,
@@ -67,6 +68,11 @@ export default function Menu() {
     },
     {
       type: "divider",
+    },
+    {
+      type: "route",
+      label: "Contacts",
+      route: CONTACTS_PAGE,
     },
     {
       type: "route",

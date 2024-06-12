@@ -15,6 +15,7 @@ export const themeColors = Object.freeze({
   dark_gray1: "#8b93a0",
   success: "#7db83d",
   successLight: "#ebf5de",
+  warningLight: "#ffeed6",
   red: "#a31c2a",
 });
 
@@ -91,6 +92,13 @@ const theme = createTheme({
         },
         list: {
           padding: "6px",
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          marginTop: 0,
         },
       },
     },

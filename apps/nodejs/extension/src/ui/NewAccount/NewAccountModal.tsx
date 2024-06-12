@@ -26,7 +26,7 @@ import ProtocolSelector from "../components/ProtocolSelector";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
-import AccountAdded from "../components/AccountAdded";
+import AccountFeedback from "../components/AccountFeedback";
 import MenuDivider from "../components/MenuDivider";
 import AccountInfo from "../components/AccountInfo";
 import BaseDialog from "../components/BaseDialog";
@@ -261,9 +261,9 @@ export default function NewAccountModal({
       content = (
         <>
           <DialogContent sx={{ padding: "0px!important" }}>
-            <AccountAdded
+            <AccountFeedback
               account={selectedAccount}
-              successLabel={"Account Created"}
+              label={"Account Created"}
             />
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>

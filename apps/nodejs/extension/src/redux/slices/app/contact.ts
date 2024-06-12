@@ -1,4 +1,7 @@
-import {SerializedAccountReference, SupportedProtocols} from "@poktscan/vault";
+import {
+  SerializedAccountReference,
+  SupportedProtocols,
+} from "@poktscan/vault";
 import type { RootState } from "../../store";
 import type { AppSliceBuilder } from "../../../types";
 import { v4 } from "uuid";
@@ -69,7 +72,10 @@ export const saveContact = createAsyncThunk(
       [CONTACTS_KEY]: newContactList,
     });
 
-    return newContactList;
+    return {
+      contactSaved: contactToSave,
+      newContactList,
+    };
   }
 );
 
@@ -96,7 +102,7 @@ export const removeContact = createAsyncThunk(
 
 export const addContactThunksToBuilder = (builder: AppSliceBuilder) => {
   builder.addCase(saveContact.fulfilled, (state, action) => {
-    state.contacts = action.payload;
+    state.contacts = action.payload.newContactList;
   });
 
   builder.addCase(removeContact.fulfilled, (state, action) => {
