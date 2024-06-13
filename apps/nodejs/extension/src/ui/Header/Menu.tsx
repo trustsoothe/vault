@@ -13,6 +13,7 @@ import {
 } from "../../constants/routes";
 import MenuDivider from "../components/MenuDivider";
 import { useAccountDialogs } from "./context/AccountDialogs";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
 interface RouteItem {
   type: "route";
@@ -24,6 +25,7 @@ interface ButtonItem {
   type: "button";
   label: string;
   onClick?: () => void;
+  isSensitive?: boolean;
 }
 
 interface DividerItem {
@@ -48,13 +50,13 @@ export default function Menu() {
   const menuItems: Array<MenuItem> = [
     {
       type: "button",
-      label: "Import Account",
-      onClick: showImportAccount,
+      label: "New Account",
+      onClick: showCreateAccount,
     },
     {
       type: "button",
-      label: "New Account",
-      onClick: showCreateAccount,
+      label: "Import Account",
+      onClick: showImportAccount,
     },
     {
       type: "route",
@@ -75,9 +77,21 @@ export default function Menu() {
       route: CONTACTS_PAGE,
     },
     {
+      type: "divider",
+    },
+    {
       type: "route",
       label: "Preferences",
       route: PREFERENCES_PAGE,
+    },
+    {
+      type: "divider",
+    },
+    {
+      type: "button",
+      label: "Lock Vault",
+      onClick: AppToBackground.lockVault,
+      isSensitive: true,
     },
   ];
 
@@ -125,6 +139,7 @@ export default function Menu() {
             return (
               <MenuItem
                 key={index}
+                className={menuItem.isSensitive ? "sensitive" : undefined}
                 onClick={() => {
                   menuItem.onClick();
                   handleClose();
