@@ -52,19 +52,9 @@ interface CrateAccountFromKeyPairOptions {
   hdwAccountIndex?: number;
   hdwIndex?: number;
   parentId?: string;
+  seedId?: string;
   concatPublicKey?: boolean;
 }
-
-/*
-    masterKey: {
-      key: Buffer;
-    },
-    name?: string,
-    accountType: AccountType = AccountType.HDSeed,
-    hdwAccountIndex?: number,
-    hdwIndex?: number,
-    parentId?: string
- */
 
 export class PocketNetworkProtocolService
   implements IProtocolService<SupportedProtocols.Pocket>
@@ -91,6 +81,7 @@ export class PocketNetworkProtocolService
       : await this.createAccountFromKeyPair({
           key: masterKey.key,
           name: options.seedAccountName,
+          seedId: options.recoveryPhraseId,
           accountType: AccountType.HDSeed,
           hdwAccountIndex: 0,
           hdwIndex: 0,
@@ -393,6 +384,7 @@ export class PocketNetworkProtocolService
       hdwAccountIndex: options.hdwAccountIndex,
       hdwIndex: options.hdwIndex,
       name: options.name || "HD Account",
+      seedId: options.seedId,
       protocol: SupportedProtocols.Pocket,
       privateKey: options.concatPublicKey
           ? `${options.key.toString("hex")}${publicKey}`
@@ -415,6 +407,7 @@ export class PocketNetworkProtocolService
       key: sendNodesKey.key,
       name: options.seedAccountName,
       concatPublicKey: false,
+      seedId: options.recoveryPhraseId,
     });
   }
 
@@ -430,6 +423,7 @@ export class PocketNetworkProtocolService
     return this.createAccountFromKeyPair({
       key: derivedKeys.key,
       name: `${seedAccount.name} ${index + 1}`,
+      seedId: '',
       accountType: AccountType.HDChild,
       hdwAccountIndex: 0,
       hdwIndex: index,

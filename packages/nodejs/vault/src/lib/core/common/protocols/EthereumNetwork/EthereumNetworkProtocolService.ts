@@ -102,6 +102,7 @@ export class EthereumNetworkProtocolService
 
     const seedAccount = new Account({
       name: options.seedAccountName || "HD Account",
+      seedId: options.recoveryPhraseId,
       accountType: AccountType.HDSeed,
       protocol: SupportedProtocols.Ethereum,
       publicKey: masterKey.publicExtendedKey,

@@ -136,6 +136,17 @@ export class AccountExistError extends KeyringError {
   }
 }
 
+export const RecoveryPhraseExistErrorName = "RecoveryPhraseExistError";
+
+export class RecoveryPhraseExistError extends KeyringError {
+  constructor() {
+    super({
+      name: RecoveryPhraseExistErrorName,
+      message: `A recovery phrase with the same combination of words and passphrase already exists within the vault.`,
+    });
+  }
+}
+
 export class ProtocolMismatchError extends KeyringError {
   constructor(message?: string) {
     super({
@@ -159,6 +170,15 @@ export class AccountNotFoundError extends KeyringError {
     super({
       name: "AccountNotFoundError",
       message: message || "The provided account was not found",
+    });
+  }
+}
+
+export class RecoveryPhraseNotFoundError extends KeyringError {
+  constructor(message?: string) {
+    super({
+      name: "RecoveryPhraseNotFoundError",
+      message: message || "The requested recovery phrase was not found",
     });
   }
 }

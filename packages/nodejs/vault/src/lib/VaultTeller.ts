@@ -24,7 +24,7 @@ import {
   ForbiddenSessionError,
   InvalidSessionError,
   PrivateKeyRestoreError,
-  RecoveryPhraseError,
+  RecoveryPhraseError, RecoveryPhraseNotFoundError,
   SessionIdRequiredError,
   SessionNotFoundError,
   VaultIsLockedError,
@@ -34,8 +34,7 @@ import {
 import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
-  EthereumNetworkProtocolService,
-  ImportRecoveryPhraseOptions,
+  EthereumNetworkProtocolService, ImportRecoveryPhraseOptions,
   PocketNetworkProtocolService,
   ProtocolServiceFactory,
 } from "./core/common/protocols";
@@ -48,6 +47,7 @@ import { EthereumNetworkTransactionTypes } from "./core/common/protocols/Ethereu
 import { IAsset } from "./core/common/protocols/IAsset";
 import * as bip39 from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english";
+import {RecoveryPhraseReference, RecoveryPhrase} from "./core/vault/entities/RecoveryPhrase";
 
 export type AllowedProtocols = keyof typeof SupportedProtocols;
 
@@ -83,9 +83,16 @@ export interface VaultOptions {
 }
 
 export interface AddHDWalletAccountExternalRequest {
-  seedAccountId: string;
+  recoveryPhraseId: string;
   protocol: SupportedProtocols;
+  isSendNodes?: boolean;
   count?: number;
+}
+
+export interface ImportRecoveryPhraseRequest {
+  recoveryPhrase: string
+  recoveryPhraseName: string
+  passphrase?: string
 }
 
 export class VaultTeller {
@@ -125,6 +132,9 @@ export class VaultTeller {
       .allowEverything()
       .onAny()
       .forResource("session")
+      .allowEverything()
+      .onAny()
+      .forResource("seed")
       .allowEverything()
       .onAny()
       .build();
@@ -744,20 +754,62 @@ export class VaultTeller {
   async importRecoveryPhrase(
     sessionId: string,
     vaultPassphrase: Passphrase,
-    options: ImportRecoveryPhraseOptions
-  ): Promise<AccountReference[]> {
+    options: ImportRecoveryPhraseRequest,
+  ): Promise<RecoveryPhraseReference> {
     await this.validateSessionForPermissions(sessionId, "account", "create");
 
-    const accounts = await this.getAccountsFromRecoveryPhrase(options);
+    const recoveryPhrase = new RecoveryPhrase(
+      options.recoveryPhrase,
+      options.recoveryPhraseName,
+      options.passphrase
+    );
 
-    for (const account of accounts) {
-      await this.addVaultAccount(account, vaultPassphrase);
-      await this.addAccountToSession(sessionId, account);
-    }
+    await this.addVaultRecoveryPhrase(recoveryPhrase, vaultPassphrase);
 
     await this.updateSessionLastActivity(sessionId);
 
-    return accounts.map((a) => a.asAccountReference());
+    return recoveryPhrase.asReference()
+  }
+
+  async listRecoveryPhrases(sessionId: string): Promise<RecoveryPhraseReference[]> {
+    if (!this.isUnlocked) {
+      throw new VaultIsLockedError();
+    }
+
+    const session = await this.getSession(sessionId);
+
+    if (!session) {
+      throw new SessionNotFoundError();
+    }
+
+    if (!session.isValid()) {
+      throw new InvalidSessionError();
+    }
+
+    const authorizedRecoveryPhrases = this._vault?.recoveryPhrases.filter((account) =>
+        session.isAllowed("seed", "read", [account.id])
+    );
+
+    await this.updateSessionLastActivity(sessionId);
+
+    return authorizedRecoveryPhrases?.map((a) => a.asReference()) || [];
+  }
+
+  async initializeRecoveryPhraseAccount(
+    sessionId: string,
+    vaultPassphrase: Passphrase,
+    options: ImportRecoveryPhraseOptions
+  ): Promise<Account> {
+    await this.validateSessionForPermissions(sessionId, "account", "create");
+
+    const [account] = await this.getAccountsFromRecoveryPhrase(options);
+
+    await this.addVaultAccount(account, vaultPassphrase);
+    await this.addAccountToSession(sessionId, account);
+
+    await this.updateSessionLastActivity(sessionId);
+
+    return account;
   }
 
   async addHDWalletAccount(
@@ -767,8 +819,22 @@ export class VaultTeller {
   ): Promise<AccountReference[]> {
     await this.validateSessionForPermissions(sessionId, "account", "create");
 
+    let recoveryPhraseSeedAccount = await this.getVaultAccountBySeedId(options.recoveryPhraseId, vaultPassphrase)
+
+    if (!recoveryPhraseSeedAccount) {
+      const recoveryPhrase = await this.getVaultRecoveryPhraseById(options.recoveryPhraseId, vaultPassphrase)
+
+      recoveryPhraseSeedAccount = await this.initializeRecoveryPhraseAccount(sessionId, vaultPassphrase, {
+        protocol: options.protocol,
+        recoveryPhrase: recoveryPhrase.phrase,
+        recoveryPhraseId: recoveryPhrase.id,
+        isSendNodes: options.isSendNodes,
+        passphrase: recoveryPhrase.passphrase,
+      })
+    }
+
     const seedAccount = await this.getVaultAccountById(
-      options.seedAccountId,
+      recoveryPhraseSeedAccount.id,
       vaultPassphrase
     );
 
@@ -877,6 +943,27 @@ export class VaultTeller {
     this._vault?.addAccount(account, replace);
   }
 
+  private async addVaultRecoveryPhrase(
+    recoveryPhrase: RecoveryPhrase,
+    vaultPassphrase: Passphrase
+  ) {
+    const vault = await this.getVault(vaultPassphrase);
+
+    vault.addRecoveryPhrase(recoveryPhrase);
+
+    const encryptedUpdatedVault = await this.encryptVault(
+      vaultPassphrase,
+      vault
+    );
+
+    await this.vaultStore.save(encryptedUpdatedVault.serialize());
+
+    /**
+     * Once the persisted vault is updated, we can perform our in-memory update
+     */
+    this._vault?.addRecoveryPhrase(recoveryPhrase);
+  }
+
   private async getVaultAccountById(
     accountId: string,
     vaultPassphrase: Passphrase
@@ -887,6 +974,21 @@ export class VaultTeller {
 
     if (!account) {
       throw new AccountNotFoundError();
+    }
+
+    return account;
+  }
+
+  private async getVaultAccountBySeedId(
+      seedId: string,
+      vaultPassphrase: Passphrase
+  ): Promise<Account | null> {
+    const vault = await this.getVault(vaultPassphrase);
+
+    const account = vault.accounts.find((account) => account.seedId === seedId);
+
+    if (!account) {
+      return null;
     }
 
     return account;
@@ -903,6 +1005,21 @@ export class VaultTeller {
         a.protocol === accountReference.protocol
       );
     });
+  }
+
+  private async getVaultRecoveryPhraseById(
+      phraseId: string,
+      vaultPassphrase: Passphrase
+  ): Promise<RecoveryPhrase> {
+    const vault = await this.getVault(vaultPassphrase);
+
+    const phrase = vault.recoveryPhrases.find((phrase) => phrase.id === phraseId);
+
+    if (!phrase) {
+      throw new RecoveryPhraseNotFoundError();
+    }
+
+    return phrase;
   }
 
   private async updateVaultAccount(
