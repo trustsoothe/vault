@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { useAppSelector } from "../../hooks/redux";
+import { FormProvider, useForm } from "react-hook-form";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import DialogButtons from "../components/DialogButtons";
+import { selectedProtocolSelector } from "../../redux/selectors/network";
 import BaseDialog from "../components/BaseDialog";
 import SendSubmitted from "./SendSubmitted";
 import SendSummary from "./SendSummary";
@@ -15,11 +18,19 @@ interface SendModalProps {
 }
 
 export default function SendModal({ open, onClose }: SendModalProps) {
-  const [status, setStatus] = useState<Status>("submitted");
+  const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const methods = useForm({
+    defaultValues: {
+      recipient: "",
+      protocol: selectedProtocol,
+    },
+  });
+
+  const [status, setStatus] = useState<Status>("form");
 
   useEffect(() => {
-    // const timeout = setTimeout(() => setStatus("form"), 150);
-    // return () => clearTimeout(timeout);
+    const timeout = setTimeout(() => setStatus("form"), 150);
+    return () => clearTimeout(timeout);
   }, [open]);
 
   let content: React.ReactNode;
@@ -109,7 +120,7 @@ export default function SendModal({ open, onClose }: SendModalProps) {
 
   return (
     <BaseDialog open={open} onClose={onClose} title={"Send"}>
-      {content}
+      <FormProvider {...methods}>{content}</FormProvider>
     </BaseDialog>
   );
 }

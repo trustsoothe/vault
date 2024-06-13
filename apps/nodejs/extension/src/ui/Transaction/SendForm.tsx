@@ -2,13 +2,22 @@ import React from "react";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import TextFieldWithPaste from "../components/TextFieldWithPaste";
 import { themeColors } from "../theme";
+import RecipientAutocomplete from "./RecipientAutocomplete";
 
 export default function SendForm() {
   return (
     <>
-      <TextField type={"number"} placeholder={"Amount (POKT)"} required />
+      <RecipientAutocomplete />
+
+      <TextField
+        type={"number"}
+        placeholder={"Amount (POKT)"}
+        required
+        sx={{
+          marginTop: 2,
+        }}
+      />
       <Stack
         marginTop={0.8}
         direction={"row"}
@@ -35,15 +44,6 @@ export default function SendForm() {
           0.01 POKT
         </Typography>
       </Stack>
-
-      <TextFieldWithPaste
-        placeholder={"Public Address"}
-        onPaste={console.log}
-        required
-        sx={{
-          marginTop: 2,
-        }}
-      />
 
       <TextField placeholder={"Memo (optional)"} sx={{ marginTop: 1.6 }} />
       <Typography

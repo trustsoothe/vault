@@ -6,7 +6,7 @@ import type {
   SxProps,
   Theme,
 } from "@mui/material";
-import {AccountType, SerializedAccountReference} from '@poktscan/vault'
+import { AccountType, SerializedAccountReference } from "@poktscan/vault";
 import type { AccountWithBalance } from "../../../types";
 import type { FormValues } from "../index";
 import Paper from "@mui/material/Paper";
@@ -23,7 +23,7 @@ import { useAppSelector } from "../../../hooks/redux";
 import { getTruncatedText } from "../../../utils/ui";
 import { accountsSelector } from "../../../redux/selectors/account";
 import { contactsSelector } from "../../../redux/selectors/contact";
-import {Contact} from "../../../redux/slices/app/contact";
+import { Contact } from "../../../redux/slices/app/contact";
 
 interface ToAddressAutocompleteProps {
   disabled?: boolean;
@@ -78,7 +78,7 @@ const renderAutocompleteOption = (
 
 export const filterAccounts = (
   searchText: string,
-  accounts: Contact[]
+  accounts: { name: string; address: string }[]
 ) => {
   if (!searchText) {
     return accounts;
@@ -117,7 +117,9 @@ const ToAddressAutocomplete: React.FC<ToAddressAutocompleteProps> = ({
   const accounts = useAppSelector(accountsSelector);
   const contacts = useAppSelector(contactsSelector);
   const accountsWithBalance = useMemo(() => {
-    const accountsWithNoSeeds = accounts.filter((item) => item.accountType !== AccountType.HDSeed)
+    const accountsWithNoSeeds = accounts.filter(
+      (item) => item.accountType !== AccountType.HDSeed
+    );
     return [...accountsWithNoSeeds, ...contacts].filter(
       (item) => protocol === item.protocol && item.address !== fromAddress
     );

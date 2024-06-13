@@ -1,6 +1,8 @@
 import { createTheme, ThemeProvider as ThemeProviderMui } from "@mui/material";
 import React from "react";
+import Box from "@mui/material/Box";
 import ExpandIcon from "./assets/img/expand_select_icon.svg";
+import CloseIcon from "./assets/img/rounded_close_icon.svg";
 import TooltipArrowIcon from "./assets/img/tooltip_arrow.svg";
 
 export const themeColors = Object.freeze({
@@ -63,7 +65,25 @@ const theme = createTheme({
       fontSize: 13,
     },
   },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 10000,
+      md: 10001,
+      lg: 10002,
+      xl: 10003,
+    },
+  },
   components: {
+    MuiAutocomplete: {
+      defaultProps: {
+        clearIcon: (
+          <Box sx={{ path: { fill: themeColors.primary } }}>
+            <CloseIcon />
+          </Box>
+        ),
+      },
+    },
     MuiMenuItem: {
       styleOverrides: {
         root: {
