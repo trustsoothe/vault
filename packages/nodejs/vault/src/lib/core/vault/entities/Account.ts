@@ -14,6 +14,7 @@ export interface SerializedAccount extends IEntity {
   protocol: SupportedProtocols
   isSecure: boolean
   accountType?: AccountType
+  seedId?: string
   parentId?: string
   hdwIndex?: number
   hdwAccountIndex?: number
@@ -29,6 +30,7 @@ export interface AccountOptions {
   protocol: SupportedProtocols
   secure: boolean
   accountType?: AccountType
+  seedId?: string
   parentId?: string
   hdwIndex?: number
   hdwAccountIndex?: number
@@ -48,6 +50,7 @@ export class Account implements IEntity {
   private readonly _protocol: SupportedProtocols
   private readonly _secure: boolean;
   private readonly _accountType: AccountType
+  private readonly _seedId?: string
   private readonly _parentId?: string
   private readonly _hdwIndex?: number
   private readonly _hdwAccountIndex?: number
@@ -89,6 +92,12 @@ export class Account implements IEntity {
       }
     }
 
+    if (options.accountType && options.accountType === AccountType.HDSeed) {
+        if (!options.seedId) {
+            throw new ArgumentError('Seed ID cannot be null or empty when account type is HDSeed')
+        }
+    }
+
     this._id = id || v4()
     this._name = options.name || ''
     this._publicKey = options.publicKey
@@ -97,6 +106,7 @@ export class Account implements IEntity {
     this._protocol = options.protocol
     this._secure = options.secure
     this._accountType = options.accountType || AccountType.Individual
+    this._seedId = options.seedId || undefined
     this._parentId = options.parentId || undefined
     this._hdwIndex = isNumber(options.hdwIndex) ? options.hdwIndex : undefined
     this._hdwAccountIndex = isNumber(options.hdwAccountIndex) ? options.hdwAccountIndex : undefined
@@ -161,6 +171,10 @@ export class Account implements IEntity {
     return this._hdwAccountIndex
   }
 
+  get seedId(): string | undefined {
+    return this._seedId
+  }
+
   serialize(): SerializedAccount {
     return {
       id: this.id,
@@ -173,6 +187,7 @@ export class Account implements IEntity {
       updatedAt: this.updatedAt,
       isSecure: this.isSecure,
       accountType: this.accountType,
+      seedId: this.seedId,
       parentId: this.parentId,
       hdwIndex: this.hdwIndex,
       hdwAccountIndex: this.hdwAccountIndex,
@@ -188,6 +203,7 @@ export class Account implements IEntity {
       protocol: serializedAccount.protocol,
       secure: serializedAccount.isSecure,
       accountType: serializedAccount.accountType,
+      seedId: serializedAccount.seedId,
       parentId: serializedAccount.parentId,
       hdwIndex: serializedAccount.hdwIndex,
       hdwAccountIndex: serializedAccount.hdwAccountIndex
@@ -210,6 +226,7 @@ export class Account implements IEntity {
         accountType: this.accountType,
         parentId: this.parentId,
         hdwIndex: this.hdwIndex,
+        seedId: this.seedId,
       });
   }
 }

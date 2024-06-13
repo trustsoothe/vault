@@ -67,7 +67,7 @@ export class PocketNetworkProtocolService
     const masterKey = getMasterKeyFromSeed(seedHex);
     const hdSeedAccount = options.isSendNodes
       ? await this.createSendNodesSeedAccountFromKey(masterKey, options)
-      : await this.createAccountFromKeyPair(masterKey, options.seedAccountName);
+      : await this.createAccountFromKeyPair(masterKey, options.seedAccountName, options.recoveryPhraseId);
 
     const hdChildAccount = await this.deriveHDAccountAtIndex(hdSeedAccount, 0);
 
@@ -357,6 +357,7 @@ export class PocketNetworkProtocolService
       key: Buffer;
     },
     name?: string,
+    seedId?: string,
     accountType: AccountType = AccountType.HDSeed,
     hdwAccountIndex?: number,
     hdwIndex?: number,
@@ -371,6 +372,7 @@ export class PocketNetworkProtocolService
       parentId,
       hdwAccountIndex,
       hdwIndex,
+      seedId,
       name: name || "HD Account",
       protocol: SupportedProtocols.Pocket,
       privateKey: masterKey.key.toString("hex"),
@@ -388,7 +390,7 @@ export class PocketNetworkProtocolService
       "m/44'/635'/0'/0'",
       masterKey.key.toString("hex")
     );
-    return this.createAccountFromKeyPair(sendNodesKey, options.seedAccountName);
+    return this.createAccountFromKeyPair(sendNodesKey, options.seedAccountName, options.recoveryPhraseId);
   }
 
   private async deriveHDAccountAtIndex(
@@ -402,6 +404,7 @@ export class PocketNetworkProtocolService
     return this.createAccountFromKeyPair(
       derivedKeys,
       `${seedAccount.name} ${index + 1}`,
+      '',
       AccountType.HDChild,
       0,
       index,

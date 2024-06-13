@@ -6,6 +6,7 @@ export enum PermissionResources {
   account = 'account',
   transaction = 'transaction',
   session = 'session',
+  seed = 'seed',
 }
 
 export type ResourceConfig = {
@@ -99,6 +100,7 @@ export class PermissionsBuilder {
     account: ['create', 'read', 'update', 'delete'],
     transaction: ['send'],
     session: ['list', 'revoke'],
+    seed: ['create', 'read', 'update', 'delete'],
   }
   constructor(permissions?: Permission[]) {
     if (permissions) {

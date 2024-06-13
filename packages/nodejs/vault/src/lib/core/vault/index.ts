@@ -2,8 +2,9 @@ import { v4, validate } from "uuid";
 import { Account, SerializedAccount } from "./entities/Account";
 import IEntity from "../common/IEntity";
 import { AccountReference } from "../common/values";
-import { AccountExistError } from "../../errors";
+import {AccountExistError, RecoveryPhraseExistError} from "../../errors";
 import { AccountType } from "./values/AccountType";
+import {RecoveryPhrase, SerializedRecoveryPhrase} from "./entities/RecoveryPhrase";
 
 export * from "./values/AccountReference";
 export * from "./entities/Account";
@@ -14,17 +15,20 @@ export interface SerializedVault extends IEntity {
   createdAt: number;
   updatedAt: number;
   accounts: SerializedAccount[];
+  recoveryPhrases: SerializedRecoveryPhrase[];
 }
 
 export class Vault implements IEntity {
   private readonly _id: string;
   private readonly _createdAt: number;
   private readonly _updatedAt: number;
-  private _accounts: Account[];
+  private _accounts: Account[]
+  private _recoveryPhrases: RecoveryPhrase[];
 
   constructor(
     id?: string,
     accounts?: Account[],
+    recoveryPhrases?: RecoveryPhrase[],
     originalCreationDate?: number,
     lastUpdatedAt?: number
   ) {
@@ -38,14 +42,21 @@ export class Vault implements IEntity {
       );
     }
 
+    if (recoveryPhrases && Array.isArray(recoveryPhrases) === false) {
+      throw new Error(
+        "Invalid argument: recoveryPhrases. Expected an array of RecoveryPhrase objects"
+      );
+    }
+
     this._id = id || v4();
     this._createdAt = originalCreationDate || Date.now();
     this._updatedAt = lastUpdatedAt || Date.now();
     this._accounts = accounts || [];
+    this._recoveryPhrases = recoveryPhrases || [];
   }
 
   static FromVault(vault: Vault): Vault {
-    return new Vault(v4(), vault.accounts.slice());
+    return new Vault(v4(), vault.accounts.slice(), vault.recoveryPhrases.slice());
   }
 
   get id(): string {
@@ -64,20 +75,27 @@ export class Vault implements IEntity {
     return this._accounts;
   }
 
+  get recoveryPhrases(): ReadonlyArray<RecoveryPhrase> {
+      return this._recoveryPhrases;
+  }
+
   serialize(): SerializedVault {
     return {
       id: this._id,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
       accounts: this._accounts.map((account) => account.serialize()),
+      recoveryPhrases: this._recoveryPhrases.map((recoveryPhrase) => recoveryPhrase.serialize())
     };
   }
 
   static deserialize(serializedVault: SerializedVault): Vault {
     const accounts = serializedVault.accounts.map(Account.deserialize);
+    const recoveryPhrases = serializedVault.recoveryPhrases.map(RecoveryPhrase.deserialize);
     return new Vault(
       serializedVault.id,
       accounts,
+      recoveryPhrases,
       serializedVault.createdAt,
       serializedVault.updatedAt
     );
@@ -115,6 +133,19 @@ export class Vault implements IEntity {
 
       return a;
     });
+  }
+
+  addRecoveryPhrase(recoveryPhrase: RecoveryPhrase) {
+    const recoveryPhraseExists = this._recoveryPhrases.some((rp) => {
+        return rp.phrase === recoveryPhrase.phrase
+          && rp.passphrase === recoveryPhrase.passphrase;
+    });
+
+    if (recoveryPhraseExists) {
+      throw new RecoveryPhraseExistError();
+    }
+
+    this._recoveryPhrases.push(recoveryPhrase);
   }
 
   removeAccount(account: AccountReference) {

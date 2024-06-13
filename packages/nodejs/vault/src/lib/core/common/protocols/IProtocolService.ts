@@ -20,6 +20,7 @@ export interface CreateAccountFromPrivateKeyOptions extends CreateAccountOptions
 
 export interface ImportRecoveryPhraseOptions {
   recoveryPhrase: string;
+  recoveryPhraseId: string;
   protocol: SupportedProtocols;
   seedAccountName?: string;
   passphrase?: string;

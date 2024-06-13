@@ -18,6 +18,7 @@ export interface AccountReferenceOptions {
     address: string;
     protocol: SupportedProtocols;
     accountType?: AccountType;
+    seedId?: string;
     parentId?: string;
     hdwIndex?: number;
 }
@@ -28,6 +29,7 @@ export class AccountReference {
   private readonly _address: string = "";
   private readonly _protocol: SupportedProtocols;
   private readonly _accountType: AccountType;
+  private readonly _seedId?: string;
   private readonly _parentId: string = "";
   private readonly _hdwIndex?: number;
 
@@ -37,6 +39,7 @@ export class AccountReference {
     this._address = options.address;
     this._protocol = options.protocol;
     this._accountType = options.accountType || AccountType.Individual;
+    this._seedId = options.seedId;
     this._parentId = options.parentId || "";
     this._hdwIndex = isNumber(options.hdwIndex) ? options.hdwIndex : undefined;
   }
@@ -67,6 +70,10 @@ export class AccountReference {
 
   get hdwIndex(): number | undefined {
     return this._hdwIndex;
+  }
+
+  get seedId(): string | undefined {
+    return this._seedId;
   }
 
   serialize(): SerializedAccountReference {
