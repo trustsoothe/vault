@@ -883,6 +883,98 @@ export default <
     });
   })
 
+  describe('listRecoveryPhrases', () => {
+    test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
+      vaultStore = createVaultStore()
+      const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+      await vaultTeller.initializeVault('passphrase')
+      await vaultTeller.unlockVault('passphrase')
+      const passphrase = new Passphrase('passphrase')
+      // @ts-ignore
+      const listRecoveryPhrasesOperation = vaultTeller.listRecoveryPhrases(null)
+
+      await expect(listRecoveryPhrasesOperation).rejects.toThrow(SessionIdRequiredError)
+    })
+
+    test('throws "ForbiddenSessionError" if the session id is found in the session store but "seed:read" is not allowed', async () => {
+      const {vaultTeller, session, passphrase} = await initializePermissionLessVault();
+      // @ts-ignore
+      const listRecoveryPhrasesOperation = vaultTeller.listRecoveryPhrases(session.id)
+
+      await expect(listRecoveryPhrasesOperation).rejects.toThrow(ForbiddenSessionError)
+    });
+
+    test('returns a list of recovery phrases if the session id is found in the session store and is valid', async () => {
+      const {vaultTeller, session, passphrase} = await createVault();
+
+      const recoveryPhrase = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+        recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+        recoveryPhraseName: 'example-hd-wallet',
+      })
+
+      const recoveryPhrases = await vaultTeller.listRecoveryPhrases(session.id)
+
+      expect(recoveryPhrases).toEqual([recoveryPhrase])
+    })
+  })
+
+  describe('updateRecoveryPhrase', () => {
+    test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        await vaultTeller.unlockVault('passphrase')
+        const passphrase = new Passphrase('passphrase')
+        // @ts-ignore
+        const updateRecoveryPhraseOperation = vaultTeller.updateRecoveryPhrase(null, passphrase, null);
+
+        await expect(updateRecoveryPhraseOperation).rejects.toThrow(SessionIdRequiredError)
+    });
+
+    test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        const session = await vaultTeller.unlockVault('passphrase')
+        // @ts-ignore
+        const updateRecoveryPhraseOperation = vaultTeller.updateRecoveryPhrase(session.id, null, null);
+
+        await expect(updateRecoveryPhraseOperation).rejects.toThrow(VaultRestoreError)
+    });
+
+    test('throws "ForbiddenSessionError" if the session id is found in the session store but "seed:update" is not allowed', async () => {
+        const {vaultTeller, session, passphrase} = await initializePermissionLessVault();
+        // @ts-ignore
+        const updateRecoveryPhraseOperation = vaultTeller.updateRecoveryPhrase(session.id, passphrase, null);
+
+        await expect(updateRecoveryPhraseOperation).rejects.toThrow(ForbiddenSessionError)
+    });
+
+    test('throws "RecoveryPhraseNotFoundError" if the recovery phrase is not found in the vault', async () => {
+        const {vaultTeller, session, passphrase} = await createVault();
+        const updateRecoveryPhraseOperation = vaultTeller.updateRecoveryPhrase(session.id, passphrase, {
+          recoveryPhraseId: 'recovery-phrase-id-that-does-not-exist',
+        })
+
+        await expect(updateRecoveryPhraseOperation).rejects.toThrow(RecoveryPhraseNotFoundError)
+    });
+
+    test('successfully updates the recovery phrase "name" attribute in the vault', async () => {
+        const {vaultTeller, session, passphrase} = await createVault();
+        const recoveryPhrase = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+          recoveryPhraseName: 'example-hd-wallet',
+        })
+
+        const updatedRecoveryPhrase = await vaultTeller.updateRecoveryPhrase(session.id, passphrase, {
+          recoveryPhraseId: recoveryPhrase.id,
+          name: 'updated-hd-wallet',
+        })
+
+        expect(updatedRecoveryPhrase.name).toEqual('updated-hd-wallet')
+    });
+  })
+
   describe('Account creation - Pocket Network', () => {
     const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'
     const expectedAddress = '30fd308b3bf2126030aba7f0e342dcb8b4922a8b';
@@ -1403,7 +1495,6 @@ export default <
 
   describe('Account creation - Ethereum', () => {
     describe('recovery phrase', () => {
-
       const recoveryPhrase = 'enrich news velvet left upon pilot deer abandon view success brass want blame easy emotion'
 
       const expectedAddresses = [

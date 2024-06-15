@@ -148,6 +148,20 @@ export class Vault implements IEntity {
     this._recoveryPhrases.push(recoveryPhrase);
   }
 
+  updateRecoveryPhrase(recoveryPhrase: RecoveryPhrase) {
+    this._recoveryPhrases = this._recoveryPhrases.map((rp) => {
+      if (rp.id === recoveryPhrase.id) {
+        return recoveryPhrase;
+      }
+
+      return rp;
+    });
+  }
+
+  removeRecoveryPhrase(recoveryPhrase: RecoveryPhrase) {
+    this._recoveryPhrases = this._recoveryPhrases.filter((rp) => rp.id !== recoveryPhrase.id);
+  }
+
   removeAccount(account: AccountReference) {
     this._accounts = this._accounts.filter((a) => a.id !== account.id);
   }
