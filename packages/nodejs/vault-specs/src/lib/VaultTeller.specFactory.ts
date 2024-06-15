@@ -954,6 +954,7 @@ export default <
         const {vaultTeller, session, passphrase} = await createVault();
         const updateRecoveryPhraseOperation = vaultTeller.updateRecoveryPhrase(session.id, passphrase, {
           recoveryPhraseId: 'recovery-phrase-id-that-does-not-exist',
+          name: 'updated-hd-wallet'
         })
 
         await expect(updateRecoveryPhraseOperation).rejects.toThrow(RecoveryPhraseNotFoundError)
