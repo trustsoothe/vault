@@ -763,7 +763,7 @@ export class VaultTeller {
     vaultPassphrase: Passphrase,
     options: ImportRecoveryPhraseRequest,
   ): Promise<RecoveryPhraseReference> {
-    await this.validateSessionForPermissions(sessionId, "account", "create");
+    await this.validateSessionForPermissions(sessionId, "seed", "create");
 
     const recoveryPhrase = new RecoveryPhrase(
       options.recoveryPhrase,
@@ -807,6 +807,18 @@ export class VaultTeller {
     await this.updateVaultRecoveryPhrase(recoveryPhrase, vaultPassphrase);
 
     return recoveryPhrase.asReference()
+  }
+
+  async removeRecoveryPhrase(sessionId: string, vaultPassphrase: Passphrase, recoveryPhraseId: string): Promise<void> {
+    await this.validateSessionForPermissions(sessionId, 'seed', 'delete', [recoveryPhraseId])
+    const vault = await this.getVault(vaultPassphrase);
+    const recoveryPhrase = vault.recoveryPhrases.find(rp => rp.id === recoveryPhraseId)
+
+    if (!recoveryPhrase) {
+      throw new RecoveryPhraseNotFoundError()
+    }
+
+
   }
 
   async initializeRecoveryPhraseAccount(
@@ -1120,5 +1132,26 @@ export class VaultTeller {
       session.removeAccount(accountReference);
       await this.sessionStore.save(session.serialize());
     }
+  }
+
+  private async removeVaultRecoveryPhrase(
+    recoveryPhrase: RecoveryPhraseReference,
+    vaultPassphrase: Passphrase
+  ) {
+    const vault = await this.getVault(vaultPassphrase);
+
+    vault.removeRecoveryPhrase(recoveryPhrase);
+
+    const encryptedUpdatedVault = await this.encryptVault(
+      vaultPassphrase,
+      vault
+    );
+
+    await this.vaultStore.save(encryptedUpdatedVault.serialize());
+
+    /**
+     * Once the persisted vault is updated, we can perform our in-memory update
+     */
+    this._vault?.removeRecoveryPhrase(recoveryPhrase);
   }
 }

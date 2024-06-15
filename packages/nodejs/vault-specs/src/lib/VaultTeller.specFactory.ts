@@ -975,6 +975,60 @@ export default <
     });
   })
 
+  describe('removeRecoveryPhrase', () => {
+      test('throws "SessionIdRequiredError" error if the session id is not provided', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        await vaultTeller.unlockVault('passphrase')
+        const passphrase = new Passphrase('passphrase')
+        // @ts-ignore
+        const removeRecoveryPhraseOperation = vaultTeller.removeRecoveryPhrase(null, passphrase, null);
+
+        await expect(removeRecoveryPhraseOperation).rejects.toThrow(SessionIdRequiredError)
+    });
+
+    test('throws "VaultRestoreError" if the vault passphrase is not provided or incorrect', async () => {
+        vaultStore = createVaultStore()
+        const vaultTeller = new VaultTeller(vaultStore, sessionStore!, encryptionService!)
+        await vaultTeller.initializeVault('passphrase')
+        const session = await vaultTeller.unlockVault('passphrase')
+        // @ts-ignore
+        const removeRecoveryPhraseOperation = vaultTeller.removeRecoveryPhrase(session.id, null, null);
+
+        await expect(removeRecoveryPhraseOperation).rejects.toThrow(VaultRestoreError)
+    });
+
+    test('throws "ForbiddenSessionError" if the session id is found in the session store but "seed:delete" is not allowed', async () => {
+        const {vaultTeller, session, passphrase} = await initializePermissionLessVault();
+        // @ts-ignore
+        const removeRecoveryPhraseOperation = vaultTeller.removeRecoveryPhrase(session.id, passphrase, null);
+
+        await expect(removeRecoveryPhraseOperation).rejects.toThrow(ForbiddenSessionError)
+    });
+
+    test('throws "RecoveryPhraseNotFoundError" if the recovery phrase is not found in the vault', async () => {
+        const {vaultTeller, session, passphrase} = await createVault();
+
+        const removeRecoveryPhraseOperation = vaultTeller.removeRecoveryPhrase(session.id, passphrase, 'recovery-phrase-id-that-does-not-exist');
+
+        await expect(removeRecoveryPhraseOperation).rejects.toThrow(RecoveryPhraseNotFoundError)
+    });
+
+    test('successfully removes the recovery phrase from the vault', async () => {
+        const {vaultTeller, session, passphrase} = await createVault();
+        const recoveryPhrase = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+          recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+          recoveryPhraseName: 'example-hd-wallet',
+        })
+
+        const removeRecoveryPhraseOperation = vaultTeller.removeRecoveryPhrase(session.id, passphrase, recoveryPhrase.id);  const recoveryPhrases = await vaultTeller.listRecoveryPhrases(session.id)
+
+        expect(recoveryPhrases).not.toContain(recoveryPhrase)
+    });
+
+  })
+
   describe('Account creation - Pocket Network', () => {
     const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'
     const expectedAddress = '30fd308b3bf2126030aba7f0e342dcb8b4922a8b';

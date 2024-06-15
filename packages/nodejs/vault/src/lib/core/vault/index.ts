@@ -4,7 +4,7 @@ import IEntity from "../common/IEntity";
 import { AccountReference } from "../common/values";
 import {AccountExistError, RecoveryPhraseExistError} from "../../errors";
 import { AccountType } from "./values/AccountType";
-import {RecoveryPhrase, SerializedRecoveryPhrase} from "./entities/RecoveryPhrase";
+import {RecoveryPhrase, RecoveryPhraseReference, SerializedRecoveryPhrase} from "./entities/RecoveryPhrase";
 
 export * from "./values/AccountReference";
 export * from "./entities/Account";
@@ -158,7 +158,7 @@ export class Vault implements IEntity {
     });
   }
 
-  removeRecoveryPhrase(recoveryPhrase: RecoveryPhrase) {
+  removeRecoveryPhrase(recoveryPhrase: RecoveryPhraseReference) {
     this._recoveryPhrases = this._recoveryPhrases.filter((rp) => rp.id !== recoveryPhrase.id);
   }
 
