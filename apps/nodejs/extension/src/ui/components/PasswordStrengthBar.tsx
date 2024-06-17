@@ -70,6 +70,7 @@ export default function PasswordStrengthBar(props: PasswordStrengthBarProps) {
   return (
     <Stack
       width={1}
+      marginTop={1.3}
       sx={{
         "& p": {
           marginRight: "8px!important",

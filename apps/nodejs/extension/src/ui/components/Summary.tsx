@@ -62,7 +62,9 @@ export default function Summary({ rows, containerProps }: SummaryProps) {
             <Typography>{row.label}</Typography>
 
             {typeof row.value === "string" ? (
-              <Typography variant={"subtitle2"}>{row.value}</Typography>
+              <Typography variant={"subtitle2"} noWrap={true} marginLeft={0.5}>
+                {row.value}
+              </Typography>
             ) : (
               row.value
             )}

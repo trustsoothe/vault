@@ -1,23 +1,18 @@
 import Stack from "@mui/material/Stack";
+import React, { useState } from "react";
 import Button from "@mui/material/Button";
 import { shallowEqual } from "react-redux";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
-import React, { useEffect, useState } from "react";
 import { SupportedProtocols } from "@poktscan/vault";
 import ActivityIcon from "../assets/img/activity_icon.svg";
-import AppToBackground from "../../controllers/communication/AppToBackground";
 import CopyAddressButton from "./CopyAddressButton";
-import useGetPrices from "../../hooks/useGetPrices";
 import SendIcon from "../assets/img/send_icon.svg";
 import SwapIcon from "../assets/img/swap_icon.svg";
 import { useAppSelector } from "../../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
 import { themeColors } from "../theme";
-import {
-  balanceMapConsideringAsset,
-  selectedAccountSelector,
-} from "../../redux/selectors/account";
+import { selectedAccountSelector } from "../../redux/selectors/account";
 import {
   networkSymbolSelector,
   selectedChainSelector,
@@ -25,13 +20,25 @@ import {
 import SendModal from "../Transaction/SendModal";
 import GrayContainer from "../components/GrayContainer";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
+import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 
 export default function SelectedAccount() {
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const selectedChain = useAppSelector(selectedChainSelector);
-  const balanceMap = useAppSelector(balanceMapConsideringAsset(undefined));
   const networkSymbol = useAppSelector(networkSymbolSelector);
   const [showSendModal, setShowSendModal] = useState(false);
+  const {
+    balance,
+    usdBalance,
+    isLoadingUsdPrice,
+    isLoadingBalance,
+    balanceError,
+    usdPriceError,
+  } = useBalanceAndUsdPrice({
+    address: selectedAccount.address,
+    chainId: selectedChain,
+    protocol: selectedAccount.protocol,
+  });
 
   const toggleShowSendModal = () => setShowSendModal((prev) => !prev);
 
@@ -39,46 +46,11 @@ export default function SelectedAccount() {
     setShowSendModal(false);
   }, [selectedAccount.address]);
 
-  useEffect(() => {
-    AppToBackground.getAccountBalance({
-      address: selectedAccount.address,
-      protocol: selectedAccount.protocol,
-      chainId: selectedChain,
-    });
-
-    const interval = setInterval(() => {
-      AppToBackground.getAccountBalance({
-        address: selectedAccount.address,
-        protocol: selectedAccount.protocol,
-        chainId: selectedChain,
-      });
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [selectedChain, selectedAccount.address, selectedAccount.protocol]);
-
-  const {
-    data: pricesByProtocolAndChain,
-    isError: isNetworkPriceError,
-    isLoading: isLoadingNetworkPrices,
-    refetch: refetchNetworkPrices,
-  } = useGetPrices({
-    pollingInterval: 60000,
-  });
-  const usdPrice: number =
-    pricesByProtocolAndChain?.[selectedAccount.protocol]?.[selectedChain] || 0;
-
-  const balance =
-    (balanceMap?.[selectedAccount.address]?.amount as number) || 0;
-  const errorBalance = balanceMap?.[selectedAccount.address]?.error || false;
-  const loadingBalance =
-    (balanceMap?.[selectedAccount.address]?.loading && !balance) || false;
-
   return (
     <>
       <SendModal open={showSendModal} onClose={toggleShowSendModal} />
       <GrayContainer>
-        {loadingBalance ? (
+        {isLoadingBalance ? (
           <Skeleton
             width={100}
             variant={"rectangular"}
@@ -88,25 +60,27 @@ export default function SelectedAccount() {
         ) : (
           <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
             <Typography variant={"h1"} noWrap={true} maxWidth={275}>
-              {roundAndSeparate(
-                balance,
-                selectedAccount.protocol === SupportedProtocols.Ethereum
-                  ? 18
-                  : 6,
-                "0"
-              )}
+              {balanceError
+                ? "-"
+                : roundAndSeparate(
+                    balance,
+                    selectedAccount.protocol === SupportedProtocols.Ethereum
+                      ? 18
+                      : 6,
+                    "0"
+                  )}
             </Typography>
             <Typography
               variant={"h1"}
-              color={themeColors.gray}
               fontWeight={300}
+              color={themeColors.gray}
             >
               {networkSymbol}
             </Typography>
           </Stack>
         )}
 
-        {isLoadingNetworkPrices || loadingBalance ? (
+        {isLoadingBalance || isLoadingUsdPrice ? (
           <Skeleton
             width={70}
             height={20}
@@ -119,7 +93,9 @@ export default function SelectedAccount() {
           />
         ) : (
           <Typography marginTop={0.8} marginBottom={2}>
-            $ {roundAndSeparate(balance * usdPrice, 2, "0.00")}
+            {balanceError || usdPriceError
+              ? "-"
+              : `$ ${roundAndSeparate(usdBalance, 2, "0.00")}`}
           </Typography>
         )}
 

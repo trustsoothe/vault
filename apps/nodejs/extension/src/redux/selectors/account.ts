@@ -1,12 +1,15 @@
 import type { RootState } from "../store";
-import type { IAsset } from "../slices/app";
-import {AccountType, SupportedProtocols} from '@poktscan/vault'
+import { AccountType, SupportedProtocols } from "@poktscan/vault";
 
 export const accountBalancesSelector = (state: RootState) =>
   state.app.accountBalances;
 
 export const balanceMapOfNetworkSelector =
-  (protocol: SupportedProtocols, chainId: string, asset?: IAsset) =>
+  (
+    protocol: SupportedProtocols,
+    chainId: string,
+    asset?: { contractAddress: string; decimals: number }
+  ) =>
   (state: RootState) => {
     const chainBalanceMap = state.app.accountBalances?.[protocol]?.[chainId];
 
@@ -18,7 +21,8 @@ export const balanceMapOfNetworkSelector =
   };
 
 export const balanceMapConsideringAsset =
-  (asset?: IAsset) => (state: RootState) => {
+  (asset?: { contractAddress: string; decimals: number }) =>
+  (state: RootState) => {
     const selectedProtocol = state.app.selectedProtocol;
     const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];
 
@@ -40,7 +44,9 @@ export const selectedAccountSelector = (state: RootState) => {
     state.app.selectedAccountByProtocol[selectedProtocol];
 
   return state.vault.accounts.find(
-    (account) => account.address === selectedAccountAddress && account.accountType !== AccountType.HDSeed
+    (account) =>
+      account.address === selectedAccountAddress &&
+      account.accountType !== AccountType.HDSeed
   );
 };
 

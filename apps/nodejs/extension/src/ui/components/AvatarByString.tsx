@@ -75,6 +75,7 @@ function AvatarA({ size, darkColor, color, type, transform }: AvatarAProps) {
     <Stack
       width={size}
       height={size}
+      className={"avatar"}
       borderRadius={type === "circle" ? "50%" : "4px"}
       sx={{
         transform: transform
@@ -112,6 +113,7 @@ function AvatarC({
       width={size}
       height={size}
       display={"grid"}
+      className={"avatar"}
       gridTemplateRows={"1fr 1fr"}
       gridTemplateColumns={"1fr 1fr"}
       sx={{ transform, overflow: "hidden" }}
@@ -137,6 +139,7 @@ function AvatarD({
       width={size}
       height={size}
       bgcolor={darkColor}
+      className={"avatar"}
       position={"relative"}
       sx={{
         transform: type === "circle" ? transform : undefined,
@@ -166,6 +169,7 @@ function AvatarE({ size, darkColor, color, type }: AvatarProps) {
       width={size}
       height={size}
       bgcolor={darkColor}
+      className={"avatar"}
       alignItems={"center"}
       justifyContent={"center"}
       sx={{
@@ -188,6 +192,7 @@ function AvatarF({ size, darkColor, color, type, transform }: AvatarAProps) {
     <Stack
       width={size}
       height={size}
+      className={"avatar"}
       borderRadius={type === "circle" ? "50%" : "4px"}
       sx={{
         transform: transform

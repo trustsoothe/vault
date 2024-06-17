@@ -29,9 +29,8 @@ import { RequestTimeout } from "../errors/communication";
 import CircularLoading from "../components/common/CircularLoading";
 import OperationFailed from "../components/common/OperationFailed";
 import RequestOriginsPermission from "../components/RequestOriginsPermission";
-import { requestRouter } from "../constants/routers";
 import { RouterProvider } from "react-router-dom";
-import { router } from "./router";
+import { requestRouter, router } from "./router";
 
 export default function App() {
   const isPopup = useIsPopup();
@@ -213,7 +212,7 @@ export default function App() {
               bottom: 12,
               left: 12,
               position: "absolute",
-              height: 45,
+              minHeight: 45,
               width: "376px!important",
               minWidth: "376px!important",
               maxWidth: "376px!important",
@@ -238,6 +237,17 @@ export default function App() {
                 height: 18,
                 minHeight: 17,
               },
+              "&:has(.title-with-content)": {
+                svg: {
+                  alignSelf: "flex-start",
+                  marginTop: 0.2,
+                },
+                "& .okay-button": {
+                  alignSelf: "flex-end",
+                  marginRight: 0.4,
+                  marginBottom: 0.4,
+                },
+              },
             },
           }}
           elevation={2}
@@ -245,7 +255,7 @@ export default function App() {
         >
           <SnackbarProvider
             style={{
-              height: 45,
+              minHeight: 45,
               fontSize: 12,
               display: "flex",
               alignItems: "center",

@@ -47,6 +47,7 @@ export default function BaseDialog(props: BaseDialogProps) {
           },
         },
       }}
+      title={undefined}
     >
       {props.title && (
         <DialogTitle
