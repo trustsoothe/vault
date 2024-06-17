@@ -10,8 +10,10 @@ import NetworkSelect from "./NetworkSelect/NetworkSelect";
 import AccountSelect from "./AccountSelect/AccountSelect";
 import {
   CONTACTS_PAGE,
+  EXPORT_VAULT_PAGE,
   IMPORT_SEEDS_PAGE,
   MANAGE_ACCOUNTS_PAGE,
+  NETWORKS_PAGE,
   NEW_SEEDS_PAGE,
   PREFERENCES_PAGE,
   SEEDS_PAGE,
@@ -54,6 +56,12 @@ function getLabelByRoute(pathname: string) {
 
     case CONTACTS_PAGE:
       return "Contacts";
+
+    case EXPORT_VAULT_PAGE:
+      return "Backup";
+
+    case NETWORKS_PAGE:
+      return "Networks";
 
     default:
       return "Unknown";

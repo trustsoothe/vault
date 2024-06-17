@@ -139,7 +139,8 @@ export const removeRequestWithRes = async (
 
 type Message =
   | ((onClickClose: () => void) => SnackbarMessage)
-  | SnackbarMessage;
+  | SnackbarMessage
+  | { title: string; content: string };
 
 export const enqueueSnackbar = <V extends VariantType>(
   options: OptionsWithExtraProps<V> & {
@@ -154,10 +155,31 @@ export const enqueueSnackbar = <V extends VariantType>(
     }
   };
 
-  const message =
-    typeof options.message === "function"
-      ? options.message(onClickClose)
-      : options.message;
+  let message: React.ReactNode;
+
+  if (typeof options.message === "function") {
+    message = options.message(onClickClose);
+  } else if (
+    typeof options.message === "object" &&
+    "title" in options.message
+  ) {
+    message = (
+      <Stack className={"title-with-content"}>
+        <Typography color={themeColors.bgLightGray} fontWeight={500}>
+          {options.message.title}
+        </Typography>
+        <Typography
+          color={themeColors.light_gray2}
+          whiteSpace={"pre-line"}
+          marginBottom={3.8}
+        >
+          {options.message.content}
+        </Typography>
+      </Stack>
+    );
+  } else {
+    message = options.message;
+  }
 
   snackbarKey = enqueueSnackbarNotistack({
     ...options,
@@ -170,13 +192,18 @@ export const enqueueSnackbar = <V extends VariantType>(
         spacing={1}
         width={1}
       >
-        <Typography
-          fontWeight={500}
-          color={themeColors.bgLightGray}
-          flexGrow={1}
-        >
-          {message}
-        </Typography>
+        {typeof options.message === "object" && "title" in options.message ? (
+          message
+        ) : (
+          <Typography
+            fontWeight={500}
+            color={themeColors.bgLightGray}
+            flexGrow={1}
+          >
+            {message}
+          </Typography>
+        )}
+
         <Button
           sx={{
             width: 54,
@@ -189,6 +216,7 @@ export const enqueueSnackbar = <V extends VariantType>(
               backgroundColor: themeColors.light_gray,
             },
           }}
+          className={"okay-button"}
           onClick={onClickClose}
         >
           Okay
@@ -215,11 +243,31 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
     }
   };
 
-  const message =
-    typeof options.message === "function"
-      ? options.message(onClickClose)
-      : options.message;
+  let message: React.ReactNode;
 
+  if (typeof options.message === "function") {
+    message = options.message(onClickClose);
+  } else if (
+    typeof options.message === "object" &&
+    "title" in options.message
+  ) {
+    message = (
+      <Stack className={"title-with-content"}>
+        <Typography color={themeColors.bgLightGray} fontWeight={500}>
+          {options.message.title}
+        </Typography>
+        <Typography
+          color={themeColors.light_gray2}
+          whiteSpace={"pre-line"}
+          marginBottom={3.8}
+        >
+          {options.message.content}
+        </Typography>
+      </Stack>
+    );
+  } else {
+    message = options.message;
+  }
   snackbarKey = enqueueSnackbarNotistack({
     autoHideDuration: 4000,
     ...options,
@@ -232,13 +280,17 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
         spacing={1}
         width={1}
       >
-        <Typography
-          fontWeight={500}
-          color={themeColors.bgLightGray}
-          flexGrow={1}
-        >
-          {message}
-        </Typography>
+        {typeof options.message === "object" && "title" in options.message ? (
+          message
+        ) : (
+          <Typography
+            fontWeight={500}
+            color={themeColors.bgLightGray}
+            flexGrow={1}
+          >
+            {message}
+          </Typography>
+        )}
         <Button
           sx={{
             width: 60,

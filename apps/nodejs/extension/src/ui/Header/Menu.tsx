@@ -7,7 +7,9 @@ import MoreIcon from "../assets/img/more_icon.svg";
 import { themeColors } from "../theme";
 import {
   CONTACTS_PAGE,
+  EXPORT_VAULT_PAGE,
   MANAGE_ACCOUNTS_PAGE,
+  NETWORKS_PAGE,
   PREFERENCES_PAGE,
   SEEDS_PAGE,
 } from "../../constants/routes";
@@ -77,7 +79,17 @@ export default function Menu() {
       route: CONTACTS_PAGE,
     },
     {
+      type: "route",
+      label: "Networks",
+      route: NETWORKS_PAGE,
+    },
+    {
       type: "divider",
+    },
+    {
+      type: "route",
+      label: "Backup",
+      route: EXPORT_VAULT_PAGE,
     },
     {
       type: "route",

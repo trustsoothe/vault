@@ -9,13 +9,13 @@ import IconButton from "@mui/material/IconButton";
 import Autocomplete from "@mui/material/Autocomplete";
 import { AccountType } from "@poktscan/vault";
 import { filterAccounts } from "../../components/Transfer/Form/ToAddressAutocomplete";
+import AccountInfo, { AccountAvatar } from "../components/AccountInfo";
 import TextFieldWithPaste from "../components/TextFieldWithPaste";
 import { contactsSelector } from "../../redux/selectors/contact";
 import { accountsSelector } from "../../redux/selectors/account";
 import { isValidAddress } from "../../utils/networkOperations";
 import { Controller, useFormContext } from "react-hook-form";
 import CloseIcon from "../assets/img/rounded_close_icon.svg";
-import AccountInfo from "../components/AccountInfo";
 import { useAppSelector } from "../../hooks/redux";
 import { themeColors } from "../theme";
 
@@ -135,6 +135,8 @@ export default function RecipientAutocomplete() {
         fieldState: { error },
       }) => {
         const invalidValue = !!value && !isValidAddress(value, protocol);
+        const optionSelected = optionsMap[value];
+
         return (
           <Autocomplete
             options={options.map((item) => item.address)}
@@ -221,6 +223,22 @@ export default function RecipientAutocomplete() {
                         </IconButton>
                       ),
                     }),
+                  startAdornment:
+                    optionSelected && optionSelected.name === inputValue ? (
+                      <Stack
+                        width={15}
+                        height={15}
+                        minWidth={15}
+                        minHeight={15}
+                        marginLeft={0.9}
+                      >
+                        <AccountAvatar
+                          address={value}
+                          type={optionSelected.type}
+                          name={optionSelected.name}
+                        />
+                      </Stack>
+                    ) : undefined,
                 }}
                 overrideEndAdornment={!!value || !!inputValue}
                 placeholder={"Public Address"}

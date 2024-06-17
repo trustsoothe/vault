@@ -147,7 +147,10 @@ export const saveCustomRpc = createAsyncThunk(
       [CUSTOM_RPCS_KEY]: newRpcList,
     });
 
-    return newRpcList;
+    return {
+      rpcSaved: rpcToSave,
+      newList: newRpcList,
+    };
   }
 );
 
@@ -381,7 +384,7 @@ export const addNetworksExtraReducers = (builder: AppSliceBuilder) => {
   addLoadAssetsToBuilder(builder);
 
   builder.addCase(saveCustomRpc.fulfilled, (state, action) => {
-    state.customRpcs = action.payload;
+    state.customRpcs = action.payload.newList;
   });
 
   builder.addCase(removeCustomRpc.fulfilled, (state, action) => {

@@ -15,8 +15,11 @@ export const themeColors = Object.freeze({
   gray: "#a2a9b6",
   light_gray: "#babdc1",
   dark_gray1: "#8b93a0",
+  light_gray1: "#e7ebef",
+  light_gray2: "#b0b7c4",
   success: "#7db83d",
   successLight: "#ebf5de",
+  warning: "#d47702",
   warningLight: "#ffeed6",
   red: "#a31c2a",
 });

@@ -21,7 +21,7 @@ export function AccountAvatar({
     type === "account" ? (
       <AvatarByString string={address} />
     ) : (
-      <ContactIcon />
+      <ContactIcon className={"avatar"} />
     )
   ) : (
     <QuestionIcon />
