@@ -45,6 +45,27 @@ import { derivePath, getMasterKeyFromSeed, getPublicKey } from "ed25519-hd-key";
 import { mnemonicToSeed, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english";
 
+interface CrateAccountFromKeyPairOptions {
+  key: Buffer;
+  name?: string;
+  accountType?: AccountType;
+  hdwAccountIndex?: number;
+  hdwIndex?: number;
+  parentId?: string;
+  concatPublicKey?: boolean;
+}
+
+/*
+    masterKey: {
+      key: Buffer;
+    },
+    name?: string,
+    accountType: AccountType = AccountType.HDSeed,
+    hdwAccountIndex?: number,
+    hdwIndex?: number,
+    parentId?: string
+ */
+
 export class PocketNetworkProtocolService
   implements IProtocolService<SupportedProtocols.Pocket>
 {
@@ -67,7 +88,14 @@ export class PocketNetworkProtocolService
     const masterKey = getMasterKeyFromSeed(seedHex);
     const hdSeedAccount = options.isSendNodes
       ? await this.createSendNodesSeedAccountFromKey(masterKey, options)
-      : await this.createAccountFromKeyPair(masterKey, options.seedAccountName);
+      : await this.createAccountFromKeyPair({
+          key: masterKey.key,
+          name: options.seedAccountName,
+          accountType: AccountType.HDSeed,
+          hdwAccountIndex: 0,
+          hdwIndex: 0,
+          concatPublicKey: false,
+      });
 
     const hdChildAccount = await this.deriveHDAccountAtIndex(hdSeedAccount, 0);
 
@@ -353,27 +381,22 @@ export class PocketNetworkProtocolService
   }
 
   private async createAccountFromKeyPair(
-    masterKey: {
-      key: Buffer;
-    },
-    name?: string,
-    accountType: AccountType = AccountType.HDSeed,
-    hdwAccountIndex?: number,
-    hdwIndex?: number,
-    parentId?: string
+    options: CrateAccountFromKeyPairOptions
   ): Promise<Account> {
-    const publicKey = getPublicKey(masterKey.key, false).toString("hex");
+    const publicKey = getPublicKey(options.key, false).toString("hex");
     const address = await this.getAddressFromPublicKey(publicKey);
     return new Account({
       address,
       publicKey,
-      accountType,
-      parentId,
-      hdwAccountIndex,
-      hdwIndex,
-      name: name || "HD Account",
+      accountType: options.accountType,
+      parentId: options.parentId,
+      hdwAccountIndex: options.hdwAccountIndex,
+      hdwIndex: options.hdwIndex,
+      name: options.name || "HD Account",
       protocol: SupportedProtocols.Pocket,
-      privateKey: masterKey.key.toString("hex"),
+      privateKey: options.concatPublicKey
+          ? `${options.key.toString("hex")}${publicKey}`
+          : options.key.toString("hex"),
       secure: false,
     });
   }
@@ -388,7 +411,11 @@ export class PocketNetworkProtocolService
       "m/44'/635'/0'/0'",
       masterKey.key.toString("hex")
     );
-    return this.createAccountFromKeyPair(sendNodesKey, options.seedAccountName);
+    return this.createAccountFromKeyPair({
+      key: sendNodesKey.key,
+      name: options.seedAccountName,
+      concatPublicKey: false,
+    });
   }
 
   private async deriveHDAccountAtIndex(
@@ -399,14 +426,16 @@ export class PocketNetworkProtocolService
       `m/44'/635'/0'/0'/${index}'`,
       seedAccount.privateKey
     );
-    return this.createAccountFromKeyPair(
-      derivedKeys,
-      `${seedAccount.name} ${index + 1}`,
-      AccountType.HDChild,
-      0,
-      index,
-      seedAccount.id
-    );
+
+    return this.createAccountFromKeyPair({
+      key: derivedKeys.key,
+      name: `${seedAccount.name} ${index + 1}`,
+      accountType: AccountType.HDChild,
+      hdwAccountIndex: 0,
+      hdwIndex: index,
+      parentId: seedAccount.id,
+      concatPublicKey: true,
+    });
   }
 
   private validateNetwork(network: INetwork) {
