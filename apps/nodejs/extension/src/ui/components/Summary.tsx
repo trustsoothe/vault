@@ -15,7 +15,7 @@ interface DividerItem {
   type: "divider";
 }
 
-type SummaryRowItem = RowItem | DividerItem;
+export type SummaryRowItem = RowItem | DividerItem;
 
 interface SummaryProps {
   rows: Array<SummaryRowItem>;
@@ -62,7 +62,12 @@ export default function Summary({ rows, containerProps }: SummaryProps) {
             <Typography>{row.label}</Typography>
 
             {typeof row.value === "string" ? (
-              <Typography variant={"subtitle2"} noWrap={true} marginLeft={0.5}>
+              <Typography
+                variant={"subtitle2"}
+                fontWeight={400}
+                noWrap={true}
+                marginLeft={0.5}
+              >
                 {row.value}
               </Typography>
             ) : (
