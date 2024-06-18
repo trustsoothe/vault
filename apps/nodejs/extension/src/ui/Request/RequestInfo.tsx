@@ -40,6 +40,8 @@ export default function RequestInfo({
         direction={"row"}
         borderRadius={"8px"}
         alignItems={"center"}
+        boxSizing={"border-box"}
+        bgcolor={themeColors.white}
         boxShadow={"0 1px 3px 0 rgba(0, 0, 0, 0.08)"}
       >
         {isOriginSecure ? <SecureIcon /> : <UnsecureIcon />}

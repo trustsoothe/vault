@@ -2,15 +2,19 @@ import React from "react";
 import { createHashRouter } from "react-router-dom";
 import Preferences from "./Preferences/Preferences";
 import {
+  CHANGE_SELECTED_CHAIN_PAGE,
   CONTACTS_PAGE,
   EXPORT_VAULT_PAGE,
   IMPORT_SEEDS_PAGE,
   MANAGE_ACCOUNTS_PAGE,
   NETWORKS_PAGE,
   NEW_SEEDS_PAGE,
+  PERSONAL_SIGN_PAGE,
   PREFERENCES_PAGE,
   REQUEST_CONNECTION_PAGE,
   SEEDS_PAGE,
+  SIGN_TYPED_DATA_PAGE,
+  SITES_PAGE,
 } from "../constants/routes";
 import Header from "./Header/Header";
 import Home from "./Home/Home";
@@ -19,7 +23,11 @@ import ContactList from "./Contacts/List";
 import ImportSeed from "./Seeds/ImportSeed";
 import CreateNewSeed from "./Seeds/CreateNewSeed";
 import ManageAccounts from "./ManageAccounts/ManageAccounts";
+import SiteConnections from "./SiteConnections/SiteConnections";
 import ConnectionRequest from "./Request/ConnectionRequest";
+import SwitchNetwork from "./Request/SwitchNetwork";
+import SignTypedData from "./Request/SignTypedData";
+import PersonalSign from "./Request/PersonalSign";
 import Networks from "./Networks/Networks";
 import Handler from "./Request/Handler";
 import Backup from "./Backup/Backup";
@@ -65,6 +73,10 @@ export const router = createHashRouter([
         path: NETWORKS_PAGE,
         element: <Networks />,
       },
+      {
+        path: SITES_PAGE,
+        element: <SiteConnections />,
+      },
     ],
   },
 ]);
@@ -77,6 +89,18 @@ export const requestRouter = createHashRouter([
       {
         path: REQUEST_CONNECTION_PAGE,
         element: <ConnectionRequest />,
+      },
+      {
+        path: PERSONAL_SIGN_PAGE,
+        element: <PersonalSign />,
+      },
+      {
+        path: CHANGE_SELECTED_CHAIN_PAGE,
+        element: <SwitchNetwork />,
+      },
+      {
+        path: SIGN_TYPED_DATA_PAGE,
+        element: <SignTypedData />,
       },
     ],
   },

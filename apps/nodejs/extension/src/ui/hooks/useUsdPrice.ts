@@ -69,7 +69,7 @@ export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
     }
 
     return { coinGeckoId, idOfCoins: idOfCoins.join(","), coinSymbol };
-  }, [assetsToFetch, networks]);
+  }, [assetsToFetch, networks, asset]);
 
   const { isLoading, isError, refetch, data } = useGetPricesQuery(idOfCoins, {
     pollingInterval: 1000 * 60,

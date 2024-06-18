@@ -17,6 +17,7 @@ import {
   NEW_SEEDS_PAGE,
   PREFERENCES_PAGE,
   SEEDS_PAGE,
+  SITES_PAGE,
 } from "../../constants/routes";
 import NewAccountModal from "../NewAccount/NewAccountModal";
 import ImportAccountModal from "../ImportAccount/ImportAccountModal";
@@ -62,6 +63,9 @@ function getLabelByRoute(pathname: string) {
 
     case NETWORKS_PAGE:
       return "Networks";
+
+    case SITES_PAGE:
+      return "Site Connections";
 
     default:
       return "Unknown";

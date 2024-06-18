@@ -10,6 +10,7 @@ import useDidMountEffect from "../../hooks/useDidMountEffect";
 import NewVaultPassword from "../components/NewVaultPassword";
 import CircularLoading from "../components/CircularLoading";
 import PasswordInput from "../components/PasswordInput";
+import BackupIcon from "../assets/img/backup_icon.svg";
 import { enqueueSnackbar } from "../../utils/ui";
 
 interface BackupFormValues {
@@ -110,21 +111,8 @@ export default function Backup() {
     case "normal":
       content = (
         <>
-          <Stack
-            width={30}
-            height={30}
-            alignItems={"center"}
-            justifyContent={"center"}
-            border={"1px solid black"}
-          >
-            logo
-          </Stack>
-          <Typography
-            lineHeight={"20px"}
-            width={280}
-            textAlign={"center"}
-            marginTop={1.3}
-          >
+          <BackupIcon />
+          <Typography lineHeight={"20px"} width={280} textAlign={"center"}>
             Backup your Soothe Vault to ensure access to your accounts in case
             you lose access to this computer.
           </Typography>
@@ -209,7 +197,7 @@ export default function Backup() {
   return (
     <Stack
       paddingX={2.4}
-      paddingTop={3}
+      paddingTop={1.7}
       overflow={"auto"}
       alignItems={"center"}
       justifyContent={"center"}

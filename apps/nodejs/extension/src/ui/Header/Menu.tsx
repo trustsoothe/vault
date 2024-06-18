@@ -12,6 +12,7 @@ import {
   NETWORKS_PAGE,
   PREFERENCES_PAGE,
   SEEDS_PAGE,
+  SITES_PAGE,
 } from "../../constants/routes";
 import MenuDivider from "../components/MenuDivider";
 import { useAccountDialogs } from "./context/AccountDialogs";
@@ -72,6 +73,11 @@ export default function Menu() {
     },
     {
       type: "divider",
+    },
+    {
+      type: "route",
+      label: "Site Connections",
+      route: SITES_PAGE,
     },
     {
       type: "route",
