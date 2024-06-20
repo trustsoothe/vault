@@ -28,6 +28,7 @@ function PasswordInput(
           <Button
             variant={"text"}
             onClick={toggleShowText}
+            disabled={props.disabled}
             sx={{ marginRight: -0.8, minWidth: 0, paddingX: 1.2, height: 28 }}
           >
             {showText ? "Hide" : "Show"}
