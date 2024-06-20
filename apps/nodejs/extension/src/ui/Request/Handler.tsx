@@ -7,8 +7,8 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { externalRequestsSelector } from "../../redux/selectors/session";
 import { TransferType } from "../../contexts/TransferContext";
 import { closeCurrentWindow } from "../../utils/ui";
-import { HeaderContainer } from "../Header/Header";
 import { useAppSelector } from "../../hooks/redux";
+import { WIDTH } from "../../constants/ui";
 import {
   CONNECTION_REQUEST_MESSAGE,
   PERSONAL_SIGN_REQUEST,
@@ -16,6 +16,7 @@ import {
   SWITCH_CHAIN_REQUEST,
   TRANSFER_REQUEST,
 } from "../../constants/communication";
+import RequestHeader from "./Header";
 import {
   CHANGE_SELECTED_CHAIN_PAGE,
   PERSONAL_SIGN_PAGE,
@@ -115,9 +116,26 @@ export default function Handler() {
     return null;
   }
 
+  let address: string;
+
+  switch (currentRequest.type) {
+    case TRANSFER_REQUEST: {
+      address = currentRequest.transferData.from;
+      break;
+    }
+    case PERSONAL_SIGN_REQUEST:
+    case SIGN_TYPED_DATA_REQUEST: {
+      address = currentRequest.address;
+      break;
+    }
+  }
+
   return (
-    <Stack flexGrow={1} overflow={"hidden"}>
-      <HeaderContainer>header</HeaderContainer>
+    <Stack flexGrow={1} overflow={"hidden"} width={WIDTH}>
+      <RequestHeader
+        accountAddress={address}
+        protocol={currentRequest.protocol}
+      />
       <Outlet />
     </Stack>
   );

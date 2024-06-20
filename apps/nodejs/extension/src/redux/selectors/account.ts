@@ -38,6 +38,10 @@ export const selectedAccountAddressSelector = (state: RootState) => {
   return state.app.selectedAccountByProtocol[selectedProtocol];
 };
 
+export const selectedAccountByProtocolSelector = (state: RootState) => {
+  return state.app.selectedAccountByProtocol;
+};
+
 export const selectedAccountSelector = (state: RootState) => {
   const selectedProtocol = state.app.selectedProtocol;
   const selectedAccountAddress =

@@ -24,11 +24,11 @@ import {
 } from "../constants/communication";
 import SuccessIcon from "./assets/img/success_icon.svg";
 import WarningIcon from "./assets/img/rounded_close_icon.svg";
+import RequestOriginsPermission from "./RequestOriginPermission/RequestOriginPermission";
 import { closeCurrentWindow, removeRequestWithRes } from "../utils/ui";
 import { RequestTimeout } from "../errors/communication";
 import CircularLoading from "../components/common/CircularLoading";
 import OperationFailed from "../components/common/OperationFailed";
-import RequestOriginsPermission from "../components/RequestOriginsPermission";
 import { RouterProvider } from "react-router-dom";
 import { requestRouter, router } from "./router";
 
@@ -60,27 +60,18 @@ export default function App() {
       }
     };
 
-    let listenerAdded = false;
+    browser.permissions
+      .contains({
+        origins: requiredOrigins,
+      })
+      .then((containsPermission) => {
+        setHasOriginPermissionsStatus(!containsPermission ? "no" : "yes");
+      });
 
-    if (isFirefox()) {
-      browser.permissions
-        .contains({
-          origins: requiredOrigins,
-        })
-        .then((containsPermission) => {
-          setHasOriginPermissionsStatus(!containsPermission ? "no" : "yes");
-        });
-
-      browser.permissions.onRemoved.addListener(onRemovedPermissionListener);
-      listenerAdded = true;
-    }
+    browser.permissions.onRemoved.addListener(onRemovedPermissionListener);
 
     return () => {
-      if (listenerAdded) {
-        browser.permissions.onRemoved.removeListener(
-          onRemovedPermissionListener
-        );
-      }
+      browser.permissions.onRemoved.removeListener(onRemovedPermissionListener);
     };
   }, []);
 

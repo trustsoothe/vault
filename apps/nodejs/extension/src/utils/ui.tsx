@@ -24,7 +24,9 @@ import { themeColors } from "../ui/theme";
 import {
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
+  SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
@@ -101,6 +103,18 @@ export const removeRequestWithRes = async (
         errorToReturn = OperationRejected;
       }
       responseType = SWITCH_CHAIN_RESPONSE;
+      break;
+    }
+    case PERSONAL_SIGN_REQUEST: {
+      data = null;
+      errorToReturn = OperationRejected;
+      responseType = PERSONAL_SIGN_RESPONSE;
+      break;
+    }
+    case SIGN_TYPED_DATA_REQUEST: {
+      data = null;
+      errorToReturn = OperationRejected;
+      responseType = SIGN_TYPED_DATA_RESPONSE;
       break;
     }
   }
