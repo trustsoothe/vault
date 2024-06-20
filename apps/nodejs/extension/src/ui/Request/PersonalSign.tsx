@@ -57,7 +57,11 @@ export default function PersonalSign() {
           bgcolor={themeColors.bgLightGray}
         >
           <Typography variant={"subtitle2"}>Message</Typography>
-          <Typography variant={"subtitle2"} fontWeight={400}>
+          <Typography
+            variant={"subtitle2"}
+            fontWeight={300}
+            sx={{ wordBreak: "break-word" }}
+          >
             {toUtf8(signRequest.challenge)}
           </Typography>
         </Stack>

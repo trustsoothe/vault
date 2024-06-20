@@ -67,7 +67,10 @@ function RenderMessage({ message, marginLeft = 0.5 }: RenderMessageProps) {
               }}
             />
           ) : (
-            <Typography noWrap={true} color={themeColors.black}>
+            <Typography
+              color={themeColors.black}
+              sx={{ wordBreak: "break-word" }}
+            >
               {value}
             </Typography>
           )}
