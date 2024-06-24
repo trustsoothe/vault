@@ -1,9 +1,10 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import MuiMenu from "@mui/material/Menu";
+import browser from "webextension-polyfill";
 import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
 import MoreIcon from "../assets/img/more_icon.svg";
+import { Link, useLocation } from "react-router-dom";
 import { themeColors } from "../theme";
 import {
   CONTACTS_PAGE,
@@ -17,6 +18,7 @@ import {
 import MenuDivider from "../components/MenuDivider";
 import { useAccountDialogs } from "./context/AccountDialogs";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import useIsPopup from "../hooks/useIsPopup";
 
 interface RouteItem {
   type: "route";
@@ -38,6 +40,8 @@ interface DividerItem {
 type MenuItem = RouteItem | ButtonItem | DividerItem;
 
 export default function Menu() {
+  const location = useLocation();
+  const isPopup = useIsPopup();
   const { showCreateAccount, showImportAccount } = useAccountDialogs();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLButtonElement>(
     null
@@ -52,6 +56,11 @@ export default function Menu() {
 
   const menuItems: Array<MenuItem> = [
     {
+      type: "route",
+      label: "Seeds",
+      route: SEEDS_PAGE,
+    },
+    {
       type: "button",
       label: "New Account",
       onClick: showCreateAccount,
@@ -61,11 +70,7 @@ export default function Menu() {
       label: "Import Account",
       onClick: showImportAccount,
     },
-    {
-      type: "route",
-      label: "Seeds",
-      route: SEEDS_PAGE,
-    },
+
     {
       type: "route",
       label: "Manage Accounts",
@@ -92,6 +97,20 @@ export default function Menu() {
     {
       type: "divider",
     },
+    ...(isPopup
+      ? ([
+          {
+            type: "button",
+            label: "Expand",
+            onClick: () => {
+              browser.tabs.create({
+                active: true,
+                url: `home.html#${location.pathname}${location.search}`,
+              });
+            },
+          },
+        ] as const)
+      : []),
     {
       type: "route",
       label: "Backup",

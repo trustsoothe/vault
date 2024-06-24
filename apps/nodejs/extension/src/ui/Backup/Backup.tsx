@@ -1,17 +1,21 @@
 import { saveAs } from "file-saver";
 import Stack from "@mui/material/Stack";
-import React, { useState } from "react";
 import Switch from "@mui/material/Switch";
-import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
+import { closeSnackbar, SnackbarKey } from "notistack";
+import React, { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
 import NewVaultPassword from "../components/NewVaultPassword";
-import CircularLoading from "../components/CircularLoading";
 import PasswordInput from "../components/PasswordInput";
+import LoadingButton from "../components/LoadingButton";
 import BackupIcon from "../assets/img/backup_icon.svg";
-import { enqueueSnackbar } from "../../utils/ui";
+import {
+  enqueueErrorSnackbar,
+  enqueueSnackbar,
+  wrongPasswordSnackbar,
+} from "../../utils/ui";
 
 interface BackupFormValues {
   vaultPassword: string;
@@ -28,6 +32,8 @@ const defaultFormValues: BackupFormValues = {
 };
 
 export default function Backup() {
+  const errorSnackbarKey = useRef<SnackbarKey>();
+  const wrongPasswordSnackbarKey = useRef<SnackbarKey>();
   const methods = useForm<BackupFormValues>({
     defaultValues: defaultFormValues,
   });
@@ -42,9 +48,7 @@ export default function Backup() {
     formState: { dirtyFields },
   } = methods;
 
-  const [status, setStatus] = useState<"normal" | "loading" | "error">(
-    "normal"
-  );
+  const [status, setStatus] = useState<"normal" | "loading">("normal");
 
   const [useNewEncryptionPassword] = watch(["useNewEncryptionPassword"]);
 
@@ -61,6 +65,22 @@ export default function Backup() {
     clearErrors("confirmEncryptionPassword");
   }, [useNewEncryptionPassword]);
 
+  const closeSnackbars = () => {
+    if (wrongPasswordSnackbarKey.current) {
+      closeSnackbar(wrongPasswordSnackbarKey.current);
+      wrongPasswordSnackbarKey.current = null;
+    }
+
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return closeSnackbars;
+  }, []);
+
   const onSubmit = (data: BackupFormValues) => {
     setStatus("loading");
 
@@ -69,22 +89,18 @@ export default function Backup() {
       encryptionPassword: data.useNewEncryptionPassword
         ? data.newEncryptionPassword
         : undefined,
-    }).then(({ data, error }) => {
+    }).then(({ data: backupData, error }) => {
       if (error) {
-        setStatus("error");
-      } else if (data.isPasswordWrong) {
-        enqueueSnackbar({
-          message: "Wrong Vault Password",
-          variant: "error",
-          key: "wrong_vault_password",
-          preventDuplicate: true,
-          autoHideDuration: 4000,
+        errorSnackbarKey.current = enqueueErrorSnackbar({
+          message: "Vault Backup Failed",
+          onRetry: () => onSubmit(data),
         });
-        reset(defaultFormValues);
+      } else if (backupData.isPasswordWrong) {
+        wrongPasswordSnackbarKey.current = wrongPasswordSnackbar();
         setStatus("normal");
         setTimeout(() => setFocus("vaultPassword"), 0);
       } else {
-        const blob = new Blob([JSON.stringify(data.vault)], {
+        const blob = new Blob([JSON.stringify(backupData.vault)], {
           type: "application/json",
         });
         const filename = `soothe_vault_${new Date()
@@ -92,6 +108,7 @@ export default function Backup() {
           .slice(0, 16)}.json`.replace(/:/g, "_");
 
         saveAs(blob, filename);
+        closeSnackbars();
         enqueueSnackbar({
           variant: "success",
           message: {
@@ -105,94 +122,7 @@ export default function Backup() {
     });
   };
 
-  let content: React.ReactNode;
-
-  switch (status) {
-    case "normal":
-      content = (
-        <>
-          <BackupIcon />
-          <Typography lineHeight={"20px"} width={280} textAlign={"center"}>
-            Backup your Soothe Vault to ensure access to your accounts in case
-            you lose access to this computer.
-          </Typography>
-          <Typography
-            fontSize={11}
-            marginTop={2.5}
-            marginBottom={1.2}
-            letterSpacing={"0.1px"}
-          >
-            We recommend you to save your backup in another device or in a
-            (safe) cloud storage service. To export your vault, please enter the
-            vault’s password:
-          </Typography>
-          <Controller
-            control={control}
-            name={"vaultPassword"}
-            render={({ field, fieldState: { error } }) => (
-              <PasswordInput
-                required
-                autoFocus
-                {...field}
-                placeholder={"Vault Password"}
-                error={!!error}
-                helperText={error?.message}
-              />
-            )}
-          />
-          <Stack
-            width={1}
-            height={21}
-            marginTop={2.6}
-            direction={"row"}
-            alignItems={"center"}
-            justifyContent={"space-between"}
-          >
-            <Typography variant={"subtitle2"}>
-              Encrypt With New Password
-            </Typography>
-            <Controller
-              control={control}
-              name={"useNewEncryptionPassword"}
-              render={({ field }) => (
-                <Switch size={"small"} {...field} checked={field.value} />
-              )}
-            />
-          </Stack>
-
-          {useNewEncryptionPassword && (
-            <FormProvider {...methods}>
-              <NewVaultPassword<BackupFormValues>
-                confirmPasswordName={"confirmEncryptionPassword"}
-                passwordName={"newEncryptionPassword"}
-                marginTop={2.7}
-              />
-            </FormProvider>
-          )}
-
-          <Button
-            fullWidth
-            type={"submit"}
-            disabled={!canSubmit}
-            variant={"contained"}
-            sx={{
-              height: 37,
-              marginTop: useNewEncryptionPassword ? 2.5 : 3.5,
-              fontWeight: 500,
-              boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
-            }}
-          >
-            Export Vault
-          </Button>
-        </>
-      );
-      break;
-    case "loading":
-      content = <CircularLoading />;
-      break;
-    case "error":
-      break;
-  }
+  const isLoading = status === "loading";
 
   return (
     <Stack
@@ -204,7 +134,85 @@ export default function Backup() {
       component={"form"}
       onSubmit={handleSubmit(onSubmit)}
     >
-      {content}
+      <BackupIcon />
+      <Typography lineHeight={"20px"} width={280} textAlign={"center"}>
+        Backup your Soothe Vault to ensure access to your accounts in case you
+        lose access to this computer.
+      </Typography>
+      <Typography
+        fontSize={11}
+        marginTop={2.5}
+        marginBottom={1.2}
+        letterSpacing={"0.1px"}
+      >
+        We recommend you to save your backup in another device or in a (safe)
+        cloud storage service. To export your vault, please enter the vault’s
+        password:
+      </Typography>
+      <Controller
+        control={control}
+        name={"vaultPassword"}
+        render={({ field, fieldState: { error } }) => (
+          <PasswordInput
+            required
+            autoFocus
+            disabled={isLoading}
+            {...field}
+            placeholder={"Vault Password"}
+            error={!!error}
+            helperText={error?.message}
+          />
+        )}
+      />
+      <Stack
+        width={1}
+        height={21}
+        marginTop={2.6}
+        direction={"row"}
+        alignItems={"center"}
+        justifyContent={"space-between"}
+      >
+        <Typography variant={"subtitle2"}>Encrypt With New Password</Typography>
+        <Controller
+          control={control}
+          name={"useNewEncryptionPassword"}
+          render={({ field }) => (
+            <Switch
+              size={"small"}
+              {...field}
+              disabled={isLoading}
+              checked={field.value}
+            />
+          )}
+        />
+      </Stack>
+
+      {useNewEncryptionPassword && (
+        <FormProvider {...methods}>
+          <NewVaultPassword<BackupFormValues>
+            confirmPasswordName={"confirmEncryptionPassword"}
+            passwordName={"newEncryptionPassword"}
+            marginTop={2.7}
+            disableInputs={isLoading}
+          />
+        </FormProvider>
+      )}
+
+      <LoadingButton
+        fullWidth
+        type={"submit"}
+        isLoading={isLoading}
+        disabled={!canSubmit}
+        variant={"contained"}
+        sx={{
+          height: 37,
+          marginTop: useNewEncryptionPassword ? 2.5 : 3.5,
+          fontWeight: 500,
+          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+        }}
+      >
+        Export Vault
+      </LoadingButton>
     </Stack>
   );
 }

@@ -1,8 +1,9 @@
 import type { AppSwitchChainReq } from "../../types/communications/switchChain";
-import React, { useState } from "react";
 import Stack from "@mui/material/Stack";
 import { useLocation } from "react-router-dom";
 import Typography from "@mui/material/Typography";
+import { closeSnackbar, SnackbarKey } from "notistack";
+import React, { useEffect, useRef, useState } from "react";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { labelByProtocolMap } from "../../constants/protocols";
 import DialogButtons from "../components/DialogButtons";
@@ -17,6 +18,7 @@ import {
 import { themeColors } from "../theme";
 
 export default function SwitchNetwork() {
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const [isLoading, setIsLoading] = useState(false);
   const switchRequest: AppSwitchChainReq = useLocation()?.state;
 
@@ -38,20 +40,47 @@ export default function SwitchNetwork() {
       network.chainId === switchRequest.chainId
   );
 
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return closeSnackbars;
+  }, []);
+
   const sendAnswer = (accepted: boolean) => {
     setIsLoading(true);
     AppToBackground.answerSwitchChain({
       accepted,
       request: switchRequest,
     })
+      .then((res) => {
+        if (res.error) {
+          errorSnackbarKey.current = enqueueErrorSnackbar({
+            variant: "error",
+            message: {
+              title: "Failed to solve the request",
+              content: `There was an error trying to ${
+                accepted ? "accept" : "reject"
+              } the switch network request.`,
+            },
+            onRetry: () => sendAnswer(accepted),
+          });
+        } else {
+          closeSnackbars();
+        }
+      })
       .catch(() => {
-        enqueueErrorSnackbar({
+        errorSnackbarKey.current = enqueueErrorSnackbar({
           variant: "error",
           message: {
             title: "Failed to solve the request",
             content: `There was an error trying to ${
               accepted ? "accept" : "reject"
-            } the request.`,
+            } the switch network request.`,
           },
           onRetry: () => sendAnswer(accepted),
         });
@@ -120,8 +149,8 @@ export default function SwitchNetwork() {
       <Stack height={85}>
         <DialogButtons
           primaryButtonProps={{
+            isLoading,
             children: "Switch",
-            disabled: isLoading,
             onClick: () => sendAnswer(true),
           }}
           secondaryButtonProps={{

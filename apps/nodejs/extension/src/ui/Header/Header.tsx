@@ -2,7 +2,7 @@ import { styled } from "@mui/material";
 import React, { useState } from "react";
 import Typography from "@mui/material/Typography";
 import Stack, { StackProps } from "@mui/material/Stack";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useSearchParams } from "react-router-dom";
 import BackButton from "./BackButton";
 import { themeColors } from "../theme";
 import { HEIGHT, WIDTH } from "../../constants/ui";
@@ -22,6 +22,7 @@ import {
 import NewAccountModal from "../NewAccount/NewAccountModal";
 import ImportAccountModal from "../ImportAccount/ImportAccountModal";
 import AccountDialogsProvider from "./context/AccountDialogs";
+import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import ConnectionStatus from "./ConnectionStatus";
 import Menu from "./Menu";
 
@@ -74,6 +75,8 @@ function getLabelByRoute(pathname: string) {
 
 export default function Header() {
   const location = useLocation();
+  const [_, setURLSearchParams] = useSearchParams();
+  const selectedAsset = useSelectedAsset();
   const [modalToShow, setModalToShow] = useState<
     "none" | "create_account" | "import_account"
   >("none");
@@ -98,7 +101,11 @@ export default function Header() {
       <Stack width={WIDTH} height={HEIGHT} position={"relative"}>
         {location.pathname === "/" ? (
           <HeaderContainer>
-            <NetworkSelect />
+            {selectedAsset ? (
+              <BackButton onClick={() => setURLSearchParams({ asset: "" })} />
+            ) : (
+              <NetworkSelect />
+            )}
             <AccountSelect />
             <Stack direction={"row-reverse"} flexGrow={1} spacing={1.6}>
               <Menu />

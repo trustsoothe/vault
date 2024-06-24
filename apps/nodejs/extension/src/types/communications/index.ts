@@ -87,11 +87,13 @@ import type {
   LockVaultReq,
   PrivateKeyAccountReq,
   RemoveAccountReq,
+  RemoveRecoveryPhraseReq,
   RevokeExternalSessionsReq,
   RevokeSessionReq,
   ShouldExportVaultReq,
   UnlockVaultReq,
   UpdateAccountReq,
+  UpdateRecoveryPhraseReq,
 } from "./vault";
 import type { NetworkFeeReq, SetRequirePasswordForOptsReq } from "./app";
 import type { AnswerNewAccountReq } from "./newAccount";
@@ -161,7 +163,9 @@ export type InternalRequests =
   | ExportVaultReq
   | ShouldExportVaultReq
   | ImportVaultReq
-  | SetRequirePasswordForOptsReq;
+  | SetRequirePasswordForOptsReq
+  | UpdateRecoveryPhraseReq
+  | RemoveRecoveryPhraseReq;
 /**Responses that the Proxy can receive from Internal controller */
 export type InternalResponses =
   | InternalConnectionRes

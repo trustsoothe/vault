@@ -2,12 +2,15 @@ import type { ExternalTransferState } from "../../components/Transfer";
 import type { TEthTransferBody } from "../../controllers/communication/Proxy";
 import { fromWei } from "web3-utils";
 import Stack from "@mui/material/Stack";
-import React, { useEffect, useMemo } from "react";
+import Typography from "@mui/material/Typography";
 import { Outlet, useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
 import { externalRequestsSelector } from "../../redux/selectors/session";
 import { TransferType } from "../../contexts/TransferContext";
 import { closeCurrentWindow } from "../../utils/ui";
 import { useAppSelector } from "../../hooks/redux";
+import { HeaderContainer } from "../Header/Header";
+import BackButton from "../Header/BackButton";
 import { WIDTH } from "../../constants/ui";
 import {
   CONNECTION_REQUEST_MESSAGE,
@@ -27,14 +30,19 @@ import {
 
 export default function Handler() {
   const navigate = useNavigate();
-
   const externalRequests = useAppSelector(externalRequestsSelector);
+  const [idOfSelectedRequest, setIdOfSelectedRequest] = useState(0);
 
-  useEffect(() => {
+  const switchNavigation = () => {
     if (!externalRequests.length) {
       closeCurrentWindow().catch();
     } else {
-      const currentRequest = externalRequests[0];
+      const currentRequest =
+        externalRequests[
+          idOfSelectedRequest >= externalRequests.length + 1
+            ? 0
+            : idOfSelectedRequest
+        ];
 
       switch (currentRequest.type) {
         case CONNECTION_REQUEST_MESSAGE: {
@@ -101,16 +109,35 @@ export default function Handler() {
         }
       }
     }
+  };
+
+  useEffect(() => {
+    switchNavigation();
+  }, [idOfSelectedRequest]);
+
+  useEffect(() => {
+    if (externalRequests.length) {
+      if (idOfSelectedRequest === externalRequests.length) {
+        setIdOfSelectedRequest(externalRequests.length - 1);
+      } else {
+        switchNavigation();
+      }
+    } else {
+      closeCurrentWindow().catch(console.error);
+    }
   }, [externalRequests.length]);
 
-  // todo: handle index of request selected
   const currentRequest = useMemo(() => {
     if (!externalRequests.length) {
       return null;
     }
 
-    return externalRequests[0];
-  }, [externalRequests]);
+    return externalRequests[
+      idOfSelectedRequest >= externalRequests.length + 1
+        ? 0
+        : idOfSelectedRequest
+    ];
+  }, [externalRequests, idOfSelectedRequest]);
 
   if (!currentRequest) {
     return null;
@@ -132,6 +159,41 @@ export default function Handler() {
 
   return (
     <Stack flexGrow={1} overflow={"hidden"} width={WIDTH}>
+      {externalRequests.length > 1 && (
+        <HeaderContainer justifyContent={"space-between"}>
+          {idOfSelectedRequest !== 0 && (
+            <BackButton
+              onClick={() => setIdOfSelectedRequest((prev) => prev - 1)}
+            />
+          )}
+          <Stack
+            flexGrow={1}
+            paddingLeft={idOfSelectedRequest === 0 ? 3.3 : undefined}
+            paddingRight={
+              idOfSelectedRequest === externalRequests.length - 1
+                ? 3.3
+                : undefined
+            }
+            alignItems={"center"}
+          >
+            <Typography variant={"subtitle2"}>
+              {idOfSelectedRequest >= externalRequests.length + 1
+                ? 0
+                : idOfSelectedRequest + 1}{" "}
+              of {externalRequests.length}
+            </Typography>
+            <Typography fontSize={11}>
+              Requests waiting to be acknowledged.
+            </Typography>
+          </Stack>
+          {idOfSelectedRequest < externalRequests.length - 1 && (
+            <BackButton
+              flip={true}
+              onClick={() => setIdOfSelectedRequest((prev) => prev + 1)}
+            />
+          )}
+        </HeaderContainer>
+      )}
       <RequestHeader
         accountAddress={address}
         protocol={currentRequest.protocol}

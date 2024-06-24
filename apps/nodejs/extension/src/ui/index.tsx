@@ -28,7 +28,7 @@ import RequestOriginsPermission from "./RequestOriginPermission/RequestOriginPer
 import { closeCurrentWindow, removeRequestWithRes } from "../utils/ui";
 import { RequestTimeout } from "../errors/communication";
 import CircularLoading from "../components/common/CircularLoading";
-import OperationFailed from "../components/common/OperationFailed";
+import AppInitError from "./AppInitError/AppInitError";
 import { RouterProvider } from "react-router-dom";
 import { requestRouter, router } from "./router";
 
@@ -126,15 +126,7 @@ export default function App() {
     }
 
     if (appStatus === "error") {
-      return (
-        <OperationFailed
-          text={"Error trying to initialize the extension."}
-          retryBtnProps={{
-            type: "button",
-          }}
-          onRetry={retryInitExtension}
-        />
-      );
+      return <AppInitError />;
     }
 
     if (hasOriginPermissionsStatus === "no") {

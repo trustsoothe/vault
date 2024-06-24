@@ -9,7 +9,7 @@ import ContactIcon from "../assets/img/contact_small_icon.svg";
 interface AccountInfoProps {
   name?: string;
   address: string;
-  type?: "account" | "contact";
+  type?: "account" | "contact" | "seed";
 }
 
 export function AccountAvatar({
@@ -18,8 +18,11 @@ export function AccountAvatar({
   address,
 }: AccountInfoProps) {
   return name ? (
-    type === "account" ? (
-      <AvatarByString string={address} />
+    type === "account" || type === "seed" ? (
+      <AvatarByString
+        string={address}
+        type={type === "seed" ? "square" : "circle"}
+      />
     ) : (
       <ContactIcon className={"avatar"} />
     )
@@ -29,7 +32,7 @@ export function AccountAvatar({
 }
 
 export default function AccountInfo(props: AccountInfoProps) {
-  const { name, address } = props;
+  const { name, address, type } = props;
   return (
     <Stack direction={"row"} alignItems={"center"} spacing={name ? 0.8 : 0.7}>
       <AccountAvatar {...props} />

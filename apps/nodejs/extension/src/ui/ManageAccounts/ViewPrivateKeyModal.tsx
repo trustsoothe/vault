@@ -4,11 +4,12 @@ import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import React, { useEffect, useRef, useState } from "react";
-import CircularProgress from "@mui/material/CircularProgress";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../utils/ui";
 import { getPortableWalletContent } from "../../utils/networkOperations";
 import { labelByProtocolMap } from "../../constants/protocols";
 import DialogButtons from "../components/DialogButtons";
@@ -32,9 +33,11 @@ export default function ViewPrivateKeyModal({
   account,
   onClose,
 }: ViewPrivateKeyModalProps) {
-  const [status, setStatus] = useState<
-    "form" | "loading" | "error" | "view_private_key"
-  >("form");
+  const errorSnackbarKey = useRef<SnackbarKey>();
+  const wrongPasswordSnackbarKey = useRef<SnackbarKey>();
+  const [status, setStatus] = useState<"form" | "loading" | "view_private_key">(
+    "form"
+  );
 
   const lastRevealedPkAccountRef = useRef<SerializedAccountReference>(null);
   const { watch, handleSubmit, reset, control } = useForm<PrivateKeyFormValues>(
@@ -46,14 +49,19 @@ export default function ViewPrivateKeyModal({
   );
 
   const [vaultPassword] = watch(["vaultPassword"]);
-  const [wrongVaultPassphrase, setWrongVaultPassphrase] = useState(false);
   const [privateKey, setPrivateKey] = useState<string>(null);
 
-  useEffect(() => {
-    if (wrongVaultPassphrase) {
-      setWrongVaultPassphrase(false);
+  const closeSnackbars = () => {
+    if (wrongPasswordSnackbarKey.current) {
+      closeSnackbar(wrongPasswordSnackbarKey.current);
+      wrongPasswordSnackbarKey.current = null;
     }
-  }, [vaultPassword]);
+
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -65,12 +73,13 @@ export default function ViewPrivateKeyModal({
         reset({ vaultPassword: "" });
         setStatus("form");
         lastRevealedPkAccountRef.current = undefined;
-        setWrongVaultPassphrase(false);
         setPrivateKey(null);
       }, 150);
     }
+    closeSnackbars();
 
     return () => {
+      closeSnackbars();
       if (timeout) {
         clearTimeout(timeout);
       }
@@ -86,13 +95,17 @@ export default function ViewPrivateKeyModal({
       vaultPassword,
     }).then((response) => {
       if (response.error) {
-        setStatus("error");
+        errorSnackbarKey.current = enqueueErrorSnackbar({
+          message: "Reveal Private Key Failed",
+          onRetry: () => loadPrivateKey(data),
+        });
       } else {
         const data = response.data;
         if (data.isVaultPasswordWrong) {
-          setWrongVaultPassphrase(true);
+          wrongPasswordSnackbarKey.current = wrongPasswordSnackbar();
           setStatus("form");
         } else if (data.privateKey) {
+          closeSnackbars();
           setPrivateKey(data.privateKey);
           setStatus("view_private_key");
           lastRevealedPkAccountRef.current = account;
@@ -116,9 +129,11 @@ export default function ViewPrivateKeyModal({
     }
   };
 
+  const isLoading = status === "loading";
   let content: React.ReactNode;
 
   switch (status) {
+    case "loading":
     case "form":
       content = (
         <>
@@ -135,15 +150,13 @@ export default function ViewPrivateKeyModal({
                   required
                   autoFocus
                   {...field}
-                  disabled={status !== "form"}
+                  disabled={status !== "form" || isLoading}
                   placeholder={"Vault Password"}
-                  error={!!error || wrongVaultPassphrase}
-                  helperText={
-                    wrongVaultPassphrase ? "Wrong password" : error?.message
-                  }
+                  error={!!error}
+                  helperText={error?.message}
                   sx={{
                     marginTop: 1.2,
-                    marginBottom: !!error || wrongVaultPassphrase ? 1 : 0,
+                    marginBottom: !!error ? 1 : 0,
                     "& .MuiFormHelperText-root": {
                       fontSize: 10,
                     },
@@ -158,21 +171,17 @@ export default function ViewPrivateKeyModal({
                 children: "Reveal",
                 disabled: !vaultPassword || status !== "form",
                 type: "submit",
+                isLoading,
               }}
-              secondaryButtonProps={{ children: "Cancel", onClick: onClose }}
+              secondaryButtonProps={{
+                children: "Cancel",
+                onClick: onClose,
+                disabled: isLoading,
+              }}
             />
           </DialogActions>
         </>
       );
-      break;
-    case "loading":
-      content = (
-        <DialogContent>
-          <CircularProgress size={80} />
-        </DialogContent>
-      );
-      break;
-    case "error":
       break;
     case "view_private_key":
       content = (
@@ -245,6 +254,7 @@ export default function ViewPrivateKeyModal({
     <BaseDialog
       open={!!account}
       onClose={onClose}
+      isLoading={isLoading}
       title={"View Private Key"}
       PaperProps={{
         component: "form",

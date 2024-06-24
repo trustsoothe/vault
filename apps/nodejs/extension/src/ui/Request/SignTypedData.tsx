@@ -1,9 +1,10 @@
 import type { AppSignTypedDataReq } from "../../types/communications/signTypedData";
 import { useLocation } from "react-router-dom";
-import React, { useState } from "react";
 import Stack from "@mui/material/Stack";
 import capitalize from "lodash/capitalize";
 import Typography from "@mui/material/Typography";
+import { closeSnackbar, SnackbarKey } from "notistack";
+import React, { useEffect, useRef, useState } from "react";
 import { SupportedProtocols } from "@poktscan/vault";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { isValidAddress } from "../../utils/networkOperations";
@@ -83,9 +84,21 @@ function RenderMessage({ message, marginLeft = 0.5 }: RenderMessageProps) {
 }
 
 export default function SignTypedData() {
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
   const signRequest: AppSignTypedDataReq = location.state;
+
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return closeSnackbars;
+  }, []);
 
   const sendResponse = (accepted: boolean) => {
     setIsLoading(true);
@@ -94,14 +107,30 @@ export default function SignTypedData() {
       request: signRequest,
       accepted,
     })
+      .then((res) => {
+        if (res.error) {
+          errorSnackbarKey.current = enqueueErrorSnackbar({
+            variant: "error",
+            message: {
+              title: "Failed to answer the request",
+              content: `There was an error trying to ${
+                accepted ? "accept" : "reject"
+              } the signature request.`,
+            },
+            onRetry: () => sendResponse(accepted),
+          });
+        } else {
+          closeSnackbars();
+        }
+      })
       .catch(() => {
-        enqueueErrorSnackbar({
+        errorSnackbarKey.current = enqueueErrorSnackbar({
           variant: "error",
           message: {
-            title: "Failed to solve the request",
+            title: "Failed to answer the request",
             content: `There was an error trying to ${
               accepted ? "accept" : "reject"
-            } the request.`,
+            } the signature request.`,
           },
           onRetry: () => sendResponse(accepted),
         });
@@ -168,8 +197,8 @@ export default function SignTypedData() {
       <Stack height={85}>
         <DialogButtons
           primaryButtonProps={{
+            isLoading,
             children: "Sign",
-            disabled: isLoading,
             onClick: () => sendResponse(true),
           }}
           secondaryButtonProps={{

@@ -3,12 +3,14 @@ import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
-import React, { useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
-import { SupportedProtocols } from "@poktscan/vault";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
+import React, { useMemo, useRef, useState } from "react";
+import { SupportedProtocols } from "@poktscan/vault";
+import { enqueueErrorSnackbar, enqueueSnackbar } from "../../utils/ui";
 import { isNetworkUrlHealthy } from "../../utils/networkOperations";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import TextFieldWithPaste from "../components/TextFieldWithPaste";
@@ -19,7 +21,6 @@ import DialogButtons from "../components/DialogButtons";
 import { RPC_ALREADY_EXISTS } from "../../errors/rpc";
 import CustomRPCFeedback from "./CustomRPCFeedback";
 import BaseDialog from "../components/BaseDialog";
-import { enqueueSnackbar } from "../../utils/ui";
 import {
   selectedChainSelector,
   selectedProtocolSelector,
@@ -51,14 +52,11 @@ export default function SaveCustomRPCModal({
   open,
   onClose,
 }: SaveRpcModalProps) {
+  const invalidSnackbarKey = useRef<SnackbarKey>();
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const dispatch = useAppDispatch();
   const [status, setStatus] = useState<
-    | "normal"
-    | "loading"
-    | "error"
-    | "invalid_url"
-    | "already_exists"
-    | "success"
+    "normal" | "loading" | "already_exists" | "success"
   >("normal");
   const [rpcToShowInSummary, setRpcToShowInSummary] = useState<CustomRPC>(null);
 
@@ -87,6 +85,18 @@ export default function SaveCustomRPCModal({
     setValue("chainId", "");
   }, [selectedProtocol]);
 
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+
+    if (invalidSnackbarKey.current) {
+      closeSnackbar(invalidSnackbarKey.current);
+      invalidSnackbarKey.current = null;
+    }
+  };
+
   useDidMountEffect(() => {
     const timeout = setTimeout(() => {
       reset({
@@ -103,7 +113,12 @@ export default function SaveCustomRPCModal({
       setStatus("normal");
     }, 150);
 
-    return () => clearTimeout(timeout);
+    closeSnackbars();
+
+    return () => {
+      closeSnackbars();
+      clearTimeout(timeout);
+    };
   }, [open]);
 
   const onSubmit = async (data: SaveRpcFormValues) => {
@@ -134,7 +149,7 @@ export default function SaveCustomRPCModal({
 
         text += "\nPlease provide a valid RPC URL.";
 
-        enqueueSnackbar({
+        invalidSnackbarKey.current = enqueueSnackbar({
           message: {
             title: "Invalid RPC",
             content: text,
@@ -171,7 +186,10 @@ export default function SaveCustomRPCModal({
           });
           setStatus("already_exists");
         } else {
-          setStatus("error");
+          errorSnackbarKey.current = enqueueErrorSnackbar({
+            message: "Failed to Save Custom RPC",
+            onRetry: () => onSubmit(data),
+          });
         }
       });
   };
@@ -182,9 +200,11 @@ export default function SaveCustomRPCModal({
     );
   }, [selectedProtocol, allNetworks]);
 
+  const isLoading = status === "loading";
   let content: React.ReactNode;
 
   switch (status) {
+    case "loading":
     case "normal":
       content = (
         <>
@@ -196,7 +216,9 @@ export default function SaveCustomRPCModal({
             <Controller
               control={control}
               name={"protocol"}
-              render={({ field }) => <ProtocolSelector {...field} />}
+              render={({ field }) => (
+                <ProtocolSelector disabled={isLoading} {...field} />
+              )}
             />
             <Controller
               name={"chainId"}
@@ -208,7 +230,11 @@ export default function SaveCustomRPCModal({
                   required
                   label={"Network"}
                   autoComplete={"off"}
-                  disabled={!selectedProtocol || !networksOfProtocol?.length}
+                  disabled={
+                    !selectedProtocol ||
+                    !networksOfProtocol?.length ||
+                    isLoading
+                  }
                   select
                   {...field}
                   error={!!error}
@@ -244,6 +270,7 @@ export default function SaveCustomRPCModal({
                     marginTop: 1.6,
                   }}
                   autoFocus
+                  disabled={isLoading}
                   placeholder={"RPC URL"}
                   error={!!error}
                   helperText={error?.message}
@@ -268,7 +295,12 @@ export default function SaveCustomRPCModal({
                 control={control}
                 name={"isPreferred"}
                 render={({ field }) => (
-                  <Switch size={"small"} {...field} checked={field.value} />
+                  <Switch
+                    size={"small"}
+                    {...field}
+                    disabled={isLoading}
+                    checked={field.value}
+                  />
                 )}
               />
             </Stack>
@@ -287,18 +319,17 @@ export default function SaveCustomRPCModal({
               primaryButtonProps={{
                 children: "Save",
                 type: "submit",
+                isLoading,
               }}
-              secondaryButtonProps={{ children: "Cancel", onClick: onClose }}
+              secondaryButtonProps={{
+                children: "Cancel",
+                onClick: onClose,
+                disabled: isLoading,
+              }}
             />
           </DialogActions>
         </>
       );
-      break;
-    case "loading":
-      content = "Loading...";
-      break;
-    case "error":
-      content = "Error...";
       break;
     case "already_exists":
     case "success":
@@ -327,6 +358,7 @@ export default function SaveCustomRPCModal({
     <BaseDialog
       open={open}
       onClose={onClose}
+      isLoading={isLoading}
       title={rpcToUpdate ? "Update RPC" : "New RPC"}
       PaperProps={{
         component: "form",

@@ -1,6 +1,7 @@
 import type {
   SerializedAccountReference,
   SerializedSession,
+  SerializedRecoveryPhraseReference,
 } from "@poktscan/vault";
 import type { RootState } from "../../store";
 import { v4 } from "uuid";
@@ -12,6 +13,7 @@ import { AssetStorage, getVault, NetworkStorage } from "../../../utils";
 import { addSessionThunksToBuilder } from "./session";
 import { addAccountThunksToBuilder } from "./account";
 import { addBackupThunksToBuilder } from "./backup";
+import { addPhraseThunksToBuilder } from "./phrases";
 
 const webEncryptionService = new WebEncryptionService();
 const ExtensionVaultInstance = getVault();
@@ -28,6 +30,7 @@ export interface VaultSlice {
   wrongPasswordCounter: Record<string, number>;
   accounts: SerializedAccountReference[];
   sessions: SerializedSession[];
+  recoveryPhrases: Array<SerializedRecoveryPhraseReference>;
   dateUntilVaultIsLocked?: number;
   backupData: {
     lastDate: number;
@@ -106,11 +109,12 @@ export const unlockVault = createAsyncThunk(
       password
     );
 
-    const [sessions, networks, assets, accounts] = await Promise.all([
+    const [sessions, networks, assets, accounts, phrases] = await Promise.all([
       ExtensionVaultInstance.listSessions(session.id),
       NetworkStorage.list(),
       AssetStorage.list(),
       ExtensionVaultInstance.listAccounts(session.id),
+      ExtensionVaultInstance.listRecoveryPhrases(session.id),
       browser.storage.session.set({
         [session.id]: passwordEncrypted,
       }),
@@ -127,6 +131,7 @@ export const unlockVault = createAsyncThunk(
         networks: networks.concat(),
         assets: assets.concat(),
         accounts: accountsSerialized,
+        phrases: phrases.map((item) => item.serialize()),
       },
     };
   }
@@ -164,6 +169,7 @@ const initialState: VaultSlice = {
   wrongPasswordCounter: {},
   accounts: [],
   sessions: [],
+  recoveryPhrases: [],
   backupData: null,
   dateWhenInitialized: null,
 };
@@ -179,23 +185,26 @@ const vaultSlice = createSlice({
       state.wrongPasswordCounter = {};
       state.accounts = [];
       state.sessions = [];
+      state.recoveryPhrases = [];
     },
   },
   extraReducers: (builder) => {
     addAccountThunksToBuilder(builder);
     addSessionThunksToBuilder(builder);
     addBackupThunksToBuilder(builder);
+    addPhraseThunksToBuilder(builder);
 
     builder.addCase(unlockVault.fulfilled, (state, action) => {
       const {
         session,
-        entities: { sessions, accounts },
+        entities: { sessions, accounts, phrases },
       } = action.payload;
       state.vaultSession = session;
       state.isUnlockedStatus = "yes";
 
       state.sessions = sessions;
       state.accounts = accounts;
+      state.recoveryPhrases = phrases;
 
       state.wrongPasswordCounter[LOCKED_VAULT_PASS_ID] = 0;
       state.dateUntilVaultIsLocked = undefined;

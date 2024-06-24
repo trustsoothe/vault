@@ -8,12 +8,14 @@ interface NewVaultPasswordProps<T extends {}> {
   passwordName: Path<T>;
   confirmPasswordName: Path<T>;
   marginTop?: number;
+  disableInputs?: boolean;
 }
 
 export default function NewVaultPassword<T extends {}>({
   passwordName,
   confirmPasswordName,
   marginTop = 3.5,
+  disableInputs,
 }: NewVaultPasswordProps<T>) {
   const { control } = useFormContext<T>();
 
@@ -42,6 +44,7 @@ export default function NewVaultPassword<T extends {}>({
               {...field}
               error={!!error}
               helperText={error?.message}
+              disabled={disableInputs}
             />
             <PasswordStrengthBar password={field.value} />
           </>
@@ -66,6 +69,7 @@ export default function NewVaultPassword<T extends {}>({
             sx={{ marginTop: 2.1 }}
             canShowPassword={false}
             placeholder={"Confirm Password"}
+            disabled={disableInputs}
             {...field}
             error={!!error}
             helperText={error?.message}

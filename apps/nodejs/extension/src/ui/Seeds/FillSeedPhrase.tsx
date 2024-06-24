@@ -10,9 +10,13 @@ import { themeColors } from "../theme";
 
 interface FillSeedPhraseProps {
   canPaste?: boolean;
+  disabled?: boolean;
 }
 
-export default function FillSeedPhrase({ canPaste }: FillSeedPhraseProps) {
+export default function FillSeedPhrase({
+  canPaste,
+  disabled,
+}: FillSeedPhraseProps) {
   const { control, watch, setValue } = useFormContext<{
     wordList: Array<{ word: string }>;
     phraseSize: string;
@@ -105,6 +109,7 @@ export default function FillSeedPhrase({ canPaste }: FillSeedPhraseProps) {
                       required
                       {...field}
                       error={!!error}
+                      disabled={disabled}
                       InputProps={{
                         readOnly: requiredWords && !requiredWords.includes(i),
                       }}
@@ -155,6 +160,7 @@ export default function FillSeedPhrase({ canPaste }: FillSeedPhraseProps) {
       {canPaste && (
         <Button
           fullWidth
+          disabled={disabled}
           sx={{
             height: 38,
             borderRadius: "8px",

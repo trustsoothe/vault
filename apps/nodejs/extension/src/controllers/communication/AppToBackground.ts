@@ -49,6 +49,8 @@ import type {
   PrivateKeyAccountRes,
   RemoveAccountReq,
   RemoveAccountRes,
+  RemoveRecoveryPhraseReq,
+  RemoveRecoveryPhraseRes,
   RevokeExternalSessionsReq,
   RevokeExternalSessionsRes,
   RevokeSessionReq,
@@ -59,6 +61,8 @@ import type {
   UnlockVaultRes,
   UpdateAccountReq,
   UpdateAccountRes,
+  UpdateRecoveryPhraseReq,
+  UpdateRecoveryPhraseRes,
 } from "../../types/communications/vault";
 import browser from "webextension-polyfill";
 import {
@@ -81,12 +85,14 @@ import {
   PHRASE_GENERATED_HD_SEED_REQUEST,
   PK_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_REQUEST,
+  REMOVE_RECOVERY_PHRASE_REQUEST,
   REVOKE_EXTERNAL_SESSIONS_REQUEST,
   REVOKE_SESSION_REQUEST,
   SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST,
   SHOULD_EXPORT_VAULT_REQUEST,
   UNLOCK_VAULT_REQUEST,
   UPDATE_ACCOUNT_REQUEST,
+  UPDATE_RECOVERY_PHRASE_REQUEST,
 } from "../../constants/communication";
 import {
   CreateAccountFromHdSeedReq,
@@ -344,6 +350,28 @@ export default class AppToBackground {
   ): Promise<PhraseGeneratedHdSeedRes> {
     const message: PhraseGeneratedHdSeedReq = {
       type: PHRASE_GENERATED_HD_SEED_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async updateRecoveryPhrase(
+    data: UpdateRecoveryPhraseReq["data"]
+  ): Promise<UpdateRecoveryPhraseRes> {
+    const message: UpdateRecoveryPhraseReq = {
+      type: UPDATE_RECOVERY_PHRASE_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async removeRecoveryPhrase(
+    data: RemoveRecoveryPhraseReq["data"]
+  ): Promise<RemoveRecoveryPhraseRes> {
+    const message: RemoveRecoveryPhraseReq = {
+      type: REMOVE_RECOVERY_PHRASE_REQUEST,
       data,
     };
 

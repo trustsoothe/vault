@@ -19,12 +19,14 @@ interface AccountSelectableItemProps {
   isSelected: boolean;
   onClickAccount: (account: SerializedAccountReference) => void;
   account: SerializedAccountReference;
+  disabled?: boolean;
 }
 
 export default function AccountSelectableItem({
   account,
   onClickAccount,
   isSelected,
+  disabled,
 }: AccountSelectableItemProps) {
   const selectedChainByProtocol = useAppSelector(
     selectedChainByProtocolSelector
@@ -60,6 +62,7 @@ export default function AccountSelectableItem({
           ? themeColors.bgLightGray
           : themeColors.white,
       }}
+      disabled={disabled}
       onClick={() => onClickAccount(account)}
     >
       <Stack width={1} spacing={1.2} direction={"row"} alignItems={"center"}>

@@ -1,13 +1,19 @@
 import React from "react";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
-import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { Controller, useFormContext } from "react-hook-form";
 import { InitializeVaultFormValues } from "./InitializeVault";
 import NewVaultPassword from "../components/NewVaultPassword";
+import LoadingButton from "../components/LoadingButton";
 
-export default function InitializeVaultForm() {
+interface InitializeVaultFormProps {
+  isLoading: boolean;
+}
+
+export default function InitializeVaultForm({
+  isLoading,
+}: InitializeVaultFormProps) {
   const {
     control,
     formState: { isValid },
@@ -18,6 +24,7 @@ export default function InitializeVaultForm() {
       <NewVaultPassword<InitializeVaultFormValues>
         confirmPasswordName={"confirmPassword"}
         passwordName={"password"}
+        disableInputs={isLoading}
       />
 
       <Stack
@@ -33,19 +40,23 @@ export default function InitializeVaultForm() {
           control={control}
           name={"keepSessionActive"}
           render={({ field }) => (
-            <Switch size={"small"} {...field} checked={field.value} />
+            <Switch
+              size={"small"}
+              disabled={isLoading}
+              {...field}
+              checked={field.value}
+            />
           )}
         />
       </Stack>
-      <Button
-        variant={"contained"}
+      <LoadingButton
         fullWidth
         sx={{ marginTop: 4 }}
         type={"submit"}
-        disabled={!isValid}
+        disabled={!isValid || isLoading}
       >
         Initialize Vault
-      </Button>
+      </LoadingButton>
     </>
   );
 }

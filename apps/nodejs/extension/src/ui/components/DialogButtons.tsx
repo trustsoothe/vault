@@ -1,10 +1,11 @@
 import React from "react";
 import Stack, { StackProps } from "@mui/material/Stack";
 import Button, { ButtonProps } from "@mui/material/Button";
+import LoadingButton, { LoadingButtonProps } from "./LoadingButton";
 
 interface DialogButtonsProps {
   secondaryButtonProps?: ButtonProps;
-  primaryButtonProps: ButtonProps;
+  primaryButtonProps: LoadingButtonProps;
   containerProps?: StackProps;
 }
 
@@ -40,7 +41,7 @@ export default function DialogButtons({
           }}
         />
       )}
-      <Button fullWidth variant={"contained"} {...primaryButtonProps} />
+      <LoadingButton fullWidth {...primaryButtonProps} />
     </Stack>
   );
 }

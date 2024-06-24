@@ -109,7 +109,7 @@ const FormStep: React.FC = () => {
                 "& .MuiFormHelperText-root": {
                   left: 5,
                   bottom: -18,
-                  whiteSpace: 'nowrap'
+                  whiteSpace: "nowrap",
                 },
               }}
               helperText={`You'll be able to use this account for every network of the protocol selected`}
@@ -462,22 +462,20 @@ const CreateNewHdWallet: React.FC = () => {
       setStatus("loading");
       AppToBackground.importHdWallet({
         recoveryPhrase: data.phrase,
-        protocol: data.protocol,
-        isSendNodes: false,
-        seedAccountName: data.hdWalletName,
+        recoveryPhraseName: data.hdWalletName,
         passphrase: data.password,
       }).then((res) => {
         if (res.error) {
           setStatus("error");
         } else {
-          if (res.data?.accounts) {
-            setStatus("success");
-            setAccountId(
-              res.data.accounts.find(
-                (account) => account.accountType === AccountType.HDSeed
-              )?.id
-            );
-          }
+          // if (res.data?.accounts) {
+          //   setStatus("success");
+          //   setAccountId(
+          //     res.data.accounts.find(
+          //       (account) => account.accountType === AccountType.HDSeed
+          //     )?.id
+          //   );
+          // }
         }
       });
     }

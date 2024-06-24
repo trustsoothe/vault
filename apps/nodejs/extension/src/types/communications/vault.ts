@@ -1,4 +1,7 @@
-import type { SerializedAccountReference } from "@poktscan/vault";
+import {
+  SerializedAccountReference,
+  UpdateRecoveryPhraseRequest,
+} from "@poktscan/vault";
 import type { ImportAccountParam } from "../../redux/slices/vault/account";
 import type { BaseData, BaseResponse, UnknownErrorType } from "./common";
 import {
@@ -18,6 +21,8 @@ import {
   PK_ACCOUNT_RESPONSE,
   REMOVE_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_RESPONSE,
+  REMOVE_RECOVERY_PHRASE_REQUEST,
+  REMOVE_RECOVERY_PHRASE_RESPONSE,
   REVOKE_EXTERNAL_SESSIONS_REQUEST,
   REVOKE_EXTERNAL_SESSIONS_RESPONSE,
   REVOKE_SESSION_REQUEST,
@@ -28,9 +33,12 @@ import {
   UNLOCK_VAULT_RESPONSE,
   UPDATE_ACCOUNT_REQUEST,
   UPDATE_ACCOUNT_RESPONSE,
+  UPDATE_RECOVERY_PHRASE_REQUEST,
+  UPDATE_RECOVERY_PHRASE_RESPONSE,
 } from "../../constants/communication";
 import { VaultBackupSchema } from "../../redux/slices/vault/backup";
 import { UnknownError } from "../../errors/communication";
+import { RemoveRecoveryPhraseOptions } from "../../redux/slices/vault/phrases";
 
 export interface VaultRequestWithPass<T extends string> {
   type: T;
@@ -114,6 +122,34 @@ export interface RemoveAccountReq {
 
 export interface RemoveAccountRes {
   type: typeof REMOVE_ACCOUNT_RESPONSE;
+  data: {
+    answered: true;
+    isPasswordWrong?: boolean;
+  } | null;
+  error: UnknownErrorType | null;
+}
+
+export interface UpdateRecoveryPhraseReq {
+  type: typeof UPDATE_RECOVERY_PHRASE_REQUEST;
+  data: UpdateRecoveryPhraseRequest;
+}
+
+export interface UpdateRecoveryPhraseRes {
+  type: typeof UPDATE_RECOVERY_PHRASE_RESPONSE;
+  data: {
+    answered: true;
+    isPasswordWrong?: boolean;
+  } | null;
+  error: UnknownErrorType | null;
+}
+
+export interface RemoveRecoveryPhraseReq {
+  type: typeof REMOVE_RECOVERY_PHRASE_REQUEST;
+  data: RemoveRecoveryPhraseOptions;
+}
+
+export interface RemoveRecoveryPhraseRes {
+  type: typeof REMOVE_RECOVERY_PHRASE_RESPONSE;
   data: {
     answered: true;
     isPasswordWrong?: boolean;

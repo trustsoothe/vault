@@ -88,3 +88,5 @@ export const existsAccountsOfSelectedProtocolSelector = (state: RootState) =>
 
 export const accountsImportedSelector = (state: RootState) =>
   state.app.accountsImported;
+
+export const seedsSelector = (state: RootState) => state.vault.recoveryPhrases;

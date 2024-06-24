@@ -4,6 +4,7 @@ import capitalize from "lodash/capitalize";
 import { useNavigate } from "react-router-dom";
 import { useFormContext } from "react-hook-form";
 import Typography from "@mui/material/Typography";
+import WarningActionBanner from "../components/WarningActionBanner";
 import SuccessActionBanner from "../components/SuccessActionBanner";
 import AvatarByString from "../components/AvatarByString";
 import DialogButtons from "../components/DialogButtons";
@@ -12,10 +13,12 @@ import Summary from "../components/Summary";
 import { themeColors } from "../theme";
 
 interface SeedAddedProps {
-  type: "created" | "imported";
+  type: "created" | "imported" | "already_exists" | "renamed";
+  onDone?: () => void;
+  id?: string;
 }
 
-export default function SeedAdded({ type }: SeedAddedProps) {
+export default function SeedAdded({ type, onDone, id }: SeedAddedProps) {
   const navigate = useNavigate();
   const { watch } = useFormContext<{
     name: string;
@@ -27,7 +30,11 @@ export default function SeedAdded({ type }: SeedAddedProps) {
   return (
     <Stack bgcolor={themeColors.white} height={1}>
       <Stack flexGrow={1} padding={2.4} spacing={1.6}>
-        <SuccessActionBanner label={`Seed ${capitalize(type)}`} />
+        {type === "already_exists" ? (
+          <WarningActionBanner label={"Seed Already Exists"} />
+        ) : (
+          <SuccessActionBanner label={`Seed ${capitalize(type)}`} />
+        )}
         <Summary
           rows={[
             {
@@ -40,7 +47,7 @@ export default function SeedAdded({ type }: SeedAddedProps) {
                   alignItems={"center"}
                   justifyContent={"flex-end"}
                 >
-                  <AvatarByString string={name} type={"square"} />
+                  <AvatarByString string={id || name} type={"square"} />
                   <Typography variant={"subtitle2"}>{name}</Typography>
                 </Stack>
               ),
@@ -58,8 +65,8 @@ export default function SeedAdded({ type }: SeedAddedProps) {
           sx: { height: 85 },
         }}
         primaryButtonProps={{
-          children: "View Seeds",
-          onClick: () => navigate(SEEDS_PAGE),
+          children: type === "renamed" ? "Done" : "View Seeds",
+          onClick: onDone || (() => navigate(SEEDS_PAGE)),
         }}
       />
     </Stack>

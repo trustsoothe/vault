@@ -1,8 +1,11 @@
 import Stack from "@mui/material/Stack";
 import { useNavigate } from "react-router-dom";
-import React, { useEffect, useState } from "react";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import { FormProvider, useForm } from "react-hook-form";
+import React, { useEffect, useRef, useState } from "react";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 import DialogButtons from "../components/DialogButtons";
+import { enqueueErrorSnackbar } from "../../utils/ui";
 import NameAndWordsInput from "./NameAndWordsInput";
 import { SEEDS_PAGE } from "../../constants/routes";
 import PassphraseInput from "./PassphraseInput";
@@ -11,7 +14,7 @@ import { themeColors } from "../theme";
 import SeedAdded from "./SeedAdded";
 import Info from "./Info";
 
-type Status = "form" | "error" | "loading" | "success" | "seed_exists";
+type Status = "form" | "loading" | "success" | "seed_exists";
 
 interface ImportSeedFormValues {
   name: string;
@@ -21,8 +24,10 @@ interface ImportSeedFormValues {
 }
 
 export default function ImportSeed() {
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const navigate = useNavigate();
   const [status, setStatus] = useState<Status>("form");
+  const [seedId, setSeedId] = useState<string>(null);
 
   const methods = useForm<ImportSeedFormValues>({
     defaultValues: {
@@ -41,6 +46,17 @@ export default function ImportSeed() {
 
   const canSubmitForm = !!name && wordList.every(({ word }) => !!word);
 
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return closeSnackbars;
+  }, []);
+
   useEffect(() => {
     setValue(
       "wordList",
@@ -50,13 +66,42 @@ export default function ImportSeed() {
   }, [phraseSize]);
 
   const onSubmit = (data: ImportSeedFormValues) => {
-    console.log(data);
-    setStatus("success");
+    setStatus("loading");
+
+    AppToBackground.importHdWallet({
+      recoveryPhrase: data.wordList.map(({ word }) => word).join(" "),
+      recoveryPhraseName: data.name,
+      imported: true,
+      passphrase: data.passphrase,
+    }).then((res) => {
+      if (res.error) {
+        errorSnackbarKey.current = enqueueErrorSnackbar({
+          variant: "error",
+          onRetry: () => onSubmit(data),
+          message: {
+            title: "Phrase import failed ",
+            content: "There was an error while importing your phrase.",
+          },
+        });
+        setStatus("form");
+      } else {
+        closeSnackbars();
+        if (res.data.phraseAlreadyExists) {
+          setSeedId(res.data.phraseId);
+          setStatus("seed_exists");
+        } else {
+          setSeedId(res.data.phrase.id);
+          setStatus("success");
+        }
+      }
+    });
   };
 
+  const isLoading = status === "loading";
   let content: React.ReactNode;
 
   switch (status) {
+    case "loading":
     case "form":
       content = (
         <>
@@ -72,9 +117,9 @@ export default function ImportSeed() {
                 "Provide your Seed Phrase. You’ll be able to use this seed to create/import accounts for multiple networks."
               }
             />
-            <NameAndWordsInput />
-            <FillSeedPhrase canPaste={true} />
-            <PassphraseInput />
+            <NameAndWordsInput disabled={isLoading} />
+            <FillSeedPhrase canPaste={true} disabled={isLoading} />
+            <PassphraseInput disabled={isLoading} />
           </Stack>
           <DialogButtons
             containerProps={{
@@ -84,9 +129,11 @@ export default function ImportSeed() {
             }}
             secondaryButtonProps={{
               children: "Cancel",
+              disabled: isLoading,
               onClick: () => navigate(SEEDS_PAGE),
             }}
             primaryButtonProps={{
+              isLoading,
               children: "Import",
               disabled: !canSubmitForm,
               type: "submit",
@@ -95,17 +142,11 @@ export default function ImportSeed() {
         </>
       );
       break;
-    case "error":
-      content = "Error...";
-      break;
-    case "loading":
-      content = "Loading...";
-      break;
     case "success":
-      content = <SeedAdded type={"imported"} />;
+      content = <SeedAdded type={"imported"} id={seedId} />;
       break;
     case "seed_exists":
-      content = "Seed exists...";
+      content = <SeedAdded type={"already_exists"} id={seedId} />;
       break;
   }
 

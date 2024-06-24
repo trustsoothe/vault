@@ -5,7 +5,13 @@ import TextField from "@mui/material/TextField";
 import { Controller, useFormContext } from "react-hook-form";
 import { nameRules } from "../NewAccount/NewAccountModal";
 
-export default function NameAndWordsInput() {
+interface NameAndWordsInputProps {
+  disabled?: boolean;
+}
+
+export default function NameAndWordsInput({
+  disabled,
+}: NameAndWordsInputProps) {
   const { control } = useFormContext<{
     name: string;
     phraseSize: "12" | "15" | "18" | "21" | "24";
@@ -24,6 +30,7 @@ export default function NameAndWordsInput() {
         rules={nameRules}
         render={({ field, fieldState: { error } }) => (
           <TextField
+            disabled={disabled}
             placeholder={"Seed Name"}
             autoComplete={"off"}
             {...field}
@@ -39,6 +46,7 @@ export default function NameAndWordsInput() {
           <TextField
             select
             {...field}
+            disabled={disabled}
             sx={{
               width: 110,
               minWidth: 110,

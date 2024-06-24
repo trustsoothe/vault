@@ -32,7 +32,9 @@ export default function ProtectSensitiveOperations() {
         }}
         onClick={toggleShowModal}
       >
-        <Typography color={themeColors.black}>Keep Session Active</Typography>
+        <Typography color={themeColors.black}>
+          Protect Sensitive Operations
+        </Typography>
         <Stack direction={"row"} spacing={1} alignItems={"center"}>
           <Typography>{protectSensitiveOperations ? "Yes" : "No"}</Typography>
           <ForwardIcon sx={{ color: themeColors.dark_gray1, fontSize: 16 }} />

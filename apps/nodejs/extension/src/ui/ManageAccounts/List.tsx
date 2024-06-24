@@ -1,22 +1,24 @@
 import Menu from "@mui/material/Menu";
 import Stack from "@mui/material/Stack";
 import MenuItem from "@mui/material/MenuItem";
-import { useNavigate } from "react-router-dom";
 import React, { useMemo, useState } from "react";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AccountType, SerializedAccountReference } from "@poktscan/vault";
+import { accountsSelector, seedsSelector } from "../../redux/selectors/account";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import SmallGrayContainer from "../components/SmallGrayContainer";
-import { accountsSelector } from "../../redux/selectors/account";
 import { labelByProtocolMap } from "../../constants/protocols";
 import NewAccountsButtons from "../Home/NewAccountsButtons";
 import AvatarByString from "../components/AvatarByString";
 import ViewPrivateKeyModal from "./ViewPrivateKeyModal";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
 import RenameAccountModal from "./RenameAccountModal";
+import RemoveAccountModal from "./RemoveAccountModal";
 import MenuDivider from "../components/MenuDivider";
 import MoreIcon from "../assets/img/more_icon.svg";
+import NoAccounts from "../Home/NoAccounts";
 import { themeColors } from "../theme";
 import {
   selectedChainByProtocolSelector,
@@ -35,12 +37,14 @@ interface AccountItemProps {
   account: AccountWithSeed;
   showRenameModal: (account: SerializedAccountReference) => void;
   showViewPkModal: (account: SerializedAccountReference) => void;
+  showRemoveModal: (account: SerializedAccountReference) => void;
 }
 
 function AccountItem({
   account,
   showRenameModal,
   showViewPkModal,
+  showRemoveModal,
 }: AccountItemProps) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -146,13 +150,23 @@ function AccountItem({
           View Private Key
         </MenuItem>
         <MenuDivider />
-        <MenuItem className={"sensitive"}>Remove Account</MenuItem>
+        <MenuItem
+          className={"sensitive"}
+          onClick={() => {
+            showRemoveModal(account);
+            handleClose();
+          }}
+        >
+          Remove Account
+        </MenuItem>
       </Menu>
     </>
   );
 }
 
 export default function ListAccounts() {
+  const [searchParams] = useSearchParams();
+  const seedId = searchParams.get("seedId");
   const [selectedAccount, setSelectedAccount] =
     useState<SerializedAccountReference | null>(null);
   const [modalToShow, setModalToShow] = useState<
@@ -169,31 +183,53 @@ export default function ListAccounts() {
     setModalToShow("private_key");
   };
 
+  const showRemoveModal = (account: SerializedAccountReference) => {
+    setSelectedAccount(account);
+    setModalToShow("remove");
+  };
+
   const closeModal = () => {
     setSelectedAccount(null);
     setModalToShow("none");
   };
 
   const accounts = useAppSelector(accountsSelector);
+  const seeds = useAppSelector(seedsSelector);
 
   const usableAccounts: Array<AccountWithSeed> = useMemo(() => {
     const noSeedAccounts = [],
       seedAccounts = [];
 
     for (const account of accounts) {
-      if (account.accountType === AccountType.HDSeed) {
+      if (
+        account.accountType === AccountType.HDSeed &&
+        (!seedId || account.seedId === seedId)
+      ) {
         seedAccounts.push(account);
       } else {
         noSeedAccounts.push(account);
       }
     }
 
-    const seedNameById = seedAccounts.reduce(
-      (acc, account) => ({ ...acc, [account.id]: account.name }),
+    const seedsMap = seeds.reduce(
+      (acc, item) => ({ ...acc, [item.id]: item.name }),
       {}
     );
 
-    return noSeedAccounts.map((account) => {
+    const seedNameById = seedAccounts.reduce(
+      (acc, account) => ({ ...acc, [account.id]: seedsMap[account.seedId] }),
+      {}
+    );
+
+    return (
+      seedId
+        ? noSeedAccounts.filter(
+            (account) =>
+              account.accountType === AccountType.HDChild &&
+              !!seedNameById[account.parentId]
+          )
+        : noSeedAccounts
+    ).map((account) => {
       if (account.accountType === AccountType.HDChild) {
         return {
           ...account,
@@ -203,7 +239,7 @@ export default function ListAccounts() {
 
       return account;
     });
-  }, [accounts]);
+  }, [accounts, seeds, seedId]);
 
   return (
     <>
@@ -215,38 +251,49 @@ export default function ListAccounts() {
         onClose={closeModal}
         account={modalToShow === "private_key" ? selectedAccount : null}
       />
-      <Stack
-        flexGrow={1}
-        padding={2.4}
-        spacing={1.2}
-        minHeight={0}
-        flexBasis={"1px"}
-        overflow={"auto"}
-        bgcolor={themeColors.white}
-      >
-        {usableAccounts.map((account) => (
-          <AccountItem
-            account={account}
-            key={account.id}
-            showViewPkModal={showViewPrivateKeyModal}
-            showRenameModal={showRenameModal}
-          />
-        ))}
-      </Stack>
-      <NewAccountsButtons
-        containerProps={{
-          width: 1,
-          height: 86,
-          marginTop: 0,
-          bgcolor: themeColors.bgLightGray,
-          borderTop: `1px solid ${themeColors.borderLightGray}`,
-          sx: {
-            button: {
-              width: 1,
-            },
-          },
-        }}
+      <RemoveAccountModal
+        onClose={closeModal}
+        account={modalToShow === "remove" ? selectedAccount : null}
       />
+      {usableAccounts.length > 0 ? (
+        <>
+          <Stack
+            flexGrow={1}
+            padding={2.4}
+            spacing={1.2}
+            minHeight={0}
+            flexBasis={"1px"}
+            overflow={"auto"}
+            bgcolor={themeColors.white}
+          >
+            {usableAccounts.map((account) => (
+              <AccountItem
+                account={account}
+                key={account.id}
+                showViewPkModal={showViewPrivateKeyModal}
+                showRenameModal={showRenameModal}
+                showRemoveModal={showRemoveModal}
+              />
+            ))}
+          </Stack>
+          <NewAccountsButtons
+            containerProps={{
+              width: 1,
+              height: 86,
+              marginTop: 0,
+              bgcolor: themeColors.bgLightGray,
+              borderTop: `1px solid ${themeColors.borderLightGray}`,
+              sx: {
+                button: {
+                  width: 1,
+                },
+              },
+            }}
+          />
+        </>
+      ) : (
+        <NoAccounts />
+      )}
     </>
   );
 }

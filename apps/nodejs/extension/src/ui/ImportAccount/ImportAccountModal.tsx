@@ -6,9 +6,10 @@ import { shallowEqual } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import React, { useEffect, useState } from "react";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
+import React, { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import {
   changeSelectedAccountOfNetwork,
@@ -35,6 +36,7 @@ import {
 } from "../../redux/selectors/account";
 import { getAddressFromPrivateKey } from "../../utils/networkOperations";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import { enqueueErrorSnackbar } from "../../utils/ui";
 
 export interface ImportAccountFormValues {
   import_type: "private_key" | "json_file";
@@ -45,7 +47,7 @@ export interface ImportAccountFormValues {
   protocol?: SupportedProtocols;
 }
 
-type FormStatus = "normal" | "loading" | "error" | "account_exists" | "success";
+type FormStatus = "normal" | "loading" | "account_exists" | "success";
 
 interface ImportAccountModalProps {
   open: boolean;
@@ -56,6 +58,7 @@ export default function ImportAccountModal({
   open,
   onClose,
 }: ImportAccountModalProps) {
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const dispatch = useAppDispatch();
   const accounts = useAppSelector(accountsSelector);
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
@@ -106,6 +109,13 @@ export default function ImportAccountModal({
     }
   }, [file_password]);
 
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       reset({
@@ -118,8 +128,12 @@ export default function ImportAccountModal({
       });
       setStatus("normal");
     }, 150);
+    closeSnackbars();
 
-    return () => clearTimeout(timeout);
+    return () => {
+      closeSnackbars();
+      clearTimeout(timeout);
+    };
   }, [open]);
   const onSubmit = async (data: ImportAccountFormValues) => {
     setStatus("loading");
@@ -132,7 +146,10 @@ export default function ImportAccountModal({
         setWrongFilePassword(true);
         setStatus("normal");
       } else {
-        setStatus("error");
+        errorSnackbarKey.current = enqueueErrorSnackbar({
+          message: "Import Account Failed",
+          onRetry: () => onSubmit(data),
+        });
       }
       return;
     }
@@ -143,7 +160,10 @@ export default function ImportAccountModal({
       privateKey,
     }).then(async (response) => {
       if (response.error) {
-        setStatus("error");
+        errorSnackbarKey.current = enqueueErrorSnackbar({
+          message: "Import Account Failed",
+          onRetry: () => onSubmit(data),
+        });
       } else {
         const address = await getAddressFromPrivateKey(
           privateKey,
@@ -157,8 +177,6 @@ export default function ImportAccountModal({
           if (account) {
             setAccountAlreadyExists(account);
             setStatus("account_exists");
-          } else {
-            setStatus("error");
           }
         } else {
           Promise.all([
@@ -178,19 +196,21 @@ export default function ImportAccountModal({
                 address: address,
               })
             ).unwrap(),
-          ])
-            .then(() => {
-              setStatus("success");
-            })
-            .catch(() => setStatus("error"));
+          ]).then(() => {
+            closeSnackbars();
+
+            setStatus("success");
+          });
         }
       }
     });
   };
 
+  const isLoading = status === "loading";
   let content: React.ReactNode;
 
   switch (status) {
+    case "loading":
     case "normal":
       content = (
         <>
@@ -204,7 +224,9 @@ export default function ImportAccountModal({
             <Controller
               control={control}
               name={"protocol"}
-              render={({ field }) => <ProtocolSelector {...field} />}
+              render={({ field }) => (
+                <ProtocolSelector disabled={isLoading} {...field} />
+              )}
             />
             <Typography
               variant={"body2"}
@@ -221,7 +243,9 @@ export default function ImportAccountModal({
               rules={nameRules}
               render={({ field, fieldState: { error } }) => (
                 <TextField
+                  autoFocus
                   autoComplete={"off"}
+                  disabled={isLoading}
                   placeholder={"Account Name"}
                   {...field}
                   error={!!error}
@@ -233,7 +257,13 @@ export default function ImportAccountModal({
               )}
             />
             <FormProvider {...methods}>
-              <ImportForm wrongFilePassword={wrongFilePassword} />
+              <ImportForm
+                disableInputs={isLoading}
+                wrongFilePassword={wrongFilePassword}
+                infoText={
+                  "Import your account using your private key or your portable wallet (file)."
+                }
+              />
             </FormProvider>
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>
@@ -242,30 +272,34 @@ export default function ImportAccountModal({
                 children: "Import",
                 type: "submit",
                 disabled: isValidating,
+                isLoading,
               }}
-              secondaryButtonProps={{ children: "Cancel", onClick: onClose }}
+              secondaryButtonProps={{
+                children: "Cancel",
+                onClick: onClose,
+                disabled: isLoading,
+              }}
             />
           </DialogActions>
         </>
       );
       break;
-    case "loading":
-      content = "Loading...";
-      break;
-    case "error":
-      content = "Error...";
-      break;
     case "account_exists":
     case "success":
       const isSuccess = status === "success";
+      const account = isSuccess ? selectedAccount : accountAlreadyExists;
       content = (
         <>
           <DialogContent sx={{ padding: "0px!important" }}>
-            <AccountFeedback
-              account={isSuccess ? selectedAccount : accountAlreadyExists}
-              label={isSuccess ? "Account Imported" : "Account Already Exists"}
-              type={isSuccess ? "success" : "warning"}
-            />
+            {account && (
+              <AccountFeedback
+                account={account}
+                label={
+                  isSuccess ? "Account Imported" : "Account Already Exists"
+                }
+                type={isSuccess ? "success" : "warning"}
+              />
+            )}
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>
             <DialogButtons
@@ -290,6 +324,7 @@ export default function ImportAccountModal({
       title={"Import Account"}
       open={open}
       onClose={onClose}
+      isLoading={isLoading}
       PaperProps={{
         component: "form",
         onSubmit: handleSubmit(onSubmit),

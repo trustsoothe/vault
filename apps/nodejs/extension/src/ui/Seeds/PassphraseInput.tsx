@@ -2,7 +2,11 @@ import { Controller, useFormContext } from "react-hook-form";
 import TextField from "@mui/material/TextField";
 import React from "react";
 
-export default function PassphraseInput() {
+interface PassphraseInputProps {
+  disabled?: boolean;
+}
+
+export default function PassphraseInput({ disabled }: PassphraseInputProps) {
   const { control } = useFormContext<{ passphrase: string }>();
 
   return (
@@ -12,6 +16,7 @@ export default function PassphraseInput() {
       render={({ field }) => (
         <TextField
           {...field}
+          disabled={disabled}
           placeholder={"Passphrase (optional)"}
           sx={{ marginTop: 1.6 }}
         />

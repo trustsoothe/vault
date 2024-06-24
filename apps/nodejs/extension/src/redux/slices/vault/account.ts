@@ -8,7 +8,6 @@ import {
   AccountType,
   AccountUpdateOptions,
   AddHDWalletAccountExternalRequest,
-  ImportRecoveryPhraseOptions,
   Passphrase,
   PrivateKeyRestoreErrorName,
   SerializedAccountReference,
@@ -25,42 +24,8 @@ import {
 } from "../app";
 
 const MAX_PASSWORDS_TRIES = 4;
-const VAULT_PASSWORD_ID = "vault";
+export const VAULT_PASSWORD_ID = "vault";
 const ExtensionVaultInstance = getVault();
-
-export interface ImportHdAccountOptions extends ImportRecoveryPhraseOptions {
-  imported?: boolean;
-}
-
-export const importHdWallet = createAsyncThunk(
-  "vault/importHdWallet",
-  async ({ imported, ...options }: ImportHdAccountOptions, context) => {
-    const state = context.getState() as RootState;
-    const { vaultSession } = state.vault;
-
-    const vaultPassword = await getVaultPassword(vaultSession.id);
-    const vaultPassphrase = new Passphrase(vaultPassword);
-
-    const accountReferences = await ExtensionVaultInstance.importRecoveryPhrase(
-      vaultSession.id,
-      vaultPassphrase,
-      options
-    );
-
-    if (imported) {
-      for (const accountReference of accountReferences) {
-        const id =
-          accountReference.accountType === AccountType.HDSeed
-            ? accountReference.id
-            : accountReference.address;
-
-        await context.dispatch(addImportedAccountAddress(id));
-      }
-    }
-
-    return accountReferences.map((account) => account.serialize());
-  }
-);
 
 export type CreateNewAccountFromHdSeedArg = Omit<
   AddHDWalletAccountExternalRequest,
@@ -71,7 +36,7 @@ export const createNewAccountFromHdSeed = createAsyncThunk(
   "vault/createNewAccountFromHdSeed",
   async (options: CreateNewAccountFromHdSeedArg, context) => {
     const {
-      vault: { vaultSession },
+      vault: { vaultSession, accounts },
       app: { accountsImported },
     } = context.getState() as RootState;
 
@@ -84,13 +49,45 @@ export const createNewAccountFromHdSeed = createAsyncThunk(
       { ...options }
     );
 
-    const parentIsImported = accountsImported.includes(options.seedAccountId);
+    let seedAccount = accounts.find(
+        (account) =>
+          account.accountType === AccountType.HDSeed &&
+          account.seedId === options.recoveryPhraseId &&
+          account.protocol === options.protocol
+      ),
+      mustAddSeedAccount = false;
+
+    if (!seedAccount) {
+      mustAddSeedAccount = true;
+      const accountsFromVault = await ExtensionVaultInstance.listAccounts(
+        vaultSession.id
+      );
+      seedAccount = accountsFromVault
+        .find(
+          (account) =>
+            account.accountType === AccountType.HDSeed &&
+            account.seedId === options.recoveryPhraseId &&
+            account.protocol === options.protocol
+        )
+        ?.serialize();
+
+      if (!seedAccount) {
+        console.log("Account was not found", { accountsFromVault, options });
+      }
+    }
+
+    const parentIsImported = accountsImported.includes(
+      options.recoveryPhraseId
+    );
 
     if (parentIsImported) {
       await context.dispatch(addImportedAccountAddress(account.address));
     }
 
-    return account.serialize();
+    return {
+      childAccount: account.serialize(),
+      seedAccount: mustAddSeedAccount ? seedAccount : null,
+    };
   }
 );
 
@@ -309,21 +306,12 @@ const addCreateNewAccountFromHdSeedToBuilder = (builder: VaultSliceBuilder) => {
   });
 
   builder.addCase(createNewAccountFromHdSeed.fulfilled, (state, action) => {
-    const accountReference = action.payload;
-    state.accounts.push(accountReference);
+    const { childAccount, seedAccount } = action.payload;
+    state.accounts.push(childAccount);
 
-    resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
-  });
-};
-
-const addImportHdWalletToBuilder = (builder: VaultSliceBuilder) => {
-  builder.addCase(importHdWallet.rejected, (state, action) => {
-    increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
-  });
-
-  builder.addCase(importHdWallet.fulfilled, (state, action) => {
-    const accounts = action.payload;
-    state.accounts.push(...accounts);
+    if (seedAccount) {
+      state.accounts.push(seedAccount);
+    }
 
     resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
   });
@@ -396,15 +384,14 @@ export const addAccountThunksToBuilder = (builder: VaultSliceBuilder) => {
   addRemoveAccountToBuilder(builder);
   addGetPrivateKeyToBuilder(builder);
   addSendTransferToBuilder(builder);
-  addImportHdWalletToBuilder(builder);
   addCreateNewAccountFromHdSeedToBuilder(builder);
 };
 
-function resetWrongPasswordCounter(id: string, state: VaultSlice) {
+export function resetWrongPasswordCounter(id: string, state: VaultSlice) {
   state.wrongPasswordCounter[id] = undefined;
 }
 
-function increaseWrongPasswordCounter(
+export function increaseWrongPasswordCounter(
   id: string,
   state: VaultSlice,
   error: SerializedError

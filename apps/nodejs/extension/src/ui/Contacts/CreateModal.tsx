@@ -4,10 +4,11 @@ import type {
 } from "@poktscan/vault";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
+import React, { useEffect, useRef, useState } from "react";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
 import { Contact, saveContact } from "../../redux/slices/app/contact";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
@@ -20,6 +21,7 @@ import useDidMountEffect from "../../hooks/useDidMountEffect";
 import AccountFeedback from "../components/AccountFeedback";
 import { nameRules } from "../NewAccount/NewAccountModal";
 import DialogButtons from "../components/DialogButtons";
+import { enqueueErrorSnackbar } from "../../utils/ui";
 import BaseDialog from "../components/BaseDialog";
 import ContactFeedback from "./ContactFeedback";
 import { themeColors } from "../theme";
@@ -37,7 +39,6 @@ interface CreateContactFormValues {
 type FormStatus =
   | "normal"
   | "loading"
-  | "error"
   | "success"
   | "contact_already_exists"
   | "account_already_exists";
@@ -48,6 +49,7 @@ interface CreateModalProps {
 }
 
 export default function CreateModal({ open, onClose }: CreateModalProps) {
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const dispatch = useAppDispatch();
   const contacts = useAppSelector(contactsSelector);
   const accounts = useAppSelector(accountsSelector);
@@ -72,13 +74,25 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
     setValue("protocol", protocol);
   }, [protocol]);
 
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       reset({ name: "", protocol, address: "" });
       setStatus("normal");
     }, 150);
 
-    return () => clearTimeout(timeout);
+    closeSnackbars();
+
+    return () => {
+      closeSnackbars();
+      clearTimeout(timeout);
+    };
   }, [open]);
 
   const onSubmit = async (data: Contact) => {
@@ -96,6 +110,7 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
       .unwrap()
       .then(({ contactSaved }) => {
         setContactSaved(contactSaved);
+        closeSnackbars();
         setStatus("success");
       })
       .catch((error) => {
@@ -105,7 +120,11 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
           );
 
           if (!contact) {
-            return setStatus("error");
+            errorSnackbarKey.current = enqueueErrorSnackbar({
+              message: "Add Contact Failed",
+              onRetry: () => onSubmit(data),
+            });
+            return;
           }
 
           setContactSaved(contact);
@@ -116,13 +135,20 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
           );
 
           if (!account) {
-            return setStatus("error");
+            errorSnackbarKey.current = enqueueErrorSnackbar({
+              message: "Add Contact Failed",
+              onRetry: () => onSubmit(data),
+            });
+            return;
           }
 
           setAccountAlreadyExists(account);
           setStatus("account_already_exists");
         } else {
-          setStatus("error");
+          errorSnackbarKey.current = enqueueErrorSnackbar({
+            message: "Add Contact Failed",
+            onRetry: () => onSubmit(data),
+          });
         }
       });
   };
@@ -132,9 +158,11 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
     clearErrors("address");
   };
 
+  const isLoading = status === "loading";
   let content: React.ReactNode;
 
   switch (status) {
+    case "loading":
     case "normal":
       content = (
         <>
@@ -146,7 +174,9 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
             <Controller
               control={control}
               name={"protocol"}
-              render={({ field }) => <ProtocolSelector {...field} />}
+              render={({ field }) => (
+                <ProtocolSelector disabled={isLoading} {...field} />
+              )}
             />
             <Typography
               variant={"body2"}
@@ -164,6 +194,7 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
               render={({ field, fieldState: { error } }) => (
                 <TextField
                   autoFocus
+                  disabled={isLoading}
                   autoComplete={"off"}
                   placeholder={"Contact Name"}
                   {...field}
@@ -187,6 +218,7 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
               render={({ field, fieldState: { error } }) => (
                 <TextFieldWithPaste
                   autoComplete={"off"}
+                  disabled={isLoading}
                   placeholder={"Public Address"}
                   onPaste={onPasteAddress}
                   required
@@ -206,18 +238,17 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
                 children: "Save",
                 type: "submit",
                 disabled: !name || !address,
+                isLoading,
               }}
-              secondaryButtonProps={{ children: "Cancel", onClick: onClose }}
+              secondaryButtonProps={{
+                children: "Cancel",
+                onClick: onClose,
+                disabled: isLoading,
+              }}
             />
           </DialogActions>
         </>
       );
-      break;
-    case "loading":
-      content = "Loading...";
-      break;
-    case "error":
-      content = "Error...";
       break;
     case "account_already_exists":
       content = (
@@ -269,6 +300,7 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
 
   return (
     <BaseDialog
+      isLoading={isLoading}
       title={"New Contact"}
       open={open}
       onClose={onClose}

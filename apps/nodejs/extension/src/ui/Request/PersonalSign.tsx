@@ -1,9 +1,10 @@
 import type { AppPersonalSignReq } from "../../types/communications/personalSign";
 import { toUtf8 } from "web3-utils";
-import React, { useState } from "react";
 import Stack from "@mui/material/Stack";
 import { useLocation } from "react-router-dom";
 import Typography from "@mui/material/Typography";
+import { closeSnackbar, SnackbarKey } from "notistack";
+import React, { useEffect, useRef, useState } from "react";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import DialogButtons from "../components/DialogButtons";
 import { enqueueErrorSnackbar } from "../../utils/ui";
@@ -11,9 +12,21 @@ import RequestInfo from "./RequestInfo";
 import { themeColors } from "../theme";
 
 export default function PersonalSign() {
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
   const signRequest: AppPersonalSignReq = location.state;
+
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return closeSnackbars;
+  }, []);
 
   const sendResponse = (accepted: boolean) => {
     setIsLoading(true);
@@ -21,14 +34,30 @@ export default function PersonalSign() {
       request: signRequest,
       accepted,
     })
+      .then((res) => {
+        if (res.error) {
+          errorSnackbarKey.current = enqueueErrorSnackbar({
+            variant: "error",
+            message: {
+              title: "Failed to answer the request",
+              content: `There was an error trying to ${
+                accepted ? "accept" : "reject"
+              } the signature request.`,
+            },
+            onRetry: () => sendResponse(accepted),
+          });
+        } else {
+          closeSnackbars();
+        }
+      })
       .catch(() => {
-        enqueueErrorSnackbar({
+        errorSnackbarKey.current = enqueueErrorSnackbar({
           variant: "error",
           message: {
-            title: "Failed to solve the request",
+            title: "Failed to answer the request",
             content: `There was an error trying to ${
               accepted ? "accept" : "reject"
-            } the request.`,
+            } the signature request.`,
           },
           onRetry: () => sendResponse(accepted),
         });
@@ -69,8 +98,8 @@ export default function PersonalSign() {
       <Stack height={85}>
         <DialogButtons
           primaryButtonProps={{
+            isLoading,
             children: "Sign",
-            disabled: isLoading,
             onClick: () => sendResponse(true),
           }}
           secondaryButtonProps={{

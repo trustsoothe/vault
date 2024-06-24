@@ -1,11 +1,8 @@
 import type {
-  ImportRecoveryPhraseOptions,
   SerializedAccountReference,
+  SerializedRecoveryPhraseReference,
 } from "@poktscan/vault";
-import type {
-  CreateNewAccountFromHdSeedArg,
-  ImportHdAccountOptions,
-} from "../../redux/slices/vault/account";
+import type { CreateNewAccountFromHdSeedArg } from "../../redux/slices/vault/account";
 import {
   CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
   CREATE_ACCOUNT_FROM_HD_SEED_RESPONSE,
@@ -15,18 +12,20 @@ import {
   PHRASE_GENERATED_HD_SEED_RESPONSE,
 } from "../../constants/communication";
 import { UnknownError } from "../../errors/communication";
+import { ImportRecoveryPhraseOptions } from "../../redux/slices/vault/phrases";
 
 export interface ImportHdWalletReq {
   type: typeof IMPORT_HD_WALLET_REQUEST;
-  data: ImportHdAccountOptions;
+  data: ImportRecoveryPhraseOptions;
 }
 
 export interface ImportHdWalletRes {
   type: typeof IMPORT_HD_WALLET_RESPONSE;
   data: {
     answered: true;
-    hdAccountAlreadyExists?: boolean;
-    accounts: SerializedAccountReference[] | null;
+    phraseAlreadyExists?: boolean;
+    phraseId?: string;
+    phrase: SerializedRecoveryPhraseReference;
   };
   error: typeof UnknownError | null;
 }

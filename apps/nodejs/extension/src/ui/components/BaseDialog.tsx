@@ -8,12 +8,14 @@ import CloseIcon from "../assets/img/close_icon.svg";
 interface BaseDialogProps extends Omit<DialogProps, "onClose"> {
   title?: string;
   onClose?: () => void;
+  isLoading?: boolean;
 }
 
-export default function BaseDialog(props: BaseDialogProps) {
+export default function BaseDialog({ isLoading, ...props }: BaseDialogProps) {
   return (
     <Dialog
       {...props}
+      onClose={isLoading ? undefined : props.onClose}
       fullWidth
       container={() => document.getElementById(APP_CONTAINER_ID)}
       sx={{
@@ -65,6 +67,7 @@ export default function BaseDialog(props: BaseDialogProps) {
           {props.title}
           {props.onClose && (
             <IconButton
+              disabled={isLoading}
               onClick={props.onClose}
               sx={{
                 position: "absolute",

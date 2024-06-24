@@ -1,11 +1,13 @@
 import TextField from "@mui/material/TextField";
 import { Controller, useForm } from "react-hook-form";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import React, { useEffect, useRef, useState } from "react";
 import { Contact, saveContact } from "../../redux/slices/app/contact";
 import { nameRules } from "../NewAccount/NewAccountModal";
 import DialogButtons from "../components/DialogButtons";
+import { enqueueErrorSnackbar } from "../../utils/ui";
 import { useAppDispatch } from "../../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
 import ContactFeedback from "./ContactFeedback";
@@ -23,6 +25,7 @@ export default function RenameContactModal({
   contact,
   onClose,
 }: RenameModalProps) {
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const dispatch = useAppDispatch();
   const lastUpdatedContactRef = useRef<Contact>(null);
   const { reset, control, handleSubmit, watch } = useForm<RenameFormValues>({
@@ -32,9 +35,14 @@ export default function RenameContactModal({
   });
 
   const name = watch("name");
-  const [status, setStatus] = useState<
-    "form" | "loading" | "error" | "success"
-  >("form");
+  const [status, setStatus] = useState<"form" | "loading" | "success">("form");
+
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -49,7 +57,10 @@ export default function RenameContactModal({
       }, 150);
     }
 
+    closeSnackbars();
+
     return () => {
+      closeSnackbars();
       if (timeout) {
         clearTimeout(timeout);
       }
@@ -73,17 +84,24 @@ export default function RenameContactModal({
     )
       .unwrap()
       .then(() => {
+        closeSnackbars();
         lastUpdatedContactRef.current = contact;
         setStatus("success");
       })
       .catch(() => {
-        setStatus("error");
+        errorSnackbarKey.current = enqueueErrorSnackbar({
+          message: "Rename Contact Failed",
+          onRetry: () => onSubmit(data),
+        });
       });
   };
 
   let content: React.ReactNode;
 
+  const isLoading = status === "loading";
+
   switch (status) {
+    case "loading":
     case "form":
       content = (
         <>
@@ -96,6 +114,7 @@ export default function RenameContactModal({
                 <TextField
                   required
                   autoFocus
+                  disabled={isLoading}
                   autoComplete={"off"}
                   placeholder={contact?.name}
                   {...field}
@@ -111,16 +130,17 @@ export default function RenameContactModal({
                 children: "Rename",
                 type: "submit",
                 disabled: !name || contact?.name === name,
+                isLoading,
               }}
-              secondaryButtonProps={{ children: "Cancel", onClick: onClose }}
+              secondaryButtonProps={{
+                children: "Cancel",
+                onClick: onClose,
+                disabled: isLoading,
+              }}
             />
           </DialogActions>
         </>
       );
-      break;
-    case "loading":
-      break;
-    case "error":
       break;
     case "success":
       content = (
@@ -151,6 +171,7 @@ export default function RenameContactModal({
     <BaseDialog
       open={!!contact}
       onClose={onClose}
+      isLoading={isLoading}
       title={"Rename Contact"}
       PaperProps={{
         component: "form",

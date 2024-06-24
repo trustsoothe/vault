@@ -13,10 +13,8 @@ import { useAppSelector } from "../../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
 import { themeColors } from "../theme";
 import { selectedAccountSelector } from "../../redux/selectors/account";
-import {
-  networkSymbolSelector,
-  selectedChainSelector,
-} from "../../redux/selectors/network";
+import { selectedChainSelector } from "../../redux/selectors/network";
+import useSelectedAsset from "./hooks/useSelectedAsset";
 import SendModal from "../Transaction/SendModal";
 import GrayContainer from "../components/GrayContainer";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
@@ -25,7 +23,7 @@ import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 export default function SelectedAccount() {
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const selectedChain = useAppSelector(selectedChainSelector);
-  const networkSymbol = useAppSelector(networkSymbolSelector);
+  const selectedAsset = useSelectedAsset();
   const [showSendModal, setShowSendModal] = useState(false);
   const {
     balance,
@@ -34,10 +32,12 @@ export default function SelectedAccount() {
     isLoadingBalance,
     balanceError,
     usdPriceError,
+    coinSymbol,
   } = useBalanceAndUsdPrice({
     address: selectedAccount.address,
     chainId: selectedChain,
     protocol: selectedAccount.protocol,
+    asset: selectedAsset,
   });
 
   const toggleShowSendModal = () => setShowSendModal((prev) => !prev);
@@ -65,7 +65,7 @@ export default function SelectedAccount() {
                 : roundAndSeparate(
                     balance,
                     selectedAccount.protocol === SupportedProtocols.Ethereum
-                      ? 18
+                      ? selectedAsset?.decimals || 18
                       : 6,
                     "0"
                   )}
@@ -75,7 +75,7 @@ export default function SelectedAccount() {
               fontWeight={300}
               color={themeColors.gray}
             >
-              {networkSymbol}
+              {coinSymbol}
             </Typography>
           </Stack>
         )}
@@ -103,13 +103,15 @@ export default function SelectedAccount() {
         <Stack
           width={1}
           spacing={1.3}
+          paddingX={2.4}
           marginTop={4.6}
           direction={"row"}
           alignItems={"center"}
+          boxSizing={"border-box"}
           justifyContent={"center"}
           sx={{
             "& button": {
-              width: 102,
+              width: 1,
               height: 37,
               paddingLeft: 1.3,
               paddingRight: 1.1,
@@ -126,10 +128,14 @@ export default function SelectedAccount() {
             <span>Send</span>
             <SendIcon />
           </Button>
-          <Button>
-            <span>Swap</span>
-            <SwapIcon />
-          </Button>
+          {(selectedAccount?.protocol === SupportedProtocols.Pocket ||
+            selectedAsset?.symbol === "WPOKT") && (
+            <Button>
+              <span>Swap</span>
+              <SwapIcon />
+            </Button>
+          )}
+
           <Button>
             <span>Activity</span>
             <ActivityIcon />

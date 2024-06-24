@@ -121,8 +121,6 @@ export default function AccountFeedback({
             value: loadingBalance ? (
               <Skeleton variant={"rectangular"} width={100} height={20} />
             ) : (
-              // todo: create component
-
               <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
                 <Typography noWrap={true} variant={"subtitle2"}>
                   {roundAndSeparate(
@@ -132,7 +130,9 @@ export default function AccountFeedback({
                   )}
                 </Typography>
                 <Typography variant={"subtitle2"}>{networkSymbol}</Typography>
-                {!isLoadingNetworkPrices && !isNetworkPriceError && (
+                {isLoadingNetworkPrices && isNetworkPriceError ? (
+                  <Skeleton variant={"rectangular"} width={48} height={20} />
+                ) : (
                   <Typography>
                     ($ {roundAndSeparate(balance * usdPrice, 2, "0.00")})
                   </Typography>

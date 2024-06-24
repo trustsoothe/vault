@@ -2,11 +2,14 @@ import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
-import React, { useEffect, useState } from "react";
 import { SEEDS_PAGE } from "../../constants/routes";
+import { closeSnackbar, SnackbarKey } from "notistack";
+import React, { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 import DialogButtons from "../components/DialogButtons";
 import WordPhraseContainer from "./WordPhraseContainer";
+import { enqueueErrorSnackbar } from "../../utils/ui";
 import { generateRecoveryPhrase } from "../../utils";
 import NameAndWordsInput from "./NameAndWordsInput";
 import CopyButton from "../components/CopyButton";
@@ -16,13 +19,7 @@ import { themeColors } from "../theme";
 import SeedAdded from "./SeedAdded";
 import Info from "./Info";
 
-type Status =
-  | "form"
-  | "error"
-  | "loading"
-  | "success"
-  | "seed_exists"
-  | "confirmation";
+type Status = "form" | "loading" | "success" | "seed_exists" | "confirmation";
 
 interface NewSeedFormValues {
   name: string;
@@ -35,9 +32,10 @@ interface NewSeedFormValues {
 }
 
 export default function CreateNewSeed() {
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const navigate = useNavigate();
   const [status, setStatus] = useState<Status>("form");
-
+  const [seedId, setSeedId] = useState<string>(null);
   const methods = useForm<NewSeedFormValues>({
     defaultValues: {
       name: "",
@@ -57,6 +55,17 @@ export default function CreateNewSeed() {
     "understandPhraseWarning",
     "wordList",
   ]);
+
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return closeSnackbars;
+  }, []);
 
   useEffect(() => {
     const phraseSizeNum = Number(phraseSize);
@@ -89,12 +98,42 @@ export default function CreateNewSeed() {
 
   const onSubmit = (data: NewSeedFormValues) => {
     if (status === "form") {
-      return setStatus("confirmation");
+      setStatus("confirmation");
+      return;
     }
 
-    setStatus("success");
+    setStatus("loading");
+
+    AppToBackground.importHdWallet({
+      recoveryPhrase: data.phrase,
+      recoveryPhraseName: data.name,
+      imported: false,
+      passphrase: data.passphrase,
+    }).then((res) => {
+      if (res.error) {
+        errorSnackbarKey.current = enqueueErrorSnackbar({
+          variant: "error",
+          onRetry: () => onSubmit(data),
+          message: {
+            title: "Failed saving your phrase",
+            content: "There was an error while saving your phrase.",
+          },
+        });
+        setStatus("confirmation");
+      } else {
+        closeSnackbars();
+        if (res.data.phraseAlreadyExists) {
+          setSeedId(res.data.phraseId);
+          setStatus("seed_exists");
+        } else {
+          setSeedId(res.data.phrase.id);
+          setStatus("success");
+        }
+      }
+    });
   };
 
+  const isLoading = status === "loading";
   let content: React.ReactNode;
 
   switch (status) {
@@ -167,18 +206,13 @@ export default function CreateNewSeed() {
       );
       break;
     }
-    case "error":
-      content = "Error...";
-      break;
-    case "loading":
-      content = "Loading...";
-      break;
     case "success":
-      content = <SeedAdded type={"created"} />;
+      content = <SeedAdded type={"created"} id={seedId} />;
       break;
     case "seed_exists":
-      content = "Seed exists...";
+      content = <SeedAdded type={"already_exists"} id={seedId} />;
       break;
+    case "loading":
     case "confirmation":
       content = (
         <>
@@ -194,14 +228,14 @@ export default function CreateNewSeed() {
                 "Complete your Seed Phrase. To validate that you have saved your seed, please enter the missing words."
               }
             />
-            <FillSeedPhrase canPaste={false} />
+            <FillSeedPhrase canPaste={false} disabled={isLoading} />
             <Typography
               marginTop={2}
               variant={"body2"}
               color={themeColors.textSecondary}
             >
               Your Seed Phrase needs to be stored safely (ideally offline). Do
-              you understand Soothe cannot help you recover this Seed Phrase in
+              you acknowledge Soothe cannot help you recover this Seed Phrase in
               case of loss?
             </Typography>
             <Stack
@@ -213,13 +247,18 @@ export default function CreateNewSeed() {
               justifyContent={"space-between"}
             >
               <Typography variant={"subtitle2"} lineHeight={"16px"}>
-                Yes, I Understand
+                Yes, I Acknowledge This
               </Typography>
               <Controller
                 control={control}
                 name={"understandPhraseWarning"}
                 render={({ field }) => (
-                  <Switch size={"small"} {...field} checked={field.value} />
+                  <Switch
+                    size={"small"}
+                    {...field}
+                    disabled={isLoading}
+                    checked={field.value}
+                  />
                 )}
               />
             </Stack>
@@ -232,6 +271,7 @@ export default function CreateNewSeed() {
             }}
             secondaryButtonProps={{
               children: "Back",
+              disabled: isLoading,
               onClick: () => setStatus("form"),
             }}
             primaryButtonProps={{
@@ -239,6 +279,7 @@ export default function CreateNewSeed() {
               disabled:
                 !acceptPhraseWarning || wordList.some(({ word }) => !word),
               type: "submit",
+              isLoading,
             }}
           />
         </>

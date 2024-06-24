@@ -7,6 +7,7 @@ import TooltipArrowIcon from "./assets/img/tooltip_arrow.svg";
 
 export const themeColors = Object.freeze({
   primary: "#3739b9",
+  dark_primary: "#242689",
   bgLightGray: "#f7f8f9",
   borderLightGray: "#eff1f4",
   white: "#ffffff",
@@ -181,8 +182,11 @@ const theme = createTheme({
         },
         switchBase: {
           padding: "0!important",
-          left: 2,
+          left: 3,
           top: 3,
+          "&.Mui-checked": {
+            left: "2px!important",
+          },
         },
         thumb: {
           color: "#fff",

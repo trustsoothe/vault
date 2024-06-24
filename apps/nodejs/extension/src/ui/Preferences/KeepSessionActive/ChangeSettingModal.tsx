@@ -1,14 +1,16 @@
-import React, { useEffect } from "react";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
+import React, { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
 import { sessionsMaxAgeSelector } from "../../../redux/selectors/preferences";
 import { setSessionMaxAgeData } from "../../../redux/slices/app";
 import DialogButtons from "../../components/DialogButtons";
 import SelectedIcon from "../../assets/img/check_icon.svg";
+import { enqueueErrorSnackbar } from "../../../utils/ui";
 import BaseDialog from "../../components/BaseDialog";
 import { themeColors } from "../../theme";
 
@@ -60,6 +62,8 @@ export default function ChangeSettingModal({
   open,
   onClose,
 }: ChangeSettingModalProps) {
+  const errorSnackbarKey = useRef<SnackbarKey>();
+  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useAppDispatch();
   const sessionsMaxAge = useAppSelector(sessionsMaxAgeSelector);
 
@@ -70,13 +74,23 @@ export default function ChangeSettingModal({
   });
   const selectedSetting = watch("setting");
 
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
   useEffect(() => {
     if (open) {
       reset({ setting: sessionsMaxAge });
     } else {
       const timeout = setTimeout(() => reset({ setting: sessionsMaxAge }), 150);
-
-      return () => clearTimeout(timeout);
+      closeSnackbars();
+      return () => {
+        closeSnackbars();
+        clearTimeout(timeout);
+      };
     }
   }, [open]);
 
@@ -118,12 +132,20 @@ export default function ChangeSettingModal({
 
   function onSubmit(data: FormValues) {
     if (canSave) {
+      setIsLoading(true);
       dispatch(setSessionMaxAgeData(data.setting))
         .unwrap()
-        .then(onClose)
-        .catch((err) => {
-          // todo: display snackbar to notify user of the error
-          console.error(err);
+        .then(() => {
+          closeSnackbars();
+          setIsLoading(false);
+          onClose();
+        })
+        .catch(() => {
+          setIsLoading(false);
+          errorSnackbarKey.current = enqueueErrorSnackbar({
+            message: "Error while saving your Changes",
+            onRetry: () => onSubmit(data),
+          });
         });
     }
   }
@@ -132,6 +154,7 @@ export default function ChangeSettingModal({
     <BaseDialog
       open={open}
       onClose={onClose}
+      isLoading={isLoading}
       title={"Keep Session Active"}
       PaperProps={{ component: "form", onSubmit: handleSubmit(onSubmit) }}
     >
@@ -175,6 +198,7 @@ export default function ChangeSettingModal({
                           right: 20,
                         },
                       }}
+                      disabled={isLoading}
                       onClick={() => {
                         if (!isSelected) {
                           onChange(setting);
@@ -202,8 +226,13 @@ export default function ChangeSettingModal({
             children: "Save",
             disabled: !canSave,
             type: "submit",
+            isLoading,
           }}
-          secondaryButtonProps={{ children: "Cancel", onClick: onClose }}
+          secondaryButtonProps={{
+            children: "Cancel",
+            onClick: onClose,
+            disabled: isLoading,
+          }}
         />
       </DialogActions>
     </BaseDialog>

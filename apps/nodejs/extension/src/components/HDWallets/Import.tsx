@@ -350,27 +350,22 @@ const ImportHdWallet: React.FC = () => {
       AppToBackground.importHdWallet({
         recoveryPhrase: phrase,
         imported: true,
-        protocol: data.protocol,
-        isSendNodes:
-          data.protocol === SupportedProtocols.Pocket
-            ? data.sendNodesDerivation
-            : false,
-        seedAccountName: data.hdWalletName,
+        recoveryPhraseName: data.hdWalletName,
         passphrase: data.password,
       }).then((res) => {
         if (res.error) {
           setStatus("error");
         } else {
-          if (res.data?.accounts) {
-            setStatus("success");
-            setAccountId(
-              res.data.accounts.find(
-                (account) => account.accountType === AccountType.HDSeed
-              )?.id
-            );
-          } else if (res.data?.hdAccountAlreadyExists) {
-            setStatus("account_exists");
-          }
+          // if (res.data?.accounts) {
+          //   setStatus("success");
+          //   setAccountId(
+          //     res.data.accounts.find(
+          //       (account) => account.accountType === AccountType.HDSeed
+          //     )?.id
+          //   );
+          // } else if (res.data?.phraseAlreadyExists) {
+          //   setStatus("account_exists");
+          // }
         }
       });
     }

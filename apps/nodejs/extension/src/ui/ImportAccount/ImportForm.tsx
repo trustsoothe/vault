@@ -17,10 +17,16 @@ import { themeColors } from "../theme";
 const INVALID_PPK_MESSAGE = "File is not valid";
 
 interface ImportFormProps {
+  disableInputs?: boolean;
   wrongFilePassword: boolean;
+  infoText: string;
 }
 
-export default function ImportForm({ wrongFilePassword }: ImportFormProps) {
+export default function ImportForm({
+  wrongFilePassword,
+  disableInputs,
+  infoText,
+}: ImportFormProps) {
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const { control, setValue, clearErrors, register, watch } =
     useFormContext<ImportAccountFormValues>();
@@ -42,6 +48,7 @@ export default function ImportForm({ wrongFilePassword }: ImportFormProps) {
           <TextField
             select
             {...field}
+            disabled={disableInputs}
             SelectProps={{
               MenuProps: {
                 slotProps: {
@@ -82,11 +89,10 @@ export default function ImportForm({ wrongFilePassword }: ImportFormProps) {
       <Typography
         marginTop={0.8}
         variant={"body2"}
-        marginBottom={1.2}
+        marginBottom={1.6}
         color={themeColors.textSecondary}
       >
-        Import your account using your private key or your portable wallet
-        (file).
+        {infoText}
       </Typography>
       {type === "private_key" ? (
         <Controller
@@ -116,7 +122,7 @@ export default function ImportForm({ wrongFilePassword }: ImportFormProps) {
             <TextField
               required
               fullWidth
-              // type={"password"}
+              disabled={disableInputs}
               autoComplete={"off"}
               placeholder={"Private Key"}
               {...field}
@@ -137,9 +143,6 @@ export default function ImportForm({ wrongFilePassword }: ImportFormProps) {
                     Paste
                   </Button>
                 ),
-              }}
-              sx={{
-                marginTop: "10px!important",
               }}
             />
           )}
@@ -187,6 +190,7 @@ export default function ImportForm({ wrongFilePassword }: ImportFormProps) {
                   }}
                   filename={field.value?.name}
                   buttonProps={{
+                    disabled: disableInputs,
                     sx: {
                       ...(!!error && {
                         color: "red",
@@ -199,6 +203,7 @@ export default function ImportForm({ wrongFilePassword }: ImportFormProps) {
                       : "Select File"
                   }
                   inputFields={{
+                    disabled: disableInputs,
                     ...field,
                     // @ts-ignore
                     value: field?.value?.fileName,
@@ -221,6 +226,7 @@ export default function ImportForm({ wrongFilePassword }: ImportFormProps) {
             )}
           />
           <PasswordInput
+            disabled={disableInputs}
             placeholder={"File's Password (Optional)"}
             canShowPassword={false}
             error={wrongFilePassword}

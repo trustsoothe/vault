@@ -1,13 +1,14 @@
+import type { SupportedProtocols } from "@poktscan/vault";
 import { shallowEqual } from "react-redux";
 import MenuItem from "@mui/material/MenuItem";
-import { useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import React, { useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import { AccountType, SupportedProtocols } from "@poktscan/vault";
+import React, { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   selectedChainByProtocolSelector,
   selectedProtocolSelector,
@@ -18,7 +19,7 @@ import {
 } from "../../redux/slices/app";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import {
-  accountsSelector,
+  seedsSelector,
   selectedAccountSelector,
 } from "../../redux/selectors/account";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
@@ -27,6 +28,7 @@ import useDidMountEffect from "../../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
 import AccountFeedback from "../components/AccountFeedback";
+import { enqueueErrorSnackbar } from "../../utils/ui";
 import MenuDivider from "../components/MenuDivider";
 import AccountInfo from "../components/AccountInfo";
 import BaseDialog from "../components/BaseDialog";
@@ -38,7 +40,7 @@ interface FormValues {
   protocol: SupportedProtocols;
 }
 
-type FormStatus = "normal" | "loading" | "error" | "success";
+type FormStatus = "normal" | "loading" | "success";
 
 export const nameRules = {
   required: "Required",
@@ -64,9 +66,11 @@ export default function NewAccountModal({
   open,
   onClose,
 }: NewAccountModalProps) {
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const accounts = useAppSelector(accountsSelector);
+  const isInManageAccountsView = useLocation().pathname === "/accounts";
+  const seeds = useAppSelector(seedsSelector);
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const protocol = useAppSelector(selectedProtocolSelector);
   const selectedChainByProtocol = useAppSelector(
@@ -86,20 +90,31 @@ export default function NewAccountModal({
     setValue("protocol", protocol);
   }, [protocol]);
 
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       reset({ account_name: "", protocol, type: "" });
       setStatus("normal");
     }, 150);
+    closeSnackbars();
 
-    return () => clearTimeout(timeout);
+    return () => {
+      closeSnackbars();
+      clearTimeout(timeout);
+    };
   }, [open]);
 
   const onSubmit = async (data: FormValues) => {
     setStatus("loading");
 
     const updateSelection = (address: string) => {
-      Promise.all([
+      return Promise.all([
         ...(protocol !== data.protocol
           ? [
               dispatch(
@@ -107,7 +122,7 @@ export default function NewAccountModal({
                   network: data.protocol,
                   chainId: selectedChainByProtocol[data.protocol],
                 })
-              ),
+              ).unwrap(),
             ]
           : []),
         dispatch(
@@ -115,8 +130,11 @@ export default function NewAccountModal({
             protocol: data.protocol,
             address,
           })
-        ),
-      ]).then(() => setStatus("success"));
+        ).unwrap(),
+      ]).then(() => {
+        closeSnackbars();
+        setStatus("success");
+      });
     };
 
     if (data.type === "standalone") {
@@ -129,34 +147,38 @@ export default function NewAccountModal({
       });
 
       if (result.error) {
-        setStatus("error");
+        errorSnackbarKey.current = enqueueErrorSnackbar({
+          message: "Add New Account Failed",
+          onRetry: () => onSubmit(data),
+        });
+        return;
       } else {
-        updateSelection(result.data.address);
+        await updateSelection(result.data.address);
       }
     } else {
       const result = await AppToBackground.createAccountFromHdSeed({
-        seedAccountId: data.type,
+        recoveryPhraseId: data.type,
         protocol: data.protocol,
         name: data.account_name,
       });
 
       if (result.error) {
-        setStatus("error");
+        errorSnackbarKey.current = enqueueErrorSnackbar({
+          message: "Add New Account Failed",
+          onRetry: () => onSubmit(data),
+        });
+        return;
       } else {
-        updateSelection(result.data.account.address);
+        await updateSelection(result.data.account.address);
       }
     }
   };
 
-  const seedAccounts = useMemo(() => {
-    return accounts.filter(
-      (account) => account.accountType === AccountType.HDSeed
-    );
-  }, [accounts]);
-
+  const isLoading = status === "loading";
   let content: React.ReactNode;
 
   switch (status) {
+    case "loading":
     case "normal":
       content = (
         <>
@@ -178,6 +200,7 @@ export default function NewAccountModal({
                   select
                   required
                   error={!!error}
+                  disabled={isLoading}
                   label={"Account Type"}
                   helperText={error?.message}
                   {...field}
@@ -191,12 +214,16 @@ export default function NewAccountModal({
                     },
                   }}
                 >
-                  {seedAccounts.map((account) => (
-                    <MenuItem key={account.id} value={account.id}>
-                      <AccountInfo address={account.id} name={account.name} />
+                  {seeds.map((seed) => (
+                    <MenuItem key={seed.id} value={seed.id}>
+                      <AccountInfo
+                        address={seed.id}
+                        name={seed.name}
+                        type={"seed"}
+                      />
                     </MenuItem>
                   ))}
-                  {seedAccounts.length > 0 && <MenuDivider />}
+                  {seeds.length > 0 && <MenuDivider />}
                   <MenuItem value={"standalone"}>Standalone</MenuItem>
                 </TextField>
               )}
@@ -208,12 +235,14 @@ export default function NewAccountModal({
               color={themeColors.textSecondary}
             >
               Select an existing seed if you want an account linked to your Seed
-              Phrase.{" "}
+              Phrase.
             </Typography>
             <Controller
               control={control}
               name={"protocol"}
-              render={({ field }) => <ProtocolSelector {...field} />}
+              render={({ field }) => (
+                <ProtocolSelector disabled={isLoading} {...field} />
+              )}
             />
             <Typography
               variant={"body2"}
@@ -230,6 +259,7 @@ export default function NewAccountModal({
               rules={nameRules}
               render={({ field, fieldState: { error } }) => (
                 <TextField
+                  disabled={isLoading}
                   autoComplete={"off"}
                   placeholder={"Account Name"}
                   {...field}
@@ -244,34 +274,37 @@ export default function NewAccountModal({
               primaryButtonProps={{
                 children: "Create",
                 type: "submit",
+                isLoading,
               }}
-              secondaryButtonProps={{ children: "Cancel", onClick: onClose }}
+              secondaryButtonProps={{
+                children: "Cancel",
+                onClick: onClose,
+                disabled: isLoading,
+              }}
             />
           </DialogActions>
         </>
       );
       break;
-    case "loading":
-      content = "Loading...";
-      break;
-    case "error":
-      content = "Error...";
-      break;
     case "success":
       content = (
         <>
           <DialogContent sx={{ padding: "0px!important" }}>
-            <AccountFeedback
-              account={selectedAccount}
-              label={"Account Created"}
-            />
+            {selectedAccount && (
+              <AccountFeedback
+                account={selectedAccount}
+                label={"Account Created"}
+              />
+            )}
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Done",
                 onClick: () => {
-                  navigate(ACCOUNTS_PAGE);
+                  if (!isInManageAccountsView) {
+                    navigate(ACCOUNTS_PAGE);
+                  }
                   onClose();
                 },
               }}
@@ -291,6 +324,7 @@ export default function NewAccountModal({
         component: "form",
         onSubmit: handleSubmit(onSubmit),
       }}
+      isLoading={isLoading}
     >
       {content}
     </BaseDialog>

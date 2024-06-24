@@ -149,25 +149,24 @@ const RemoveModal: React.FC<RenameModalProps> = ({
 
       if (shouldCheckPk) {
         if (accountIsHd) {
-          const response = await AppToBackground.phraseGeneratedHdSeed({
-            accountId: account.id,
-            vaultPassword: data.vault_password,
-            phraseOptions: {
-              recoveryPhrase: data.wordList.map(({ word }) => word).join(" "),
-              protocol: data.protocol,
-              passphrase: data.password,
-              isSendNodes: false,
-            },
-          });
-
-          if (response.error) {
-            return setStatus("error");
-          } else if (response.data?.vaultPasswordWrong) {
-            setStatus("normal");
-            setWrongPassword(true);
-          } else if (!response.data?.isPhraseValid) {
-            return setStatus("invalid_pk");
-          }
+          // const response = await AppToBackground.phraseGeneratedHdSeed({
+          //   accountId: account.id,
+          //   vaultPassword: data.vault_password,
+          //   phraseOptions: {
+          //     recoveryPhrase: data.wordList.map(({ word }) => word).join(" "),
+          //     protocol: data.protocol,
+          //     passphrase: data.password,
+          //     isSendNodes: false,
+          //   },
+          // });
+          // if (response.error) {
+          //   return setStatus("error");
+          // } else if (response.data?.vaultPasswordWrong) {
+          //   setStatus("normal");
+          //   setWrongPassword(true);
+          // } else if (!response.data?.isPhraseValid) {
+          //   return setStatus("invalid_pk");
+          // }
         } else if (account.accountType === AccountType.Individual) {
           let privateKey: string;
           try {

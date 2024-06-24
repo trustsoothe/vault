@@ -1,9 +1,9 @@
-import React, { useRef } from "react";
 import Stack from "@mui/material/Stack";
-import Button from "@mui/material/Button";
 import browser from "webextension-polyfill";
+import React, { useRef, useState } from "react";
 import Typography from "@mui/material/Typography";
 import { requiredOrigins } from "../../constants/permissions";
+import LoadingButton from "../components/LoadingButton";
 import { HEIGHT, WIDTH } from "../../constants/ui";
 import Logo from "../assets/logo/isologo.svg";
 import { themeColors } from "../theme";
@@ -15,6 +15,7 @@ interface RequestOriginsPermissionProps {
 export default function RequestOriginsPermission({
   onGranted,
 }: RequestOriginsPermissionProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const wasNotified = useRef<boolean>(false);
 
   return (
@@ -38,7 +39,7 @@ export default function RequestOriginsPermission({
         from the different RPCs and APIs we use.
       </Typography>
 
-      <Button
+      <LoadingButton
         id={"request-origins-permission"}
         variant={"contained"}
         fullWidth
@@ -47,6 +48,7 @@ export default function RequestOriginsPermission({
             const listener = async () => {
               if (wasNotified.current) return;
               wasNotified.current = true;
+              setIsLoading(true);
 
               const granted = await browser.permissions.request({
                 origins: requiredOrigins,
@@ -60,6 +62,7 @@ export default function RequestOriginsPermission({
                   .querySelector(`#${button.id}`)
                   .removeEventListener("click", listener);
               }
+              setIsLoading(false);
             };
 
             document
@@ -70,9 +73,10 @@ export default function RequestOriginsPermission({
         sx={{
           marginTop: 3.5,
         }}
+        isLoading={isLoading}
       >
         Grant Permission
-      </Button>
+      </LoadingButton>
     </Stack>
   );
 }

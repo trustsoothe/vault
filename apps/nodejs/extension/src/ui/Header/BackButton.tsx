@@ -1,25 +1,33 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import IconButton from "@mui/material/IconButton";
-import BackIcon from "@mui/icons-material/ArrowBackIosRounded";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
+import BackIcon from "../assets/img/back_icon.svg";
 import { themeColors } from "../theme";
 
-export default function BackButton() {
+interface BackButtonProps {
+  onClick?: () => void;
+  flip?: boolean;
+}
+
+export default function BackButton({ onClick, flip }: BackButtonProps) {
   const navigate = useNavigate();
 
   return (
     <IconButton
-      onClick={() => navigate(ACCOUNTS_PAGE)}
+      onClick={onClick || (() => navigate(ACCOUNTS_PAGE))}
       sx={{
         height: 31,
         width: 33,
         borderRadius: "8px",
         backgroundColor: themeColors.white,
         boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+        svg: {
+          transform: flip ? "rotate(180deg)" : undefined,
+        },
       }}
     >
-      <BackIcon sx={{ color: themeColors.dark_gray1, fontSize: 16 }} />
+      <BackIcon />
     </IconButton>
   );
 }

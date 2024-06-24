@@ -5,6 +5,7 @@ import Button from "@mui/material/Button";
 import { shallowEqual } from "react-redux";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
+import { useSearchParams } from "react-router-dom";
 import { SupportedProtocols } from "@poktscan/vault";
 import PoktscanLogo from "../assets/img/poktscan_small_icon.svg";
 import {
@@ -14,6 +15,7 @@ import {
 import { selectedAccountSelector } from "../../redux/selectors/account";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 import SmallGrayContainer from "../components/SmallGrayContainer";
+import useSelectedAsset from "./hooks/useSelectedAsset";
 import ManageAssetsModal from "./ManageAssetsModal";
 import { useAppSelector } from "../../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
@@ -26,9 +28,10 @@ import {
 
 interface AssetItemProps {
   asset: IAsset;
+  onSelectAsset: (asset: IAsset) => void;
 }
 
-function AssetItem({ asset }: AssetItemProps) {
+function AssetItem({ asset, onSelectAsset }: AssetItemProps) {
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
 
   const {
@@ -58,8 +61,7 @@ function AssetItem({ asset }: AssetItemProps) {
         borderRadius: "8px",
         backgroundColor: themeColors.bgLightGray,
       }}
-      // todo: add selectAsset
-      // onClick={}
+      onClick={() => onSelectAsset(asset)}
     >
       <Stack width={1} spacing={1.2} direction={"row"} alignItems={"center"}>
         <img
@@ -138,8 +140,12 @@ function AssetItem({ asset }: AssetItemProps) {
 export default function AccountActions() {
   const [showManageAssetsModal, setShowManageAssetsModal] = useState(false);
   const selectedChain = useAppSelector(selectedChainSelector);
+  const [_, setURLSearchParams] = useSearchParams();
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
-  const explorerAccountUrl = useAppSelector(explorerAccountUrlSelector());
+  const selectedAsset = useSelectedAsset();
+  const explorerAccountUrl = useAppSelector(
+    explorerAccountUrlSelector(!!selectedAsset)
+  );
   const protocol = selectedAccount?.protocol;
 
   const existsAssetsForSelectedNetwork = useAppSelector(
@@ -170,6 +176,13 @@ export default function AccountActions() {
       selectedAccount.address
     );
 
+    if (selectedAsset) {
+      explorerAccountLink = explorerAccountLink.replace(
+        ":contractAddress",
+        selectedAsset.contractAddress
+      );
+    }
+
     const url = new URL(explorerAccountLink);
 
     domain = url.hostname.split(".").slice(-2).join(".");
@@ -177,6 +190,10 @@ export default function AccountActions() {
 
   const openManageAssetsModal = () => setShowManageAssetsModal(true);
   const closeManageAssetsModal = () => setShowManageAssetsModal(false);
+
+  const onSelectAsset = (asset: IAsset) => {
+    setURLSearchParams({ asset: asset.id });
+  };
 
   return (
     <>
@@ -194,9 +211,15 @@ export default function AccountActions() {
         overflow={"auto"}
         bgcolor={themeColors.white}
       >
-        {assetsOfAccount.map((asset) => (
-          <AssetItem asset={asset} key={asset.id} />
-        ))}
+        {assetsOfAccount.length > 0 &&
+          !selectedAsset &&
+          assetsOfAccount.map((asset) => (
+            <AssetItem
+              asset={asset}
+              key={asset.id}
+              onSelectAsset={onSelectAsset}
+            />
+          ))}
         <Button
           fullWidth
           component={"a"}
@@ -231,7 +254,8 @@ export default function AccountActions() {
           </Stack>
         </Button>
         {protocol === SupportedProtocols.Ethereum &&
-          existsAssetsForSelectedNetwork && (
+          existsAssetsForSelectedNetwork &&
+          !selectedAsset && (
             <Button sx={{ padding: 0 }} onClick={openManageAssetsModal}>
               <SmallGrayContainer>
                 <Stack flexGrow={1} spacing={0.4} alignItems={"flex-start"}>
@@ -249,12 +273,13 @@ export default function AccountActions() {
                 <Stack
                   width={19}
                   height={19}
-                  paddingTop={0.1}
                   borderRadius={"50%"}
+                  alignItems={"center"}
                   boxSizing={"border-box"}
+                  justifyContent={"center"}
                   bgcolor={themeColors.textSecondary}
                 >
-                  <Typography lineHeight={"19px"} color={themeColors.white}>
+                  <Typography lineHeight={"13px"} color={themeColors.white}>
                     {assetsOfAccount.length}
                   </Typography>
                 </Stack>

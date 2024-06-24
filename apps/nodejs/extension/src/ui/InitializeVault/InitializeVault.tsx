@@ -1,12 +1,14 @@
 import Box from "@mui/material/Box";
-import React, { useState } from "react";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import { FormProvider, useForm } from "react-hook-form";
+import React, { useEffect, useRef, useState } from "react";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import InitializeVaultForm from "./Form";
+import { enqueueErrorSnackbar } from "../../utils/ui";
 import ImportVaultModal from "./ImportVaultModal";
 import Logo from "../assets/logo/isologo.svg";
+import InitializeVaultForm from "./Form";
 
 export interface InitializeVaultFormValues {
   password: string;
@@ -15,10 +17,18 @@ export interface InitializeVaultFormValues {
 }
 
 export default function InitializeVault() {
+  const errorSnackbarKey = useRef<SnackbarKey>();
   const [showImportModal, setShowImportModal] = useState(false);
-  const [status, setStatus] = useState<"normal" | "loading" | "error">(
-    "normal"
-  );
+  const [status, setStatus] = useState<"normal" | "loading">("normal");
+
+  const closeSnackbars = () => {
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+  };
+
+  useEffect(() => closeSnackbars, []);
 
   const methods = useForm<InitializeVaultFormValues>({
     defaultValues: {
@@ -43,43 +53,20 @@ export default function InitializeVault() {
         },
         requirePasswordForSensitiveOpts: false,
       }).then((result) => {
-        setStatus(result.error ? "error" : "normal");
+        if (result.error) {
+          errorSnackbarKey.current = enqueueErrorSnackbar({
+            onRetry: () => onSubmit(data),
+            message: "Initialization of Vault Failed",
+          });
+        } else {
+          closeSnackbars();
+        }
+        setStatus("normal");
       });
     }
   };
 
-  let content: React.ReactElement;
-
-  switch (status) {
-    case "normal":
-      content = (
-        <>
-          <Logo />
-          <Typography variant={"h3"} textAlign={"center"} marginTop={2.7}>
-            Let's Get Started
-          </Typography>
-          <Typography marginTop={1.4} textAlign={"center"} paddingX={1}>
-            To begin, you need to initialize your vault by setting your
-            password. Keep in mind that this password cannot be recovered.
-          </Typography>
-          <FormProvider {...methods}>
-            <InitializeVaultForm />
-          </FormProvider>
-        </>
-      );
-      break;
-    case "loading":
-      content = <p>Loading...</p>;
-      break;
-    case "error":
-      content = (
-        <>
-          <p>Error!</p>
-          <button type={"submit"}>retry</button>
-        </>
-      );
-      break;
-  }
+  const isLoading = status === "loading";
 
   return (
     <>
@@ -101,15 +88,22 @@ export default function InitializeVault() {
           alignItems={"center"}
           flexDirection={"column"}
           sx={{
-            "& .strength-bar": {
-              marginTop: 1.3,
-            },
             boxShadow: "0 1px 0 0 #eff1f4",
           }}
           component={"form"}
           onSubmit={handleSubmit(onSubmit)}
         >
-          {content}
+          <Logo />
+          <Typography variant={"h3"} textAlign={"center"} marginTop={2.7}>
+            Let's Get Started
+          </Typography>
+          <Typography marginTop={1.4} textAlign={"center"} paddingX={1}>
+            To begin, you need to initialize your vault by setting your
+            password. Keep in mind that this password cannot be recovered.
+          </Typography>
+          <FormProvider {...methods}>
+            <InitializeVaultForm isLoading={isLoading} />
+          </FormProvider>
         </Box>
         <Box
           height={40}
@@ -121,7 +115,9 @@ export default function InitializeVault() {
           bgcolor={"#fff"}
         >
           <Typography>Have a Vault Backup?</Typography>
-          <Button onClick={toggleShowImportModal}>Import</Button>
+          <Button onClick={toggleShowImportModal} disabled={isLoading}>
+            Import
+          </Button>
         </Box>
       </Box>
     </>

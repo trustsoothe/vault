@@ -285,6 +285,7 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
   snackbarKey = enqueueSnackbarNotistack({
     autoHideDuration: 4000,
     ...options,
+    variant: options.variant || "error",
     message: (
       <Stack
         direction={"row"}
@@ -327,6 +328,13 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
 
   return snackbarKey;
 };
+
+export const wrongPasswordSnackbar = () =>
+  enqueueSnackbar({
+    variant: "error",
+    message: "Wrong password",
+    key: "wrong-password",
+  });
 
 export const roundAndSeparate = (
   value: number,

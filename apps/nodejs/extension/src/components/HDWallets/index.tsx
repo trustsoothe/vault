@@ -251,7 +251,7 @@ const HDAccountItem: React.FC<HDAccountItemProps> = ({
     };
 
     AppToBackground.createAccountFromHdSeed({
-      seedAccountId: seed.id,
+      recoveryPhraseId: seed.id,
       protocol: seed.protocol,
     })
       .then((res) => {

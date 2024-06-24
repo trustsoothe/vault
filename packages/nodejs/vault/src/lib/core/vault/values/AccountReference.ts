@@ -1,6 +1,6 @@
-import {SupportedProtocols} from "../../common/values";
-import {AccountType} from "./AccountType";
-import {isNumber} from "lodash";
+import { SupportedProtocols } from "../../common/values";
+import { AccountType } from "./AccountType";
+import { isNumber } from "lodash";
 
 export interface SerializedAccountReference {
   id: string;
@@ -10,17 +10,18 @@ export interface SerializedAccountReference {
   accountType: AccountType;
   parentId: string;
   hdwIndex?: number;
+  seedId?: string;
 }
 
 export interface AccountReferenceOptions {
-    id: string;
-    name: string;
-    address: string;
-    protocol: SupportedProtocols;
-    accountType?: AccountType;
-    seedId?: string;
-    parentId?: string;
-    hdwIndex?: number;
+  id: string;
+  name: string;
+  address: string;
+  protocol: SupportedProtocols;
+  accountType?: AccountType;
+  seedId?: string;
+  parentId?: string;
+  hdwIndex?: number;
 }
 
 export class AccountReference {
@@ -85,6 +86,7 @@ export class AccountReference {
       accountType: this.accountType,
       parentId: this.parentId,
       hdwIndex: this.hdwIndex,
+      seedId: this.seedId,
     };
   }
 
