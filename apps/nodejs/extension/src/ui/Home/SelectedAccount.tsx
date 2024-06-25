@@ -15,8 +15,8 @@ import { themeColors } from "../theme";
 import { selectedAccountSelector } from "../../redux/selectors/account";
 import { selectedChainSelector } from "../../redux/selectors/network";
 import useSelectedAsset from "./hooks/useSelectedAsset";
-import SendModal from "../Transaction/SendModal";
 import GrayContainer from "../components/GrayContainer";
+import SendCoinsModal from "../Transaction/SendCoinsModal";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 
@@ -48,7 +48,11 @@ export default function SelectedAccount() {
 
   return (
     <>
-      <SendModal open={showSendModal} onClose={toggleShowSendModal} />
+      <SendCoinsModal
+        open={showSendModal}
+        onClose={toggleShowSendModal}
+        asset={selectedAsset}
+      />
       <GrayContainer>
         {isLoadingBalance ? (
           <Skeleton

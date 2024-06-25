@@ -21,7 +21,7 @@ import { themeColors } from "../theme";
 
 export default function RecipientAutocomplete() {
   const { control, watch } = useFormContext();
-  const [protocol] = watch(["protocol"]);
+  const [protocol, fromAddress] = watch(["protocol", "fromAddress"]);
   const [inputValue, setInputValue] = useState("");
 
   const accounts = useAppSelector(accountsSelector);
@@ -40,7 +40,8 @@ export default function RecipientAutocomplete() {
           .filter(
             (account) =>
               account.protocol === protocol &&
-              account.accountType !== AccountType.HDSeed
+              account.accountType !== AccountType.HDSeed &&
+              account.address !== fromAddress
           )
           .map((account) => ({
             address: account.address,
@@ -48,7 +49,7 @@ export default function RecipientAutocomplete() {
             type: "account",
           }))
       );
-  }, [accounts, contacts, protocol]);
+  }, [accounts, contacts, protocol, fromAddress]);
 
   const optionsMap = useMemo(
     () => options.reduce((acc, item) => ({ ...acc, [item.address]: item }), {}),
@@ -114,7 +115,7 @@ export default function RecipientAutocomplete() {
 
   return (
     <Controller
-      name={"recipient"}
+      name={"recipientAddress"}
       control={control}
       rules={{
         required: "Required",
