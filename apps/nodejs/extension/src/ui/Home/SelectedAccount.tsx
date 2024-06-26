@@ -24,6 +24,7 @@ export default function SelectedAccount() {
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const selectedChain = useAppSelector(selectedChainSelector);
   const selectedAsset = useSelectedAsset();
+  const [isSwapping, setIsSwapping] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const {
     balance,
@@ -40,7 +41,19 @@ export default function SelectedAccount() {
     asset: selectedAsset,
   });
 
-  const toggleShowSendModal = () => setShowSendModal((prev) => !prev);
+  const openSendModal = () => setShowSendModal(true);
+  const initSwap = () => {
+    setIsSwapping(true);
+    setShowSendModal(true);
+  };
+
+  const closeSendModal = () => {
+    setShowSendModal(false);
+
+    if (isSwapping) {
+      setTimeout(() => setIsSwapping(false), 150);
+    }
+  };
 
   useDidMountEffect(() => {
     setShowSendModal(false);
@@ -50,8 +63,8 @@ export default function SelectedAccount() {
     <>
       <SendCoinsModal
         open={showSendModal}
-        onClose={toggleShowSendModal}
-        asset={selectedAsset}
+        onClose={closeSendModal}
+        isSwapping={isSwapping}
       />
       <GrayContainer>
         {isLoadingBalance ? (
@@ -128,13 +141,13 @@ export default function SelectedAccount() {
             },
           }}
         >
-          <Button className={"send-btn"} onClick={toggleShowSendModal}>
+          <Button className={"send-btn"} onClick={openSendModal}>
             <span>Send</span>
             <SendIcon />
           </Button>
           {(selectedAccount?.protocol === SupportedProtocols.Pocket ||
             selectedAsset?.symbol === "WPOKT") && (
-            <Button>
+            <Button onClick={initSwap}>
               <span>Swap</span>
               <SwapIcon />
             </Button>

@@ -7,18 +7,23 @@ import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { Controller, useFormContext } from "react-hook-form";
-import { networkSymbolSelector } from "../../redux/selectors/network";
+import { symbolOfNetworkSelector } from "../../redux/selectors/network";
 import SelectedIcon from "../assets/img/check_icon.svg";
 import { useAppSelector } from "../../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
 import useUsdPrice from "../hooks/useUsdPrice";
+import BalanceLabel from "./BalanceLabel";
 import { themeColors } from "../theme";
 
 interface EthFeeSelectProps {
   marginTop?: number | string;
+  isUnwrapping?: boolean;
 }
 
-export default function EthFeeSelect({ marginTop = 1.2 }: EthFeeSelectProps) {
+export default function EthFeeSelect({
+  marginTop = 1.2,
+  isUnwrapping,
+}: EthFeeSelectProps) {
   const { control, watch } = useFormContext<TransactionFormValues>();
   const [fee, fetchingFee, protocol, chainId] = watch([
     "fee",
@@ -27,7 +32,9 @@ export default function EthFeeSelect({ marginTop = 1.2 }: EthFeeSelectProps) {
     "chainId",
   ]);
 
-  const networkSymbol = useAppSelector(networkSymbolSelector);
+  const networkSymbol = useAppSelector(
+    symbolOfNetworkSelector(protocol, chainId)
+  );
   const { usdPrice } = useUsdPrice({
     protocol,
     chainId,
@@ -112,10 +119,13 @@ export default function EthFeeSelect({ marginTop = 1.2 }: EthFeeSelectProps) {
               );
             })}
           </TextField>
+          {isUnwrapping && (
+            <BalanceLabel marginTop={0.8} considerAsset={false} />
+          )}
           <Stack
             spacing={1}
             direction={"row"}
-            marginTop={0.8}
+            marginTop={isUnwrapping ? 0.4 : 0.8}
             alignItems={"center"}
             justifyContent={"space-between"}
             sx={{
@@ -157,7 +167,7 @@ export default function EthFeeSelect({ marginTop = 1.2 }: EthFeeSelectProps) {
                           (fee as EthereumNetworkFee)?.[field.value]?.amount
                         ) * (usdPrice || 0),
                         2,
-                        "-"
+                        "0.00"
                       )})`
                     : ""}
                 </Typography>

@@ -246,7 +246,7 @@ const theme = createTheme({
             height: 37,
             borderRadius: "6px",
             paddingRight: "15px",
-            "&:hover": {
+            "&:not(.Mui-disabled):hover": {
               "& fieldset": {
                 borderColor: themeColors.primary,
               },

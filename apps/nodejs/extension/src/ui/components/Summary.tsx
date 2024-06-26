@@ -59,7 +59,7 @@ export default function Summary({ rows, containerProps }: SummaryProps) {
             width={1}
             {...row.containerProps}
           >
-            <Typography>{row.label}</Typography>
+            <Typography whiteSpace={"nowrap"}>{row.label}</Typography>
 
             {typeof row.value === "string" ? (
               <Typography

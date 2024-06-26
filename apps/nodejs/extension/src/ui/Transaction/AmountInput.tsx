@@ -10,19 +10,14 @@ import {
 } from "@poktscan/vault";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 import { isValidAddress } from "../../utils/networkOperations";
+import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 
 interface AmountInputProps {
-  asset?: {
-    contractAddress: string;
-    decimals: number;
-  };
   marginTop?: string | number;
 }
 
-export default function AmountInput({
-  asset,
-  marginTop = 1.6,
-}: AmountInputProps) {
+export default function AmountInput({ marginTop = 1.6 }: AmountInputProps) {
+  const asset = useSelectedAsset();
   const { watch, setValue, clearErrors, getValues, control } =
     useFormContext<TransactionFormValues>();
   const [fromAddress, protocol, chainId, recipientAddress, networkFee] = watch([
@@ -53,7 +48,11 @@ export default function AmountInput({
     const txSpeed = getValues("txSpeed");
     const protocol = getValues("protocol");
 
-    if (!networkFee || !balance) return;
+    if (!networkFee) return;
+    if (!balance) {
+      setValue("amount", "0");
+      return;
+    }
 
     let fee: number;
 

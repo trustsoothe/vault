@@ -52,7 +52,7 @@ export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
       }
     }
 
-    for (const assetFromList of assetsToFetch) {
+    for (const assetFromList of assets) {
       if (assetFromList.coinGeckoId) {
         idOfCoins.push(assetFromList.coinGeckoId);
       }
@@ -69,7 +69,7 @@ export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
     }
 
     return { coinGeckoId, idOfCoins: idOfCoins.join(","), coinSymbol };
-  }, [assetsToFetch, networks, asset]);
+  }, [assets, networks, asset]);
 
   const { isLoading, isError, refetch, data } = useGetPricesQuery(idOfCoins, {
     pollingInterval: 1000 * 60,

@@ -7,24 +7,23 @@ import EthFeeSelect from "./EthFeeSelect";
 import AmountInput from "./AmountInput";
 
 interface SendFormEthProps {
-  asset?: {
-    contractAddress: string;
-    decimals: number;
-  };
+  isUnwrapping?: boolean;
 }
 
-export default function SendFormEth({ asset }: SendFormEthProps) {
+export default function SendFormEth({ isUnwrapping }) {
   return (
     <DialogContent
-      sx={{ paddingTop: "24px!important", paddingX: 2.4, paddingBottom: 2 }}
+      sx={{ paddingTop: "20px!important", paddingX: 2.4, paddingBottom: 2 }}
     >
       <RecipientAutocomplete />
       <Typography fontSize={11} marginTop={0.8} lineHeight={"16px"}>
-        Address is required to retrieve network fees.
+        {isUnwrapping
+          ? "Unwrap WPOKT and send POKT a Pocket Network address."
+          : "Address is required to retrieve network fees."}
       </Typography>
-      <AmountInput asset={asset} marginTop={1.2} />
-      <BalanceLabel marginTop={0.8} asset={asset} />
-      <EthFeeSelect />
+      <AmountInput marginTop={1.2} />
+      <BalanceLabel marginTop={0.8} />
+      <EthFeeSelect isUnwrapping={isUnwrapping} />
     </DialogContent>
   );
 }

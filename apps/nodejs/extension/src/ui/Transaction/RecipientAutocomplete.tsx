@@ -3,6 +3,7 @@ import type {
   FilterOptionsState,
 } from "@mui/material";
 import type { AutocompleteInputChangeReason } from "@mui/base/useAutocomplete/useAutocomplete";
+import type { TransactionFormValues } from "./BaseTransaction";
 import Stack from "@mui/material/Stack";
 import React, { useMemo, useState } from "react";
 import IconButton from "@mui/material/IconButton";
@@ -20,8 +21,14 @@ import { useAppSelector } from "../../hooks/redux";
 import { themeColors } from "../theme";
 
 export default function RecipientAutocomplete() {
-  const { control, watch } = useFormContext();
-  const [protocol, fromAddress] = watch(["protocol", "fromAddress"]);
+  const { control, watch } = useFormContext<TransactionFormValues>();
+  const [txProtocol, fromAddress, recipientProtocol] = watch([
+    "protocol",
+    "fromAddress",
+    "recipientProtocol",
+  ]);
+  const protocol = recipientProtocol || txProtocol;
+
   const [inputValue, setInputValue] = useState("");
 
   const accounts = useAppSelector(accountsSelector);
@@ -120,11 +127,16 @@ export default function RecipientAutocomplete() {
       rules={{
         required: "Required",
         validate: (value, formValues) => {
-          if (value && value === formValues.from) {
+          if (value && value === formValues.fromAddress) {
             return "Should be different than From account";
           }
 
-          if (!isValidAddress(value, formValues.protocol)) {
+          if (
+            !isValidAddress(
+              value,
+              formValues.recipientProtocol || formValues.protocol
+            )
+          ) {
             return "Invalid address";
           }
 

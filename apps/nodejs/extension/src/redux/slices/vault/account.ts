@@ -228,7 +228,11 @@ export const getPrivateKeyOfAccount = createAsyncThunk<
 });
 
 export interface SendTransactionParams
-  extends Omit<TransferOptions, "transactionParams"> {
+  extends Omit<TransferOptions, "transactionParams" | "network"> {
+  network: {
+    protocol: SupportedProtocols;
+    chainID: string;
+  };
   transactionParams: {
     maxFeePerGas?: number;
     maxPriorityFeePerGas?: number;
@@ -246,10 +250,27 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
     const state = context.getState() as RootState;
     const sessionId = state.vault.vaultSession.id;
 
+    const { chainID, protocol } = transferOptions.network;
+    const customRpc = state.app.customRpcs.find(
+      (customRpc) =>
+        customRpc.protocol === protocol &&
+        customRpc.chainId === chainID &&
+        customRpc.isPreferred
+    );
+
+    const defaultNetwork = state.app.networks.find(
+      (item) => item.protocol === protocol && item.chainId === chainID
+    );
+
     let result: IProtocolTransactionResult<"Pocket" | "Ethereum">;
 
     const transactionArg = {
       ...transferOptions,
+      network: {
+        protocol,
+        chainID,
+        rpcUrl: customRpc?.url || defaultNetwork.rpcUrl,
+      },
       transactionParams: {
         from: "",
         to: "",

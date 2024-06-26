@@ -1,14 +1,34 @@
+import type { TransactionFormValues } from "./BaseTransaction";
 import React, { useState } from "react";
 import Stack from "@mui/material/Stack";
+import capitalize from "lodash/capitalize";
 import Tooltip from "@mui/material/Tooltip";
+import { useFormContext } from "react-hook-form";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
+import { explorerTransactionUrlOfNetworkSelector } from "../../redux/selectors/network";
 import CopyIcon from "../assets/img/copy_icon.svg";
+import { useAppSelector } from "../../hooks/redux";
+import { getTruncatedText } from "../../utils/ui";
 import { themeColors } from "../theme";
 
 export default function TransactionHash() {
-  const hash = "39B02FV2F6704N191X62";
+  const { watch } = useFormContext<TransactionFormValues>();
+  const [hash, protocol, chainId] = watch([
+    "txResultHash",
+    "protocol",
+    "chainId",
+  ]);
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
+
+  const explorerTransactionUrl = useAppSelector(
+    explorerTransactionUrlOfNetworkSelector(protocol, chainId)
+  );
+  const link = explorerTransactionUrl?.replace(":hash", hash);
+
+  const url = new URL(link);
+
+  const domain = url.hostname.split(".").at(-2);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(hash).then(() => {
@@ -24,18 +44,24 @@ export default function TransactionHash() {
       direction={"row"}
       spacing={0.5}
     >
-      <Tooltip arrow title={"View in Poktscan"} placement={"top"}>
+      <Tooltip
+        arrow
+        title={`View in ${
+          domain === "poktscan" ? "POKTscan" : capitalize(domain)
+        }`}
+        placement={"top"}
+      >
         <Typography
           component={"a"}
           color={themeColors.primary}
           fontWeight={500}
-          href={"https://poktscan.com"}
+          href={link}
           target={"_blank"}
           sx={{
             textDecoration: "none",
           }}
         >
-          39B02FV2F6…704N191X62
+          {getTruncatedText(hash, 10)}
         </Typography>
       </Tooltip>
       <Tooltip arrow title={"Copied"} placement={"top"} open={showCopyTooltip}>

@@ -7,26 +7,27 @@ import SendPokt from "./SendPokt";
 import SendEth from "./SendEth";
 
 interface SendModalProps {
-  asset?: {
-    contractAddress: string;
-    decimals: number;
-  };
   open: boolean;
   onClose: () => void;
+  isSwapping?: boolean;
 }
 
 export default function SendCoinsModal({
   open,
   onClose,
-  asset,
+  isSwapping,
 }: SendModalProps) {
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   return (
-    <BaseDialog open={open} onClose={onClose} title={"Send"}>
+    <BaseDialog
+      open={open}
+      onClose={onClose}
+      title={isSwapping ? "Swap" : "Send"}
+    >
       {selectedProtocol === SupportedProtocols.Ethereum ? (
-        <SendEth asset={asset} />
+        <SendEth onCancel={onClose} isUnwrapping={isSwapping} />
       ) : (
-        <SendPokt />
+        <SendPokt onCancel={onClose} isWrapping={isSwapping} />
       )}
     </BaseDialog>
   );

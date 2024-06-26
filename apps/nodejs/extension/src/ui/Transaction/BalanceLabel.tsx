@@ -5,18 +5,20 @@ import Skeleton from "@mui/material/Skeleton";
 import { useFormContext } from "react-hook-form";
 import Typography from "@mui/material/Typography";
 import { SupportedProtocols } from "@poktscan/vault";
+import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 import { roundAndSeparate } from "../../utils/ui";
 
 interface BalanceLabelProps {
-  asset?: {
-    contractAddress: string;
-    decimals: number;
-  };
   marginTop?: number | string;
+  considerAsset?: boolean;
 }
 
-export default function BalanceLabel({ asset, marginTop }: BalanceLabelProps) {
+export default function BalanceLabel({
+  marginTop,
+  considerAsset = true,
+}: BalanceLabelProps) {
+  const asset = useSelectedAsset();
   const { watch } = useFormContext<TransactionFormValues>();
 
   const [fromAddress, protocol, chainId] = watch([
@@ -29,7 +31,7 @@ export default function BalanceLabel({ asset, marginTop }: BalanceLabelProps) {
     address: fromAddress,
     protocol,
     chainId,
-    asset,
+    asset: considerAsset ? asset : undefined,
   });
 
   return (

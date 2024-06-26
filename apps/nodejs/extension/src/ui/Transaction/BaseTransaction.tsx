@@ -1,3 +1,4 @@
+import type { AnswerTransferReq } from "../../types/communications/transfer";
 import type { SendTransactionParams } from "../../redux/slices/vault/account";
 import React, { useEffect, useState } from "react";
 import DialogActions from "@mui/material/DialogActions";
@@ -8,12 +9,13 @@ import {
   PocketNetworkFee,
   SupportedProtocols,
 } from "@poktscan/vault";
+import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../utils/ui";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { isValidAddress } from "../../utils/networkOperations";
 import DialogButtons from "../components/DialogButtons";
-import { enqueueErrorSnackbar } from "../../utils/ui";
 
 export interface TransactionFormValues {
+  memo?: string;
   amount: string;
   chainId: string;
   fromAddress: string;
@@ -31,30 +33,37 @@ interface BaseTransactionProps {
   protocol: SupportedProtocols;
   chainId: string;
   fromAddress: string;
-  asset?: {
-    contractAddress: string;
-    decimals: number;
-  };
-  feeOptions?: EthereumNetworkFeeRequestOptions;
+  getFeeOptions?: (
+    data: TransactionFormValues
+  ) => Partial<EthereumNetworkFeeRequestOptions>;
   getTransaction: (data: TransactionFormValues) => SendTransactionParams;
   defaultFormValue: Partial<TransactionFormValues>;
   form?: React.ReactNode;
   summary?: React.ReactNode;
   success?: React.ReactNode;
+  onCancel: () => void;
+  onDone?: () => void;
+  cancelLabel?: string;
+
+  request?: AnswerTransferReq["data"]["request"];
 }
 
 export default function BaseTransaction({
   fromAddress,
   chainId,
   protocol,
-  asset,
-  feeOptions,
+  getFeeOptions,
   defaultFormValue,
   form,
   summary,
   getTransaction,
   success,
+  onCancel,
+  onDone,
+  cancelLabel = "Cancel",
+  request,
 }: BaseTransactionProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<"form" | "summary" | "success">(
     form ? "form" : "summary"
   );
@@ -73,6 +82,12 @@ export default function BaseTransaction({
   const { getValues, handleSubmit, watch, setValue } = methods;
 
   const getFee = () => {
+    let feeOptions: Partial<EthereumNetworkFeeRequestOptions>;
+
+    if (getFeeOptions) {
+      feeOptions = getFeeOptions(getValues());
+    }
+
     if (
       protocol === SupportedProtocols.Ethereum &&
       !isValidAddress(feeOptions?.to || getValues("recipientAddress"), protocol)
@@ -96,7 +111,15 @@ export default function BaseTransaction({
         toAddress: feeOptions?.to || getValues("recipientAddress"),
         maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas,
         // @ts-ignore todo: change asset type of getNetworkFee
-        asset: asset ? { ...asset, protocol, chainID: chainId } : undefined,
+        asset: feeOptions?.asset
+          ? {
+              contractAddress: feeOptions.asset.contractAddress,
+              decimals: feeOptions.asset.decimals,
+              protocol,
+              // @ts-ignore
+              chainID: chainId,
+            }
+          : undefined,
       }),
     })
       .then((res) => {
@@ -113,20 +136,25 @@ export default function BaseTransaction({
       .finally(() => setValue("fetchingFee", false));
   };
 
-  const [recipientAddress] = watch(["recipientAddress"]);
+  const [recipientAddress, fee] = watch(["recipientAddress", "fee"]);
 
   useEffect(() => {
+    if (status === "success") return;
+
     getFee();
-
+    let interval: NodeJS.Timeout | null = null;
     if (protocol === SupportedProtocols.Ethereum) {
-      const interval = setInterval(getFee, 30000);
-
-      return () => clearInterval(interval);
+      interval = setInterval(getFee, 30000);
     }
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [
+    status,
     protocol,
     chainId,
-    feeOptions,
     protocol === SupportedProtocols.Ethereum ? recipientAddress : null,
   ]);
 
@@ -136,43 +164,82 @@ export default function BaseTransaction({
       return;
     }
 
-    const transaction = getTransaction(data);
+    if (status === "success") {
+      if (onDone) onDone();
+      return;
+    }
 
-    const response = await AppToBackground.sendRequestToAnswerTransfer({
-      transferData: transaction,
-    });
+    setIsLoading(true);
 
-    if (response.error) {
-      enqueueErrorSnackbar({
-        message: "Transaction Failed",
-        onRetry: () => onSubmit(data),
+    try {
+      const transaction = getTransaction(data);
+
+      const response = await AppToBackground.sendRequestToAnswerTransfer({
+        transferData: transaction,
+        request,
       });
-    } else {
-      if (response?.data?.isPasswordWrong) {
-      } else {
-        if (success) {
-          setValue("txResultHash", response.data.hash);
 
-          setStatus("success");
+      if (response.error) {
+        enqueueErrorSnackbar({
+          message: "Transaction Failed",
+          onRetry: () => onSubmit(data),
+        });
+      } else {
+        if (response?.data?.isPasswordWrong) {
+          wrongPasswordSnackbar();
+        } else {
+          if (success) {
+            setValue("txResultHash", response.data.hash);
+
+            setStatus("success");
+          }
         }
       }
+    } catch (e) {}
+
+    setIsLoading(false);
+  };
+
+  const onBackButtonClick = () => {
+    if (status === "form" || (status === "summary" && !form)) {
+      onCancel();
+    } else if (status === "summary" && form) {
+      setStatus("form");
     }
   };
 
   return (
     <FormProvider {...methods}>
-      <form id={"transaction-form"} onSubmit={handleSubmit(onSubmit)}>
+      <form
+        id={"transaction-form"}
+        onSubmit={handleSubmit(onSubmit)}
+        style={{ overflowY: "auto", height: "100%" }}
+      >
         {status === "form" ? form : status === "summary" ? summary : success}
       </form>
       <DialogActions sx={{ height: 85, padding: 0 }}>
         <DialogButtons
           secondaryButtonProps={{
-            children: "Back",
+            children:
+              status === "form" || (status === "summary" && !form)
+                ? cancelLabel
+                : "Back",
+            onClick: onBackButtonClick,
+            sx: {
+              display: status === "success" ? "none" : undefined,
+            },
           }}
           primaryButtonProps={{
-            children: status === "form" && summary ? "Next" : "Send",
+            children:
+              status === "form" && summary
+                ? "Next"
+                : status === "success"
+                ? "Done"
+                : "Send",
             type: "submit",
             form: "transaction-form",
+            disabled: !fee,
+            isLoading,
           }}
         />
       </DialogActions>

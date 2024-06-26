@@ -15,6 +15,7 @@ import {
   SEEDS_PAGE,
   SIGN_TYPED_DATA_PAGE,
   SITES_PAGE,
+  TRANSFER_PAGE,
 } from "../constants/routes";
 import Header from "./Header/Header";
 import Home from "./Home/Home";
@@ -24,6 +25,7 @@ import ImportSeed from "./Seeds/ImportSeed";
 import CreateNewSeed from "./Seeds/CreateNewSeed";
 import ManageAccounts from "./ManageAccounts/ManageAccounts";
 import SiteConnections from "./SiteConnections/SiteConnections";
+import TransactionRequest from "./Request/TransactionRequest";
 import ConnectionRequest from "./Request/ConnectionRequest";
 import SwitchNetwork from "./Request/SwitchNetwork";
 import SignTypedData from "./Request/SignTypedData";
@@ -101,6 +103,10 @@ export const requestRouter = createHashRouter([
       {
         path: SIGN_TYPED_DATA_PAGE,
         element: <SignTypedData />,
+      },
+      {
+        path: TRANSFER_PAGE,
+        element: <TransactionRequest />,
       },
     ],
   },

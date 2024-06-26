@@ -1,15 +1,17 @@
 import React from "react";
-import Stack from "@mui/material/Stack";
+import Stack, { StackProps } from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import SuccessIcon from "../assets/img/success_icon.svg";
 import { themeColors } from "../theme";
 
 interface SuccessActionBannerProps {
   label: React.ReactNode;
+  containerProps?: StackProps;
 }
 
 export default function SuccessActionBanner({
   label,
+  containerProps,
 }: SuccessActionBannerProps) {
   return (
     <Stack
@@ -22,6 +24,7 @@ export default function SuccessActionBanner({
       boxSizing={"border-box"}
       bgcolor={themeColors.successLight}
       direction={"row"}
+      {...containerProps}
     >
       <SuccessIcon />
       {typeof label === "string" ? (
