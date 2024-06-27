@@ -2,6 +2,7 @@ import React from "react";
 import { createHashRouter } from "react-router-dom";
 import Preferences from "./Preferences/Preferences";
 import {
+  ACTIVITY_PAGE,
   CHANGE_SELECTED_CHAIN_PAGE,
   CONTACTS_PAGE,
   EXPORT_VAULT_PAGE,
@@ -31,6 +32,7 @@ import SwitchNetwork from "./Request/SwitchNetwork";
 import SignTypedData from "./Request/SignTypedData";
 import PersonalSign from "./Request/PersonalSign";
 import Networks from "./Networks/Networks";
+import Activity from "./Activity/Activity";
 import Handler from "./Request/Handler";
 import Backup from "./Backup/Backup";
 
@@ -78,6 +80,10 @@ export const router = createHashRouter([
       {
         path: SITES_PAGE,
         element: <SiteConnections />,
+      },
+      {
+        path: ACTIVITY_PAGE,
+        element: <Activity />,
       },
     ],
   },

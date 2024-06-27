@@ -29,7 +29,7 @@ interface AmountWithUsdProps {
   isLoadingUsdPrice: boolean;
 }
 
-function AmountWithUsd({
+export function AmountWithUsd({
   balance,
   decimals,
   usdBalance,
@@ -58,6 +58,22 @@ function AmountWithUsd({
     </Stack>
   );
 }
+
+export const getNetworkRow = (network: Network): SummaryRowItem => ({
+  type: "row",
+  label: "Network",
+  value: (
+    <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
+      <img
+        width={15}
+        height={15}
+        src={network.iconUrl}
+        alt={`${network.protocol}-${network.chainId}-img`}
+      />
+      <Typography variant={"subtitle2"}>{network.label}</Typography>
+    </Stack>
+  ),
+});
 
 interface BaseSummaryProps {
   isSwapping?: boolean;
@@ -184,22 +200,6 @@ export default function BaseSummary({
       ),
     },
   ];
-
-  const getNetworkRow = (network: Network): SummaryRowItem => ({
-    type: "row",
-    label: "Network",
-    value: (
-      <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
-        <img
-          width={15}
-          height={15}
-          src={network.iconUrl}
-          alt={`${network.protocol}-${network.chainId}-img`}
-        />
-        <Typography variant={"subtitle2"}>{network.label}</Typography>
-      </Stack>
-    ),
-  });
 
   if (!hideNetworks) {
     if (isSwapping) {

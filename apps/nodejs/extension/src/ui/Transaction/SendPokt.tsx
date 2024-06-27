@@ -1,3 +1,4 @@
+import type { SwapTo } from "../../controllers/datasource/Transaction";
 import React from "react";
 import {
   PocketNetworkFee,
@@ -45,14 +46,17 @@ export default function SendPokt({ onCancel, isWrapping }: SendPoktProps) {
         )?.id;
 
         let bridgeResult: ReturnType<
-          typeof WPOKTBridge.createBridgeTransaction
-        >;
+            typeof WPOKTBridge.createBridgeTransaction
+          >,
+          swapTo: SwapTo;
 
         if (isWrapping) {
+          const destinationChainId = data.chainId === "mainnet" ? "1" : "5";
+
           const toAsset = assets.find(
             (asset) =>
               asset.protocol === SupportedProtocols.Ethereum &&
-              asset.chainId === (data.chainId === "mainnet" ? "1" : "5")
+              asset.chainId === destinationChainId
           );
 
           bridgeResult = WPOKTBridge.createBridgeTransaction({
@@ -62,6 +66,15 @@ export default function SendPokt({ onCancel, isWrapping }: SendPoktProps) {
             ethereumAddress: data.recipientAddress,
             vaultAddress: toAsset.vaultAddress,
           });
+
+          swapTo = {
+            address: data.recipientAddress,
+            network: {
+              protocol: SupportedProtocols.Ethereum,
+              chainId: destinationChainId,
+            },
+            assetId: toAsset.id,
+          };
         }
 
         return {
@@ -83,6 +96,11 @@ export default function SendPokt({ onCancel, isWrapping }: SendPoktProps) {
             fee: (data.fee as PocketNetworkFee).value,
             memo: bridgeResult?.memo || data.memo || undefined,
           },
+          metadata: isWrapping
+            ? {
+                swapTo,
+              }
+            : undefined,
         };
       }}
       defaultFormValue={{

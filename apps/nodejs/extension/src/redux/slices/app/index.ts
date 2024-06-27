@@ -20,6 +20,9 @@ import {
   setGetAccountPending as setGetAccountPendingFromNetwork,
 } from "./network";
 import { SettingsSchema } from "../vault/backup";
+import TransactionDatasource, {
+  Transaction,
+} from "../../../controllers/datasource/Transaction";
 import { addContactThunksToBuilder, Contact } from "./contact";
 import { ChainChangedMessageToProxy } from "../../../types/communications/chainChanged";
 
@@ -123,6 +126,7 @@ export interface GeneralAppSlice {
   };
   requirePasswordForSensitiveOpts: boolean;
   accountsImported: string[];
+  transactions: Array<Transaction>;
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -192,6 +196,10 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       }
     }
 
+    const transactions = await TransactionDatasource.getTransactionsOfNetworks(
+      networks
+    );
+
     return {
       selectedProtocol,
       selectedChainByProtocol,
@@ -204,6 +212,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       sessionMaxAge,
       requirePasswordForSensitiveOpts,
       accountsImported,
+      transactions,
     };
   }
 );
@@ -616,12 +625,16 @@ const initialState: GeneralAppSlice = {
   },
   requirePasswordForSensitiveOpts: false,
   accountsImported: [],
+  transactions: [],
 };
 
 const generalAppSlice = createSlice({
   name: "app",
   initialState,
   reducers: {
+    addTransaction: (state, action: PayloadAction<Transaction>) => {
+      state.transactions.push(action.payload);
+    },
     resetRequestsState: (state) => {
       state.externalRequests = [];
       state.requestsWindowId = null;
@@ -713,6 +726,7 @@ const generalAppSlice = createSlice({
           sessionMaxAge,
           requirePasswordForSensitiveOpts,
           accountsImported,
+          transactions,
         } = action.payload;
 
         state.selectedProtocol = selectedProtocol;
@@ -726,6 +740,7 @@ const generalAppSlice = createSlice({
         state.sessionsMaxAge = sessionMaxAge;
         state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
         state.accountsImported = accountsImported;
+        state.transactions = transactions;
         state.isReadyStatus = "yes";
       }
     );
@@ -822,6 +837,7 @@ export const {
   resetErrorOfNetwork,
   setAppIsReadyStatus,
   addMintIdSent,
+  addTransaction,
 } = generalAppSlice.actions;
 
 export default generalAppSlice.reducer;

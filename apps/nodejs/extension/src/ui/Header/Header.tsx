@@ -2,13 +2,20 @@ import { styled } from "@mui/material";
 import React, { useState } from "react";
 import Typography from "@mui/material/Typography";
 import Stack, { StackProps } from "@mui/material/Stack";
-import { Outlet, useLocation, useSearchParams } from "react-router-dom";
+import {
+  Outlet,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import BackButton from "./BackButton";
 import { themeColors } from "../theme";
 import { HEIGHT, WIDTH } from "../../constants/ui";
 import NetworkSelect from "./NetworkSelect/NetworkSelect";
 import AccountSelect from "./AccountSelect/AccountSelect";
 import {
+  ACCOUNTS_PAGE,
+  ACTIVITY_PAGE,
   CONTACTS_PAGE,
   EXPORT_VAULT_PAGE,
   IMPORT_SEEDS_PAGE,
@@ -68,6 +75,9 @@ function getLabelByRoute(pathname: string) {
     case SITES_PAGE:
       return "Site Connections";
 
+    case ACTIVITY_PAGE:
+      return "Activity";
+
     default:
       return "Unknown";
   }
@@ -75,6 +85,7 @@ function getLabelByRoute(pathname: string) {
 
 export default function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [_, setURLSearchParams] = useSearchParams();
   const selectedAsset = useSelectedAsset();
   const [modalToShow, setModalToShow] = useState<
@@ -84,6 +95,8 @@ export default function Header() {
   const showCreateAccount = () => setModalToShow("create_account");
   const showImportAccount = () => setModalToShow("import_account");
   const closeModal = () => setModalToShow("none");
+
+  const isInActivity = ACTIVITY_PAGE === location.pathname;
 
   return (
     <AccountDialogsProvider
@@ -99,10 +112,22 @@ export default function Header() {
         onClose={closeModal}
       />
       <Stack width={WIDTH} height={HEIGHT} position={"relative"}>
-        {location.pathname === "/" ? (
+        {ACCOUNTS_PAGE === location.pathname || isInActivity ? (
           <HeaderContainer>
-            {selectedAsset ? (
-              <BackButton onClick={() => setURLSearchParams({ asset: "" })} />
+            {selectedAsset || isInActivity ? (
+              <BackButton
+                onClick={() => {
+                  if (isInActivity) {
+                    navigate(
+                      `${ACCOUNTS_PAGE}${
+                        selectedAsset ? `?asset=${selectedAsset.id}` : ""
+                      }`
+                    );
+                  } else {
+                    setURLSearchParams({ asset: "" });
+                  }
+                }}
+              />
             ) : (
               <NetworkSelect />
             )}

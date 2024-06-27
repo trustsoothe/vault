@@ -30,3 +30,4 @@ export const NEW_SEEDS_PAGE = "/seeds/new";
 export const IMPORT_SEEDS_PAGE = "/seeds/import";
 export const MANAGE_ACCOUNTS_PAGE = "/accounts";
 export const EXPORT_VAULT_PAGE = "/export_vault";
+export const ACTIVITY_PAGE = "/activity";

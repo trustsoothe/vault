@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import Button from "@mui/material/Button";
 import { shallowEqual } from "react-redux";
 import Skeleton from "@mui/material/Skeleton";
+import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import { SupportedProtocols } from "@poktscan/vault";
 import ActivityIcon from "../assets/img/activity_icon.svg";
@@ -16,11 +17,13 @@ import { selectedAccountSelector } from "../../redux/selectors/account";
 import { selectedChainSelector } from "../../redux/selectors/network";
 import useSelectedAsset from "./hooks/useSelectedAsset";
 import GrayContainer from "../components/GrayContainer";
+import { ACTIVITY_PAGE } from "../../constants/routes";
 import SendCoinsModal from "../Transaction/SendCoinsModal";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 
 export default function SelectedAccount() {
+  const navigate = useNavigate();
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const selectedChain = useAppSelector(selectedChainSelector);
   const selectedAsset = useSelectedAsset();
@@ -54,6 +57,12 @@ export default function SelectedAccount() {
       setTimeout(() => setIsSwapping(false), 150);
     }
   };
+
+  const onClickActivity = () =>
+    navigate(
+      `${ACTIVITY_PAGE}${selectedAsset ? `?asset=${selectedAsset.id}` : ""}`,
+      {}
+    );
 
   useDidMountEffect(() => {
     setShowSendModal(false);
@@ -153,7 +162,7 @@ export default function SelectedAccount() {
             </Button>
           )}
 
-          <Button>
+          <Button onClick={onClickActivity}>
             <span>Activity</span>
             <ActivityIcon />
           </Button>

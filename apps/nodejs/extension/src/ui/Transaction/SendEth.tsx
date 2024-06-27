@@ -112,9 +112,21 @@ export default function SendEth({ onCancel, isUnwrapping }: SendEthProps) {
         maxFeePerGas: feeInfo.suggestedMaxFeePerGas,
         maxPriorityFeePerGas: feeInfo.suggestedMaxPriorityFeePerGas,
         gasLimit: (data.fee as EthereumNetworkFee).estimatedGas,
-        data: burnTx.data,
+        data: burnTx?.data,
       },
       isRawTransaction: isUnwrapping,
+      metadata: isUnwrapping
+        ? {
+            maxFeeAmount: Number(feeInfo.amount),
+            swapTo: {
+              address: data.recipientAddress,
+              network: {
+                protocol: SupportedProtocols.Pocket,
+                chainId: data.chainId === "1" ? "mainnet" : "testnet",
+              },
+            },
+          }
+        : undefined,
     };
   };
 

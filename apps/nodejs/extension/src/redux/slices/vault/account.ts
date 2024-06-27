@@ -1,7 +1,12 @@
 import type { IProtocolTransactionResult } from "@poktscan/vault/dist/lib/core/common/protocols/ProtocolTransaction";
 import type { RootState } from "../../store";
 import type { VaultSliceBuilder } from "../../../types";
-import { SerializedError, createAsyncThunk } from "@reduxjs/toolkit";
+import type {
+  BaseTransaction,
+  SwapTo,
+  Transaction,
+} from "../../../controllers/datasource/Transaction";
+import { createAsyncThunk, SerializedError } from "@reduxjs/toolkit";
 import set from "lodash/set";
 import {
   AccountReference,
@@ -13,6 +18,7 @@ import {
   SerializedAccountReference,
   SerializedSession,
   SupportedProtocols,
+  SupportedTransferOrigins,
   TransferOptions,
   VaultRestoreErrorName,
 } from "@poktscan/vault";
@@ -20,8 +26,11 @@ import { getVaultPassword, VaultSlice } from "./index";
 import { getVault } from "../../../utils";
 import {
   addImportedAccountAddress,
+  addTransaction,
   removeImportedAccountAddress,
 } from "../app";
+import { getAddressFromPrivateKey } from "../../../utils/networkOperations";
+import TransactionDatasource from "../../../controllers/datasource/Transaction";
 
 const MAX_PASSWORDS_TRIES = 4;
 export const VAULT_PASSWORD_ID = "vault";
@@ -242,11 +251,16 @@ export interface SendTransactionParams
     gasLimit?: number;
   };
   isRawTransaction?: boolean;
+  metadata?: {
+    requestedBy?: string;
+    maxFeeAmount?: number;
+    swapTo?: SwapTo;
+  };
 }
 
 export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
   "vault/sendTransfer",
-  async (transferOptions, context) => {
+  async ({ metadata, ...transferOptions }, context) => {
     const state = context.getState() as RootState;
     const sessionId = state.vault.vaultSession.id;
 
@@ -264,12 +278,14 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
 
     let result: IProtocolTransactionResult<"Pocket" | "Ethereum">;
 
+    const rpcUrl = customRpc?.url || defaultNetwork.rpcUrl;
+
     const transactionArg = {
       ...transferOptions,
       network: {
         protocol,
         chainID,
-        rpcUrl: customRpc?.url || defaultNetwork.rpcUrl,
+        rpcUrl,
       },
       transactionParams: {
         from: "",
@@ -297,6 +313,66 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
         transactionArg
       );
     }
+
+    let fromAddress: string;
+
+    if (transferOptions.from.type === SupportedTransferOrigins.VaultAccountId) {
+      fromAddress = state.vault.accounts.find(
+        (account) => account.id === transferOptions.from.value
+      )?.address;
+    } else {
+      fromAddress = await getAddressFromPrivateKey(
+        transferOptions.from.value,
+        protocol
+      );
+    }
+
+    const baseTx: BaseTransaction = {
+      hash: result.transactionHash,
+      from: fromAddress,
+      chainId: transferOptions.network.chainID,
+      requestedBy: metadata?.requestedBy,
+      swapTo: metadata?.swapTo,
+      amount: transferOptions.amount,
+      to: transferOptions.to.value,
+      rpcUrl,
+      timestamp: Date.now(),
+    };
+
+    let tx: Transaction;
+
+    if (protocol === SupportedProtocols.Ethereum) {
+      tx = {
+        ...baseTx,
+        protocol: SupportedProtocols.Ethereum,
+        assetId: transferOptions.asset
+          ? state.app.assets.find(
+              (asset) =>
+                asset.chainId === transferOptions.asset.chainID &&
+                asset.protocol === transferOptions.asset.protocol &&
+                asset.contractAddress === transferOptions.asset.contractAddress
+            )?.id
+          : undefined,
+        data: transferOptions.transactionParams.data,
+        isRawTransaction: transferOptions.isRawTransaction || false,
+        maxFeePerGas: transferOptions.transactionParams.maxFeePerGas,
+        maxPriorityFeePerGas:
+          transferOptions.transactionParams.maxPriorityFeePerGas,
+        gasLimit: transferOptions.transactionParams.gasLimit,
+        maxFeeAmount: metadata?.maxFeeAmount || 0,
+      };
+    } else {
+      tx = {
+        ...baseTx,
+        protocol: SupportedProtocols.Pocket,
+        fee: transferOptions.transactionParams.fee,
+        memo: transferOptions.transactionParams.memo,
+      };
+    }
+
+    await TransactionDatasource.save(tx);
+
+    context.dispatch(addTransaction(tx));
 
     return result.transactionHash;
   }

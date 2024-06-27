@@ -1,3 +1,4 @@
+import type { SupportedProtocols } from "@poktscan/vault";
 import type { TransactionFormValues } from "./BaseTransaction";
 import React, { useState } from "react";
 import Stack from "@mui/material/Stack";
@@ -12,13 +13,13 @@ import { useAppSelector } from "../../hooks/redux";
 import { getTruncatedText } from "../../utils/ui";
 import { themeColors } from "../theme";
 
-export default function TransactionHash() {
-  const { watch } = useFormContext<TransactionFormValues>();
-  const [hash, protocol, chainId] = watch([
-    "txResultHash",
-    "protocol",
-    "chainId",
-  ]);
+interface HashProps {
+  protocol: SupportedProtocols;
+  chainId: string;
+  hash: string;
+}
+
+export function Hash({ hash, protocol, chainId }: HashProps) {
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
 
   const explorerTransactionUrl = useAppSelector(
@@ -71,4 +72,15 @@ export default function TransactionHash() {
       </Tooltip>
     </Stack>
   );
+}
+
+export default function TransactionHash() {
+  const { watch } = useFormContext<TransactionFormValues>();
+  const [hash, protocol, chainId] = watch([
+    "txResultHash",
+    "protocol",
+    "chainId",
+  ]);
+
+  return <Hash protocol={protocol} chainId={chainId} hash={hash} />;
 }

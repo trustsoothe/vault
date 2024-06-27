@@ -1,5 +1,6 @@
 import type { TransactionFormValues } from "./BaseTransaction";
 import React from "react";
+import Decimal from "decimal.js";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import { Controller, useFormContext } from "react-hook-form";
@@ -62,7 +63,9 @@ export default function AmountInput({ marginTop = 1.6 }: AmountInputProps) {
       fee = (networkFee as PocketNetworkFee)?.value || 0;
     }
 
-    const transferFromBalance = asset ? balance || 0 : (balance || 0) - fee;
+    const transferFromBalance = asset
+      ? balance
+      : new Decimal(balance).minus(new Decimal(fee)).toNumber();
 
     if (transferFromBalance) {
       setValue("amount", (transferFromBalance || "").toString());

@@ -26,8 +26,6 @@ export default function TransactionRequest() {
   const location = useLocation();
   const accounts = useAppSelector(accountsSelector);
 
-  console.log(location.state);
-
   const { transferData, requestInfo: request }: ExternalTransferState =
     location.state;
 
@@ -82,6 +80,10 @@ export default function TransactionRequest() {
           gasLimit: (data.fee as EthereumNetworkFee).estimatedGas,
           data: transferData.data,
         },
+        metadata: {
+          requestedBy: request.origin,
+          maxFeeAmount: Number(feeInfo.amount),
+        },
       };
     } else {
       return {
@@ -89,6 +91,9 @@ export default function TransactionRequest() {
         transactionParams: {
           fee: (data.fee as PocketNetworkFee).value,
           memo: data.memo,
+        },
+        metadata: {
+          requestedBy: request.origin,
         },
       };
     }

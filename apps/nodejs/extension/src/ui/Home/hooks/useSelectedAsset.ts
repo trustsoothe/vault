@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { shallowEqual } from "react-redux";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { SupportedProtocols } from "@poktscan/vault";
+import { ACCOUNTS_PAGE, ACTIVITY_PAGE } from "../../../constants/routes";
 import { useAppSelector } from "../../../hooks/redux";
 import {
   selectedChainSelector,
@@ -28,8 +29,9 @@ export default function useSelectedAsset() {
 
   return useMemo(() => {
     if (
+      !assetsIdOfAccount ||
       selectedProtocol !== SupportedProtocols.Ethereum ||
-      location.pathname !== "/"
+      ![ACCOUNTS_PAGE, ACTIVITY_PAGE].includes(location.pathname)
     )
       return null;
 
