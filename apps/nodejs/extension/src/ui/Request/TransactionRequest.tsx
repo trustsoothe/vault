@@ -17,6 +17,7 @@ import BaseTransaction, {
 import { useAppSelector } from "../../hooks/redux";
 import BaseSummary from "../Transaction/BaseSummary";
 import EthFeeSelect from "../Transaction/EthFeeSelect";
+import { networksSelector } from "../../redux/selectors/network";
 import { accountsSelector } from "../../redux/selectors/account";
 import VaultPasswordInput from "../Transaction/VaultPasswordInput";
 import { SendTransactionParams } from "../../redux/slices/vault/account";
@@ -24,6 +25,7 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 
 export default function TransactionRequest() {
   const location = useLocation();
+  const networks = useAppSelector(networksSelector);
   const accounts = useAppSelector(accountsSelector);
 
   const { transferData, requestInfo: request }: ExternalTransferState =
@@ -70,10 +72,14 @@ export default function TransactionRequest() {
 
     if (isEth) {
       const feeInfo = (data.fee as EthereumNetworkFee)[data.txSpeed];
-
+      const network = networks.find(
+        (network) =>
+          network.protocol === data.protocol && network.chainId === data.chainId
+      );
       return {
         ...base,
-        isRawTransaction: !!transferData.data,
+        amount: Number(data.amount || "0") * 10 ** network.decimals,
+        isRawTransaction: true,
         transactionParams: {
           maxFeePerGas: feeInfo.suggestedMaxFeePerGas,
           maxPriorityFeePerGas: feeInfo.suggestedMaxPriorityFeePerGas,
@@ -81,6 +87,7 @@ export default function TransactionRequest() {
           data: transferData.data,
         },
         metadata: {
+          amountToSave: Number(data.amount || "0"),
           requestedBy: request.origin,
           maxFeeAmount: Number(feeInfo.amount),
         },

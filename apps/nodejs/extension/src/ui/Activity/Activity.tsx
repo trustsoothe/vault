@@ -1,22 +1,25 @@
+import type { SnackbarKey } from "notistack";
 import map from "lodash/map";
 import groupBy from "lodash/groupBy";
 import orderBy from "lodash/orderBy";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Skeleton from "@mui/material/Skeleton";
-import React, { useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SupportedProtocols } from "@poktscan/vault";
 import { selectedAccountAddressSelector } from "../../redux/selectors/account";
 import { transactionsSelector } from "../../redux/slices/app/transactions";
+import { enqueueErrorSnackbar, roundAndSeparate } from "../../utils/ui";
 import { Transaction } from "../../controllers/datasource/Transaction";
+import MintTransactionModal from "../Transaction/MintTransactionModal";
+import { Status } from "../../components/Account/WrappedPoktTxs";
 import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import TransactionDetailModal from "./TransactionDetailModal";
 import ActivityIcon from "../assets/img/activity_logo.svg";
 import ReceivedIcon from "../assets/img/receive_icon.svg";
 import SentIcon from "../assets/img/sent_icon.svg";
 import { useAppSelector } from "../../hooks/redux";
-import { roundAndSeparate } from "../../utils/ui";
 import useUsdPrice from "../hooks/useUsdPrice";
 import {
   selectedChainSelector,
@@ -24,13 +27,52 @@ import {
 } from "../../redux/selectors/network";
 import { themeColors } from "../theme";
 
+export interface MintTransaction {
+  _id: string;
+  transaction_hash: string;
+  confirmations: string;
+  sender_address: string;
+  sender_chain_id: string;
+  recipient_address: string;
+  recipient_chain_id: string;
+  wpokt_address: string;
+  amount: string;
+  status: Status;
+  signers: string[];
+  created_at: string;
+  updated_at: string;
+  height: string;
+  vault_address: string;
+  nonce: string;
+  memo: {
+    address: string;
+    chain_id: string;
+  };
+  data: {
+    recipient: string;
+    amount: string;
+    nonce: string;
+  };
+  signatures: string[];
+  mint_tx_hash: string;
+}
+
 interface TransactionItemProps {
-  transaction: Transaction;
-  openTransactionDetail: (transaction: Transaction) => void;
+  transaction: Transaction | MintTransaction;
+  shortTransaction: {
+    from: string;
+    protocol: SupportedProtocols;
+    chainId: string;
+    amount: number;
+    timestamp: number;
+    shouldMint?: boolean;
+  };
+  openTransactionDetail: (transaction: Transaction | MintTransaction) => void;
 }
 
 function TransactionItem({
-  transaction,
+  transaction: fullTransaction,
+  shortTransaction: transaction,
   openTransactionDetail,
 }: TransactionItemProps) {
   const asset = useSelectedAsset();
@@ -45,6 +87,16 @@ function TransactionItem({
     asset,
   });
 
+  const time = new Date(transaction.timestamp).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const pendingMint =
+    transaction.shouldMint &&
+    "status" in fullTransaction &&
+    fullTransaction.status === Status.SIGNED;
+
   return (
     <Button
       sx={{
@@ -57,7 +109,7 @@ function TransactionItem({
         borderRadius: "8px",
         backgroundColor: themeColors.white,
       }}
-      onClick={() => openTransactionDetail(transaction)}
+      onClick={() => openTransactionDetail(fullTransaction)}
     >
       <Stack
         width={1}
@@ -65,8 +117,22 @@ function TransactionItem({
         spacing={1.2}
         direction={"row"}
         alignItems={"center"}
+        position={"relative"}
       >
         <Icon />
+        {pendingMint && (
+          <Stack
+            width={9}
+            height={9}
+            borderRadius={"50%"}
+            position={"absolute"}
+            bgcolor={themeColors.intense_red}
+            border={`2px solid ${themeColors.white}`}
+            margin={"0px!important"}
+            left={23}
+            bottom={29}
+          />
+        )}
         <Stack spacing={0.4} flexGrow={1}>
           <Stack
             width={1}
@@ -120,10 +186,7 @@ function TransactionItem({
               lineHeight={"14px"}
               color={themeColors.textSecondary}
             >
-              {new Date(transaction.timestamp).toLocaleTimeString(undefined, {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {pendingMint ? "Pending Mint" : time}
             </Typography>
             {isLoading ? (
               <Skeleton variant={"rectangular"} width={50} height={14} />
@@ -161,20 +224,72 @@ function RenderDay({ day }: { day: string }) {
   );
 }
 
+const MAINNET_BASE_API_URL = process.env.WPOKT_MAINNET_API_BASE_URL;
+const TESTNET_BASE_API_URL = process.env.WPOKT_TESTNET_API_BASE_URL;
+
 export default function Activity() {
+  const errorSnackbarKeyRef = useRef<SnackbarKey>(null);
+  const abortControllerRef = useRef<AbortController>(null);
   const [txToDetail, setTxToDetail] = useState<Transaction>(null);
+  const [txToMin, setTxToMint] = useState<MintTransaction>(null);
   const selectedChain = useAppSelector(selectedChainSelector);
   const transactions = useAppSelector(transactionsSelector);
   const selectedAsset = useSelectedAsset();
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedAccountAddress = useAppSelector(selectedAccountAddressSelector);
 
-  const openTxDetail = (transaction: Transaction) => setTxToDetail(transaction);
-  const closeTxDetail = () => {
-    setTxToDetail(null);
+  const wPoktTxApiBaseUrl =
+    selectedAsset?.symbol === "WPOKT"
+      ? selectedChain === "1"
+        ? MAINNET_BASE_API_URL
+        : TESTNET_BASE_API_URL
+      : undefined;
+
+  const [isLoadingMints, setIsLoadingMints] = useState(!!wPoktTxApiBaseUrl);
+  const [mintTransactions, setMintTransactions] = useState<
+    Array<MintTransaction>
+  >([]);
+
+  const fetchMintTransactions = () => {
+    abortControllerRef.current = new AbortController();
+    return fetch(
+      `${wPoktTxApiBaseUrl}/mints/active?recipient=${selectedAccountAddress}`,
+      {
+        signal: abortControllerRef.current.signal,
+      }
+    )
+      .then((res) => res.json())
+      .then((items: Array<MintTransaction>) => {
+        setMintTransactions(items);
+        setIsLoadingMints(false);
+      })
+      .catch(() => {
+        errorSnackbarKeyRef.current = enqueueErrorSnackbar({
+          message: `Failed to fetch Mint Transactions`,
+          onRetry: fetchMintTransactions,
+        });
+      })
+      .finally(() => (abortControllerRef.current = null));
   };
 
-  const transactionsGroupedByDay = useMemo(() => {
+  useEffect(() => {
+    if (!wPoktTxApiBaseUrl) return;
+    setIsLoadingMints(true);
+
+    let interval: NodeJS.Timeout;
+    fetchMintTransactions().then(() => {
+      interval = setInterval(fetchMintTransactions, 60000);
+    });
+
+    return () => {
+      clearInterval(interval);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [selectedAccountAddress, wPoktTxApiBaseUrl]);
+
+  const { transactionsGroupedByDay, idOfPendingMint } = useMemo(() => {
     const txs = transactions.filter(
       (t) =>
         t.protocol === selectedProtocol &&
@@ -185,10 +300,22 @@ export default function Activity() {
           t.assetId === selectedAsset?.id)
     );
 
-    return orderBy(
+    const idOfPendingMint =
+      orderBy(
+        mintTransactions
+          .filter((tx) => tx.status === Status.SIGNED)
+          .map((tx: MintTransaction) => ({
+            ...tx,
+            nonce: Number(tx.nonce),
+          })),
+        ["nonce"],
+        ["asc"]
+      )[0]?._id || null;
+
+    const transactionsGroupedByDay = orderBy(
       map(
-        groupBy(txs, (t) => {
-          const date = new Date(t.timestamp);
+        groupBy([...txs, ...mintTransactions], (t) => {
+          const date = new Date("created_at" in t ? t.created_at : t.timestamp);
 
           return `${date.toLocaleDateString(undefined, {
             day: "2-digit",
@@ -199,10 +326,21 @@ export default function Activity() {
         (transactions, day) => {
           const transactionsOrdered = orderBy(
             transactions,
-            ["timestamp"],
+            (t) => {
+              if ("created_at" in t) {
+                return new Date(t.created_at).getTime();
+              }
+
+              return t.timestamp;
+            },
             ["desc"]
           );
-          const date = new Date(transactionsOrdered.at(0).timestamp);
+
+          const firstTx = transactionsOrdered.at(0);
+
+          const date = new Date(
+            "created_at" in firstTx ? firstTx.created_at : firstTx.timestamp
+          );
 
           return {
             date,
@@ -214,13 +352,30 @@ export default function Activity() {
       ["date"],
       ["desc"]
     );
+
+    return { transactionsGroupedByDay, idOfPendingMint };
   }, [
     transactions,
     selectedAsset?.id,
     selectedProtocol,
     selectedChain,
     selectedAccountAddress,
+    mintTransactions,
   ]);
+
+  const openTxDetail = (transaction: Transaction | MintTransaction) => {
+    if ("_id" in transaction) {
+      setTxToMint(transaction);
+    } else {
+      setTxToDetail(transaction);
+    }
+  };
+  const closeTxDetail = () => {
+    setTxToDetail(null);
+  };
+  const closeTxToMin = () => {
+    setTxToMint(null);
+  };
 
   const hasTransactions = transactionsGroupedByDay.length > 0;
 
@@ -229,6 +384,11 @@ export default function Activity() {
       <TransactionDetailModal
         transaction={txToDetail}
         onClose={closeTxDetail}
+      />
+      <MintTransactionModal
+        mintTransaction={txToMin}
+        onClose={closeTxToMin}
+        idOfTxToMint={idOfPendingMint}
       />
       <Stack
         flexGrow={1}
@@ -248,20 +408,48 @@ export default function Activity() {
           <>
             <ActivityIcon />
             <Typography width={220} textAlign={"center"}>
-              Your account has no recorded activity to show yet.
+              {isLoadingMints
+                ? "Loading Pending Mints"
+                : "Your account has no recorded activity to show yet."}
             </Typography>
           </>
         ) : (
           transactionsGroupedByDay.map(({ day, transactions }) => (
-            <Stack spacing={0.8}>
+            <Stack spacing={0.8} key={day}>
               <RenderDay day={day} />
-              {transactions.map((transaction) => (
-                <TransactionItem
-                  key={transaction.hash}
-                  transaction={transaction}
-                  openTransactionDetail={openTxDetail}
-                />
-              ))}
+              {transactions.map((transaction) => {
+                let shortTransaction: TransactionItemProps["shortTransaction"];
+
+                if ("_id" in transaction) {
+                  shortTransaction = {
+                    from: transaction.sender_address,
+                    protocol: selectedProtocol,
+                    chainId: selectedChain,
+                    amount: Number(transaction.amount) / 1e6,
+                    timestamp: new Date(transaction.created_at).getTime(),
+                    shouldMint: idOfPendingMint === transaction._id,
+                  };
+                } else {
+                  shortTransaction = {
+                    from: transaction.from,
+                    protocol: transaction.protocol,
+                    chainId: transaction.chainId,
+                    amount: transaction.amount,
+                    timestamp: transaction.timestamp,
+                  };
+                }
+
+                return (
+                  <TransactionItem
+                    key={
+                      "_id" in transaction ? transaction._id : transaction.hash
+                    }
+                    transaction={transaction}
+                    shortTransaction={shortTransaction}
+                    openTransactionDetail={openTxDetail}
+                  />
+                );
+              })}
             </Stack>
           ))
         )}

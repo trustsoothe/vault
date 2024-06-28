@@ -41,11 +41,9 @@ export default function useGetBalance({
     getBalance();
 
     return () => {
-      console.log("snackbar key:", lastSnackbarKeyRef.current);
       if (lastSnackbarKeyRef.current) {
-        lastSnackbarKeyRef.current = null;
-
         closeSnackbar(lastSnackbarKeyRef.current);
+        lastSnackbarKeyRef.current = null;
       }
     };
   }, [address, chainId, protocol, asset]);

@@ -126,7 +126,7 @@ export default function SendEth({ onCancel, isUnwrapping }: SendEthProps) {
               },
             },
           }
-        : undefined,
+        : { maxFeeAmount: Number(feeInfo.amount) },
     };
   };
 

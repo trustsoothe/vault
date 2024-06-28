@@ -206,6 +206,9 @@ export default function NewAccountModal({
                   {...field}
                   InputLabelProps={{ shrink: false }}
                   sx={{
+                    "& .MuiFormLabel-asterisk": {
+                      display: "none",
+                    },
                     marginBottom: error ? 1 : 0,
                     "& .MuiFormLabel-root": {
                       marginTop: -0.5,

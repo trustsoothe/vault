@@ -2,14 +2,17 @@ import React from "react";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import WarningIcon from "../assets/img/rounded_close_icon.svg";
+import CheckWarningIcon from "../assets/img/check_warning_icon.svg";
 import { themeColors } from "../theme";
 
 interface WarningActionBannerProps {
   label: React.ReactNode;
+  withCheckIcon?: boolean;
 }
 
 export default function WarningActionBanner({
   label,
+  withCheckIcon = false,
 }: WarningActionBannerProps) {
   return (
     <Stack
@@ -23,7 +26,7 @@ export default function WarningActionBanner({
       bgcolor={themeColors.warningLight}
       direction={"row"}
     >
-      <WarningIcon />
+      {withCheckIcon ? <CheckWarningIcon /> : <WarningIcon />}
       {typeof label === "string" ? (
         <Typography variant={"subtitle2"}>{label}</Typography>
       ) : (

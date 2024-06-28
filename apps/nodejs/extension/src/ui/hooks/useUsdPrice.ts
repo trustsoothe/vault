@@ -1,5 +1,7 @@
 import type { SupportedProtocols } from "@poktscan/vault";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
+import { shallowEqual } from "react-redux";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import { networksSelector } from "../../redux/selectors/network";
 import { useGetPricesQuery } from "../../redux/slices/prices";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
@@ -17,20 +19,14 @@ interface UseUsdPrice {
 }
 
 export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
+  const lastSnackbarKeyRef = useRef<SnackbarKey>(null);
   const networks = useAppSelector(networksSelector);
 
   const assets = useAppSelector(assetsSelector);
-  const assetsIdByAccount = useAppSelector(assetsIdByAccountSelector);
-
-  const assetsToFetch = useMemo(() => {
-    const selectedAssets = Object.values(assetsIdByAccount).reduce(
-      (acc, assetsId) => [...acc, ...assetsId],
-      []
-    );
-    return assets.filter(
-      (asset) => selectedAssets.includes(asset.id) && !!asset.coinGeckoId
-    );
-  }, [assets, assetsIdByAccount]);
+  const assetsIdByAccount = useAppSelector(
+    assetsIdByAccountSelector,
+    shallowEqual
+  );
 
   const { coinGeckoId, idOfCoins, coinSymbol } = useMemo(() => {
     let coinGeckoId: string, coinSymbol: string;
@@ -52,8 +48,16 @@ export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
       }
     }
 
+    const selectedAssets = Object.values(assetsIdByAccount || {}).reduce(
+      (acc, assetsId) => [...acc, ...assetsId],
+      []
+    );
+
     for (const assetFromList of assets) {
-      if (assetFromList.coinGeckoId) {
+      if (
+        assetFromList.coinGeckoId &&
+        selectedAssets.includes(assetFromList.id)
+      ) {
         idOfCoins.push(assetFromList.coinGeckoId);
       }
 
@@ -69,7 +73,7 @@ export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
     }
 
     return { coinGeckoId, idOfCoins: idOfCoins.join(","), coinSymbol };
-  }, [assets, networks, asset]);
+  }, [assets, networks, asset, assetsIdByAccount]);
 
   const { isLoading, isError, refetch, data } = useGetPricesQuery(idOfCoins, {
     pollingInterval: 1000 * 60,
@@ -77,7 +81,7 @@ export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
 
   useDidMountEffect(() => {
     if (isError) {
-      enqueueErrorSnackbar({
+      lastSnackbarKeyRef.current = enqueueErrorSnackbar({
         message: "Fetch USD Price Failed",
         preventDuplicate: true,
         key: `fetch_usd_price_failed`,
@@ -86,7 +90,14 @@ export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
         autoHideDuration: 6000,
       });
     }
-  }, [isError]);
+
+    return () => {
+      if (lastSnackbarKeyRef.current) {
+        closeSnackbar(lastSnackbarKeyRef.current);
+        lastSnackbarKeyRef.current = null;
+      }
+    };
+  }, [isError, idOfCoins]);
 
   return {
     error: isError,

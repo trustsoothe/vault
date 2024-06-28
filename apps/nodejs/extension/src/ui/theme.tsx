@@ -23,6 +23,7 @@ export const themeColors = Object.freeze({
   warning: "#d47702",
   warningLight: "#ffeed6",
   red: "#a31c2a",
+  intense_red: "#b23232",
 });
 
 const theme = createTheme({

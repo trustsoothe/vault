@@ -255,6 +255,7 @@ export interface SendTransactionParams
     requestedBy?: string;
     maxFeeAmount?: number;
     swapTo?: SwapTo;
+    amountToSave?: number;
   };
 }
 
@@ -360,6 +361,9 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
           transferOptions.transactionParams.maxPriorityFeePerGas,
         gasLimit: transferOptions.transactionParams.gasLimit,
         maxFeeAmount: metadata?.maxFeeAmount || 0,
+        amount: transferOptions.isRawTransaction
+          ? metadata.amountToSave || transferOptions.amount
+          : transferOptions.amount,
       };
     } else {
       tx = {

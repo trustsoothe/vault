@@ -19,6 +19,7 @@ import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import AccountInfo from "../components/AccountInfo";
 import { useAppSelector } from "../../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
+import useGetBalance from "../hooks/useGetBalance";
 import { themeColors } from "../theme";
 
 interface AmountWithUsdProps {
@@ -120,7 +121,7 @@ export default function BaseSummary({
 
   const isPokt = protocol === SupportedProtocols.Pocket;
   const toNetwork =
-    isSwapping && (isPokt || selectedAsset?.symbol === "USDT")
+    isSwapping && (isPokt || selectedAsset?.symbol === "WPOKT")
       ? networks.find(
           (network) =>
             network.protocol ===
@@ -145,6 +146,12 @@ export default function BaseSummary({
       chainId,
       asset: selectedAsset,
     });
+
+  const { balance: nativeBalance } = useGetBalance({
+    address: fromAddress,
+    protocol,
+    chainId,
+  });
 
   let fromAccount: SerializedAccountReference,
     recipientAccount: SerializedAccountReference;
@@ -174,7 +181,7 @@ export default function BaseSummary({
     fee
       ? fee.protocol === SupportedProtocols.Pocket
         ? fee.value
-        : fee[txSpeed].amount
+        : fee[txSpeed]?.amount || 0
       : 0
   );
   const total = new Decimal(amountNum).add(new Decimal(feeOfTx)).toNumber();
@@ -265,13 +272,21 @@ export default function BaseSummary({
       rules={{
         required: "Required",
         validate: () => {
-          if (isNaN(amountNum) || isNaN(feeOfTx)) {
-            return "Invalid amount";
+          if (isNaN(amountNum) || isNaN(feeOfTx) || isNaN(nativeBalance)) {
+            return "";
           }
 
-          const total = amountNum + (selectedAsset ? 0 : feeOfTx);
+          if (selectedAsset) {
+            if (amountNum > balance || feeOfTx > nativeBalance) {
+              return "Insufficient balance";
+            }
+          } else {
+            if (amountNum + feeOfTx > balance) {
+              return "Insufficient balance";
+            }
+          }
 
-          return total > balance ? `Insufficient balance` : true;
+          return true;
         },
       }}
       render={({ fieldState: { error } }) => (

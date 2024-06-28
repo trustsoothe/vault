@@ -12,6 +12,7 @@ import {
 import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../utils/ui";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { isValidAddress } from "../../utils/networkOperations";
+import useDidMountEffect from "../../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
 
 export interface TransactionFormValues {
@@ -44,7 +45,8 @@ interface BaseTransactionProps {
   onCancel: () => void;
   onDone?: () => void;
   cancelLabel?: string;
-
+  hideCancelBtn?: boolean;
+  nextLabel?: string;
   request?: AnswerTransferReq["data"]["request"];
 }
 
@@ -61,7 +63,9 @@ export default function BaseTransaction({
   onCancel,
   onDone,
   cancelLabel = "Cancel",
+  nextLabel,
   request,
+  hideCancelBtn = false,
 }: BaseTransactionProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<"form" | "summary" | "success">(
@@ -79,7 +83,22 @@ export default function BaseTransaction({
       ...defaultFormValue,
     },
   });
-  const { getValues, handleSubmit, watch, setValue } = methods;
+  const { getValues, reset, handleSubmit, watch, setValue } = methods;
+
+  useDidMountEffect(() => {
+    reset({
+      chainId,
+      protocol,
+      amount: "",
+      fromAddress,
+      txResultHash: "",
+      recipientAddress: "",
+      ...defaultFormValue,
+      txSpeed: defaultFormValue?.txSpeed,
+    });
+    console.log({ defaultFormValue });
+    setStatus(form ? "form" : "summary");
+  }, [protocol, chainId, fromAddress]);
 
   const getFee = () => {
     let feeOptions: Partial<EthereumNetworkFeeRequestOptions>;
@@ -226,16 +245,17 @@ export default function BaseTransaction({
                 : "Back",
             onClick: onBackButtonClick,
             sx: {
-              display: status === "success" ? "none" : undefined,
+              display:
+                status === "success" || hideCancelBtn ? "none" : undefined,
             },
           }}
           primaryButtonProps={{
             children:
               status === "form" && summary
-                ? "Next"
+                ? nextLabel || "Next"
                 : status === "success"
                 ? "Done"
-                : "Send",
+                : nextLabel || "Send",
             type: "submit",
             form: "transaction-form",
             disabled: !fee,

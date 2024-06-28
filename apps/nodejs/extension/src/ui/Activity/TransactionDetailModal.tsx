@@ -130,7 +130,7 @@ function Content({ transaction }: ContentProps) {
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-      })} `,
+      })}`,
     },
     {
       type: "row",
