@@ -1,5 +1,5 @@
 import type { SendTransactionParams } from "../../redux/slices/vault/account";
-import type { MintTransaction } from "../Activity/Activity";
+import type { MintTransaction } from "../../redux/slices/wpokt";
 import Stack from "@mui/material/Stack";
 import capitalize from "lodash/capitalize";
 import React, { useEffect, useRef } from "react";

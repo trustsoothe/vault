@@ -1,10 +1,11 @@
 import Menu from "@mui/material/Menu";
 import Stack from "@mui/material/Stack";
-import React, { useMemo, useState } from "react";
 import MenuItem from "@mui/material/MenuItem";
 import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
+import { closeSnackbar, SnackbarKey } from "notistack";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AccountType,
   SerializedAccountReference,
@@ -17,6 +18,8 @@ import AvatarByString from "../components/AvatarByString";
 import MenuDivider from "../components/MenuDivider";
 import MoreIcon from "../assets/img/more_icon.svg";
 import { useAppSelector } from "../../hooks/redux";
+import { enqueueSnackbar } from "../../utils/ui";
+import RemoveSeedModal from "./RemoveSeedModal";
 import NewSeedButtons from "./NewSeedButtons";
 import RenameSeedModal from "./RenameModal";
 import { themeColors } from "../theme";
@@ -27,9 +30,10 @@ interface SeedItemProps {
     accounts: number;
   };
   openRenameModal: (seed: SerializedRecoveryPhraseReference) => void;
+  openRemoveModal: (seed: SerializedRecoveryPhraseReference) => void;
 }
 
-function SeedItem({ seed, openRenameModal }: SeedItemProps) {
+function SeedItem({ seed, openRenameModal, openRemoveModal }: SeedItemProps) {
   const { name, accounts } = seed;
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
@@ -102,18 +106,31 @@ function SeedItem({ seed, openRenameModal }: SeedItemProps) {
           Rename
         </MenuItem>
         <MenuDivider />
-        <MenuItem className={"sensitive"}>Remove Seed</MenuItem>
+        <MenuItem
+          className={"sensitive"}
+          onClick={() => {
+            handleClose();
+            openRemoveModal(seed);
+          }}
+        >
+          Remove Seed
+        </MenuItem>
       </Menu>
     </>
   );
 }
 
 export default function SeedsList() {
+  const cannotRemoveSnackbarKey = useRef<SnackbarKey>(null);
   const seeds = useAppSelector(seedsSelector);
   const accounts = useAppSelector(accountsSelector);
 
-  const [seedToRename, setSeedToRename] =
+  const [selectedSeed, setSelectedSeed] =
     useState<SerializedRecoveryPhraseReference>(null);
+  const [modalToShow, setModalToShow] = useState<"none" | "rename" | "remove">(
+    "none"
+  );
+
   const seedsWithAccounts = useMemo(() => {
     const accountsOfSeed: Record<string, number> = {};
     const accountSeeds: Array<SerializedAccountReference> = [];
@@ -145,17 +162,54 @@ export default function SeedsList() {
     }));
   }, [seeds, accounts]);
 
-  const openRenameModal = (phrase: SerializedRecoveryPhraseReference) =>
-    setSeedToRename(phrase);
-  const closeRenameModal = () => setSeedToRename(null);
+  const openRenameModal = (phrase: SerializedRecoveryPhraseReference) => {
+    setSelectedSeed(phrase);
+    setModalToShow("rename");
+  };
+
+  const closeSnackbars = () => {
+    if (cannotRemoveSnackbarKey.current) {
+      closeSnackbar(cannotRemoveSnackbarKey.current);
+      cannotRemoveSnackbarKey.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return closeSnackbars;
+  }, []);
+
+  const openRemoveModal = (phrase: typeof seedsWithAccounts[number]) => {
+    if (phrase.accounts > 0) {
+      cannotRemoveSnackbarKey.current = enqueueSnackbar({
+        variant: "error",
+        message: {
+          title: "Cannot Remove Seed",
+          content: "This Seed has Child Accounts. Remove them and try again.",
+        },
+      });
+    } else {
+      closeSnackbars();
+      setSelectedSeed(phrase);
+      setModalToShow("remove");
+    }
+  };
+
+  const closeModals = () => {
+    setSelectedSeed(null);
+    setModalToShow("none");
+  };
 
   return (
     <>
       {seedsWithAccounts.length > 0 ? (
         <>
           <RenameSeedModal
-            onClose={closeRenameModal}
-            recoveryPhrase={seedToRename}
+            onClose={closeModals}
+            recoveryPhrase={modalToShow === "rename" ? selectedSeed : null}
+          />
+          <RemoveSeedModal
+            onClose={closeModals}
+            recoveryPhrase={modalToShow === "remove" ? selectedSeed : null}
           />
           <Stack
             flexGrow={1}
@@ -171,6 +225,7 @@ export default function SeedsList() {
                 key={seed.id + i}
                 seed={seed}
                 openRenameModal={openRenameModal}
+                openRemoveModal={openRemoveModal}
               />
             ))}
           </Stack>

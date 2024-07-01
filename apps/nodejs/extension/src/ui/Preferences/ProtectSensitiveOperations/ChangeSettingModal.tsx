@@ -200,7 +200,7 @@ export default function ChangeSettingModal({
         >
           <Typography fontSize={11} lineHeight={"16px"}>
             When enabled will require vault password for the following
-            operations: transactions, remove account.{" "}
+            operations: transactions, remove accounts and seeds.{" "}
             {canSave
               ? `To change this setting, please enter the vault’s password:`
               : ""}
@@ -213,6 +213,7 @@ export default function ChangeSettingModal({
               render={({ field, fieldState: { error } }) => (
                 <PasswordInput
                   required
+                  autoFocus
                   {...field}
                   disabled={status !== "form" || isLoading}
                   placeholder={"Vault Password"}

@@ -855,6 +855,11 @@ export class VaultTeller {
     if (!recoveryPhrase) {
       throw new RecoveryPhraseNotFoundError();
     }
+
+    await this.removeVaultRecoveryPhrase(
+      recoveryPhrase.asReference(),
+      vaultPassphrase
+    );
   }
 
   async initializeRecoveryPhraseAccount(

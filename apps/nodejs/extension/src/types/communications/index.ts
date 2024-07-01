@@ -99,6 +99,7 @@ import type { NetworkFeeReq, SetRequirePasswordForOptsReq } from "./app";
 import type { AnswerNewAccountReq } from "./newAccount";
 import {
   CreateAccountFromHdSeedReq,
+  GetRecoveryPhraseIdReq,
   ImportHdWalletReq,
   PhraseGeneratedHdSeedReq,
 } from "./hdWallet";
@@ -165,7 +166,8 @@ export type InternalRequests =
   | ImportVaultReq
   | SetRequirePasswordForOptsReq
   | UpdateRecoveryPhraseReq
-  | RemoveRecoveryPhraseReq;
+  | RemoveRecoveryPhraseReq
+  | GetRecoveryPhraseIdReq;
 /**Responses that the Proxy can receive from Internal controller */
 export type InternalResponses =
   | InternalConnectionRes

@@ -1,8 +1,9 @@
 import type { AnswerTransferReq } from "../../types/communications/transfer";
 import type { SendTransactionParams } from "../../redux/slices/vault/account";
-import React, { useEffect, useState } from "react";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogActions from "@mui/material/DialogActions";
 import { FormProvider, useForm } from "react-hook-form";
+import React, { useEffect, useRef, useState } from "react";
 import {
   EthereumNetworkFee,
   EthereumNetworkFeeRequestOptions,
@@ -67,6 +68,9 @@ export default function BaseTransaction({
   request,
   hideCancelBtn = false,
 }: BaseTransactionProps) {
+  const errorSnackbarKey = useRef<SnackbarKey>(null);
+  const feeErrorSnackbarKey = useRef<SnackbarKey>(null);
+  const wrongPasswordSnackbarKey = useRef<SnackbarKey>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<"form" | "summary" | "success">(
     form ? "form" : "summary"
@@ -85,6 +89,23 @@ export default function BaseTransaction({
   });
   const { getValues, reset, handleSubmit, watch, setValue } = methods;
 
+  const closeSnackbars = () => {
+    if (feeErrorSnackbarKey.current) {
+      closeSnackbar(feeErrorSnackbarKey.current);
+      feeErrorSnackbarKey.current = null;
+    }
+
+    if (errorSnackbarKey.current) {
+      closeSnackbar(errorSnackbarKey.current);
+      errorSnackbarKey.current = null;
+    }
+
+    if (wrongPasswordSnackbarKey.current) {
+      closeSnackbar(wrongPasswordSnackbarKey.current);
+      wrongPasswordSnackbarKey.current = null;
+    }
+  };
+
   useDidMountEffect(() => {
     reset({
       chainId,
@@ -96,8 +117,11 @@ export default function BaseTransaction({
       ...defaultFormValue,
       txSpeed: defaultFormValue?.txSpeed,
     });
-    console.log({ defaultFormValue });
+
     setStatus(form ? "form" : "summary");
+    closeSnackbars();
+
+    return closeSnackbars;
   }, [protocol, chainId, fromAddress]);
 
   const getFee = () => {
@@ -143,12 +167,13 @@ export default function BaseTransaction({
     })
       .then((res) => {
         if (res.error) {
-          enqueueErrorSnackbar({
+          feeErrorSnackbarKey.current = enqueueErrorSnackbar({
             message: "Failed to fetch Fee",
             onRetry: getFee,
             persist: true,
           });
         } else {
+          closeSnackbars();
           setValue("fee", res.data.networkFee);
         }
       })
@@ -199,14 +224,15 @@ export default function BaseTransaction({
       });
 
       if (response.error) {
-        enqueueErrorSnackbar({
+        errorSnackbarKey.current = enqueueErrorSnackbar({
           message: "Transaction Failed",
           onRetry: () => onSubmit(data),
         });
       } else {
         if (response?.data?.isPasswordWrong) {
-          wrongPasswordSnackbar();
+          wrongPasswordSnackbarKey.current = wrongPasswordSnackbar();
         } else {
+          closeSnackbars();
           if (success) {
             setValue("txResultHash", response.data.hash);
 

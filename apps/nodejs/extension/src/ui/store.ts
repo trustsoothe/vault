@@ -1,6 +1,7 @@
 import thunkMiddleware from "redux-thunk";
 import { applyMiddleware, Store } from "webext-redux";
 import { pricesApi } from "../redux/slices/prices";
+import { wpoktApi } from "../redux/slices/wpokt";
 
 export default function getStore() {
   const store = new Store();
@@ -11,6 +12,7 @@ export default function getStore() {
     (_) => (next) => (action) => {
       return next(JSON.parse(JSON.stringify(action)));
     },
+    wpoktApi.middleware,
     pricesApi.middleware
   );
   Object.assign(storeWithMiddleware, {

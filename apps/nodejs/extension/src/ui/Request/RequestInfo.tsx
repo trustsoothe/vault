@@ -25,9 +25,19 @@ export function RequestOrigin({ origin }: RequestOriginProps) {
       boxSizing={"border-box"}
       bgcolor={themeColors.white}
       boxShadow={"0 1px 3px 0 rgba(0, 0, 0, 0.08)"}
+      sx={{
+        "& svg": {
+          minWidth: 12,
+        },
+      }}
     >
       {isOriginSecure ? <SecureIcon /> : <UnsecureIcon />}
-      <Typography variant={"subtitle2"} marginLeft={0.8} fontWeight={400}>
+      <Typography
+        variant={"subtitle2"}
+        marginLeft={0.8}
+        fontWeight={400}
+        noWrap={true}
+      >
         <span
           style={{
             color: isOriginSecure ? themeColors.success : themeColors.warning,

@@ -1,10 +1,10 @@
 import Stack from "@mui/material/Stack";
-import React, { useState } from "react";
 import Button from "@mui/material/Button";
 import { shallowEqual } from "react-redux";
 import Skeleton from "@mui/material/Skeleton";
 import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
+import React, { useEffect, useState } from "react";
 import { SupportedProtocols } from "@poktscan/vault";
 import ActivityIcon from "../assets/img/activity_icon.svg";
 import CopyAddressButton from "./CopyAddressButton";
@@ -14,12 +14,14 @@ import { useAppSelector } from "../../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
 import { themeColors } from "../theme";
 import { selectedAccountSelector } from "../../redux/selectors/account";
+import { useLazyGetActiveMintsQuery } from "../../redux/slices/wpokt";
 import { selectedChainSelector } from "../../redux/selectors/network";
 import useSelectedAsset from "./hooks/useSelectedAsset";
 import GrayContainer from "../components/GrayContainer";
 import { ACTIVITY_PAGE } from "../../constants/routes";
 import SendCoinsModal from "../Transaction/SendCoinsModal";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
+import { Status } from "../../components/Account/WrappedPoktTxs";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 
 export default function SelectedAccount() {
@@ -43,6 +45,28 @@ export default function SelectedAccount() {
     protocol: selectedAccount.protocol,
     asset: selectedAsset,
   });
+
+  const [fetchActiveMints, { mintTransactions }] = useLazyGetActiveMintsQuery({
+    pollingInterval: 60000,
+    selectFromResult: ({ data }) => ({
+      mintTransactions: (data || []).filter((m) => m.status === Status.SIGNED)
+        .length,
+    }),
+  });
+
+  const mustShowMintTransactions = selectedAsset?.symbol === "WPOKT";
+
+  useEffect(() => {
+    if (mustShowMintTransactions) {
+      fetchActiveMints(
+        {
+          recipient: selectedAccount.address,
+          chain: selectedChain === "1" ? "mainnet" : "testnet",
+        },
+        true
+      );
+    }
+  }, [mustShowMintTransactions, selectedAccount.address]);
 
   const openSendModal = () => setShowSendModal(true);
   const initSwap = () => {
@@ -162,9 +186,31 @@ export default function SelectedAccount() {
             </Button>
           )}
 
-          <Button onClick={onClickActivity}>
+          <Button onClick={onClickActivity} sx={{ position: "relative" }}>
             <span>Activity</span>
             <ActivityIcon />
+            {mintTransactions && (
+              <Stack
+                width={18}
+                height={18}
+                borderRadius={"50%"}
+                alignItems={"center"}
+                boxSizing={"border-box"}
+                justifyContent={"center"}
+                position={"absolute"}
+                bgcolor={themeColors.intense_red}
+                top={-9}
+                right={-9}
+              >
+                <Typography
+                  lineHeight={"14px"}
+                  fontSize={11}
+                  color={themeColors.white}
+                >
+                  {mintTransactions}
+                </Typography>
+              </Stack>
+            )}
           </Button>
         </Stack>
       </GrayContainer>

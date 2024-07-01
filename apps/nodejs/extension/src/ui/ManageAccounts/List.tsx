@@ -1,9 +1,9 @@
 import Menu from "@mui/material/Menu";
 import Stack from "@mui/material/Stack";
 import MenuItem from "@mui/material/MenuItem";
-import React, { useMemo, useState } from "react";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AccountType, SerializedAccountReference } from "@poktscan/vault";
 import { accountsSelector, seedsSelector } from "../../redux/selectors/account";
@@ -240,6 +240,18 @@ export default function ListAccounts() {
       return account;
     });
   }, [accounts, seeds, seedId]);
+
+  useEffect(() => {
+    const toRemoveWithFile = searchParams.get("toRemoveWithFile");
+
+    const account = usableAccounts.find(
+      (account) => account.id === toRemoveWithFile
+    );
+
+    if (account) {
+      showRemoveModal(account);
+    }
+  }, []);
 
   return (
     <>

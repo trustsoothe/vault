@@ -226,6 +226,8 @@ export default function AvatarByString({
   size = 15,
   type = "circle",
 }: AvatarByStringProps) {
+  if (!string) return null;
+
   const baseColor = stringToColour(string);
   const color = lighten(baseColor, 0.1);
   const darkColor = darken(baseColor, 0.2);

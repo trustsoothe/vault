@@ -146,7 +146,7 @@ export default function TransactionRequest() {
             });
           }}
           summary={
-            <Stack padding={2} boxSizing={"border-box"} maxHeight={324}>
+            <Stack padding={2} boxSizing={"border-box"} maxHeight={350}>
               <BaseSummary onlyShowAmount={isEth} hideNetworks={!isEth} />
               {isEth && <EthFeeSelect marginTop={1.6} />}
               <VaultPasswordInput />

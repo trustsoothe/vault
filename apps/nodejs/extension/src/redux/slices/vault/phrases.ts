@@ -5,11 +5,13 @@ import {
   Passphrase,
   ImportRecoveryPhraseRequest,
   UpdateRecoveryPhraseRequest,
+  AccountType,
 } from "@poktscan/vault";
 import { getVaultPassword } from "./index";
 import { getVault } from "../../../utils";
 import {
   increaseWrongPasswordCounter,
+  removeAccount,
   resetWrongPasswordCounter,
   VAULT_PASSWORD_ID,
 } from "./account";
@@ -98,6 +100,23 @@ export const removeRecoveryPhrase = createAsyncThunk(
       vaultPassphrase,
       recoveryPhraseId
     );
+
+    const accountsToRemove = state.vault.accounts.filter(
+      (account) =>
+        account.accountType === AccountType.HDSeed &&
+        account.seedId === recoveryPhraseId
+    );
+
+    if (accountsToRemove.length) {
+      for (const account of accountsToRemove) {
+        await context.dispatch(
+          removeAccount({
+            serializedAccount: account,
+            vaultPassword,
+          })
+        );
+      }
+    }
 
     await context.dispatch(removeImportedAccountAddress(recoveryPhraseId));
   }

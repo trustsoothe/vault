@@ -32,7 +32,7 @@ export type BaseTransaction = z.infer<typeof BaseTransaction>;
 
 export type SwapTo = BaseTransaction["swapTo"];
 
-const PoktTransaction = BaseTransaction.extend({
+export const PoktTransaction = BaseTransaction.extend({
   protocol: z.literal(SupportedProtocols.Pocket),
   fee: z.number(),
   memo: z.string().optional(),
@@ -48,7 +48,7 @@ const PoktTransaction = BaseTransaction.extend({
 
 export type PoktTransaction = z.infer<typeof PoktTransaction>;
 
-const EthTransaction = BaseTransaction.extend({
+export const EthTransaction = BaseTransaction.extend({
   isMint: z.boolean().optional().default(false),
   protocol: z.literal(SupportedProtocols.Ethereum),
   isRawTransaction: z.boolean(),
@@ -113,6 +113,8 @@ export default class TransactionDatasource {
   }
 
   static async saveMany(rawTransactions: Array<Transaction>): Promise<void> {
+    if (rawTransactions.length === 0) return;
+
     const transactions = rawTransactions.map((t) => {
       switch (t.protocol) {
         case "Pocket":
@@ -127,6 +129,7 @@ export default class TransactionDatasource {
     const chainIdAndProtocol = Object.entries(
       transactions.reduce(
         (acc, t) => ({
+          ...acc,
           [t.protocol]: [...(acc[t.protocol] || []), t.chainId],
         }),
         {}

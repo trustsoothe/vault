@@ -1,5 +1,5 @@
 import { styled } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Typography from "@mui/material/Typography";
 import Stack, { StackProps } from "@mui/material/Stack";
 import {
@@ -86,7 +86,7 @@ function getLabelByRoute(pathname: string) {
 export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [_, setURLSearchParams] = useSearchParams();
+  const [searchParams, setURLSearchParams] = useSearchParams();
   const selectedAsset = useSelectedAsset();
   const [modalToShow, setModalToShow] = useState<
     "none" | "create_account" | "import_account"
@@ -95,6 +95,14 @@ export default function Header() {
   const showCreateAccount = () => setModalToShow("create_account");
   const showImportAccount = () => setModalToShow("import_account");
   const closeModal = () => setModalToShow("none");
+
+  useEffect(() => {
+    const openImport = searchParams.get("openToImportFile") === "true";
+
+    if (openImport) {
+      showImportAccount();
+    }
+  }, []);
 
   const isInActivity = ACTIVITY_PAGE === location.pathname;
 
@@ -124,7 +132,7 @@ export default function Header() {
                       }`
                     );
                   } else {
-                    setURLSearchParams({ asset: "" });
+                    setURLSearchParams({});
                   }
                 }}
               />

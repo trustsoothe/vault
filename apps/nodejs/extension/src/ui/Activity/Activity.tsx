@@ -1,4 +1,3 @@
-import type { SnackbarKey } from "notistack";
 import map from "lodash/map";
 import groupBy from "lodash/groupBy";
 import orderBy from "lodash/orderBy";
@@ -6,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
+import { closeSnackbar, SnackbarKey } from "notistack";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SupportedProtocols } from "@poktscan/vault";
 import { selectedAccountAddressSelector } from "../../redux/selectors/account";
@@ -26,36 +26,10 @@ import {
   selectedProtocolSelector,
 } from "../../redux/selectors/network";
 import { themeColors } from "../theme";
-
-export interface MintTransaction {
-  _id: string;
-  transaction_hash: string;
-  confirmations: string;
-  sender_address: string;
-  sender_chain_id: string;
-  recipient_address: string;
-  recipient_chain_id: string;
-  wpokt_address: string;
-  amount: string;
-  status: Status;
-  signers: string[];
-  created_at: string;
-  updated_at: string;
-  height: string;
-  vault_address: string;
-  nonce: string;
-  memo: {
-    address: string;
-    chain_id: string;
-  };
-  data: {
-    recipient: string;
-    amount: string;
-    nonce: string;
-  };
-  signatures: string[];
-  mint_tx_hash: string;
-}
+import {
+  MintTransaction,
+  useLazyGetActiveMintsQuery,
+} from "../../redux/slices/wpokt";
 
 interface TransactionItemProps {
   transaction: Transaction | MintTransaction;
@@ -224,12 +198,8 @@ function RenderDay({ day }: { day: string }) {
   );
 }
 
-const MAINNET_BASE_API_URL = process.env.WPOKT_MAINNET_API_BASE_URL;
-const TESTNET_BASE_API_URL = process.env.WPOKT_TESTNET_API_BASE_URL;
-
 export default function Activity() {
   const errorSnackbarKeyRef = useRef<SnackbarKey>(null);
-  const abortControllerRef = useRef<AbortController>(null);
   const [txToDetail, setTxToDetail] = useState<Transaction>(null);
   const [txToMin, setTxToMint] = useState<MintTransaction>(null);
   const selectedChain = useAppSelector(selectedChainSelector);
@@ -238,56 +208,51 @@ export default function Activity() {
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedAccountAddress = useAppSelector(selectedAccountAddressSelector);
 
-  const wPoktTxApiBaseUrl =
-    selectedAsset?.symbol === "WPOKT"
-      ? selectedChain === "1"
-        ? MAINNET_BASE_API_URL
-        : TESTNET_BASE_API_URL
-      : undefined;
+  const [
+    fetchActiveMints,
+    { data: rawMintTransactions, isLoading: isLoadingMints },
+  ] = useLazyGetActiveMintsQuery({
+    pollingInterval: 60000,
+  });
 
-  const [isLoadingMints, setIsLoadingMints] = useState(!!wPoktTxApiBaseUrl);
-  const [mintTransactions, setMintTransactions] = useState<
-    Array<MintTransaction>
-  >([]);
+  const mustShowMintTransactions = selectedAsset?.symbol === "WPOKT";
 
-  const fetchMintTransactions = () => {
-    abortControllerRef.current = new AbortController();
-    return fetch(
-      `${wPoktTxApiBaseUrl}/mints/active?recipient=${selectedAccountAddress}`,
-      {
-        signal: abortControllerRef.current.signal,
-      }
-    )
-      .then((res) => res.json())
-      .then((items: Array<MintTransaction>) => {
-        setMintTransactions(items);
-        setIsLoadingMints(false);
-      })
-      .catch(() => {
-        errorSnackbarKeyRef.current = enqueueErrorSnackbar({
-          message: `Failed to fetch Mint Transactions`,
-          onRetry: fetchMintTransactions,
-        });
-      })
-      .finally(() => (abortControllerRef.current = null));
+  const closeSnackbars = () => {
+    if (errorSnackbarKeyRef.current) {
+      closeSnackbar(errorSnackbarKeyRef.current);
+      errorSnackbarKeyRef.current = null;
+    }
   };
 
   useEffect(() => {
-    if (!wPoktTxApiBaseUrl) return;
-    setIsLoadingMints(true);
+    if (mustShowMintTransactions) {
+      fetchActiveMints(
+        {
+          recipient: selectedAccountAddress,
+          chain: selectedChain === "1" ? "mainnet" : "testnet",
+        },
+        true
+      ).then((res) => {
+        if (res.isError) {
+          errorSnackbarKeyRef.current = enqueueErrorSnackbar({
+            message: `Failed to fetch Mint Transactions`,
+            onRetry: () =>
+              fetchActiveMints(
+                {
+                  recipient: selectedAccountAddress,
+                  chain: selectedChain === "1" ? "mainnet" : "testnet",
+                },
+                true
+              ),
+          });
+        } else {
+          closeSnackbars();
+        }
+      });
+    }
 
-    let interval: NodeJS.Timeout;
-    fetchMintTransactions().then(() => {
-      interval = setInterval(fetchMintTransactions, 60000);
-    });
-
-    return () => {
-      clearInterval(interval);
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [selectedAccountAddress, wPoktTxApiBaseUrl]);
+    return closeSnackbars;
+  }, [mustShowMintTransactions, selectedAccountAddress]);
 
   const { transactionsGroupedByDay, idOfPendingMint } = useMemo(() => {
     const txs = transactions.filter(
@@ -299,6 +264,8 @@ export default function Activity() {
         (t.protocol !== SupportedProtocols.Ethereum ||
           t.assetId === selectedAsset?.id)
     );
+
+    const mintTransactions = rawMintTransactions || [];
 
     const idOfPendingMint =
       orderBy(
@@ -360,7 +327,7 @@ export default function Activity() {
     selectedProtocol,
     selectedChain,
     selectedAccountAddress,
-    mintTransactions,
+    rawMintTransactions,
   ]);
 
   const openTxDetail = (transaction: Transaction | MintTransaction) => {
@@ -408,7 +375,7 @@ export default function Activity() {
           <>
             <ActivityIcon />
             <Typography width={220} textAlign={"center"}>
-              {isLoadingMints
+              {isLoadingMints && mustShowMintTransactions
                 ? "Loading Pending Mints"
                 : "Your account has no recorded activity to show yet."}
             </Typography>

@@ -1,13 +1,16 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import browser from "webextension-polyfill";
 import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import { FormProvider, useForm } from "react-hook-form";
 import React, { useEffect, useRef, useState } from "react";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { enqueueErrorSnackbar } from "../../utils/ui";
+import { enqueueErrorSnackbar, enqueueSnackbar } from "../../utils/ui";
+import { ACCOUNTS_PAGE } from "../../constants/routes";
 import ImportVaultModal from "./ImportVaultModal";
 import Logo from "../assets/logo/isologo.svg";
+import useIsPopup from "../hooks/useIsPopup";
 import InitializeVaultForm from "./Form";
 
 export interface InitializeVaultFormValues {
@@ -18,6 +21,7 @@ export interface InitializeVaultFormValues {
 
 export default function InitializeVault() {
   const errorSnackbarKey = useRef<SnackbarKey>();
+  const isPopup = useIsPopup();
   const [showImportModal, setShowImportModal] = useState(false);
   const [status, setStatus] = useState<"normal" | "loading">("normal");
 
@@ -28,7 +32,23 @@ export default function InitializeVault() {
     }
   };
 
-  useEffect(() => closeSnackbars, []);
+  useEffect(() => {
+    const openImportVault = location.hash === "#/?openImportVault=true";
+
+    if (openImportVault) {
+      location.hash = "#/";
+
+      setShowImportModal(true);
+
+      enqueueSnackbar({
+        variant: "info",
+        message:
+          "This page was open because you cannot import files in the popup.",
+      });
+    }
+
+    return closeSnackbars;
+  }, []);
 
   const methods = useForm<InitializeVaultFormValues>({
     defaultValues: {
@@ -39,8 +59,18 @@ export default function InitializeVault() {
   });
   const { handleSubmit } = methods;
 
-  const toggleShowImportModal = () =>
-    setShowImportModal((prevState) => !prevState);
+  const openImportModal = () => {
+    if (isPopup) {
+      browser.tabs.create({
+        active: true,
+        url: `home.html#${ACCOUNTS_PAGE}?openImportVault=true`,
+      });
+    } else {
+      setShowImportModal(true);
+    }
+  };
+
+  const closeImportModal = () => setShowImportModal(false);
 
   const onSubmit = (data: InitializeVaultFormValues) => {
     if (status !== "loading") {
@@ -70,10 +100,7 @@ export default function InitializeVault() {
 
   return (
     <>
-      <ImportVaultModal
-        open={showImportModal}
-        onClose={toggleShowImportModal}
-      />
+      <ImportVaultModal open={showImportModal} onClose={closeImportModal} />
       <Box
         height={1}
         display={"flex"}
@@ -115,7 +142,7 @@ export default function InitializeVault() {
           bgcolor={"#fff"}
         >
           <Typography>Have a Vault Backup?</Typography>
-          <Button onClick={toggleShowImportModal} disabled={isLoading}>
+          <Button onClick={openImportModal} disabled={isLoading}>
             Import
           </Button>
         </Box>

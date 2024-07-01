@@ -16,6 +16,10 @@ import {
   VAULT_HAS_BEEN_INITIALIZED_KEY,
 } from "./index";
 import { getVault } from "../../../utils";
+import TransactionDatasource, {
+  EthTransaction,
+  PoktTransaction,
+} from "../../../controllers/datasource/Transaction";
 
 const BACKUP_VAULT_KEY = "BACKUP_VAULT";
 
@@ -69,7 +73,37 @@ export const SettingsSchema = z.object({
       maxAgeInSecs: 3600,
     }),
   requirePasswordForSensitiveOpts: z.boolean().default(false),
+  txs: z
+    .string()
+    .optional()
+    .refine((encodedTxs) => {
+      if (encodedTxs) {
+        try {
+          const decodedTxs = JSON.parse(atob(encodedTxs));
+
+          for (const decodedTx of decodedTxs) {
+            switch (decodedTx.protocol) {
+              case "Pocket":
+                PoktTransaction.parse(decodedTx);
+                break;
+              case "Ethereum":
+                EthTransaction.parse(decodedTx);
+                break;
+              default:
+                throw new Error("Unsupported protocol");
+            }
+          }
+
+          return true;
+        } catch (e) {
+          return false;
+        }
+      } else {
+        return true;
+      }
+    }, "Invalid transactions"),
 });
+
 export type SettingsSchema = z.infer<typeof SettingsSchema>;
 
 export const VaultBackupSchema = z.object({
@@ -117,6 +151,12 @@ export const exportVault = createAsyncThunk(
       .exportVault(vaultPassword, encryptionPassword || vaultPassword)
       .then((instance) => instance.serialize());
 
+    const transactions = await TransactionDatasource.getTransactionsOfNetworks(
+      state.app.networks
+    );
+
+    const transactionsEncoded = btoa(JSON.stringify(transactions));
+
     const vaultToExport: VaultBackupSchema = {
       vault: encryptedVault,
       version: "0.0.1",
@@ -132,6 +172,7 @@ export const exportVault = createAsyncThunk(
         requirePasswordForSensitiveOpts:
           currentAppState.requirePasswordForSensitiveOpts,
         accountsImported: currentAppState.accountsImported,
+        txs: transactionsEncoded,
       },
     };
 

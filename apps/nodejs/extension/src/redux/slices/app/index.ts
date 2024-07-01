@@ -560,6 +560,7 @@ export const importAppSettings = createAsyncThunk(
       sessionsMaxAge,
       requirePasswordForSensitiveOpts,
       accountsImported,
+      txs,
     } = settingsParsed;
 
     await browser.storage.local.set({
@@ -575,7 +576,17 @@ export const importAppSettings = createAsyncThunk(
       [ACCOUNTS_IMPORTED_KEY]: accountsImported,
     });
 
-    return settingsParsed;
+    let transactions: Array<Transaction>;
+
+    if (txs) {
+      transactions = JSON.parse(atob(txs));
+
+      if (transactions.length > 0) {
+        await TransactionDatasource.saveMany(transactions);
+      }
+    }
+
+    return { settings: settingsParsed, transactions };
   }
 );
 
@@ -793,36 +804,37 @@ const generalAppSlice = createSlice({
       state.accountsImported = action.payload;
     });
 
-    builder.addCase(
-      importAppSettings.fulfilled,
-      (state, { payload: settings }) => {
-        const {
-          assetsIdByAccount,
-          selectedAccountByProtocol,
-          selectedChainByProtocol,
-          selectedProtocol,
-          networksCanBeSelected,
-          customRpcs,
-          contacts,
-          sessionsMaxAge,
-          requirePasswordForSensitiveOpts,
-          accountsImported,
-        } = settings;
+    builder.addCase(importAppSettings.fulfilled, (state, { payload }) => {
+      const {
+        assetsIdByAccount,
+        selectedAccountByProtocol,
+        selectedChainByProtocol,
+        selectedProtocol,
+        networksCanBeSelected,
+        customRpcs,
+        contacts,
+        sessionsMaxAge,
+        requirePasswordForSensitiveOpts,
+        accountsImported,
+      } = payload.settings;
 
-        state.assetsIdByAccount = assetsIdByAccount;
-        state.selectedAccountByProtocol = selectedAccountByProtocol;
-        state.selectedChainByProtocol = selectedChainByProtocol;
-        state.selectedProtocol = selectedProtocol;
-        state.networksCanBeSelected =
-          networksCanBeSelected as NetworkCanBeSelectedMap;
-        state.customRpcs = customRpcs as CustomRPC[];
-        state.contacts = contacts as SerializedAccountReference[];
-        state.sessionsMaxAge =
-          sessionsMaxAge as GeneralAppSlice["sessionsMaxAge"];
-        state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
-        state.accountsImported = accountsImported;
+      state.assetsIdByAccount = assetsIdByAccount;
+      state.selectedAccountByProtocol = selectedAccountByProtocol;
+      state.selectedChainByProtocol = selectedChainByProtocol;
+      state.selectedProtocol = selectedProtocol;
+      state.networksCanBeSelected =
+        networksCanBeSelected as NetworkCanBeSelectedMap;
+      state.customRpcs = customRpcs as CustomRPC[];
+      state.contacts = contacts as SerializedAccountReference[];
+      state.sessionsMaxAge =
+        sessionsMaxAge as GeneralAppSlice["sessionsMaxAge"];
+      state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
+      state.accountsImported = accountsImported;
+
+      if (payload.transactions?.length > 0) {
+        state.transactions = payload.transactions;
       }
-    );
+    });
   },
 });
 

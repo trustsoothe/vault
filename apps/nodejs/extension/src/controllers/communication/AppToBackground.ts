@@ -76,6 +76,7 @@ import {
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
   CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
   EXPORT_VAULT_REQUEST,
+  GET_RECOVERY_PHRASE_ID_REQUEST,
   IMPORT_ACCOUNT_REQUEST,
   IMPORT_HD_WALLET_REQUEST,
   IMPORT_VAULT_REQUEST,
@@ -97,6 +98,8 @@ import {
 import {
   CreateAccountFromHdSeedReq,
   CreateAccountFromHdSeedRes,
+  GetRecoveryPhraseIdReq,
+  GetRecoveryPhraseIdRes,
   ImportHdWalletReq,
   ImportHdWalletRes,
   PhraseGeneratedHdSeedReq,
@@ -372,6 +375,17 @@ export default class AppToBackground {
   ): Promise<RemoveRecoveryPhraseRes> {
     const message: RemoveRecoveryPhraseReq = {
       type: REMOVE_RECOVERY_PHRASE_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async getRecoveryPhraseId(
+    data: GetRecoveryPhraseIdReq["data"]
+  ): Promise<GetRecoveryPhraseIdRes> {
+    const message: GetRecoveryPhraseIdReq = {
+      type: GET_RECOVERY_PHRASE_ID_REQUEST,
       data,
     };
 

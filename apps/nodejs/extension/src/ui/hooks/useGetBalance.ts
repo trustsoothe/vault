@@ -78,6 +78,11 @@ export default function useGetBalance({
         variant: "error",
         autoHideDuration: 6000,
       });
+    } else {
+      if (lastSnackbarKeyRef.current) {
+        closeSnackbar(lastSnackbarKeyRef.current);
+        lastSnackbarKeyRef.current = null;
+      }
     }
   }, [error]);
 

@@ -3,7 +3,7 @@ import type {
   SupportedProtocols,
 } from "@poktscan/vault";
 import { shallowEqual } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import browser from "webextension-polyfill";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
@@ -11,6 +11,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import React, { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   changeSelectedAccountOfNetwork,
   changeSelectedNetwork,
@@ -22,13 +23,15 @@ import {
 import ImportForm from "./ImportForm";
 import { themeColors } from "../theme";
 import { getPrivateKey } from "./utils";
+import useIsPopup from "../hooks/useIsPopup";
 import BaseDialog from "../components/BaseDialog";
-import AccountFeedback from "../components/AccountFeedback";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
+import AccountFeedback from "../components/AccountFeedback";
 import DialogButtons from "../components/DialogButtons";
 import { nameRules } from "../NewAccount/NewAccountModal";
 import { INVALID_FILE_PASSWORD } from "../../errors/account";
 import ProtocolSelector from "../components/ProtocolSelector";
+import useDidMountEffect from "../../hooks/useDidMountEffect";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import {
   accountsSelector,
@@ -36,7 +39,7 @@ import {
 } from "../../redux/selectors/account";
 import { getAddressFromPrivateKey } from "../../utils/networkOperations";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { enqueueErrorSnackbar } from "../../utils/ui";
+import { enqueueErrorSnackbar, enqueueSnackbar } from "../../utils/ui";
 
 export interface ImportAccountFormValues {
   import_type: "private_key" | "json_file";
@@ -66,6 +69,9 @@ export default function ImportAccountModal({
   const selectedChainByProtocol = useAppSelector(
     selectedChainByProtocolSelector
   );
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const isPopup = useIsPopup();
   const navigate = useNavigate();
   const [status, setStatus] = useState<FormStatus>("normal");
   const [wrongFilePassword, setWrongFilePassword] = useState(false);
@@ -94,7 +100,7 @@ export default function ImportAccountModal({
 
   const [type, file_password] = watch(["import_type", "file_password"]);
 
-  useEffect(() => {
+  useDidMountEffect(() => {
     setValue("private_key", "");
     setValue("json_file", null);
     setValue("file_password", "");
@@ -102,6 +108,34 @@ export default function ImportAccountModal({
     setValue("protocol", selectedProtocol);
     setWrongFilePassword(false);
   }, [type, selectedProtocol]);
+
+  useDidMountEffect(() => {
+    if (isPopup && type === "json_file") {
+      browser.tabs.create({
+        active: true,
+        url: `home.html#${location.pathname}?openToImportFile=true`,
+      });
+    }
+  }, [type]);
+
+  useEffect(() => {
+    const openImport = searchParams.get("openToImportFile") === "true";
+
+    if (openImport) {
+      setTimeout(() => setValue("import_type", "json_file"), 200);
+
+      enqueueSnackbar({
+        variant: "info",
+        message:
+          "This page was open because you cannot import files in the popup.",
+      });
+      setSearchParams((prev) => {
+        prev.delete("openToImportFile");
+
+        return prev;
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (wrongFilePassword) {

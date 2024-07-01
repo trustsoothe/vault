@@ -1,7 +1,11 @@
 import Stack from "@mui/material/Stack";
+import browser from "webextension-polyfill";
+import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
+import { useSearchParams } from "react-router-dom";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import React, { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import {
@@ -16,6 +20,7 @@ import { getPrivateKey } from "../../components/Account/Import";
 import Summary, { SummaryRowItem } from "../components/Summary";
 import { labelByProtocolMap } from "../../constants/protocols";
 import useDidMountEffect from "../../hooks/useDidMountEffect";
+import { MANAGE_ACCOUNTS_PAGE } from "../../constants/routes";
 import { INVALID_FILE_PASSWORD } from "../../errors/account";
 import CopyAddressButton from "../Home/CopyAddressButton";
 import DialogButtons from "../components/DialogButtons";
@@ -24,6 +29,7 @@ import ImportForm from "../ImportAccount/ImportForm";
 import AccountInfo from "../components/AccountInfo";
 import { useAppSelector } from "../../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
+import useIsPopup from "../hooks/useIsPopup";
 import {
   accountsImportedSelector,
   accountsSelector,
@@ -68,9 +74,11 @@ export default function RemoveAccountModal({
   const wrongPasswordSnackbarKey = useRef<SnackbarKey>();
   const accounts = useAppSelector(accountsSelector);
   const seeds = useAppSelector(seedsSelector);
+  const isPopup = useIsPopup();
   const [status, setStatus] = useState<"form" | "invalid_pk" | "loading">(
     "form"
   );
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const requirePassword = useAppSelector(
     requirePasswordForSensitiveOptsSelector
@@ -107,6 +115,33 @@ export default function RemoveAccountModal({
       setStatus("form");
     }
   }, [privateKey, jsonFile]);
+
+  useDidMountEffect(() => {
+    if (isPopup && importType === "json_file") {
+      browser.tabs.create({
+        active: true,
+        url: `home.html#${MANAGE_ACCOUNTS_PAGE}?toRemoveWithFile=${account.id}`,
+      });
+    }
+  }, [importType]);
+
+  useEffect(() => {
+    const toRemoveWithFile = searchParams.get("toRemoveWithFile");
+
+    if (toRemoveWithFile && account?.id === toRemoveWithFile) {
+      setTimeout(() => setValue("import_type", "json_file"), 100);
+      enqueueSnackbar({
+        variant: "info",
+        message:
+          "This page was open because you cannot import files in the popup.",
+      });
+      setSearchParams((prev) => {
+        prev.delete("toRemoveWithFile");
+
+        return prev;
+      });
+    }
+  }, [account]);
 
   const closeSnackbars = () => {
     if (wrongPasswordSnackbarKey.current) {
@@ -339,6 +374,7 @@ export default function RemoveAccountModal({
         )}
         {requirePassword && (
           <>
+            <Divider flexItem={true} sx={{ marginTop: 1.6 }} />
             <Typography fontSize={11} lineHeight={"16px"} marginTop={1.6}>
               To continue, please enter the vault’s password:
             </Typography>
@@ -366,25 +402,22 @@ export default function RemoveAccountModal({
           </>
         )}
       </DialogContent>
-      <DialogButtons
-        containerProps={{
-          sx: {
-            height: 85,
-          },
-        }}
-        primaryButtonProps={{
-          variant: "text",
-          sx: {
-            backgroundColor: themeColors.white,
-            color: themeColors.red,
-            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
-          },
-          children: "Remove Account",
-          disabled: !canRemove,
-          type: "submit",
-          isLoading,
-        }}
-      />
+      <DialogActions sx={{ height: 85, padding: 0 }}>
+        <DialogButtons
+          primaryButtonProps={{
+            variant: "text",
+            sx: {
+              backgroundColor: themeColors.white,
+              color: themeColors.red,
+              boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+            },
+            children: "Remove Account",
+            disabled: !canRemove,
+            type: "submit",
+            isLoading,
+          }}
+        />
+      </DialogActions>
     </BaseDialog>
   );
 }

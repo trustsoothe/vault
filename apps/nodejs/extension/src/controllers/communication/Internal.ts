@@ -109,6 +109,8 @@ import {
   CREATE_ACCOUNT_FROM_HD_SEED_RESPONSE,
   EXPORT_VAULT_REQUEST,
   EXPORT_VAULT_RESPONSE,
+  GET_RECOVERY_PHRASE_ID_REQUEST,
+  GET_RECOVERY_PHRASE_ID_RESPONSE,
   IMPORT_ACCOUNT_REQUEST,
   IMPORT_ACCOUNT_RESPONSE,
   IMPORT_HD_WALLET_REQUEST,
@@ -192,6 +194,8 @@ import {
 import {
   CreateAccountFromHdSeedReq,
   CreateAccountFromHdSeedRes,
+  GetRecoveryPhraseIdReq,
+  GetRecoveryPhraseIdRes,
   ImportHdWalletReq,
   ImportHdWalletRes,
   PhraseGeneratedHdSeedReq,
@@ -237,6 +241,7 @@ const mapMessageType: Record<InternalRequests["type"], true> = {
   [PHRASE_GENERATED_HD_SEED_REQUEST]: true,
   [UPDATE_RECOVERY_PHRASE_REQUEST]: true,
   [REMOVE_RECOVERY_PHRASE_REQUEST]: true,
+  [GET_RECOVERY_PHRASE_ID_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -356,6 +361,10 @@ class InternalCommunicationController implements ICommunicationController {
 
     if (message?.type === REMOVE_RECOVERY_PHRASE_REQUEST) {
       return this._handleRemoveRecoveryPhrase(message);
+    }
+
+    if (message?.type === GET_RECOVERY_PHRASE_ID_REQUEST) {
+      return this._getRecoveryPhraseIdByPhrase(message);
     }
   }
 
@@ -1340,6 +1349,35 @@ class InternalCommunicationController implements ICommunicationController {
 
       return {
         type: IMPORT_HD_WALLET_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _getRecoveryPhraseIdByPhrase(
+    message: GetRecoveryPhraseIdReq
+  ): Promise<GetRecoveryPhraseIdRes> {
+    try {
+      const { recoveryPhrase, passphrase } = message.data;
+
+      const sessionId = (store.getState() as RootState).vault.vaultSession.id;
+
+      const recoveryPhraseId = await getVault().getRecoveryPhraseId(sessionId, {
+        recoveryPhrase,
+        passphrase,
+      });
+
+      return {
+        type: GET_RECOVERY_PHRASE_ID_RESPONSE,
+        data: {
+          recoveryPhraseId,
+        },
+        error: null,
+      };
+    } catch (e) {
+      return {
+        type: GET_RECOVERY_PHRASE_ID_RESPONSE,
         data: null,
         error: UnknownError,
       };
