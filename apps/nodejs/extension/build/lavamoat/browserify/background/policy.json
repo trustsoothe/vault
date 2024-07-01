@@ -6,68 +6,6 @@
         "File": true
       }
     },
-    "@reduxjs/toolkit": {
-      "globals": {
-        "AbortController": true,
-        "Headers": true,
-        "Request": true,
-        "URLSearchParams": true,
-        "__REDUX_DEVTOOLS_EXTENSION_COMPOSE__": true,
-        "__REDUX_DEVTOOLS_EXTENSION__": true,
-        "_type": true,
-        "addEventListener": true,
-        "clearTimeout": true,
-        "console.error": true,
-        "console.warn": true,
-        "document": true,
-        "fetch": true,
-        "message": true,
-        "name": true,
-        "navigator": true,
-        "queueMicrotask": true,
-        "removeEventListener": true,
-        "requestAnimationFrame": true,
-        "setTimeout": true
-      },
-      "packages": {
-        "@reduxjs/toolkit>immer": true,
-        "@reduxjs/toolkit>redux-thunk": true,
-        "@reduxjs/toolkit>reselect": true,
-        "process": true,
-        "react": true,
-        "react-redux": true,
-        "react-redux>redux": true
-      }
-    },
-    "@reduxjs/toolkit>immer": {
-      "packages": {
-        "process": true
-      }
-    },
-    "@reduxjs/toolkit>reselect": {
-      "globals": {
-        "WeakRef": true,
-        "_cachedRevision": true,
-        "_cachedValue": true,
-        "_deps": true,
-        "_isEqual": true,
-        "_lastValue": true,
-        "_value": true,
-        "children": true,
-        "collectionTag": true,
-        "console.warn": true,
-        "fn": true,
-        "hits": true,
-        "id": true,
-        "proxy": true,
-        "revision": true,
-        "tag": true,
-        "tags": true
-      },
-      "packages": {
-        "process": true
-      }
-    },
     "@poktscan/vault-encryption-web>@noble/hashes": {
       "globals": {
         "TextEncoder": true,
@@ -431,6 +369,68 @@
         "XMLHttpRequest": true,
         "fetch": true,
         "setTimeout": true
+      }
+    },
+    "@reduxjs/toolkit": {
+      "globals": {
+        "AbortController": true,
+        "Headers": true,
+        "Request": true,
+        "URLSearchParams": true,
+        "__REDUX_DEVTOOLS_EXTENSION_COMPOSE__": true,
+        "__REDUX_DEVTOOLS_EXTENSION__": true,
+        "_type": true,
+        "addEventListener": true,
+        "clearTimeout": true,
+        "console.error": true,
+        "console.warn": true,
+        "document": true,
+        "fetch": true,
+        "message": true,
+        "name": true,
+        "navigator": true,
+        "queueMicrotask": true,
+        "removeEventListener": true,
+        "requestAnimationFrame": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@reduxjs/toolkit>immer": true,
+        "@reduxjs/toolkit>redux-thunk": true,
+        "@reduxjs/toolkit>reselect": true,
+        "process": true,
+        "react": true,
+        "react-redux": true,
+        "react-redux>redux": true
+      }
+    },
+    "@reduxjs/toolkit>immer": {
+      "packages": {
+        "process": true
+      }
+    },
+    "@reduxjs/toolkit>reselect": {
+      "globals": {
+        "WeakRef": true,
+        "_cachedRevision": true,
+        "_cachedValue": true,
+        "_deps": true,
+        "_isEqual": true,
+        "_lastValue": true,
+        "_value": true,
+        "children": true,
+        "collectionTag": true,
+        "console.warn": true,
+        "fn": true,
+        "hits": true,
+        "id": true,
+        "proxy": true,
+        "revision": true,
+        "tag": true,
+        "tags": true
+      },
+      "packages": {
+        "process": true
       }
     },
     "assert>call-bind": {

@@ -7,14 +7,15 @@ export interface LoadingButtonProps extends ButtonProps {
   isLoading?: boolean;
 }
 
-export default function LoadingButton({
-  isLoading,
-  ...buttonProps
-}: LoadingButtonProps) {
+function LoadingButton(
+  { isLoading, ...buttonProps }: LoadingButtonProps,
+  ref: React.ForwardedRef<HTMLButtonElement>
+) {
   return (
     <Button
       variant={"contained"}
       {...buttonProps}
+      ref={ref}
       onClick={!isLoading ? buttonProps.onClick : undefined}
       disabled={buttonProps.disabled || isLoading}
       sx={{
@@ -32,3 +33,5 @@ export default function LoadingButton({
     </Button>
   );
 }
+
+export default React.forwardRef(LoadingButton);

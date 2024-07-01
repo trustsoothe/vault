@@ -16,7 +16,7 @@ export default function RequestOriginsPermission({
   onGranted,
 }: RequestOriginsPermissionProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const wasNotified = useRef<boolean>(false);
+  const wasInjected = useRef<boolean>(false);
 
   return (
     <Stack
@@ -44,17 +44,14 @@ export default function RequestOriginsPermission({
         variant={"contained"}
         fullWidth
         ref={(button) => {
-          if (button) {
+          if (button && !wasInjected.current) {
+            wasInjected.current = true;
             const listener = async () => {
-              if (wasNotified.current) return;
-              wasNotified.current = true;
               setIsLoading(true);
 
               const granted = await browser.permissions.request({
                 origins: requiredOrigins,
               });
-
-              wasNotified.current = false;
 
               if (granted) {
                 onGranted();
