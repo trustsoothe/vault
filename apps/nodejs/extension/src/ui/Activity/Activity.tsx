@@ -8,19 +8,23 @@ import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SupportedProtocols } from "@poktscan/vault";
-import { selectedAccountAddressSelector } from "../../redux/selectors/account";
 import { transactionsSelector } from "../../redux/slices/app/transactions";
 import { enqueueErrorSnackbar, roundAndSeparate } from "../../utils/ui";
 import { Transaction } from "../../controllers/datasource/Transaction";
 import MintTransactionModal from "../Transaction/MintTransactionModal";
-import { Status } from "../../components/Account/WrappedPoktTxs";
+import { contactsSelector } from "../../redux/selectors/contact";
 import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import TransactionDetailModal from "./TransactionDetailModal";
 import ActivityIcon from "../assets/img/activity_logo.svg";
 import ReceivedIcon from "../assets/img/receive_icon.svg";
+import AccountInfo from "../components/AccountInfo";
 import SentIcon from "../assets/img/sent_icon.svg";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import useUsdPrice from "../hooks/useUsdPrice";
+import {
+  accountsSelector,
+  selectedAccountAddressSelector,
+} from "../../redux/selectors/account";
 import {
   selectedChainSelector,
   selectedProtocolSelector,
@@ -28,6 +32,7 @@ import {
 import { themeColors } from "../theme";
 import {
   MintTransaction,
+  TxStatus,
   useLazyGetActiveMintsQuery,
 } from "../../redux/slices/wpokt";
 
@@ -40,6 +45,7 @@ interface TransactionItemProps {
     amount: number;
     timestamp: number;
     shouldMint?: boolean;
+    otherAccount?: { address: string; name?: string; isContact: boolean };
   };
   openTransactionDetail: (transaction: Transaction | MintTransaction) => void;
 }
@@ -69,31 +75,48 @@ function TransactionItem({
   const pendingMint =
     transaction.shouldMint &&
     "status" in fullTransaction &&
-    fullTransaction.status === Status.SIGNED;
+    fullTransaction.status === TxStatus.SIGNED;
 
   return (
     <Button
       sx={{
         width: 1,
-        height: 50,
+        height: 74,
         paddingY: 0.8,
         fontWeight: 400,
         paddingLeft: 0.4,
         paddingRight: 0.6,
         borderRadius: "8px",
+        color: themeColors.black,
         backgroundColor: themeColors.white,
       }}
       onClick={() => openTransactionDetail(fullTransaction)}
     >
       <Stack
         width={1}
-        height={50}
+        height={74}
         spacing={1.2}
         direction={"row"}
         alignItems={"center"}
         position={"relative"}
+        sx={{
+          "& svg.tx_type": {
+            minWidth: 34,
+            minHeight: 34,
+          },
+          "& div.avatar": {
+            width: 12,
+            height: 12,
+            marginRight: -0.3,
+          },
+          "& svg.avatar": {
+            marginTop: 0.1,
+            transform: "scale(0.8)",
+            marginRight: -0.3,
+          },
+        }}
       >
-        <Icon />
+        <Icon className={"tx_type"} />
         {pendingMint && (
           <Stack
             width={9}
@@ -104,13 +127,13 @@ function TransactionItem({
             border={`2px solid ${themeColors.white}`}
             margin={"0px!important"}
             left={23}
-            bottom={29}
+            top={18}
           />
         )}
         <Stack spacing={0.4} flexGrow={1}>
           <Stack
             width={1}
-            spacing={0.5}
+            spacing={1.5}
             direction={"row"}
             alignItems={"center"}
             justifyContent={"space-between"}
@@ -122,14 +145,20 @@ function TransactionItem({
             >
               {wasReceived ? "Received" : "Sent"}
             </Typography>
-            <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
+            <Stack
+              direction={"row"}
+              alignItems={"center"}
+              spacing={0.5}
+              width={212}
+              justifyContent={"flex-end"}
+            >
               <Typography
                 lineHeight={"16px"}
                 variant={"subtitle2"}
                 color={themeColors.black}
                 noWrap={true}
               >
-                {wasReceived ? "+" : "-"}
+                {transaction.amount ? (wasReceived ? "+" : "-") : ""}
                 {roundAndSeparate(
                   transaction.amount,
                   asset?.decimals ||
@@ -146,15 +175,49 @@ function TransactionItem({
               >
                 {coinSymbol}
               </Typography>
+              {isLoading ? (
+                <Skeleton variant={"rectangular"} width={50} height={14} />
+              ) : (
+                <Typography
+                  variant={"body2"}
+                  lineHeight={"16px"}
+                  whiteSpace={"nowrap"}
+                  color={themeColors.textSecondary}
+                >
+                  ($
+                  {error
+                    ? "-"
+                    : roundAndSeparate(
+                        transaction.amount * usdPrice,
+                        2,
+                        "0.00"
+                      )}
+                  )
+                </Typography>
+              )}
             </Stack>
           </Stack>
           <Stack
             width={1}
-            spacing={0.5}
+            spacing={1}
             direction={"row"}
             alignItems={"center"}
             justifyContent={"space-between"}
           >
+            <Typography
+              lineHeight={"16px"}
+              variant={"subtitle2"}
+              color={themeColors.black}
+            >
+              {wasReceived ? "Sender" : "Recipient"}
+            </Typography>
+            <AccountInfo
+              address={transaction.otherAccount.address}
+              name={transaction.otherAccount.name}
+              type={transaction.otherAccount.isContact ? "contact" : "account"}
+            />
+          </Stack>
+          <Stack width={1} direction={"row"} alignItems={"center"}>
             <Typography
               variant={"body2"}
               lineHeight={"14px"}
@@ -162,20 +225,6 @@ function TransactionItem({
             >
               {pendingMint ? "Pending Mint" : time}
             </Typography>
-            {isLoading ? (
-              <Skeleton variant={"rectangular"} width={50} height={14} />
-            ) : (
-              <Typography
-                variant={"body2"}
-                lineHeight={"14px"}
-                color={themeColors.textSecondary}
-              >
-                {wasReceived ? "+" : "-"}${" "}
-                {error
-                  ? "-"
-                  : roundAndSeparate(transaction.amount * usdPrice, 2, "0.00")}
-              </Typography>
-            )}
           </Stack>
         </Stack>
       </Stack>
@@ -207,6 +256,8 @@ export default function Activity() {
   const selectedAsset = useSelectedAsset();
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedAccountAddress = useAppSelector(selectedAccountAddressSelector);
+  const accounts = useAppSelector(accountsSelector);
+  const contacts = useAppSelector(contactsSelector);
 
   const [
     fetchActiveMints,
@@ -270,7 +321,7 @@ export default function Activity() {
     const idOfPendingMint =
       orderBy(
         mintTransactions
-          .filter((tx) => tx.status === Status.SIGNED)
+          .filter((tx) => tx.status === TxStatus.SIGNED)
           .map((tx: MintTransaction) => ({
             ...tx,
             nonce: Number(tx.nonce),
@@ -290,13 +341,74 @@ export default function Activity() {
             year: "numeric",
           })}`;
         }),
-        (transactions, day) => {
+        (
+          transactions: Array<
+            (Transaction | MintTransaction) & {
+              otherAccount: TransactionItemProps["shortTransaction"]["otherAccount"];
+            }
+          >,
+          day
+        ) => {
           const transactionsOrdered = orderBy(
             transactions,
             (t) => {
               if ("created_at" in t) {
+                let fromContacts = false;
+                const sender =
+                  contacts.find((account) => {
+                    if (
+                      account.address === t.sender_address &&
+                      account.protocol === selectedProtocol
+                    ) {
+                      fromContacts = true;
+                      return true;
+                    }
+
+                    return false;
+                  }) ||
+                  accounts.find(
+                    (account) =>
+                      account.address === t.sender_address &&
+                      account.protocol === selectedProtocol
+                  );
+
+                t.otherAccount = {
+                  address: sender?.address || t.sender_address,
+                  name: sender?.name,
+                  isContact: fromContacts,
+                };
                 return new Date(t.created_at).getTime();
               }
+
+              const otherAccountAddress =
+                t.to === selectedAccountAddress
+                  ? t.from
+                  : t.swapTo?.address || t.to;
+
+              let fromContacts = false;
+              const otherAccount =
+                contacts.find((account) => {
+                  if (
+                    account.address === otherAccountAddress &&
+                    account.protocol === selectedProtocol
+                  ) {
+                    fromContacts = true;
+                    return true;
+                  }
+
+                  return false;
+                }) ||
+                accounts.find(
+                  (account) =>
+                    account.address === otherAccountAddress &&
+                    account.protocol === selectedProtocol
+                );
+
+              t.otherAccount = {
+                address: otherAccount?.address || otherAccountAddress,
+                name: otherAccount?.name,
+                isContact: fromContacts,
+              };
 
               return t.timestamp;
             },
@@ -328,6 +440,8 @@ export default function Activity() {
     selectedChain,
     selectedAccountAddress,
     rawMintTransactions,
+    contacts,
+    accounts,
   ]);
 
   const openTxDetail = (transaction: Transaction | MintTransaction) => {
@@ -395,6 +509,7 @@ export default function Activity() {
                     amount: Number(transaction.amount) / 1e6,
                     timestamp: new Date(transaction.created_at).getTime(),
                     shouldMint: idOfPendingMint === transaction._id,
+                    otherAccount: transaction.otherAccount,
                   };
                 } else {
                   shortTransaction = {
@@ -403,6 +518,7 @@ export default function Activity() {
                     chainId: transaction.chainId,
                     amount: transaction.amount,
                     timestamp: transaction.timestamp,
+                    otherAccount: transaction.otherAccount,
                   };
                 }
 

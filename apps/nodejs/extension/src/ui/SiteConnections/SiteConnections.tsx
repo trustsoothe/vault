@@ -14,11 +14,11 @@ import { networksSelector } from "../../redux/selectors/network";
 import { accountsSelector } from "../../redux/selectors/account";
 import { labelByProtocolMap } from "../../constants/protocols";
 import ConnectionIcon from "../assets/img/connection_icon.svg";
-import useDidMountEffect from "../../hooks/useDidMountEffect";
+import useDidMountEffect from "../hooks/useDidMountEffect";
 import ConnectionDetailModal from "./ConnectionDetailModal";
 import DialogButtons from "../components/DialogButtons";
 import MenuDivider from "../components/MenuDivider";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import MoreIcon from "../assets/img/more_icon.svg";
 import { themeColors } from "../theme";
 

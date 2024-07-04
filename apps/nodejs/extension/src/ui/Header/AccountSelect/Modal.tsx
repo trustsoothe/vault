@@ -13,7 +13,7 @@ import {
 } from "../../../redux/selectors/account";
 import { themeColors } from "../../theme";
 import AddAccountButton from "./AddAccountButton";
-import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { selectedProtocolSelector } from "../../../redux/selectors/network";
 import { changeSelectedAccountOfNetwork } from "../../../redux/slices/app";
 import AccountSelectableItem from "../../components/AccountSelectableItem";

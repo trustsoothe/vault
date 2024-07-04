@@ -1,23 +1,18 @@
+import React from "react";
 import Stack from "@mui/material/Stack";
-import React, { useEffect } from "react";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import {
   SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/vault";
-import {
-  networkSymbolSelector,
-  selectedChainByProtocolSelector,
-} from "../../redux/selectors/network";
-import AppToBackground from "../../controllers/communication/AppToBackground";
-import { balanceMapConsideringAsset } from "../../redux/selectors/account";
+import { selectedChainByProtocolSelector } from "../../redux/selectors/network";
+import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 import { labelByProtocolMap } from "../../constants/protocols";
 import CopyAddressButton from "../Home/CopyAddressButton";
 import WarningActionBanner from "./WarningActionBanner";
 import SuccessActionBanner from "./SuccessActionBanner";
-import useGetPrices from "../../hooks/useGetPrices";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
 import AccountInfo from "./AccountInfo";
 import { themeColors } from "../theme";
@@ -34,35 +29,18 @@ export default function AccountFeedback({
   label,
   type = "success",
 }: AccountCreatedProps) {
-  const networkSymbol = useAppSelector(networkSymbolSelector);
   const selectedChainByProtocol = useAppSelector(
     selectedChainByProtocolSelector
   );
   const selectedChain = selectedChainByProtocol[account.protocol];
-  const balanceMap = useAppSelector(balanceMapConsideringAsset(undefined));
 
-  const {
-    data: pricesByProtocolAndChain,
-    isError: isNetworkPriceError,
-    isLoading: isLoadingNetworkPrices,
-  } = useGetPrices({
-    pollingInterval: 60000,
-  });
-  const usdPrice: number =
-    pricesByProtocolAndChain?.[account.protocol]?.[selectedChain] || 0;
-
-  useEffect(() => {
-    AppToBackground.getAccountBalance({
+  const { usdPrice, isLoadingUsdPrice, isLoadingBalance, balance, coinSymbol } =
+    useBalanceAndUsdPrice({
       address: account.address,
-      chainId: selectedChain,
       protocol: account.protocol,
-    }).catch();
-  }, []);
-
-  const balance = (balanceMap?.[account.address]?.amount as number) || 0;
-  const errorBalance = balanceMap?.[account.address]?.error || false;
-  const loadingBalance =
-    (balanceMap?.[account.address]?.loading && !balance) || false;
+      chainId: selectedChain,
+      interval: 0,
+    });
 
   return (
     <Stack
@@ -98,6 +76,7 @@ export default function AccountFeedback({
               <CopyAddressButton
                 address={account.address}
                 sxProps={{
+                  fontWeight: 500,
                   boxShadow: "none",
                   marginRight: -0.8,
                   color: themeColors.black,
@@ -118,7 +97,7 @@ export default function AccountFeedback({
           {
             type: "row",
             label: "Balance",
-            value: loadingBalance ? (
+            value: isLoadingBalance ? (
               <Skeleton variant={"rectangular"} width={100} height={20} />
             ) : (
               <Stack direction={"row"} alignItems={"center"} spacing={0.5}>
@@ -129,8 +108,8 @@ export default function AccountFeedback({
                     "0"
                   )}
                 </Typography>
-                <Typography variant={"subtitle2"}>{networkSymbol}</Typography>
-                {isLoadingNetworkPrices && isNetworkPriceError ? (
+                <Typography variant={"subtitle2"}>{coinSymbol}</Typography>
+                {isLoadingUsdPrice || isLoadingBalance ? (
                   <Skeleton variant={"rectangular"} width={48} height={20} />
                 ) : (
                   <Typography>

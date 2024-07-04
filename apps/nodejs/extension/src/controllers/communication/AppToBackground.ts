@@ -83,7 +83,6 @@ import {
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
   NETWORK_FEE_REQUEST,
-  PHRASE_GENERATED_HD_SEED_REQUEST,
   PK_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_REQUEST,
   REMOVE_RECOVERY_PHRASE_REQUEST,
@@ -102,8 +101,6 @@ import {
   GetRecoveryPhraseIdRes,
   ImportHdWalletReq,
   ImportHdWalletRes,
-  PhraseGeneratedHdSeedReq,
-  PhraseGeneratedHdSeedRes,
 } from "../../types/communications/hdWallet";
 
 export default class AppToBackground {
@@ -342,17 +339,6 @@ export default class AppToBackground {
   ): Promise<CreateAccountFromHdSeedRes> {
     const message: CreateAccountFromHdSeedReq = {
       type: CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
-      data,
-    };
-
-    return browser.runtime.sendMessage(message);
-  }
-
-  static async phraseGeneratedHdSeed(
-    data: PhraseGeneratedHdSeedReq["data"]
-  ): Promise<PhraseGeneratedHdSeedRes> {
-    const message: PhraseGeneratedHdSeedReq = {
-      type: PHRASE_GENERATED_HD_SEED_REQUEST,
       data,
     };
 

@@ -9,7 +9,6 @@ import React, { useMemo, useState } from "react";
 import IconButton from "@mui/material/IconButton";
 import Autocomplete from "@mui/material/Autocomplete";
 import { AccountType } from "@poktscan/vault";
-import { filterAccounts } from "../../components/Transfer/Form/ToAddressAutocomplete";
 import AccountInfo, { AccountAvatar } from "../components/AccountInfo";
 import TextFieldWithPaste from "../components/TextFieldWithPaste";
 import { contactsSelector } from "../../redux/selectors/contact";
@@ -17,8 +16,27 @@ import { accountsSelector } from "../../redux/selectors/account";
 import { isValidAddress } from "../../utils/networkOperations";
 import { Controller, useFormContext } from "react-hook-form";
 import CloseIcon from "../assets/img/rounded_close_icon.svg";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import { themeColors } from "../theme";
+
+const filterAccounts = (
+  searchText: string,
+  accounts: { name: string; address: string }[]
+) => {
+  if (!searchText) {
+    return accounts;
+  }
+
+  const text = searchText.trim().toLowerCase();
+
+  return accounts.filter((account) => {
+    if (account.name.toLowerCase().includes(text)) {
+      return true;
+    }
+
+    return account.address.toLowerCase().includes(text);
+  });
+};
 
 export default function RecipientAutocomplete() {
   const { control, watch } = useFormContext<TransactionFormValues>();

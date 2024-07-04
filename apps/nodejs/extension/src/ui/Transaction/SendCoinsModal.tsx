@@ -1,7 +1,7 @@
 import React from "react";
 import { SupportedProtocols } from "@poktscan/vault";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
 import SendPokt from "./SendPokt";
 import SendEth from "./SendEth";

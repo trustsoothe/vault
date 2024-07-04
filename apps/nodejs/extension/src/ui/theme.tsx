@@ -27,7 +27,6 @@ export const themeColors = Object.freeze({
 });
 
 const theme = createTheme({
-  customColors: null,
   spacing: 10,
   palette: {
     primary: {

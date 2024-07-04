@@ -10,8 +10,6 @@ import {
   GET_RECOVERY_PHRASE_ID_RESPONSE,
   IMPORT_HD_WALLET_REQUEST,
   IMPORT_HD_WALLET_RESPONSE,
-  PHRASE_GENERATED_HD_SEED_REQUEST,
-  PHRASE_GENERATED_HD_SEED_RESPONSE,
 } from "../../constants/communication";
 import { UnknownError } from "../../errors/communication";
 import { ImportRecoveryPhraseOptions } from "../../redux/slices/vault/phrases";
@@ -59,23 +57,5 @@ export interface CreateAccountFromHdSeedRes {
     answered: true;
     account: SerializedAccountReference;
   };
-  error: typeof UnknownError | null;
-}
-
-export interface PhraseGeneratedHdSeedReq {
-  type: typeof PHRASE_GENERATED_HD_SEED_REQUEST;
-  data: {
-    accountId: string;
-    vaultPassword?: string;
-    phraseOptions: ImportRecoveryPhraseOptions;
-  };
-}
-
-export interface PhraseGeneratedHdSeedRes {
-  type: typeof PHRASE_GENERATED_HD_SEED_RESPONSE;
-  data: {
-    vaultPasswordWrong: boolean;
-    isPhraseValid: boolean;
-  } | null;
   error: typeof UnknownError | null;
 }

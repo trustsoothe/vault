@@ -64,7 +64,7 @@ export default function Summary({ rows, containerProps }: SummaryProps) {
             {typeof row.value === "string" ? (
               <Typography
                 variant={"subtitle2"}
-                fontWeight={400}
+                fontWeight={500}
                 noWrap={true}
                 marginLeft={0.5}
               >

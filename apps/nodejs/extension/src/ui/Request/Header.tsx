@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import Stack, { StackProps } from "@mui/material/Stack";
 import { AccountAvatar } from "../components/AccountInfo";
 import { HeaderContainer } from "../Header/Header";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import {
   networksSelector,
   selectedChainByProtocolSelector,

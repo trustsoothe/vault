@@ -5,7 +5,7 @@ import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { enqueueErrorSnackbar, enqueueSnackbar } from "../../utils/ui";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import SmallGrayContainer from "../components/SmallGrayContainer";
 import { labelByProtocolMap } from "../../constants/protocols";
 import { ACCOUNTS_PAGE } from "../../constants/routes";

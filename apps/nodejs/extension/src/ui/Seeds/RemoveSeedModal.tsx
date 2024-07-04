@@ -13,7 +13,7 @@ import { accountsImportedSelector } from "../../redux/selectors/account";
 import AvatarByString from "../components/AvatarByString";
 import DialogButtons from "../components/DialogButtons";
 import PasswordInput from "../components/PasswordInput";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
 import PassphraseInput from "./PassphraseInput";
 import FillSeedPhrase from "./FillSeedPhrase";
@@ -200,7 +200,7 @@ export default function RemoveSeedModal({
       }}
     >
       <FormProvider {...methods}>
-        <DialogContent sx={{ padding: "24px!important" }}>
+        <DialogContent sx={{ padding: "18px!important" }}>
           <Summary
             rows={[
               {
@@ -230,8 +230,9 @@ export default function RemoveSeedModal({
           {mustProvideSeed ? (
             <>
               <Typography fontSize={11} marginTop={0.8} lineHeight={"16px"}>
-                To remove this seed, please provide its seed phrase. Soothe
-                needs to make sure you saved your access to this seed.
+                To remove this seed, please provide its seed phrase and
+                passphrase. Soothe needs to make sure you saved your access to
+                this seed.
               </Typography>
               <FillSeedPhrase canPaste={true} disabled={isLoading} />
               <PassphraseInput disabled={isLoading} />

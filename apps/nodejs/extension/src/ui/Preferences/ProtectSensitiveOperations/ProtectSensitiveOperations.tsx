@@ -3,7 +3,7 @@ import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import ForwardIcon from "@mui/icons-material/ArrowForwardIosRounded";
-import { useAppSelector } from "../../../hooks/redux";
+import { useAppSelector } from "../../hooks/redux";
 import ChangeSettingModal from "./ChangeSettingModal";
 import { requirePasswordForSensitiveOptsSelector } from "../../../redux/selectors/preferences";
 import { themeColors } from "../../theme";

@@ -2,7 +2,7 @@ import React from "react";
 import Stack from "@mui/material/Stack";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
 import useUsdPrice from "../hooks/useUsdPrice";
 import { themeColors } from "../theme";

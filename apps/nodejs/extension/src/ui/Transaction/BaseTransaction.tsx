@@ -13,7 +13,7 @@ import {
 import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../utils/ui";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { isValidAddress } from "../../utils/networkOperations";
-import useDidMountEffect from "../../hooks/useDidMountEffect";
+import useDidMountEffect from "../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
 
 export interface TransactionFormValues {
@@ -170,7 +170,6 @@ export default function BaseTransaction({
           feeErrorSnackbarKey.current = enqueueErrorSnackbar({
             message: "Failed to fetch Fee",
             onRetry: getFee,
-            persist: true,
           });
         } else {
           closeSnackbars();

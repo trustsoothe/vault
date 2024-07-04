@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import { Contact, removeContact } from "../../redux/slices/app/contact";
 import { enqueueErrorSnackbar, enqueueSnackbar } from "../../utils/ui";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import SmallGrayContainer from "../components/SmallGrayContainer";
 import { contactsSelector } from "../../redux/selectors/contact";
 import { labelByProtocolMap } from "../../constants/protocols";
@@ -115,7 +115,6 @@ function ContactItem({ contact, openRenameModal }: CustomItemProps) {
           },
         }}
       >
-        <MenuItem>Send</MenuItem>
         <MenuItem
           onClick={() => {
             openRenameModal(contact);

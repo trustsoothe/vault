@@ -17,8 +17,8 @@ import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 import SmallGrayContainer from "../components/SmallGrayContainer";
 import useSelectedAsset from "./hooks/useSelectedAsset";
 import ManageAssetsModal from "./ManageAssetsModal";
-import { useAppSelector } from "../../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
+import { useAppSelector } from "../hooks/redux";
 import { themeColors } from "../theme";
 import {
   assetsIdOfSelectedAccountSelector,

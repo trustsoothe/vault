@@ -101,7 +101,6 @@ import {
   CreateAccountFromHdSeedReq,
   GetRecoveryPhraseIdReq,
   ImportHdWalletReq,
-  PhraseGeneratedHdSeedReq,
 } from "./hdWallet";
 
 export type ProxyRequests =
@@ -152,7 +151,6 @@ export type InternalRequests =
   | ImportAccountReq
   | ImportHdWalletReq
   | CreateAccountFromHdSeedReq
-  | PhraseGeneratedHdSeedReq
   | PrivateKeyAccountReq
   | RevokeExternalSessionsReq
   | AccountBalanceReq

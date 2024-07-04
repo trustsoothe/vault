@@ -19,7 +19,7 @@ import {
 } from "../../redux/selectors/network";
 import SendFormPokt from "./SendFormPokt";
 import BaseTransaction from "./BaseTransaction";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import { assetsSelector } from "../../redux/selectors/asset";
 
 interface SendPoktProps {

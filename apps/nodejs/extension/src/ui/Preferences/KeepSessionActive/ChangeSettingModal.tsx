@@ -5,7 +5,7 @@ import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import React, { useEffect, useRef, useState } from "react";
-import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import { sessionsMaxAgeSelector } from "../../../redux/selectors/preferences";
 import { setSessionMaxAgeData } from "../../../redux/slices/app";
 import DialogButtons from "../../components/DialogButtons";
@@ -30,7 +30,7 @@ export function getLabelOfSetting(setting: SessionMaxAge) {
       label = `${hours} Hour${hours === 1 ? "" : "s"}`;
     }
   } else {
-    label = "Disabled";
+    label = "Never";
   }
 
   return label;
@@ -155,7 +155,7 @@ export default function ChangeSettingModal({
       open={open}
       onClose={onClose}
       isLoading={isLoading}
-      title={"Keep Session Active"}
+      title={"Close Session After"}
       PaperProps={{ component: "form", onSubmit: handleSubmit(onSubmit) }}
     >
       <DialogContent

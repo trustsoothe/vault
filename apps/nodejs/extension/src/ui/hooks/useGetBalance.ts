@@ -3,9 +3,9 @@ import { useEffect, useRef } from "react";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { balanceMapOfNetworkSelector } from "../../redux/selectors/account";
-import useDidMountEffect from "../../hooks/useDidMountEffect";
+import useDidMountEffect from "./useDidMountEffect";
 import { enqueueErrorSnackbar } from "../../utils/ui";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "./redux";
 
 export interface UseGetBalance {
   address: string;

@@ -19,6 +19,9 @@ import BaseDialog from "../components/BaseDialog";
 import CopyButton from "../components/CopyButton";
 import Summary from "../components/Summary";
 import { themeColors } from "../theme";
+import IconButton from "@mui/material/IconButton";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 interface PrivateKeyFormValues {
   vaultPassword: string;
@@ -38,6 +41,7 @@ export default function ViewPrivateKeyModal({
   const [status, setStatus] = useState<"form" | "loading" | "view_private_key">(
     "form"
   );
+  const [privateKeyRevealed, setPrivateKeyRevealed] = useState(false);
 
   const lastRevealedPkAccountRef = useRef<SerializedAccountReference>(null);
   const { watch, handleSubmit, reset, control } = useForm<PrivateKeyFormValues>(
@@ -86,6 +90,9 @@ export default function ViewPrivateKeyModal({
     };
   }, [account]);
 
+  const toggleRevealPrivateKey = () =>
+    setPrivateKeyRevealed((prevState) => !prevState);
+
   const loadPrivateKey = (data: PrivateKeyFormValues) => {
     const { vaultPassword } = data;
     setStatus("loading");
@@ -121,7 +128,12 @@ export default function ViewPrivateKeyModal({
           const blob = new Blob([json], {
             type: "application/json",
           });
-          saveAs(blob, "keyfile.json");
+          saveAs(
+            blob,
+            `${account.name
+              .replaceAll(/[\/|\\:*?"<>]/g, "")
+              .replaceAll(" ", "_")}-keyfile.json`
+          );
         })
         .catch((e) => {
           console.log(e);
@@ -219,9 +231,36 @@ export default function ViewPrivateKeyModal({
               padding={"8px 14px"}
               bgcolor={themeColors.bgLightGray}
             >
-              <Typography variant={"subtitle2"} sx={{ wordBreak: "break-all" }}>
-                {privateKey}
-              </Typography>
+              <Stack direction={"row"} spacing={0.7}>
+                <Typography
+                  variant={"subtitle2"}
+                  sx={{ wordBreak: "break-all" }}
+                >
+                  {privateKeyRevealed
+                    ? privateKey
+                    : new Array(privateKey.length).fill("*").join("")}
+                </Typography>
+                <IconButton
+                  sx={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: "6px",
+                    backgroundColor: themeColors.white,
+                    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+                    "& svg": {
+                      fontSize: 14,
+                    },
+                  }}
+                  onClick={toggleRevealPrivateKey}
+                >
+                  {privateKeyRevealed ? (
+                    <VisibilityOffIcon />
+                  ) : (
+                    <VisibilityIcon />
+                  )}
+                </IconButton>
+              </Stack>
+
               <Stack direction={"row"} spacing={1.2} alignItems={"center"}>
                 <CopyButton label={"Copy"} textToCopy={privateKey} />
                 <Button

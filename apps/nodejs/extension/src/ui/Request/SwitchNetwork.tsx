@@ -8,7 +8,7 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 import { labelByProtocolMap } from "../../constants/protocols";
 import DialogButtons from "../components/DialogButtons";
 import { enqueueErrorSnackbar } from "../../utils/ui";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import Summary from "../components/Summary";
 import RequestInfo from "./RequestInfo";
 import {

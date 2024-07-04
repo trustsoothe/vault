@@ -17,7 +17,7 @@ import {
   selectedAccountAddressSelector,
 } from "../../redux/selectors/account";
 import SendFormEth from "./SendFormEth";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import { SendTransactionParams } from "../../redux/slices/vault/account";
 import BaseTransaction, { TransactionFormValues } from "./BaseTransaction";

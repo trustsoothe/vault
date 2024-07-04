@@ -27,7 +27,7 @@ export function AccountAvatar({
       <ContactIcon className={"avatar"} />
     )
   ) : (
-    <QuestionIcon />
+    <QuestionIcon className={"avatar"} />
   );
 }
 

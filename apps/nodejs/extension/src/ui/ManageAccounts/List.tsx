@@ -7,7 +7,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AccountType, SerializedAccountReference } from "@poktscan/vault";
 import { accountsSelector, seedsSelector } from "../../redux/selectors/account";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import SmallGrayContainer from "../components/SmallGrayContainer";
 import { labelByProtocolMap } from "../../constants/protocols";
 import NewAccountsButtons from "../Home/NewAccountsButtons";

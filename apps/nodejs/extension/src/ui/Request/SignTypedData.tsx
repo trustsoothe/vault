@@ -172,6 +172,7 @@ export default function SignTypedData() {
                 <CopyAddressButton
                   address={signRequest?.data?.domain?.verifyingContract}
                   sxProps={{
+                    fontWeight: 500,
                     boxShadow: "none",
                     marginRight: -0.8,
                     color: themeColors.black,

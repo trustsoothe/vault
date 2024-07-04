@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import MuiButton from "@mui/material/Button";
 import { themeColors } from "../../theme";
-import { useAppSelector } from "../../../hooks/redux";
+import { useAppSelector } from "../../hooks/redux";
 import ExpandIcon from "../../assets/img/expand_select_icon.svg";
 import { NetworkOption } from "./NetworkSelect";
 import {

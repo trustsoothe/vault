@@ -4,15 +4,22 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
-import { Session, SupportedProtocols } from "@poktscan/vault";
-import { accountsSelector } from "../../redux/selectors/account";
+import {
+  SerializedAccountReference,
+  Session,
+  SupportedProtocols,
+} from "@poktscan/vault";
+import {
+  accountsSelector,
+  selectedAccountByProtocolSelector,
+} from "../../redux/selectors/account";
 import { networksSelector } from "../../redux/selectors/network";
 import Summary, { SummaryRowItem } from "../components/Summary";
 import { labelByProtocolMap } from "../../constants/protocols";
 import DialogButtons from "../components/DialogButtons";
 import AccountInfo from "../components/AccountInfo";
-import { useAppSelector } from "../../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
+import { useAppSelector } from "../hooks/redux";
 
 interface ConnectionDetailModalProps {
   connection?: Session;
@@ -25,6 +32,9 @@ export default function ConnectionDetailModal({
   open,
   onClose,
 }: ConnectionDetailModalProps) {
+  const selectedAccountByProtocol = useAppSelector(
+    selectedAccountByProtocolSelector
+  );
   const accounts = useAppSelector(accountsSelector);
   const networks = useAppSelector(networksSelector);
   const networkOfConnection = networks.find(
@@ -33,6 +43,8 @@ export default function ConnectionDetailModal({
       network.chainId ===
         (connection?.protocol === SupportedProtocols.Pocket ? "mainnet" : "1")
   );
+  const selectedAccountAddress =
+    selectedAccountByProtocol[connection?.protocol];
 
   const addressesOfAccountsConnected = uniq(
     connection?.permissions
@@ -43,9 +55,26 @@ export default function ConnectionDetailModal({
       ) || []
   );
 
-  const accountsConnected = accounts.filter((account) =>
-    addressesOfAccountsConnected.includes(account.address)
-  );
+  let selectedAccount: SerializedAccountReference;
+  const accountsConnected = accounts.filter((account) => {
+    if (
+      selectedAccountAddress === account.address &&
+      connection?.protocol === account.protocol &&
+      addressesOfAccountsConnected.includes(account.address)
+    ) {
+      selectedAccount = account;
+      return false;
+    }
+
+    return (
+      addressesOfAccountsConnected.includes(account.address) &&
+      connection?.protocol === account.protocol
+    );
+  });
+
+  if (selectedAccount) {
+    accountsConnected.unshift(selectedAccount);
+  }
 
   return (
     <BaseDialog open={open} onClose={onClose} title={"Connection Details"}>

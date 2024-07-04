@@ -19,7 +19,7 @@ import {
   RequestTimeout,
   UnauthorizedError,
 } from "../errors/communication";
-import { useAppDispatch } from "../hooks/redux";
+import { useAppDispatch } from "../ui/hooks/redux";
 import { themeColors } from "../ui/theme";
 import {
   CONNECTION_REQUEST_MESSAGE,
@@ -220,9 +220,9 @@ export const enqueueSnackbar = <V extends VariantType>(
 
         <Button
           sx={{
-            width: 54,
+            width: 40,
             height: 27,
-            minWidth: 54,
+            minWidth: 40,
             borderRadius: "6px",
             backgroundColor: themeColors.white,
             boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
@@ -233,7 +233,7 @@ export const enqueueSnackbar = <V extends VariantType>(
           className={"okay-button"}
           onClick={onClickClose}
         >
-          Okay
+          Ok
         </Button>
       </Stack>
     ),

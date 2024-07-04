@@ -1,4 +1,3 @@
-import type { ExternalTransferState } from "../../components/Transfer";
 import React from "react";
 import Stack from "@mui/material/Stack";
 import { useLocation } from "react-router-dom";
@@ -14,7 +13,7 @@ import RequestInfo from "./RequestInfo";
 import BaseTransaction, {
   TransactionFormValues,
 } from "../Transaction/BaseTransaction";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import BaseSummary from "../Transaction/BaseSummary";
 import EthFeeSelect from "../Transaction/EthFeeSelect";
 import { networksSelector } from "../../redux/selectors/network";
@@ -22,6 +21,31 @@ import { accountsSelector } from "../../redux/selectors/account";
 import VaultPasswordInput from "../Transaction/VaultPasswordInput";
 import { SendTransactionParams } from "../../redux/slices/vault/account";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import type { IAsset } from "../../redux/slices/app";
+
+export interface ExternalTransferData {
+  amount: string;
+  fromAddress?: string;
+  toAddress: string;
+  memo?: string;
+  data?: string;
+  gasLimit?: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
+}
+
+export interface ExternalTransferState {
+  asset?: IAsset;
+  transferData: ExternalTransferData;
+  requestInfo?: {
+    origin: string;
+    tabId: number;
+    sessionId: string;
+    chainId: string;
+    protocol: SupportedProtocols;
+    requestId: string;
+  };
+}
 
 export default function TransactionRequest() {
   const location = useLocation();

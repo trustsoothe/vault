@@ -12,8 +12,8 @@ import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../../utils/ui";
 import SelectedIcon from "../../assets/img/check_icon.svg";
 import DialogButtons from "../../components/DialogButtons";
 import PasswordInput from "../../components/PasswordInput";
-import { useAppSelector } from "../../../hooks/redux";
 import BaseDialog from "../../components/BaseDialog";
+import { useAppSelector } from "../../hooks/redux";
 import { themeColors } from "../../theme";
 
 interface SettingItem {

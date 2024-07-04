@@ -2,7 +2,7 @@ import React from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { themeColors } from "../theme";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import CloudIcon from "../assets/img/cloud_icon.svg";
 import {
   accountConnectedWithTabSelector,
@@ -33,7 +33,7 @@ export default function ConnectionStatus() {
           border: `2px solid ${themeColors.bgLightGray}`,
           backgroundColor:
             tabHasConnection && accountConnectedWithTab
-              ? themeColors.success
+              ? "#7fe70e"
               : themeColors.gray,
         }}
       />

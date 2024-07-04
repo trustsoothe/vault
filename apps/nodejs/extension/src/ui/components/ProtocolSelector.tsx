@@ -6,7 +6,7 @@ import { SupportedProtocols } from "@poktscan/vault";
 import { networksSelector } from "../../redux/selectors/network";
 import { labelByProtocolMap } from "../../constants/protocols";
 import SelectedIcon from "../assets/img/check_icon.svg";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import { themeColors } from "../theme";
 
 const ProtocolSelector: React.ForwardRefRenderFunction<

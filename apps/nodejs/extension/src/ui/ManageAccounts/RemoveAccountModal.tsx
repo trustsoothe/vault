@@ -15,11 +15,13 @@ import {
 } from "@poktscan/vault";
 import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { getAddressFromPrivateKey } from "../../utils/networkOperations";
-import { getPrivateKey } from "../../components/Account/Import";
+import {
+  getAddressFromPrivateKey,
+  getPrivateKeyFromPPK,
+} from "../../utils/networkOperations";
 import Summary, { SummaryRowItem } from "../components/Summary";
 import { labelByProtocolMap } from "../../constants/protocols";
-import useDidMountEffect from "../../hooks/useDidMountEffect";
+import useDidMountEffect from "../hooks/useDidMountEffect";
 import { MANAGE_ACCOUNTS_PAGE } from "../../constants/routes";
 import { INVALID_FILE_PASSWORD } from "../../errors/account";
 import CopyAddressButton from "../Home/CopyAddressButton";
@@ -27,7 +29,7 @@ import DialogButtons from "../components/DialogButtons";
 import PasswordInput from "../components/PasswordInput";
 import ImportForm from "../ImportAccount/ImportForm";
 import AccountInfo from "../components/AccountInfo";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
 import useIsPopup from "../hooks/useIsPopup";
 import {
@@ -39,6 +41,7 @@ import { themeColors } from "../theme";
 import {
   enqueueErrorSnackbar,
   enqueueSnackbar,
+  readFile,
   wrongPasswordSnackbar,
 } from "../../utils/ui";
 
@@ -50,6 +53,41 @@ interface FormValues {
   file_password?: string;
   protocol?: SupportedProtocols;
 }
+
+const getPrivateKey = async (
+  data: FormValues,
+  protocol: SupportedProtocols
+) => {
+  try {
+    let privateKey: string;
+
+    if (data.json_file) {
+      const contentFile = await readFile(data.json_file);
+
+      privateKey = await getPrivateKeyFromPPK(
+        contentFile,
+        data.file_password,
+        protocol
+      );
+    } else {
+      privateKey = data.private_key;
+    }
+
+    return privateKey;
+  } catch (e) {
+    if (
+      [
+        "Cannot define property stack, object is not extensible",
+        "Unsupported state or unable to authenticate data",
+        "Key derivation failed - possibly wrong password",
+      ].includes(e?.message)
+    ) {
+      throw INVALID_FILE_PASSWORD;
+    }
+
+    throw e;
+  }
+};
 
 const defaultValues: FormValues = {
   vault_password: "",
@@ -276,6 +314,7 @@ export default function RemoveAccountModal({
         <CopyAddressButton
           address={accountOrRef?.address}
           sxProps={{
+            fontWeight: 500,
             boxShadow: "none",
             marginRight: -0.8,
             color: themeColors.black,

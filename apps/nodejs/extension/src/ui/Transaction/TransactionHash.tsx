@@ -9,7 +9,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import { explorerTransactionUrlOfNetworkSelector } from "../../redux/selectors/network";
 import CopyIcon from "../assets/img/copy_icon.svg";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import { getTruncatedText } from "../../utils/ui";
 import { themeColors } from "../theme";
 

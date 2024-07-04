@@ -4,7 +4,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 import { TransactionFormValues } from "./BaseTransaction";
 import PasswordInput from "../components/PasswordInput";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 
 export default function VaultPasswordInput() {
   const { control } = useFormContext<TransactionFormValues>();

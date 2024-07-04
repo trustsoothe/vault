@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import ForwardIcon from "@mui/icons-material/ArrowForwardIosRounded";
 import { sessionsMaxAgeSelector } from "../../../redux/selectors/preferences";
 import ChangeSettingModal, { getLabelOfSetting } from "./ChangeSettingModal";
-import { useAppSelector } from "../../../hooks/redux";
+import { useAppSelector } from "../../hooks/redux";
 import { themeColors } from "../../theme";
 
 export default function KeepSessionActive() {
@@ -30,7 +30,7 @@ export default function KeepSessionActive() {
         }}
         onClick={toggleShowModal}
       >
-        <Typography color={themeColors.black}>Keep Session Active</Typography>
+        <Typography color={themeColors.black}>Close Session After</Typography>
         <Stack direction={"row"} spacing={1} alignItems={"center"}>
           <Typography>{getLabelOfSetting(sessionsMaxAge)}</Typography>
           <ForwardIcon sx={{ color: themeColors.dark_gray1, fontSize: 16 }} />

@@ -1,5 +1,5 @@
 import type { SendTransactionParams } from "../../redux/slices/vault/account";
-import type { MintTransaction } from "../../redux/slices/wpokt";
+import { MintTransaction, TxStatus } from "../../redux/slices/wpokt";
 import Stack from "@mui/material/Stack";
 import capitalize from "lodash/capitalize";
 import React, { useEffect, useRef } from "react";
@@ -19,13 +19,12 @@ import {
 import BaseTransaction, { type TransactionFormValues } from "./BaseTransaction";
 import SuccessActionBanner from "../components/SuccessActionBanner";
 import WarningActionBanner from "../components/WarningActionBanner";
-import { Status } from "../../components/Account/WrappedPoktTxs";
 import { contactsSelector } from "../../redux/selectors/contact";
 import Summary, { SummaryRowItem } from "../components/Summary";
 import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import { AmountWithUsd, getNetworkRow } from "./BaseSummary";
 import AccountInfo from "../components/AccountInfo";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import useGetBalance from "../hooks/useGetBalance";
 import BaseDialog from "../components/BaseDialog";
 import TransactionHash from "./TransactionHash";
@@ -48,7 +47,7 @@ interface BaseSummaryProps {
   fee?: number;
   date: Date;
   from: string;
-  status?: Status;
+  status?: TxStatus;
 }
 
 function BaseSummary({ amount, from, date, status, fee }: BaseSummaryProps) {
@@ -457,7 +456,7 @@ export default function MintTransactionModal({
       onClose={onClose}
       title={"Mint"}
     >
-      {mintTransaction && mintTransaction.status === Status.SIGNED ? (
+      {mintTransaction && mintTransaction.status === TxStatus.SIGNED ? (
         <ModalContent mintTransaction={mintTransaction} onClose={onClose} />
       ) : (
         <>

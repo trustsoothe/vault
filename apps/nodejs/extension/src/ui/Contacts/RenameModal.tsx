@@ -8,7 +8,7 @@ import { Contact, saveContact } from "../../redux/slices/app/contact";
 import { nameRules } from "../NewAccount/NewAccountModal";
 import DialogButtons from "../components/DialogButtons";
 import { enqueueErrorSnackbar } from "../../utils/ui";
-import { useAppDispatch } from "../../hooks/redux";
+import { useAppDispatch } from "../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
 import ContactFeedback from "./ContactFeedback";
 

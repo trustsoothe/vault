@@ -11,7 +11,7 @@ import { selectedChainByProtocolSelector } from "../../redux/selectors/network";
 import { getTruncatedText, roundAndSeparate } from "../../utils/ui";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 import SelectedIcon from "../assets/img/check_icon.svg";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import AvatarByString from "./AvatarByString";
 import { themeColors } from "../theme";
 

@@ -22,9 +22,9 @@ import {
   seedsSelector,
   selectedAccountSelector,
 } from "../../redux/selectors/account";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import ProtocolSelector from "../components/ProtocolSelector";
-import useDidMountEffect from "../../hooks/useDidMountEffect";
+import useDidMountEffect from "../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
 import { ACCOUNTS_PAGE } from "../../constants/routes";
 import AccountFeedback from "../components/AccountFeedback";

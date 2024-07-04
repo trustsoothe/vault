@@ -3,9 +3,9 @@ import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import { shallowEqual } from "react-redux";
 import { themeColors } from "../../theme";
+import { useAppSelector } from "../../hooks/redux";
 import AvatarByString from "../../components/AvatarByString";
 import { selectedAccountSelector } from "../../../redux/selectors/account";
-import { useAppSelector } from "../../../hooks/redux";
 import ExpandIcon from "../../assets/img/expand_select_icon.svg";
 
 interface AccountSelectButtonProps {

@@ -1,6 +1,6 @@
 import { EthereumNetworkFee, SupportedProtocols } from "@poktscan/vault";
 import type { TransactionFormValues } from "./BaseTransaction";
-import React, { useRef } from "react";
+import React from "react";
 import Stack from "@mui/material/Stack";
 import Skeleton from "@mui/material/Skeleton";
 import MenuItem from "@mui/material/MenuItem";
@@ -9,8 +9,8 @@ import Typography from "@mui/material/Typography";
 import { Controller, useFormContext } from "react-hook-form";
 import { symbolOfNetworkSelector } from "../../redux/selectors/network";
 import SelectedIcon from "../assets/img/check_icon.svg";
-import { useAppSelector } from "../../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
+import { useAppSelector } from "../hooks/redux";
 import useUsdPrice from "../hooks/useUsdPrice";
 import BalanceLabel from "./BalanceLabel";
 import { themeColors } from "../theme";

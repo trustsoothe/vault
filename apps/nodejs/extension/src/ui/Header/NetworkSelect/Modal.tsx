@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
-import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import SelectedIcon from "../../assets/img/check_icon.svg";
 import { NETWORKS_PAGE } from "../../../constants/routes";
 import BaseDialog from "../../components/BaseDialog";

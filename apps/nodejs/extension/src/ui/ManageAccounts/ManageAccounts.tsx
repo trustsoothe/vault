@@ -2,7 +2,7 @@ import React from "react";
 import Stack from "@mui/material/Stack";
 import { AccountType } from "@poktscan/vault";
 import { accountsSelector } from "../../redux/selectors/account";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import NoAccounts from "../Home/NoAccounts";
 import ListAccounts from "./List";
 

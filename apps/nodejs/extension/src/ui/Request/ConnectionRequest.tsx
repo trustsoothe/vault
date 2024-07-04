@@ -10,7 +10,7 @@ import AccountSelectableItem from "../components/AccountSelectableItem";
 import { accountsSelector } from "../../redux/selectors/account";
 import DialogButtons from "../components/DialogButtons";
 import { enqueueErrorSnackbar } from "../../utils/ui";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import RequestInfo from "./RequestInfo";
 import { themeColors } from "../theme";
 

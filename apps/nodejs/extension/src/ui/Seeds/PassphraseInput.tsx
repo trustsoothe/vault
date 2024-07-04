@@ -1,6 +1,6 @@
-import { Controller, useFormContext } from "react-hook-form";
-import TextField from "@mui/material/TextField";
 import React from "react";
+import { Controller, useFormContext } from "react-hook-form";
+import PasswordInput from "../components/PasswordInput";
 
 interface PassphraseInputProps {
   disabled?: boolean;
@@ -14,7 +14,7 @@ export default function PassphraseInput({ disabled }: PassphraseInputProps) {
       control={control}
       name={"passphrase"}
       render={({ field }) => (
-        <TextField
+        <PasswordInput
           {...field}
           disabled={disabled}
           placeholder={"Passphrase (optional)"}

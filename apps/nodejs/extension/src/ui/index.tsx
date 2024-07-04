@@ -10,7 +10,7 @@ import ThemeProvider, { themeColors } from "./theme";
 import InitializeVault from "./InitializeVault/InitializeVault";
 import { isFirefox } from "../utils";
 import UnlockVault from "./UnlockVault/UnlockVault";
-import { useAppDispatch, useAppSelector } from "../hooks/redux";
+import { useAppDispatch, useAppSelector } from "./hooks/redux";
 import browser, { Permissions } from "webextension-polyfill";
 import { requiredOrigins } from "../constants/permissions";
 import {
@@ -26,8 +26,8 @@ import SuccessIcon from "./assets/img/success_icon.svg";
 import WarningIcon from "./assets/img/rounded_close_icon.svg";
 import RequestOriginsPermission from "./RequestOriginPermission/RequestOriginPermission";
 import { closeCurrentWindow, removeRequestWithRes } from "../utils/ui";
+import CircularLoading from "./components/CircularLoading";
 import { RequestTimeout } from "../errors/communication";
-import CircularLoading from "../components/common/CircularLoading";
 import AppInitError from "./AppInitError/AppInitError";
 import { RouterProvider } from "react-router-dom";
 import { requestRouter, router } from "./router";
@@ -192,6 +192,7 @@ export default function App() {
             borderRadius: isPopup ? 0 : "8px",
             display: "flex",
             "& .notistack-SnackbarContainer": {
+              rowGap: 1.5,
               bottom: 12,
               left: 12,
               position: "absolute",
@@ -247,7 +248,7 @@ export default function App() {
               minWidth: "376px!important",
               maxWidth: "376px!important",
             }}
-            maxSnack={1}
+            maxSnack={6}
             autoHideDuration={6000}
             preventDuplicate={true}
             iconVariant={{

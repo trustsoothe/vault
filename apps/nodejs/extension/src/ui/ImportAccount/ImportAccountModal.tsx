@@ -31,8 +31,8 @@ import DialogButtons from "../components/DialogButtons";
 import { nameRules } from "../NewAccount/NewAccountModal";
 import { INVALID_FILE_PASSWORD } from "../../errors/account";
 import ProtocolSelector from "../components/ProtocolSelector";
-import useDidMountEffect from "../../hooks/useDidMountEffect";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import useDidMountEffect from "../hooks/useDidMountEffect";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import {
   accountsSelector,
   selectedAccountSelector,

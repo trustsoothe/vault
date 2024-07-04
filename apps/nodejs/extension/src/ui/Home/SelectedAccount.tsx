@@ -10,18 +10,17 @@ import ActivityIcon from "../assets/img/activity_icon.svg";
 import CopyAddressButton from "./CopyAddressButton";
 import SendIcon from "../assets/img/send_icon.svg";
 import SwapIcon from "../assets/img/swap_icon.svg";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
 import { themeColors } from "../theme";
 import { selectedAccountSelector } from "../../redux/selectors/account";
-import { useLazyGetActiveMintsQuery } from "../../redux/slices/wpokt";
+import { TxStatus, useLazyGetActiveMintsQuery } from "../../redux/slices/wpokt";
 import { selectedChainSelector } from "../../redux/selectors/network";
 import useSelectedAsset from "./hooks/useSelectedAsset";
 import GrayContainer from "../components/GrayContainer";
 import { ACTIVITY_PAGE } from "../../constants/routes";
 import SendCoinsModal from "../Transaction/SendCoinsModal";
-import useDidMountEffect from "../../hooks/useDidMountEffect";
-import { Status } from "../../components/Account/WrappedPoktTxs";
+import useDidMountEffect from "../hooks/useDidMountEffect";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 
 export default function SelectedAccount() {
@@ -47,9 +46,8 @@ export default function SelectedAccount() {
   });
 
   const [fetchActiveMints, { mintTransactions }] = useLazyGetActiveMintsQuery({
-    pollingInterval: 60000,
     selectFromResult: ({ data }) => ({
-      mintTransactions: (data || []).filter((m) => m.status === Status.SIGNED)
+      mintTransactions: (data || []).filter((m) => m.status === TxStatus.SIGNED)
         .length,
     }),
   });
@@ -189,7 +187,7 @@ export default function SelectedAccount() {
           <Button onClick={onClickActivity} sx={{ position: "relative" }}>
             <span>Activity</span>
             <ActivityIcon />
-            {mintTransactions && (
+            {mintTransactions > 0 && selectedAsset?.symbol === "WPOKT" && (
               <Stack
                 width={18}
                 height={18}

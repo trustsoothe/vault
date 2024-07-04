@@ -17,7 +17,7 @@ import { MANAGE_ACCOUNTS_PAGE } from "../../constants/routes";
 import AvatarByString from "../components/AvatarByString";
 import MenuDivider from "../components/MenuDivider";
 import MoreIcon from "../assets/img/more_icon.svg";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import { enqueueSnackbar } from "../../utils/ui";
 import RemoveSeedModal from "./RemoveSeedModal";
 import NewSeedButtons from "./NewSeedButtons";

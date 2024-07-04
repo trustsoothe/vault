@@ -125,8 +125,6 @@ import {
   NETWORK_FEE_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
-  PHRASE_GENERATED_HD_SEED_REQUEST,
-  PHRASE_GENERATED_HD_SEED_RESPONSE,
   PK_ACCOUNT_REQUEST,
   PK_ACCOUNT_RESPONSE,
   REMOVE_ACCOUNT_REQUEST,
@@ -198,8 +196,6 @@ import {
   GetRecoveryPhraseIdRes,
   ImportHdWalletReq,
   ImportHdWalletRes,
-  PhraseGeneratedHdSeedReq,
-  PhraseGeneratedHdSeedRes,
 } from "../../types/communications/hdWallet";
 import {
   importRecoveryPhrase,
@@ -238,7 +234,6 @@ const mapMessageType: Record<InternalRequests["type"], true> = {
   [SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST]: true,
   [IMPORT_HD_WALLET_REQUEST]: true,
   [CREATE_ACCOUNT_FROM_HD_SEED_REQUEST]: true,
-  [PHRASE_GENERATED_HD_SEED_REQUEST]: true,
   [UPDATE_RECOVERY_PHRASE_REQUEST]: true,
   [REMOVE_RECOVERY_PHRASE_REQUEST]: true,
   [GET_RECOVERY_PHRASE_ID_REQUEST]: true,
@@ -349,10 +344,6 @@ class InternalCommunicationController implements ICommunicationController {
 
     if (message?.type === CREATE_ACCOUNT_FROM_HD_SEED_REQUEST) {
       return this._handleCreateAccountFromHdSeed(message);
-    }
-
-    if (message?.type === PHRASE_GENERATED_HD_SEED_REQUEST) {
-      return this._phraseGenerateHdSeed(message);
     }
 
     if (message?.type === UPDATE_RECOVERY_PHRASE_REQUEST) {
@@ -1403,54 +1394,6 @@ class InternalCommunicationController implements ICommunicationController {
     } catch (error) {
       return {
         type: CREATE_ACCOUNT_FROM_HD_SEED_RESPONSE,
-        data: null,
-        error: UnknownError,
-      };
-    }
-  }
-
-  // todo: remove this method
-  private async _phraseGenerateHdSeed(
-    message: PhraseGeneratedHdSeedReq
-  ): Promise<PhraseGeneratedHdSeedRes> {
-    try {
-      const { accountId, vaultPassword, phraseOptions } = message.data;
-      const vault = getVault();
-      const vaultState = store.getState().vault;
-      const vaultSessionId = vaultState.vaultSession.id;
-      const vaultPassphrase = new Passphrase(
-        vaultPassword ? vaultPassword : await getVaultPassword(vaultSessionId)
-      );
-
-      const isPhraseValid = await vault.recoveryPhraseGenerateHdSeed(
-        accountId,
-        vaultPassphrase,
-        // @ts-ignore
-        phraseOptions
-      );
-
-      return {
-        type: PHRASE_GENERATED_HD_SEED_RESPONSE,
-        data: {
-          isPhraseValid,
-          vaultPasswordWrong: false,
-        },
-        error: null,
-      };
-    } catch (error) {
-      if (error?.name === VaultRestoreErrorName) {
-        return {
-          type: PHRASE_GENERATED_HD_SEED_RESPONSE,
-          data: {
-            isPhraseValid: false,
-            vaultPasswordWrong: true,
-          },
-          error: null,
-        };
-      }
-
-      return {
-        type: PHRASE_GENERATED_HD_SEED_RESPONSE,
         data: null,
         error: UnknownError,
       };

@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import { APP_IS_READY_REQUEST } from "../../constants/communication";
 import LoadingButton from "../components/LoadingButton";
 import { HEIGHT, WIDTH } from "../../constants/ui";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import Logo from "../assets/logo/isologo.svg";
 import { themeColors } from "../theme";
 

@@ -6,7 +6,7 @@ import SuccessActionBanner from "../components/SuccessActionBanner";
 import WarningActionBanner from "../components/WarningActionBanner";
 import { networksSelector } from "../../redux/selectors/network";
 import { labelByProtocolMap } from "../../constants/protocols";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import Summary from "../components/Summary";
 
 interface CustomRPCFeedbackProps {

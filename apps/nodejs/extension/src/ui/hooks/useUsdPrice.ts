@@ -4,9 +4,9 @@ import { shallowEqual } from "react-redux";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import { networksSelector } from "../../redux/selectors/network";
 import { useGetPricesQuery } from "../../redux/slices/prices";
-import useDidMountEffect from "../../hooks/useDidMountEffect";
+import useDidMountEffect from "./useDidMountEffect";
 import { enqueueErrorSnackbar } from "../../utils/ui";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "./redux";
 import {
   assetsIdByAccountSelector,
   assetsSelector,

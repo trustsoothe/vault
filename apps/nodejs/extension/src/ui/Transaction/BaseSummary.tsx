@@ -17,7 +17,7 @@ import { accountsSelector } from "../../redux/selectors/account";
 import { contactsSelector } from "../../redux/selectors/contact";
 import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import AccountInfo from "../components/AccountInfo";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import { roundAndSeparate } from "../../utils/ui";
 import useGetBalance from "../hooks/useGetBalance";
 import { themeColors } from "../theme";

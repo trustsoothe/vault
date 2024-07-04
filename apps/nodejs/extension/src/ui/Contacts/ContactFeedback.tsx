@@ -63,6 +63,7 @@ export default function ContactFeedback({
               <CopyAddressButton
                 address={contact.address}
                 sxProps={{
+                  fontWeight: 500,
                   boxShadow: "none",
                   marginRight: -0.8,
                   color: themeColors.black,

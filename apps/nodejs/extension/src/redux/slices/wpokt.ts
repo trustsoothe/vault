@@ -1,5 +1,13 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { Status } from "../../components/Account/WrappedPoktTxs";
+
+export enum TxStatus {
+  PENDING = "pending",
+  CONFIRMED = "confirmed",
+  SIGNED = "signed",
+  SUMBITTED = "submitted",
+  SUCCESS = "success",
+  FAILED = "failed",
+}
 
 const MAINNET_BASE_API_URL = process.env.WPOKT_MAINNET_API_BASE_URL;
 const TESTNET_BASE_API_URL = process.env.WPOKT_TESTNET_API_BASE_URL;
@@ -14,7 +22,7 @@ export interface MintTransaction {
   recipient_chain_id: string;
   wpokt_address: string;
   amount: string;
-  status: Status;
+  status: TxStatus;
   signers: string[];
   created_at: string;
   updated_at: string;

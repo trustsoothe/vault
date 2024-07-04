@@ -6,7 +6,7 @@ import { Controller, useForm } from "react-hook-form";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import React, { useEffect, useRef, useState } from "react";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import {
   enqueueErrorSnackbar,
   removeRequestWithRes,

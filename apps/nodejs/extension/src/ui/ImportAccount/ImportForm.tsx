@@ -9,8 +9,8 @@ import { ImportAccountFormValues } from "./ImportAccountModal";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
 import { isValidPPK, isValidPrivateKey } from "../../utils/networkOperations";
 import PasswordInput from "../components/PasswordInput";
-import { useAppSelector } from "../../hooks/redux";
 import SelectFile from "../components/SelectFile";
+import { useAppSelector } from "../hooks/redux";
 import { readFile } from "../../utils/ui";
 import { themeColors } from "../theme";
 
@@ -124,6 +124,7 @@ export default function ImportForm({
               fullWidth
               disabled={disableInputs}
               autoComplete={"off"}
+              type={"password"}
               placeholder={"Private Key"}
               {...field}
               error={!!error}

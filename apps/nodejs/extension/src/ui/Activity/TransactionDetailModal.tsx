@@ -16,7 +16,7 @@ import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import DialogButtons from "../components/DialogButtons";
 import { Hash } from "../Transaction/TransactionHash";
 import AccountInfo from "../components/AccountInfo";
-import { useAppSelector } from "../../hooks/redux";
+import { useAppSelector } from "../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
 import useUsdPrice from "../hooks/useUsdPrice";
 import {

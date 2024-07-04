@@ -1,4 +1,4 @@
-import type { ExternalTransferState } from "../../components/Transfer";
+import type { ExternalTransferState } from "./TransactionRequest";
 import type { TEthTransferBody } from "../../controllers/communication/Proxy";
 import { fromWei } from "web3-utils";
 import Stack from "@mui/material/Stack";
@@ -6,10 +6,9 @@ import Typography from "@mui/material/Typography";
 import { Outlet, useNavigate } from "react-router-dom";
 import React, { useEffect, useMemo, useState } from "react";
 import { externalRequestsSelector } from "../../redux/selectors/session";
-import { TransferType } from "../../contexts/TransferContext";
 import { closeCurrentWindow } from "../../utils/ui";
-import { useAppSelector } from "../../hooks/redux";
 import { HeaderContainer } from "../Header/Header";
+import { useAppSelector } from "../hooks/redux";
 import BackButton from "../Header/BackButton";
 import { WIDTH } from "../../constants/ui";
 import {
@@ -69,7 +68,7 @@ export default function Handler() {
           if ("amount" in dataFromRequest) {
             transferDataState = {
               fromAddress: dataFromRequest.from,
-              amount: (Number(dataFromRequest.amount) / 1e6).toString(),
+              amount: (Number(dataFromRequest.amount || 0) / 1e6).toString(),
               toAddress: dataFromRequest.to,
               memo: dataFromRequest.memo,
             };
@@ -89,7 +88,6 @@ export default function Handler() {
           }
 
           const state: ExternalTransferState = {
-            transferType: TransferType.normal,
             requestInfo: {
               protocol: currentRequest.protocol,
               sessionId: currentRequest.sessionId,
