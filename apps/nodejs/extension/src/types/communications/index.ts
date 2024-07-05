@@ -21,7 +21,6 @@ import type {
   ProxyListAccountsRes,
 } from "./listAccounts";
 import type {
-  AccountBalanceReq,
   ExternalBalanceReq,
   ProxyBalanceReq,
   ProxyBalanceRes,
@@ -153,7 +152,6 @@ export type InternalRequests =
   | CreateAccountFromHdSeedReq
   | PrivateKeyAccountReq
   | RevokeExternalSessionsReq
-  | AccountBalanceReq
   | NetworkFeeReq
   | CheckPermissionForSessionReq
   | AnswerSwitchChainReq

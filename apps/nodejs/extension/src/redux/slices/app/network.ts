@@ -1,23 +1,9 @@
-import type { RootState } from "../../store";
 import type { AppSliceBuilder } from "../../../types";
-import { createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { createAsyncThunk } from "@reduxjs/toolkit";
 import { v4 } from "uuid";
-import set from "lodash/set";
-import get from "lodash/get";
 import browser from "webextension-polyfill";
 import { SupportedProtocols } from "@poktscan/vault";
-import {
-  CUSTOM_RPCS_KEY,
-  CustomRPC,
-  type GeneralAppSlice,
-  resetErrorOfNetwork,
-  setGetAccountPending as setGetAccountPendingFromApp,
-} from "./index";
-import { wait } from "../../../utils";
-import {
-  getAccountBalance as getBalance,
-  NetworkForOperations,
-} from "../../../utils/networkOperations";
+import { CUSTOM_RPCS_KEY, CustomRPC, resetErrorOfNetwork } from "./index";
 import { RPC_ALREADY_EXISTS } from "../../../errors/rpc";
 
 const NETWORKS_STORAGE_KEY = "networks";
@@ -173,191 +159,6 @@ export const removeCustomRpc = createAsyncThunk(
   }
 );
 
-export interface GetAccountBalanceParam {
-  address: string;
-  protocol: SupportedProtocols;
-  chainId: string;
-  asset?: { contractAddress: string; decimals: number };
-}
-
-interface GetAccountBalanceResult {
-  address: string;
-  amount: number;
-  networksWithErrors: string[];
-  update?: boolean;
-}
-
-export const getAccountBalance = createAsyncThunk<
-  GetAccountBalanceResult,
-  GetAccountBalanceParam
->(
-  "vault/getAccountBalance",
-  async ({ address, protocol, chainId, asset }, { getState, dispatch }) => {
-    const path = ["app", "accountBalances", protocol, chainId];
-
-    if (asset) {
-      path.push(asset.contractAddress);
-    }
-
-    path.push(address);
-
-    while (true) {
-      const state = getState() as RootState;
-
-      const isLoading = get(state, [...path, "loading"], false);
-
-      if (isLoading) {
-        await wait(50);
-      } else {
-        break;
-      }
-    }
-
-    dispatch(
-      setGetAccountPendingFromApp({ address, protocol, chainId, asset })
-    );
-
-    const state = getState() as RootState;
-    const errorsPreferredNetwork = state.app.errorsPreferredNetwork;
-    const value = get(state, path);
-
-    const {
-      app: { networks: defaultNetworks, customRpcs },
-    } = state;
-
-    const allNetworks = [
-      ...defaultNetworks.map(
-        (network) =>
-          ({
-            protocol: network.protocol,
-            id: network.id,
-            chainID: network.chainId,
-            isDefault: true,
-            isPreferred: false,
-            rpcUrl: network.rpcUrl,
-          } as NetworkForOperations)
-      ),
-      ...customRpcs.map(
-        (rpc) =>
-          ({
-            protocol: rpc.protocol,
-            id: rpc.id,
-            chainID: rpc.chainId,
-            isDefault: false,
-            isPreferred: rpc.isPreferred,
-            rpcUrl: rpc.url,
-          } as NetworkForOperations)
-      ),
-    ];
-
-    if (
-      value &&
-      !value.error &&
-      value.lastUpdatedAt > new Date().getTime() - 30 * 1000
-    ) {
-      return {
-        address,
-        amount: value.amount,
-        networksWithErrors: [],
-        update: false,
-      };
-    }
-
-    const result = await getBalance({
-      address,
-      protocol,
-      chainId,
-      networks: allNetworks,
-      errorsPreferredNetwork,
-      asset,
-    });
-
-    return {
-      address,
-      amount: result.balance,
-      networksWithErrors: result.networksWithErrors,
-      update: true,
-    };
-  }
-);
-
-export const setGetAccountPending = (
-  state: GeneralAppSlice,
-  action: PayloadAction<GetAccountBalanceParam>
-) => {
-  const { address, protocol, chainId, asset } = action.payload;
-
-  const paths = ["accountBalances", protocol, chainId];
-
-  if (asset && protocol === SupportedProtocols.Ethereum) {
-    paths.push(asset.contractAddress);
-  }
-
-  paths.push(address);
-
-  set(state, paths, {
-    ...get(state, paths, {
-      amount: 0,
-      lastUpdatedAt: Date.UTC(1970, 0, 1),
-    }),
-    error: false,
-    loading: true,
-  });
-};
-
-const addAccountBalanceToBuilder = (builder: AppSliceBuilder) => {
-  builder.addCase(getAccountBalance.fulfilled, (state, action) => {
-    const { amount, networksWithErrors, update } = action.payload;
-    const { address, protocol, chainId, asset } = action.meta.arg;
-
-    const paths = ["accountBalances", protocol, chainId];
-
-    if (asset && protocol === SupportedProtocols.Ethereum) {
-      paths.push(asset.contractAddress);
-    }
-
-    paths.push(address);
-
-    set(state, paths, {
-      lastUpdatedAt: update
-        ? new Date().getTime()
-        : get(state, [...paths, "lastUpdatedAt"], Date.UTC(1970, 0, 1)),
-      amount,
-      error: false,
-      loading: false,
-    });
-
-    if (networksWithErrors.length) {
-      for (const networkId of networksWithErrors) {
-        const path = ["errorsPreferredNetwork", networkId];
-        set(state, path, get(state, path, 0) + 1);
-      }
-    }
-  });
-
-  builder.addCase(getAccountBalance.rejected, (state, action) => {
-    console.log("GET BALANCE ERR:", action.error);
-    const { address, protocol, chainId, asset } = action.meta.arg;
-
-    const paths = ["accountBalances", protocol, chainId];
-
-    if (asset && protocol === SupportedProtocols.Ethereum) {
-      paths.push(asset.contractAddress);
-    }
-
-    paths.push(address);
-
-    set(state, paths, {
-      ...get(state, paths, {
-        amount: 0,
-        lastUpdatedAt: Date.UTC(1970, 0, 1),
-      }),
-      error: true,
-      loading: false,
-    });
-  });
-};
-
 const addLoadNetworksToBuilder = (builder: AppSliceBuilder) => {
   builder.addCase(loadNetworksFromStorage.fulfilled, (state, action) => {
     state.networks = action.payload;
@@ -379,7 +180,6 @@ const addLoadAssetsToBuilder = (builder: AppSliceBuilder) => {
 };
 
 export const addNetworksExtraReducers = (builder: AppSliceBuilder) => {
-  addAccountBalanceToBuilder(builder);
   addLoadNetworksToBuilder(builder);
   addLoadAssetsToBuilder(builder);
 

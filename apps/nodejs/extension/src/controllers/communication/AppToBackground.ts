@@ -5,10 +5,6 @@ import type {
   SetRequirePasswordForOptsRes,
 } from "../../types/communications/app";
 import type {
-  AccountBalanceReq,
-  AccountBalanceRes,
-} from "../../types/communications/balance";
-import type {
   AnswerConnectionReq,
   AnswerConnectionRes,
 } from "../../types/communications/connection";
@@ -66,7 +62,6 @@ import type {
 } from "../../types/communications/vault";
 import browser from "webextension-polyfill";
 import {
-  ACCOUNT_BALANCE_REQUEST,
   ANSWER_CONNECTION_REQUEST,
   ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_PERSONAL_SIGN_REQUEST,
@@ -216,16 +211,6 @@ export default class AppToBackground {
   static async revokeAllExternalSessions(): Promise<RevokeExternalSessionsRes> {
     const message: RevokeExternalSessionsReq = {
       type: REVOKE_EXTERNAL_SESSIONS_REQUEST,
-    };
-    return browser.runtime.sendMessage(message);
-  }
-
-  static async getAccountBalance(
-    data: AccountBalanceReq["data"]
-  ): Promise<AccountBalanceRes> {
-    const message: AccountBalanceReq = {
-      type: ACCOUNT_BALANCE_REQUEST,
-      data,
     };
     return browser.runtime.sendMessage(message);
   }

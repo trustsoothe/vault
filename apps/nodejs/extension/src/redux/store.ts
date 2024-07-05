@@ -1,5 +1,6 @@
 import { AnyAction, configureStore, ThunkDispatch } from "@reduxjs/toolkit";
 import vaultSliceReducer from "./slices/vault";
+import { balanceApi } from "./slices/balance";
 import generalAppReducer from "./slices/app";
 import { pricesApi } from "./slices/prices";
 import { wpoktApi } from "./slices/wpokt";
@@ -10,6 +11,7 @@ const store = configureStore({
     app: generalAppReducer,
     [pricesApi.reducerPath]: pricesApi.reducer,
     [wpoktApi.reducerPath]: wpoktApi.reducer,
+    [balanceApi.reducerPath]: balanceApi.reducer,
   },
   middleware: (getDefaultMiddleware) => {
     return getDefaultMiddleware({

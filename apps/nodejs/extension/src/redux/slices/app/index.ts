@@ -15,34 +15,13 @@ import {
   SELECTED_ACCOUNT_CHANGED,
   SELECTED_CHAIN_CHANGED,
 } from "../../../constants/communication";
-import {
-  addNetworksExtraReducers,
-  setGetAccountPending as setGetAccountPendingFromNetwork,
-} from "./network";
+import { addNetworksExtraReducers } from "./network";
 import { SettingsSchema } from "../vault/backup";
 import TransactionDatasource, {
   Transaction,
 } from "../../../controllers/datasource/Transaction";
 import { addContactThunksToBuilder, Contact } from "./contact";
 import { ChainChangedMessageToProxy } from "../../../types/communications/chainChanged";
-
-export interface AccountBalanceInfo {
-  amount: number;
-  lastUpdatedAt: number;
-  error?: boolean;
-  loading?: boolean;
-}
-
-interface IAccountBalances {
-  [SupportedProtocols.Ethereum]: Record<
-    string,
-    Record<string, AccountBalanceInfo | Record<string, AccountBalanceInfo>>
-  >;
-  [SupportedProtocols.Pocket]: Record<
-    string,
-    Record<string, AccountBalanceInfo>
-  >;
-}
 
 export type ErrorsByNetwork = Record<string, number>;
 
@@ -105,7 +84,6 @@ export interface GeneralAppSlice {
   selectedProtocol: SupportedProtocols;
   selectedChainByProtocol: Partial<Record<SupportedProtocols, string>>;
   selectedAccountByProtocol: Partial<Record<SupportedProtocols, string>>;
-  accountBalances: IAccountBalances;
   networks: Network[];
   assets: IAsset[];
   errorsPreferredNetwork: ErrorsByNetwork;
@@ -609,17 +587,6 @@ const initialState: GeneralAppSlice = {
     [SupportedProtocols.Ethereum]: "1",
   },
   selectedProtocol: SupportedProtocols.Pocket,
-  accountBalances: {
-    [SupportedProtocols.Pocket]: {
-      mainnet: {},
-      testnet: {},
-    },
-    [SupportedProtocols.Ethereum]: {
-      "1": {},
-      "5": {},
-      "11155111": {},
-    },
-  },
   errorsPreferredNetwork: {},
   networksCanBeSelected: {
     [SupportedProtocols.Ethereum]: [],
@@ -701,8 +668,15 @@ const generalAppSlice = createSlice({
     addMintIdSent: (state, action: PayloadAction<string>) => {
       state.idOfMintsSent = [...state.idOfMintsSent, action.payload];
     },
-    // this is here to only set that an account is loading after verifying it in the thunk
-    setGetAccountPending: setGetAccountPendingFromNetwork,
+    setNetworksWithErrors: (state, action: PayloadAction<Array<string>>) => {
+      const networksWithErrors = action.payload;
+      if (networksWithErrors.length) {
+        for (const networkId of networksWithErrors) {
+          const path = ["errorsPreferredNetwork", networkId];
+          set(state, path, get(state, path, 0) + 1);
+        }
+      }
+    },
   },
   extraReducers: (builder) => {
     addNetworksExtraReducers(builder);
@@ -843,13 +817,13 @@ export const {
   removeExternalRequest,
   addExternalRequest,
   addWindow,
-  setGetAccountPending,
   changeActiveTab,
   increaseErrorOfNetwork,
   resetErrorOfNetwork,
   setAppIsReadyStatus,
   addMintIdSent,
   addTransaction,
+  setNetworksWithErrors,
 } = generalAppSlice.actions;
 
 export default generalAppSlice.reducer;

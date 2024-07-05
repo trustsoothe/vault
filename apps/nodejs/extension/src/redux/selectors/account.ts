@@ -1,37 +1,5 @@
 import type { RootState } from "../store";
-import { AccountType, SupportedProtocols } from "@poktscan/vault";
-
-export const accountBalancesSelector = (state: RootState) =>
-  state.app.accountBalances;
-
-export const balanceMapOfNetworkSelector =
-  (
-    protocol: SupportedProtocols,
-    chainId: string,
-    asset?: { contractAddress: string; decimals: number }
-  ) =>
-  (state: RootState) => {
-    const chainBalanceMap = state.app.accountBalances?.[protocol]?.[chainId];
-
-    if (asset && protocol === SupportedProtocols.Ethereum) {
-      return chainBalanceMap?.[asset.contractAddress];
-    }
-
-    return chainBalanceMap;
-  };
-
-export const balanceMapConsideringAsset =
-  (asset?: { contractAddress: string; decimals: number }) =>
-  (state: RootState) => {
-    const selectedProtocol = state.app.selectedProtocol;
-    const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];
-
-    return balanceMapOfNetworkSelector(
-      selectedProtocol,
-      selectedChain,
-      asset
-    )(state);
-  };
+import { AccountType } from "@poktscan/vault";
 
 export const selectedAccountAddressSelector = (state: RootState) => {
   const selectedProtocol = state.app.selectedProtocol;
@@ -55,36 +23,6 @@ export const selectedAccountSelector = (state: RootState) => {
 };
 
 export const accountsSelector = (state: RootState) => state.vault.accounts;
-
-export const wPoktBalanceSelector = (state: RootState) => {
-  const selectedProtocol = state.app.selectedProtocol;
-  const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];
-  const selectedAccountAddress =
-    state.app.selectedAccountByProtocol[selectedProtocol];
-
-  const chainBalanceMap =
-    state.app.accountBalances?.[selectedProtocol]?.[selectedChain];
-
-  if (selectedProtocol === SupportedProtocols.Pocket) {
-    return chainBalanceMap?.[selectedAccountAddress]?.amount || 0;
-  } else {
-    const assetContractAddress = state.app.assets.find(
-      (asset) =>
-        asset.symbol === "wPOKT" &&
-        asset.protocol === selectedProtocol &&
-        asset.chainId === selectedChain
-    )?.contractAddress;
-    return (
-      chainBalanceMap?.[assetContractAddress]?.[selectedAccountAddress]
-        ?.amount || 0
-    );
-  }
-};
-
-export const existsAccountsOfSelectedProtocolSelector = (state: RootState) =>
-  state.vault.accounts.some(
-    (account) => account.protocol === state.app.selectedProtocol
-  );
 
 export const accountsImportedSelector = (state: RootState) =>
   state.app.accountsImported;

@@ -59,10 +59,6 @@ import type {
   AnswerNewAccountRes,
 } from "../../types/communications/newAccount";
 import type {
-  AccountBalanceReq,
-  AccountBalanceRes,
-} from "../../types/communications/balance";
-import type {
   NetworkFeeReq,
   NetworkFeeRes,
   SetRequirePasswordForOptsReq,
@@ -87,8 +83,6 @@ import {
 import { WebEncryptionService } from "@poktscan/vault-encryption-web";
 import store, { RootState } from "../../redux/store";
 import {
-  ACCOUNT_BALANCE_REQUEST,
-  ACCOUNT_BALANCE_RESPONSE,
   ANSWER_CONNECTION_REQUEST,
   ANSWER_CONNECTION_RESPONSE,
   ANSWER_NEW_ACCOUNT_REQUEST,
@@ -181,7 +175,6 @@ import {
   revokeSession,
 } from "../../redux/slices/vault/session";
 import { OperationRejected, UnknownError } from "../../errors/communication";
-import { getAccountBalance } from "../../redux/slices/app/network";
 import { getFee, NetworkForOperations } from "../../utils/networkOperations";
 import { getVault } from "../../utils";
 import {
@@ -222,7 +215,6 @@ const mapMessageType: Record<InternalRequests["type"], true> = {
   [REMOVE_ACCOUNT_REQUEST]: true,
   [IMPORT_ACCOUNT_REQUEST]: true,
   [PK_ACCOUNT_REQUEST]: true,
-  [ACCOUNT_BALANCE_REQUEST]: true,
   [NETWORK_FEE_REQUEST]: true,
   [CHECK_PERMISSION_FOR_SESSION_REQUEST]: true,
   [ANSWER_SWITCH_CHAIN_REQUEST]: true,
@@ -296,10 +288,6 @@ class InternalCommunicationController implements ICommunicationController {
 
     if (message?.type === PK_ACCOUNT_REQUEST) {
       return this._getPrivateKeyOfAccount(message);
-    }
-
-    if (message?.type === ACCOUNT_BALANCE_REQUEST) {
-      return this._getAccountBalance(message);
     }
 
     if (message?.type === NETWORK_FEE_REQUEST) {
@@ -1431,29 +1419,6 @@ class InternalCommunicationController implements ICommunicationController {
 
       return {
         type: PK_ACCOUNT_RESPONSE,
-        data: null,
-        error: UnknownError,
-      };
-    }
-  }
-
-  private async _getAccountBalance({
-    data,
-  }: AccountBalanceReq): Promise<AccountBalanceRes> {
-    try {
-      const result = await store.dispatch(getAccountBalance(data)).unwrap();
-
-      return {
-        type: ACCOUNT_BALANCE_RESPONSE,
-        data: {
-          answered: true,
-          balance: result.amount,
-        },
-        error: null,
-      };
-    } catch (e) {
-      return {
-        type: ACCOUNT_BALANCE_RESPONSE,
         data: null,
         error: UnknownError,
       };

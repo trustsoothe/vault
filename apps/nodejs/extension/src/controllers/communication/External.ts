@@ -96,9 +96,9 @@ import {
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
 import { getVault, isHex, returnExtensionErr } from "../../utils";
-import { getAccountBalance } from "../../redux/slices/app/network";
 import { HEIGHT, WIDTH } from "../../constants/ui";
 import { isValidAddress } from "../../utils/networkOperations";
+import { balanceApi } from "../../redux/slices/balance";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -759,9 +759,9 @@ class ExternalCommunicationController implements ICommunicationController {
         chainId = data.protocol === SupportedProtocols.Pocket ? "mainnet" : "1";
       }
 
-      const result = await store
+      const balance = await store
         .dispatch(
-          getAccountBalance({
+          balanceApi.endpoints.getBalance.initiate({
             address: data.address,
             protocol: data.protocol,
             chainId,
@@ -773,10 +773,9 @@ class ExternalCommunicationController implements ICommunicationController {
 
       if (data.protocol === SupportedProtocols.Pocket) {
         // balance should be returned in uPOKT
-        balanceToReturn = result.amount ? result.amount * 1e6 : 0;
+        balanceToReturn = balance ? balance * 1e6 : 0;
       } else {
-        balanceToReturn =
-          "0x" + BigInt(toWei(result.amount, "ether")).toString(16);
+        balanceToReturn = "0x" + BigInt(toWei(balance, "ether")).toString(16);
       }
 
       return {
