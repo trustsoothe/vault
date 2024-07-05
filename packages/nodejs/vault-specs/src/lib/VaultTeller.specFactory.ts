@@ -3,7 +3,7 @@ import {
   AccountExistError,
   AccountNotFoundError,
   AccountOptions,
-  AccountReference, AccountType, ArgumentError,
+  AccountReference, AccountType, AddHDWalletAccountExternalRequest, AddHDWalletAccountOptions, ArgumentError,
   Asset, EncryptedVault,
   ExternalAccessRequest,
   ForbiddenSessionError,
@@ -16,8 +16,8 @@ import {
   Passphrase,
   Permission,
   PermissionsBuilder,
-  PrivateKeyRestoreError,
-  RecoveryPhraseError, RecoveryPhraseExistError, RecoveryPhraseNotFoundError,
+  PrivateKeyRestoreError, RecoveryPhrase,
+  RecoveryPhraseError, RecoveryPhraseExistError, RecoveryPhraseNotFoundError, RecoveryPhraseReference,
   SerializedSession,
   Session,
   SessionIdRequiredError,
@@ -1027,8 +1027,19 @@ export default <
 
         expect(recoveryPhrases).not.toContain(recoveryPhrase)
     });
-
   })
+
+  const createManyChildren = async (vaultTeller: VaultTeller, session: Session, passphrase: Passphrase, options: AddHDWalletAccountExternalRequest, count = 1) => {
+    const accounts: AccountReference[] = []
+
+    for(let i = 0; i < count; i++) {
+      const newAccount = await vaultTeller.addHDWalletAccount(session.id, passphrase, options)
+
+      accounts.push(newAccount)
+    }
+
+    return accounts
+  }
 
   describe('Account creation - Pocket Network', () => {
     const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'
@@ -1428,35 +1439,22 @@ export default <
           await expect(addHDWalletAccountOperation).rejects.toThrow(RecoveryPhraseNotFoundError)
         });
 
-        test('defaults to 1 account', async () => {
+        test('Sets the name when given', async () => {
           const {vaultTeller, session, passphrase} = await createVault();
           const newRecoveryPhrase = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
             recoveryPhrase: vaultTeller.createRecoveryPhrase(),
             recoveryPhraseName: 'example-hd-wallet',
           })
 
-          const hdChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const testName =  'Test Name';
+
+          const newHDChildAccount = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Pocket,
+            name: testName,
           })
 
-          expect(hdChildren.length).toEqual(1)
-        });
-
-        test('allows to specify the number of accounts', async () => {
-          const {vaultTeller, session, passphrase} = await createVault();
-          const newRecoceryPhrase = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
-            recoveryPhrase: vaultTeller.createRecoveryPhrase(),
-            recoveryPhraseName: 'example-hd-wallet',
-          })
-
-          const hdChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
-            recoveryPhraseId: newRecoceryPhrase.id,
-            protocol: SupportedProtocols.Pocket,
-            count: 3,
-          })
-
-          expect(hdChildren.length).toEqual(3)
+          expect(newHDChildAccount.name).toEqual(testName)
         });
 
         test('resolves to the predictable list of new HDChild account references (address verification)', async () => {
@@ -1466,12 +1464,13 @@ export default <
             recoveryPhraseName: 'example-hd-wallet',
           });
 
-          const hdChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const options: AddHDWalletAccountExternalRequest = {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Pocket,
             isSendNodes: true,
-            count: 4,
-          });
+          }
+
+          const hdChildren = await createManyChildren(vaultTeller, session, passphrase, options, 4)
 
           const generatedAddresses = hdChildren.map((a) => a.address);
 
@@ -1485,7 +1484,7 @@ export default <
             recoveryPhraseName: 'example-hd-wallet',
           });
 
-          const [secondChild] = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const secondChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Pocket,
           });
@@ -1502,19 +1501,19 @@ export default <
             recoveryPhraseName: 'example-hd-wallet',
           });
 
-          // First child was created as part of the seed import
-          const [firstChild, secondChild] = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const options = {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Pocket,
-            count: 4,
-          });
+          }
+
+          // First child was created as part of the seed import
+          const [firstChild, secondChild] = await createManyChildren(vaultTeller, session, passphrase, options, 4)
 
           await vaultTeller.removeAccount(session.id, passphrase, secondChild);
 
-          const [newChild] = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const newChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Pocket,
-            count: 1,
           });
 
           // The new child is expected to get have the index of the second child (1) which we removed
@@ -1528,16 +1527,14 @@ export default <
             recoveryPhraseName: 'example-hd-wallet',
           });
 
-          const [firstChild] = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const firstChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Pocket,
-            count: 1,
           });
 
-          const [secondChild] = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const secondChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Pocket,
-            count: 1,
           });
 
           const expectedIndex = firstChild?.hdwIndex! + 1;
@@ -1595,35 +1592,22 @@ export default <
           await expect(addHDWalletAccountOperation).rejects.toThrow(RecoveryPhraseNotFoundError)
         });
 
-        test('defaults to 1 account', async () => {
+          test('sets the given account name', async () => {
           const {vaultTeller, session, passphrase} = await createVault();
           const newRecoveryPhrase = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
             recoveryPhrase: vaultTeller.createRecoveryPhrase(),
             recoveryPhraseName: 'example-hd-wallet',
           })
 
-          const hdChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const testName = 'Test Name';
+
+          const newHdChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Ethereum,
+            name: testName,
           })
 
-          expect(hdChildren.length).toEqual(1)
-        });
-
-        test('allows to specify the number of accounts', async () => {
-          const {vaultTeller, session, passphrase} = await createVault();
-          const newRecoveryPhrase = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
-            recoveryPhrase: vaultTeller.createRecoveryPhrase(),
-            recoveryPhraseName: 'example-hd-wallet',
-          })
-
-          const hdChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
-            recoveryPhraseId: newRecoveryPhrase.id,
-            protocol: SupportedProtocols.Ethereum,
-            count: 3,
-          })
-
-          expect(hdChildren.length).toEqual(3)
+          expect(newHdChild.name).toEqual(testName)
         });
 
         test('resolves to the predictable list of new HDChild account references (address verification)', async () => {
@@ -1633,11 +1617,12 @@ export default <
             recoveryPhraseName: 'example-hd-wallet',
           });
 
-          const hdChildren = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const options = {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Ethereum,
-            count: 4,
-          });
+          }
+
+          const hdChildren = await createManyChildren(vaultTeller, session, passphrase, options, 4)
 
           const generatedAddresses = hdChildren.map((a) => a.address);
 
@@ -1651,7 +1636,7 @@ export default <
             recoveryPhraseName: 'example-hd-wallet',
           });
 
-          const [secondChild] = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const secondChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Ethereum,
           });
@@ -1668,19 +1653,19 @@ export default <
             recoveryPhraseName: 'example-hd-wallet',
           });
 
-          // First child was created as part of the seed import
-          const [_, secondChild] = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const options = {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Ethereum,
-            count: 4,
-          });
+          }
+
+          // First child was created as part of the seed import
+          const [_, secondChild] = await createManyChildren(vaultTeller, session, passphrase, options, 4)
 
           await vaultTeller.removeAccount(session.id, passphrase, secondChild);
 
-          const [newChild] = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const newChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Ethereum,
-            count: 1,
           });
 
           // The new child is expected to get have the index of the second child (1) which we removed
@@ -1694,16 +1679,14 @@ export default <
             recoveryPhraseName: 'example-hd-wallet',
           });
 
-          const [firstChild] = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const firstChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Ethereum,
-            count: 1,
           });
 
-          const [secondChild] = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+          const secondChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
             recoveryPhraseId: newRecoveryPhrase.id,
             protocol: SupportedProtocols.Ethereum,
-            count: 1,
           });
 
           const expectedIndex = firstChild?.hdwIndex! + 1;
