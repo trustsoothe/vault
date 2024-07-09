@@ -59,6 +59,8 @@ export default function RequestHeader({
       network.protocol === protocol && network.chainId === selectedChain
   );
 
+  if (!selectedAccount || !selectedNetwork) return null;
+
   return (
     <HeaderContainer columnGap={1.2} width={WIDTH}>
       <Container>

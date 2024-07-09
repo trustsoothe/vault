@@ -7,19 +7,20 @@ import { roundAndSeparate } from "../../utils/ui";
 import useUsdPrice from "../hooks/useUsdPrice";
 import { themeColors } from "../theme";
 import {
-  networkSymbolSelector,
   selectedChainSelector,
   selectedProtocolSelector,
 } from "../../redux/selectors/network";
+import useSelectedAsset from "./hooks/useSelectedAsset";
 
 export default function PriceFooter() {
-  const networkSymbol = useAppSelector(networkSymbolSelector);
   const selectedChain = useAppSelector(selectedChainSelector);
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const selectedAsset = useSelectedAsset();
 
-  const { isLoading, usdPrice } = useUsdPrice({
+  const { isLoading, usdPrice, coinSymbol } = useUsdPrice({
     protocol: selectedProtocol,
     chainId: selectedChain,
+    asset: selectedAsset,
   });
 
   return (
@@ -35,7 +36,7 @@ export default function PriceFooter() {
       justifyContent={"space-between"}
       borderTop={`1px solid ${themeColors.borderLightGray}`}
     >
-      <Typography color={themeColors.gray}>{networkSymbol} Price</Typography>
+      <Typography color={themeColors.gray}>{coinSymbol} Price</Typography>
       {isLoading ? (
         <Skeleton width={70} height={20} variant={"rectangular"} />
       ) : (
