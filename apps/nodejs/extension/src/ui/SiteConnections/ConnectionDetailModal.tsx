@@ -60,14 +60,14 @@ export default function ConnectionDetailModal({
     if (
       selectedAccountAddress === account.address &&
       connection?.protocol === account.protocol &&
-      addressesOfAccountsConnected.includes(account.address)
+      addressesOfAccountsConnected.includes(account.address.toLowerCase())
     ) {
       selectedAccount = account;
       return false;
     }
 
     return (
-      addressesOfAccountsConnected.includes(account.address) &&
+      addressesOfAccountsConnected.includes(account.address.toLowerCase()) &&
       connection?.protocol === account.protocol
     );
   });

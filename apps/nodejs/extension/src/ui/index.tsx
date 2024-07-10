@@ -226,7 +226,7 @@ export default function App() {
                   alignSelf: "flex-start",
                   marginTop: 0.2,
                 },
-                "& .okay-button": {
+                "& .okay-button, .retry-button": {
                   alignSelf: "flex-end",
                   marginRight: 0.4,
                   marginBottom: 0.4,

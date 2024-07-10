@@ -1712,7 +1712,9 @@ class InternalCommunicationController implements ICommunicationController {
     const vaultState = store.getState().vault;
     const vaultSessionId = vaultState.vaultSession.id;
     const serializedAccount = vaultState.accounts.find(
-      (account) => account.protocol === protocol && account.address === address
+      (account) =>
+        account.protocol === protocol &&
+        account.address.toLowerCase() === address.toLowerCase()
     );
     const accountReference = AccountReference.deserialize(serializedAccount);
     const pass = await getVaultPassword(vaultSessionId);

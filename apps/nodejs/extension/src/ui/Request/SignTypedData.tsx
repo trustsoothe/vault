@@ -7,11 +7,11 @@ import { closeSnackbar, SnackbarKey } from "notistack";
 import React, { useEffect, useRef, useState } from "react";
 import { SupportedProtocols } from "@poktscan/vault";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import Summary, { SummaryRowItem } from "../components/Summary";
 import { isValidAddress } from "../../utils/networkOperations";
 import CopyAddressButton from "../Home/CopyAddressButton";
 import DialogButtons from "../components/DialogButtons";
 import { enqueueErrorSnackbar } from "../../utils/ui";
-import Summary from "../components/Summary";
 import { WIDTH } from "../../constants/ui";
 import RequestInfo from "./RequestInfo";
 import { themeColors } from "../theme";
@@ -138,6 +138,41 @@ export default function SignTypedData() {
       .finally(() => setIsLoading(false));
   };
 
+  const summaryRows: Array<SummaryRowItem> = [];
+
+  if (signRequest?.data?.domain?.name) {
+    summaryRows.push({
+      type: "row",
+      label: "Name",
+      value: signRequest.data.domain.name,
+    });
+  }
+
+  summaryRows.push({
+    type: "row",
+    label: "Version",
+    value: signRequest?.data?.domain?.version || 1,
+  });
+
+  if (signRequest?.data?.domain?.verifyingContract) {
+    summaryRows.push({
+      type: "row",
+      label: "Name",
+      value: (
+        <CopyAddressButton
+          address={signRequest.data.domain.verifyingContract}
+          sxProps={{
+            fontWeight: 500,
+            boxShadow: "none",
+            marginRight: -0.8,
+            color: themeColors.black,
+            backgroundColor: "transparent",
+          }}
+        />
+      ),
+    });
+  }
+
   return (
     <Stack flexGrow={1} width={WIDTH}>
       <RequestInfo
@@ -153,36 +188,7 @@ export default function SignTypedData() {
         flexBasis={"1px"}
         overflow={"auto"}
       >
-        <Summary
-          rows={[
-            {
-              type: "row",
-              label: "Name",
-              value: signRequest?.data?.domain?.name,
-            },
-            {
-              type: "row",
-              label: "Version",
-              value: signRequest?.data?.domain?.version || 1,
-            },
-            {
-              type: "row",
-              label: "Name",
-              value: (
-                <CopyAddressButton
-                  address={signRequest?.data?.domain?.verifyingContract}
-                  sxProps={{
-                    fontWeight: 500,
-                    boxShadow: "none",
-                    marginRight: -0.8,
-                    color: themeColors.black,
-                    backgroundColor: "transparent",
-                  }}
-                />
-              ),
-            },
-          ]}
-        />
+        <Summary rows={summaryRows} />
         <Stack
           marginTop={1.6}
           borderRadius={"8px"}

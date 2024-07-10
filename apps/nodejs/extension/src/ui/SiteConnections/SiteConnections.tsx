@@ -47,7 +47,7 @@ function ConnectionItem({ connection, openDetailModal }: ConnectionItemProps) {
   );
 
   const accountsConnected = accounts.filter((account) =>
-    addressesOfAccountsConnected.includes(account.address)
+    addressesOfAccountsConnected.includes(account.address.toLowerCase())
   );
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);

@@ -115,7 +115,7 @@ export class Session implements IEntity {
         permission.resource === resource &&
         permission.action === action &&
         (permission.identities.includes("*") ||
-          ids.every((id) => permission.identities.includes(id)))
+          ids.every((id) => permission.identities.includes(id.toLowerCase())))
     );
   }
 
@@ -164,7 +164,10 @@ export class Session implements IEntity {
       ) {
         return {
           ...permission,
-          identities: [...permission.identities, account.id],
+          identities: [
+            ...permission.identities.map((id) => id.toLowerCase()),
+            account.id,
+          ],
         };
       }
 
@@ -203,9 +206,9 @@ export class Session implements IEntity {
       if (permission.resource === "account") {
         return {
           ...permission,
-          identities: permission.identities.filter(
-            (id) => id !== accountReference.id
-          ),
+          identities: permission.identities
+            .filter((id) => id !== accountReference.id)
+            .map((id) => id.toLowerCase()),
         };
       }
 

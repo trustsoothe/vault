@@ -318,6 +318,7 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
               backgroundColor: themeColors.light_gray,
             },
           }}
+          className={"retry-button"}
           onClick={onClickClose}
         >
           Retry
