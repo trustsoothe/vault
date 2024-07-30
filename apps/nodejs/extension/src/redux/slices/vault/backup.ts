@@ -45,7 +45,7 @@ const CustomRpcSchema = z.object({
   isPreferred: z.boolean().default(false),
 });
 
-const validVersions = ["0.0.1", "0.0.2"] as const;
+const validVersions = ["0.0.3"] as const;
 
 export const SettingsSchema = z.object({
   selectedProtocol: SupportedProtocolsSchema.default(SupportedProtocols.Pocket),
@@ -159,7 +159,7 @@ export const exportVault = createAsyncThunk(
 
     const vaultToExport: VaultBackupSchema = {
       vault: encryptedVault,
-      version: "0.0.1",
+      version: "0.0.3",
       settings: {
         contacts: currentAppState.contacts,
         customRpcs: currentAppState.customRpcs,
