@@ -1,5 +1,5 @@
 import type { SupportedProtocols } from "@poktscan/vault";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { shallowEqual } from "react-redux";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import { networksSelector } from "../../redux/selectors/network";
@@ -16,9 +16,15 @@ interface UseUsdPrice {
   protocol: SupportedProtocols;
   chainId: string;
   asset?: { contractAddress: string };
+  forceInitialFetch?: boolean;
 }
 
-export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
+export default function useUsdPrice({
+  asset,
+  protocol,
+  chainId,
+  forceInitialFetch = false,
+}: UseUsdPrice) {
   const lastSnackbarKeyRef = useRef<SnackbarKey>(null);
   const networks = useAppSelector(networksSelector);
 
@@ -76,8 +82,14 @@ export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
   }, [assets, networks, asset, assetsIdByAccount]);
 
   const { isLoading, isError, refetch, data } = useGetPricesQuery(idOfCoins, {
-    pollingInterval: 1000 * 45,
+    pollingInterval: 1000 * 60,
   });
+
+  useEffect(() => {
+    if (!isLoading && forceInitialFetch) {
+      refetch();
+    }
+  }, []);
 
   useDidMountEffect(() => {
     if (isError) {
