@@ -4708,10 +4708,6 @@
                         throw TypeError(
                           `Unexpected whitelist permit ${permit} at ${path}`
                         );
-                      } else {
-                        console.warn(
-                          `Unexpected whitelist permit ${permit} at ${path}. Warning to prevent error unhandled.`
-                        );
                       }
                     }
 
@@ -4744,10 +4740,6 @@
                           !path.startsWith("intrinsics.%IteratorPrototype%")
                         ) {
                           throw TypeError(`Accessor not expected at ${path}`);
-                        } else {
-                          console.warn(
-                            `Accessor not expected at ${path}. Warning to prevent error unhandled.`
-                          );
                         }
                       }
                       return (

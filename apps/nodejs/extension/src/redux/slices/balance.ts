@@ -14,7 +14,8 @@ export interface GetAccountBalanceArg {
 }
 
 export const balanceApi = createApi({
-  keepUnusedDataFor: 30,
+  keepUnusedDataFor: 25,
+  refetchOnMountOrArgChange: true,
   reducerPath: "balanceApi",
   baseQuery: fakeBaseQuery(),
   endpoints: (builder) => ({

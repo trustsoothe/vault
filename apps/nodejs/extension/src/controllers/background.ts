@@ -29,6 +29,7 @@ import store, { RootState } from "../redux/store";
 import InternalCommunicationController from "./communication/Internal";
 import ExternalCommunicationController from "./communication/External";
 import { loadBackupData } from "../redux/slices/vault/backup";
+import { pricesApi } from "../redux/slices/prices";
 
 export default class BackgroundController {
   private readonly internal = new InternalCommunicationController();
@@ -36,7 +37,44 @@ export default class BackgroundController {
 
   constructor() {
     this._initializeKeepAlive();
-    this._initializeExtension().catch();
+    this._initializeExtension()
+      .then(() => {
+        // this is to make the first request to the price API and catch it
+        const state = store.getState();
+        const { assets, networks, assetsIdByAccount } = state.app;
+
+        const idOfCoins: Array<string> = [];
+
+        for (const network of networks) {
+          if (network.coinGeckoId) {
+            idOfCoins.push(network.coinGeckoId);
+          }
+        }
+
+        const selectedAssets = Object.values(assetsIdByAccount || {}).reduce(
+          (acc, assetsId) => [...acc, ...assetsId],
+          []
+        );
+
+        for (const assetFromList of assets) {
+          if (
+            assetFromList.coinGeckoId &&
+            selectedAssets.includes(assetFromList.id)
+          ) {
+            idOfCoins.push(assetFromList.coinGeckoId);
+          }
+        }
+
+        const ids = idOfCoins.join(",");
+
+        store
+          .dispatch(
+            pricesApi.endpoints.getPrices.initiate(ids, { subscribe: false })
+          )
+          .unwrap()
+          .catch();
+      })
+      .catch();
 
     browser.tabs.onUpdated.addListener(this._onTabUpdated.bind(this));
     browser.tabs.onActivated.addListener(this._onTabActivated.bind(this));

@@ -22,8 +22,18 @@ export default function useGetBalance({
   interval = 30000,
   nameOnError = "",
 }: UseGetBalance) {
+  const canShowLoading = useRef(true);
   const lastSnackbarKeyRef = useRef<SnackbarKey>(null);
-  const { isLoading, balance, error, isError, refetch } = useGetBalanceQuery(
+
+  const {
+    isLoading,
+    balance,
+    error,
+    isError,
+    refetch,
+    isFetching,
+    isUninitialized,
+  } = useGetBalanceQuery(
     {
       address,
       chainId,
@@ -34,19 +44,27 @@ export default function useGetBalance({
       pollingInterval: interval,
       selectFromResult: (args) => ({
         ...args,
-        balance: args.data || 0,
+        balance: args.currentData || 0,
       }),
     }
   );
 
   useEffect(() => {
+    if (!isFetching) {
+      canShowLoading.current = false;
+    }
+  }, [isFetching]);
+
+  useEffect(() => {
+    canShowLoading.current = true;
+
     return () => {
       if (lastSnackbarKeyRef.current) {
         closeSnackbar(lastSnackbarKeyRef.current);
         lastSnackbarKeyRef.current = null;
       }
     };
-  }, [address, chainId, protocol, asset]);
+  }, [address, chainId, protocol, asset?.contractAddress, asset?.decimals]);
 
   useDidMountEffect(() => {
     if (lastSnackbarKeyRef.current) {
@@ -73,6 +91,9 @@ export default function useGetBalance({
   return {
     error: isError,
     balance,
-    isLoading,
+    isLoading:
+      isUninitialized ||
+      isLoading ||
+      (isFetching && canShowLoading.current && !balance),
   };
 }

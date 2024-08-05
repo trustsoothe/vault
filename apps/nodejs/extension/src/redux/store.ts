@@ -13,11 +13,10 @@ const store = configureStore({
     [wpoktApi.reducerPath]: wpoktApi.reducer,
     [balanceApi.reducerPath]: balanceApi.reducer,
   },
-  middleware: (getDefaultMiddleware) => {
-    return getDefaultMiddleware({
-      serializableCheck: false,
-    });
-  },
+  // we are not passing all middlewares here, because we are already setting them in the UI store
+  // and placing them here would cause to execute the queries twice
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(pricesApi.middleware),
 });
 
 // 1. Get the root state's type from reducers

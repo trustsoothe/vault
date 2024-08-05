@@ -76,7 +76,7 @@ export default function useUsdPrice({ asset, protocol, chainId }: UseUsdPrice) {
   }, [assets, networks, asset, assetsIdByAccount]);
 
   const { isLoading, isError, refetch, data } = useGetPricesQuery(idOfCoins, {
-    pollingInterval: 1000 * 60,
+    pollingInterval: 1000 * 45,
   });
 
   useDidMountEffect(() => {

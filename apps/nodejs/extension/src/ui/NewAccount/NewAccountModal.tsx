@@ -17,6 +17,7 @@ import {
   changeSelectedAccountOfNetwork,
   changeSelectedNetwork,
 } from "../../redux/slices/app";
+import { ACCOUNTS_PAGE, REQUEST_CONNECTION_PAGE } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import {
   seedsSelector,
@@ -26,7 +27,6 @@ import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import ProtocolSelector from "../components/ProtocolSelector";
 import useDidMountEffect from "../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
-import { ACCOUNTS_PAGE } from "../../constants/routes";
 import AccountFeedback from "../components/AccountFeedback";
 import { enqueueErrorSnackbar } from "../../utils/ui";
 import MenuDivider from "../components/MenuDivider";
@@ -60,16 +60,22 @@ export const nameRules = {
 interface NewAccountModalProps {
   open: boolean;
   onClose: () => void;
+  protocol?: SupportedProtocols;
 }
 
 export default function NewAccountModal({
   open,
   onClose,
+  protocol: protocolFromProps,
 }: NewAccountModalProps) {
   const errorSnackbarKey = useRef<SnackbarKey>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const isInManageAccountsView = useLocation().pathname === "/accounts";
+  const location = useLocation();
+  const navigateToAccountsPage =
+    location.pathname === "/accounts" ||
+    location.pathname === REQUEST_CONNECTION_PAGE;
+
   const seeds = useAppSelector(seedsSelector);
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const protocol = useAppSelector(selectedProtocolSelector);
@@ -81,12 +87,13 @@ export default function NewAccountModal({
   const { reset, control, handleSubmit, setValue } = useForm<FormValues>({
     defaultValues: {
       account_name: "",
-      protocol,
+      protocol: protocolFromProps || protocol,
       type: "",
     },
   });
 
   useDidMountEffect(() => {
+    if (protocolFromProps) return;
     setValue("protocol", protocol);
   }, [protocol]);
 
@@ -99,7 +106,11 @@ export default function NewAccountModal({
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      reset({ account_name: "", protocol, type: "" });
+      reset({
+        account_name: "",
+        protocol: protocolFromProps || protocol,
+        type: "",
+      });
       setStatus("normal");
     }, 150);
     closeSnackbars();
@@ -240,22 +251,26 @@ export default function NewAccountModal({
               Select an existing seed if you want an account linked to your Seed
               Phrase.
             </Typography>
-            <Controller
-              control={control}
-              name={"protocol"}
-              render={({ field }) => (
-                <ProtocolSelector disabled={isLoading} {...field} />
-              )}
-            />
-            <Typography
-              variant={"body2"}
-              marginTop={0.8}
-              marginBottom={2}
-              color={themeColors.textSecondary}
-            >
-              You’ll be able to use this account for every network of the
-              protocol selected.
-            </Typography>
+            {!protocolFromProps && (
+              <>
+                <Controller
+                  control={control}
+                  name={"protocol"}
+                  render={({ field }) => (
+                    <ProtocolSelector disabled={isLoading} {...field} />
+                  )}
+                />
+                <Typography
+                  variant={"body2"}
+                  marginTop={0.8}
+                  marginBottom={2}
+                  color={themeColors.textSecondary}
+                >
+                  You’ll be able to use this account for every network of the
+                  protocol selected.
+                </Typography>
+              </>
+            )}
             <Controller
               control={control}
               name={"account_name"}
@@ -305,7 +320,7 @@ export default function NewAccountModal({
               primaryButtonProps={{
                 children: "Done",
                 onClick: () => {
-                  if (!isInManageAccountsView) {
+                  if (!navigateToAccountsPage) {
                     navigate(ACCOUNTS_PAGE);
                   }
                   onClose();

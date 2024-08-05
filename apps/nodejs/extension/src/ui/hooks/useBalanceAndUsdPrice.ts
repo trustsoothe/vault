@@ -7,6 +7,7 @@ export default function useBalanceAndUsdPrice(props: UseGetBalance) {
     error: balanceError,
     isLoading: isLoadingBalance,
   } = useGetBalance(props);
+
   const {
     usdPrice,
     error: usdPriceError,
