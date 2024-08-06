@@ -37,12 +37,7 @@ export default class BackgroundController {
 
   constructor() {
     this._initializeKeepAlive();
-    this._initializeExtension()
-      .then(() => {
-        // this is to make the first request to the price API and catch it
-        this._makePriceRequestIfNeeded();
-      })
-      .catch();
+    this._initializeExtension().catch();
 
     browser.tabs.onUpdated.addListener(this._onTabUpdated.bind(this));
     browser.tabs.onActivated.addListener(this._onTabActivated.bind(this));
