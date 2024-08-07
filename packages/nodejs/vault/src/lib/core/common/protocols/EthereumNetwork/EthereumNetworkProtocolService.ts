@@ -102,6 +102,7 @@ export class EthereumNetworkProtocolService
 
     const seedAccount = new Account({
       name: options.seedAccountName || "HD Account",
+      seedId: options.recoveryPhraseId,
       accountType: AccountType.HDSeed,
       protocol: SupportedProtocols.Ethereum,
       publicKey: masterKey.publicExtendedKey,
@@ -117,18 +118,12 @@ export class EthereumNetworkProtocolService
 
   async createHDWalletAccount(
     options: AddHDWalletAccountOptions
-  ): Promise<Account[]> {
-    const accounts: Account[] = [];
-
-    for (let i = 0; i < options.indexes?.length; i++) {
-      const account = await this.deriveHDAccountAtIndex(
-        options.seedAccount,
-        options.indexes[i]
-      );
-      accounts.push(account);
-    }
-
-    return accounts;
+  ): Promise<Account> {
+    return this.deriveHDAccountAtIndex(
+      options.seedAccount,
+      options.index,
+      options.name
+    );
   }
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
@@ -511,7 +506,8 @@ export class EthereumNetworkProtocolService
 
   private async deriveHDAccountAtIndex(
     seedAccount: Account,
-    index: number
+    index: number,
+    name?: string
   ): Promise<Account> {
     const derivedKey = HDKey.fromExtendedKey(seedAccount.privateKey).derive(
       `m/44'/60'/0'/0/${index}`
@@ -522,7 +518,7 @@ export class EthereumNetworkProtocolService
     return new Account({
       publicKey,
       address,
-      name: `${seedAccount.name} ${index + 1}`,
+      name: name ? name : `${seedAccount.name} ${index + 1}`,
       accountType: AccountType.HDChild,
       protocol: SupportedProtocols.Ethereum,
       privateKey: derivedKey.privateKey.toString("hex"),

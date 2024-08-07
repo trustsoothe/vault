@@ -5,10 +5,6 @@ import type {
   SetRequirePasswordForOptsRes,
 } from "../../types/communications/app";
 import type {
-  AccountBalanceReq,
-  AccountBalanceRes,
-} from "../../types/communications/balance";
-import type {
   AnswerConnectionReq,
   AnswerConnectionRes,
 } from "../../types/communications/connection";
@@ -49,6 +45,8 @@ import type {
   PrivateKeyAccountRes,
   RemoveAccountReq,
   RemoveAccountRes,
+  RemoveRecoveryPhraseReq,
+  RemoveRecoveryPhraseRes,
   RevokeExternalSessionsReq,
   RevokeExternalSessionsRes,
   RevokeSessionReq,
@@ -59,10 +57,11 @@ import type {
   UnlockVaultRes,
   UpdateAccountReq,
   UpdateAccountRes,
+  UpdateRecoveryPhraseReq,
+  UpdateRecoveryPhraseRes,
 } from "../../types/communications/vault";
 import browser from "webextension-polyfill";
 import {
-  ACCOUNT_BALANCE_REQUEST,
   ANSWER_CONNECTION_REQUEST,
   ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_PERSONAL_SIGN_REQUEST,
@@ -72,29 +71,31 @@ import {
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
   CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
   EXPORT_VAULT_REQUEST,
+  GET_RECOVERY_PHRASE_ID_REQUEST,
   IMPORT_ACCOUNT_REQUEST,
   IMPORT_HD_WALLET_REQUEST,
   IMPORT_VAULT_REQUEST,
   INITIALIZE_VAULT_REQUEST,
   LOCK_VAULT_REQUEST,
   NETWORK_FEE_REQUEST,
-  PHRASE_GENERATED_HD_SEED_REQUEST,
   PK_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_REQUEST,
+  REMOVE_RECOVERY_PHRASE_REQUEST,
   REVOKE_EXTERNAL_SESSIONS_REQUEST,
   REVOKE_SESSION_REQUEST,
   SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST,
   SHOULD_EXPORT_VAULT_REQUEST,
   UNLOCK_VAULT_REQUEST,
   UPDATE_ACCOUNT_REQUEST,
+  UPDATE_RECOVERY_PHRASE_REQUEST,
 } from "../../constants/communication";
 import {
   CreateAccountFromHdSeedReq,
   CreateAccountFromHdSeedRes,
+  GetRecoveryPhraseIdReq,
+  GetRecoveryPhraseIdRes,
   ImportHdWalletReq,
   ImportHdWalletRes,
-  PhraseGeneratedHdSeedReq,
-  PhraseGeneratedHdSeedRes,
 } from "../../types/communications/hdWallet";
 
 export default class AppToBackground {
@@ -214,16 +215,6 @@ export default class AppToBackground {
     return browser.runtime.sendMessage(message);
   }
 
-  static async getAccountBalance(
-    data: AccountBalanceReq["data"]
-  ): Promise<AccountBalanceRes> {
-    const message: AccountBalanceReq = {
-      type: ACCOUNT_BALANCE_REQUEST,
-      data,
-    };
-    return browser.runtime.sendMessage(message);
-  }
-
   static async getNetworkFee(
     data: NetworkFeeReq["data"]
   ): Promise<NetworkFeeRes> {
@@ -339,11 +330,33 @@ export default class AppToBackground {
     return browser.runtime.sendMessage(message);
   }
 
-  static async phraseGeneratedHdSeed(
-    data: PhraseGeneratedHdSeedReq["data"]
-  ): Promise<PhraseGeneratedHdSeedRes> {
-    const message: PhraseGeneratedHdSeedReq = {
-      type: PHRASE_GENERATED_HD_SEED_REQUEST,
+  static async updateRecoveryPhrase(
+    data: UpdateRecoveryPhraseReq["data"]
+  ): Promise<UpdateRecoveryPhraseRes> {
+    const message: UpdateRecoveryPhraseReq = {
+      type: UPDATE_RECOVERY_PHRASE_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async removeRecoveryPhrase(
+    data: RemoveRecoveryPhraseReq["data"]
+  ): Promise<RemoveRecoveryPhraseRes> {
+    const message: RemoveRecoveryPhraseReq = {
+      type: REMOVE_RECOVERY_PHRASE_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async getRecoveryPhraseId(
+    data: GetRecoveryPhraseIdReq["data"]
+  ): Promise<GetRecoveryPhraseIdRes> {
+    const message: GetRecoveryPhraseIdReq = {
+      type: GET_RECOVERY_PHRASE_ID_REQUEST,
       data,
     };
 

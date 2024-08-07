@@ -25,7 +25,7 @@ export const accountConnectedWithTabSelector = (state: RootState) => {
       (permission) =>
         permission.resource === "account" &&
         permission.action === "read" &&
-        (permission.identities.includes(selectedAccount) ||
+        (permission.identities.includes(selectedAccount?.toLowerCase()) ||
           permission.identities.includes("*"))
     );
 

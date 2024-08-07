@@ -1,14 +1,6 @@
 import type { SupportedProtocols } from "@poktscan/vault";
-import type { GetAccountBalanceParam } from "../../redux/slices/app/network";
-import type {
-  BaseErrors,
-  BaseProxyRequest,
-  BaseProxyResponse,
-  UnknownErrorType,
-} from "./common";
+import type { BaseErrors, BaseProxyRequest, BaseProxyResponse } from "./common";
 import {
-  ACCOUNT_BALANCE_REQUEST,
-  ACCOUNT_BALANCE_RESPONSE,
   EXTERNAL_ACCOUNT_BALANCE_REQUEST,
   EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
 } from "../../constants/communication";
@@ -61,17 +53,3 @@ export interface ProxyErrBalancesRes extends BaseProxyResponse {
 }
 
 export type ProxyBalanceRes = ProxyValidBalanceRes | ProxyErrBalancesRes;
-
-export interface AccountBalanceReq {
-  type: typeof ACCOUNT_BALANCE_REQUEST;
-  data: GetAccountBalanceParam;
-}
-
-export interface AccountBalanceRes {
-  type: typeof ACCOUNT_BALANCE_RESPONSE;
-  data: {
-    answered: true;
-    balance: number;
-  } | null;
-  error: UnknownErrorType | null;
-}

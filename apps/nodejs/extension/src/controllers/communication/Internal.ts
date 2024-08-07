@@ -42,6 +42,8 @@ import type {
   PrivateKeyAccountRes,
   RemoveAccountReq,
   RemoveAccountRes,
+  RemoveRecoveryPhraseReq,
+  RemoveRecoveryPhraseRes,
   RevokeExternalSessionsRes,
   RevokeSessionRes,
   ShouldExportVaultRes,
@@ -49,15 +51,13 @@ import type {
   UnlockVaultRes,
   UpdateAccountReq,
   UpdateAccountRes,
+  UpdateRecoveryPhraseReq,
+  UpdateRecoveryPhraseRes,
 } from "../../types/communications/vault";
 import type {
   AnswerNewAccountReq,
   AnswerNewAccountRes,
 } from "../../types/communications/newAccount";
-import type {
-  AccountBalanceReq,
-  AccountBalanceRes,
-} from "../../types/communications/balance";
 import type {
   NetworkFeeReq,
   NetworkFeeRes,
@@ -76,14 +76,13 @@ import {
   PermissionResources,
   PermissionsBuilder,
   PrivateKeyRestoreErrorName,
+  RecoveryPhraseExistErrorName,
   SupportedProtocols,
   VaultRestoreErrorName,
 } from "@poktscan/vault";
 import { WebEncryptionService } from "@poktscan/vault-encryption-web";
-import store from "../../redux/store";
+import store, { RootState } from "../../redux/store";
 import {
-  ACCOUNT_BALANCE_REQUEST,
-  ACCOUNT_BALANCE_RESPONSE,
   ANSWER_CONNECTION_REQUEST,
   ANSWER_CONNECTION_RESPONSE,
   ANSWER_NEW_ACCOUNT_REQUEST,
@@ -104,6 +103,8 @@ import {
   CREATE_ACCOUNT_FROM_HD_SEED_RESPONSE,
   EXPORT_VAULT_REQUEST,
   EXPORT_VAULT_RESPONSE,
+  GET_RECOVERY_PHRASE_ID_REQUEST,
+  GET_RECOVERY_PHRASE_ID_RESPONSE,
   IMPORT_ACCOUNT_REQUEST,
   IMPORT_ACCOUNT_RESPONSE,
   IMPORT_HD_WALLET_REQUEST,
@@ -118,12 +119,12 @@ import {
   NETWORK_FEE_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
-  PHRASE_GENERATED_HD_SEED_REQUEST,
-  PHRASE_GENERATED_HD_SEED_RESPONSE,
   PK_ACCOUNT_REQUEST,
   PK_ACCOUNT_RESPONSE,
   REMOVE_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_RESPONSE,
+  REMOVE_RECOVERY_PHRASE_REQUEST,
+  REMOVE_RECOVERY_PHRASE_RESPONSE,
   REVOKE_EXTERNAL_SESSIONS_REQUEST,
   REVOKE_EXTERNAL_SESSIONS_RESPONSE,
   REVOKE_SESSION_REQUEST,
@@ -141,6 +142,8 @@ import {
   UNLOCK_VAULT_RESPONSE,
   UPDATE_ACCOUNT_REQUEST,
   UPDATE_ACCOUNT_RESPONSE,
+  UPDATE_RECOVERY_PHRASE_REQUEST,
+  UPDATE_RECOVERY_PHRASE_RESPONSE,
 } from "../../constants/communication";
 import {
   changeActiveTab,
@@ -162,7 +165,6 @@ import {
   createNewAccountFromHdSeed,
   getPrivateKeyOfAccount,
   importAccount,
-  importHdWallet,
   removeAccount,
   sendTransfer,
   updateAccount,
@@ -173,7 +175,6 @@ import {
   revokeSession,
 } from "../../redux/slices/vault/session";
 import { OperationRejected, UnknownError } from "../../errors/communication";
-import { getAccountBalance } from "../../redux/slices/app/network";
 import { getFee, NetworkForOperations } from "../../utils/networkOperations";
 import { getVault } from "../../utils";
 import {
@@ -184,11 +185,16 @@ import {
 import {
   CreateAccountFromHdSeedReq,
   CreateAccountFromHdSeedRes,
+  GetRecoveryPhraseIdReq,
+  GetRecoveryPhraseIdRes,
   ImportHdWalletReq,
   ImportHdWalletRes,
-  PhraseGeneratedHdSeedReq,
-  PhraseGeneratedHdSeedRes,
 } from "../../types/communications/hdWallet";
+import {
+  importRecoveryPhrase,
+  removeRecoveryPhrase,
+  updateRecoveryPhrase,
+} from "../../redux/slices/vault/phrases";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -209,7 +215,6 @@ const mapMessageType: Record<InternalRequests["type"], true> = {
   [REMOVE_ACCOUNT_REQUEST]: true,
   [IMPORT_ACCOUNT_REQUEST]: true,
   [PK_ACCOUNT_REQUEST]: true,
-  [ACCOUNT_BALANCE_REQUEST]: true,
   [NETWORK_FEE_REQUEST]: true,
   [CHECK_PERMISSION_FOR_SESSION_REQUEST]: true,
   [ANSWER_SWITCH_CHAIN_REQUEST]: true,
@@ -221,7 +226,9 @@ const mapMessageType: Record<InternalRequests["type"], true> = {
   [SET_REQUIRE_PASSWORD_FOR_OPTS_REQUEST]: true,
   [IMPORT_HD_WALLET_REQUEST]: true,
   [CREATE_ACCOUNT_FROM_HD_SEED_REQUEST]: true,
-  [PHRASE_GENERATED_HD_SEED_REQUEST]: true,
+  [UPDATE_RECOVERY_PHRASE_REQUEST]: true,
+  [REMOVE_RECOVERY_PHRASE_REQUEST]: true,
+  [GET_RECOVERY_PHRASE_ID_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -283,10 +290,6 @@ class InternalCommunicationController implements ICommunicationController {
       return this._getPrivateKeyOfAccount(message);
     }
 
-    if (message?.type === ACCOUNT_BALANCE_REQUEST) {
-      return this._getAccountBalance(message);
-    }
-
     if (message?.type === NETWORK_FEE_REQUEST) {
       return this._getNetworkFee(message);
     }
@@ -330,8 +333,17 @@ class InternalCommunicationController implements ICommunicationController {
     if (message?.type === CREATE_ACCOUNT_FROM_HD_SEED_REQUEST) {
       return this._handleCreateAccountFromHdSeed(message);
     }
-    if (message?.type === PHRASE_GENERATED_HD_SEED_REQUEST) {
-      return this._phraseGenerateHdSeed(message);
+
+    if (message?.type === UPDATE_RECOVERY_PHRASE_REQUEST) {
+      return this._handleUpdateRecoveryPhrase(message);
+    }
+
+    if (message?.type === REMOVE_RECOVERY_PHRASE_REQUEST) {
+      return this._handleRemoveRecoveryPhrase(message);
+    }
+
+    if (message?.type === GET_RECOVERY_PHRASE_ID_REQUEST) {
+      return this._getRecoveryPhraseIdByPhrase(message);
     }
   }
 
@@ -1164,6 +1176,70 @@ class InternalCommunicationController implements ICommunicationController {
     }
   }
 
+  private async _handleUpdateRecoveryPhrase(
+    message: UpdateRecoveryPhraseReq
+  ): Promise<UpdateRecoveryPhraseRes> {
+    try {
+      await store.dispatch(updateRecoveryPhrase(message.data)).unwrap();
+
+      return {
+        type: UPDATE_RECOVERY_PHRASE_RESPONSE,
+        data: {
+          answered: true,
+        },
+        error: null,
+      };
+    } catch (error) {
+      if (error?.name === VaultRestoreErrorName) {
+        return {
+          type: UPDATE_RECOVERY_PHRASE_RESPONSE,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+          },
+          error: null,
+        };
+      }
+      return {
+        type: UPDATE_RECOVERY_PHRASE_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _handleRemoveRecoveryPhrase(
+    message: RemoveRecoveryPhraseReq
+  ): Promise<RemoveRecoveryPhraseRes> {
+    try {
+      await store.dispatch(removeRecoveryPhrase(message.data)).unwrap();
+
+      return {
+        type: REMOVE_RECOVERY_PHRASE_RESPONSE,
+        data: {
+          answered: true,
+        },
+        error: null,
+      };
+    } catch (error) {
+      if (error?.name === VaultRestoreErrorName) {
+        return {
+          type: REMOVE_RECOVERY_PHRASE_RESPONSE,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+          },
+          error: null,
+        };
+      }
+      return {
+        type: REMOVE_RECOVERY_PHRASE_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
   private async _handleImportAccount(
     message: ImportAccountReq
   ): Promise<ImportAccountRes> {
@@ -1215,26 +1291,36 @@ class InternalCommunicationController implements ICommunicationController {
     message: ImportHdWalletReq
   ): Promise<ImportHdWalletRes> {
     try {
-      const accounts = await store
-        .dispatch(importHdWallet(message.data))
+      const recoveryPhraseReference = await store
+        .dispatch(importRecoveryPhrase(message.data))
         .unwrap();
 
       return {
         type: IMPORT_HD_WALLET_RESPONSE,
         data: {
           answered: true,
-          accounts,
+          phrase: recoveryPhraseReference,
         },
         error: null,
       };
     } catch (error) {
-      if (error?.name === AccountExistErrorName) {
+      if (error?.name === RecoveryPhraseExistErrorName) {
+        const state = store.getState() as RootState;
+        const phraseId = await getVault().getRecoveryPhraseId(
+          state.vault.vaultSession.id,
+          {
+            passphrase: message.data.passphrase,
+            recoveryPhrase: message.data.recoveryPhrase,
+          }
+        );
+
         return {
           type: IMPORT_HD_WALLET_RESPONSE,
           data: {
             answered: true,
-            hdAccountAlreadyExists: true,
-            accounts: null,
+            phraseAlreadyExists: true,
+            phraseId,
+            phrase: null,
           },
           error: null,
         };
@@ -1242,6 +1328,35 @@ class InternalCommunicationController implements ICommunicationController {
 
       return {
         type: IMPORT_HD_WALLET_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _getRecoveryPhraseIdByPhrase(
+    message: GetRecoveryPhraseIdReq
+  ): Promise<GetRecoveryPhraseIdRes> {
+    try {
+      const { recoveryPhrase, passphrase } = message.data;
+
+      const sessionId = (store.getState() as RootState).vault.vaultSession.id;
+
+      const recoveryPhraseId = await getVault().getRecoveryPhraseId(sessionId, {
+        recoveryPhrase,
+        passphrase,
+      });
+
+      return {
+        type: GET_RECOVERY_PHRASE_ID_RESPONSE,
+        data: {
+          recoveryPhraseId,
+        },
+        error: null,
+      };
+    } catch (e) {
+      return {
+        type: GET_RECOVERY_PHRASE_ID_RESPONSE,
         data: null,
         error: UnknownError,
       };
@@ -1252,7 +1367,7 @@ class InternalCommunicationController implements ICommunicationController {
     message: CreateAccountFromHdSeedReq
   ): Promise<CreateAccountFromHdSeedRes> {
     try {
-      const account = await store
+      const { childAccount } = await store
         .dispatch(createNewAccountFromHdSeed(message.data))
         .unwrap();
 
@@ -1260,59 +1375,13 @@ class InternalCommunicationController implements ICommunicationController {
         type: CREATE_ACCOUNT_FROM_HD_SEED_RESPONSE,
         data: {
           answered: true,
-          account,
+          account: childAccount,
         },
         error: null,
       };
     } catch (error) {
       return {
         type: CREATE_ACCOUNT_FROM_HD_SEED_RESPONSE,
-        data: null,
-        error: UnknownError,
-      };
-    }
-  }
-
-  private async _phraseGenerateHdSeed(
-    message: PhraseGeneratedHdSeedReq
-  ): Promise<PhraseGeneratedHdSeedRes> {
-    try {
-      const { accountId, vaultPassword, phraseOptions } = message.data;
-      const vault = getVault();
-      const vaultState = store.getState().vault;
-      const vaultSessionId = vaultState.vaultSession.id;
-      const vaultPassphrase = new Passphrase(
-        vaultPassword ? vaultPassword : await getVaultPassword(vaultSessionId)
-      );
-
-      const isPhraseValid = await vault.recoveryPhraseGenerateHdSeed(
-        accountId,
-        vaultPassphrase,
-        phraseOptions
-      );
-
-      return {
-        type: PHRASE_GENERATED_HD_SEED_RESPONSE,
-        data: {
-          isPhraseValid,
-          vaultPasswordWrong: false,
-        },
-        error: null,
-      };
-    } catch (error) {
-      if (error?.name === VaultRestoreErrorName) {
-        return {
-          type: PHRASE_GENERATED_HD_SEED_RESPONSE,
-          data: {
-            isPhraseValid: false,
-            vaultPasswordWrong: true,
-          },
-          error: null,
-        };
-      }
-
-      return {
-        type: PHRASE_GENERATED_HD_SEED_RESPONSE,
         data: null,
         error: UnknownError,
       };
@@ -1350,29 +1419,6 @@ class InternalCommunicationController implements ICommunicationController {
 
       return {
         type: PK_ACCOUNT_RESPONSE,
-        data: null,
-        error: UnknownError,
-      };
-    }
-  }
-
-  private async _getAccountBalance({
-    data,
-  }: AccountBalanceReq): Promise<AccountBalanceRes> {
-    try {
-      const result = await store.dispatch(getAccountBalance(data)).unwrap();
-
-      return {
-        type: ACCOUNT_BALANCE_RESPONSE,
-        data: {
-          answered: true,
-          balance: result.amount,
-        },
-        error: null,
-      };
-    } catch (e) {
-      return {
-        type: ACCOUNT_BALANCE_RESPONSE,
         data: null,
         error: UnknownError,
       };
@@ -1666,7 +1712,9 @@ class InternalCommunicationController implements ICommunicationController {
     const vaultState = store.getState().vault;
     const vaultSessionId = vaultState.vaultSession.id;
     const serializedAccount = vaultState.accounts.find(
-      (account) => account.protocol === protocol && account.address === address
+      (account) =>
+        account.protocol === protocol &&
+        account.address.toLowerCase() === address.toLowerCase()
     );
     const accountReference = AccountReference.deserialize(serializedAccount);
     const pass = await getVaultPassword(vaultSessionId);

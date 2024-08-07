@@ -1,19 +1,24 @@
 import type { IProtocolTransactionResult } from "@poktscan/vault/dist/lib/core/common/protocols/ProtocolTransaction";
 import type { RootState } from "../../store";
 import type { VaultSliceBuilder } from "../../../types";
-import { SerializedError, createAsyncThunk } from "@reduxjs/toolkit";
+import type {
+  BaseTransaction,
+  SwapTo,
+  Transaction,
+} from "../../../controllers/datasource/Transaction";
+import { createAsyncThunk, SerializedError } from "@reduxjs/toolkit";
 import set from "lodash/set";
 import {
   AccountReference,
   AccountType,
   AccountUpdateOptions,
   AddHDWalletAccountExternalRequest,
-  ImportRecoveryPhraseOptions,
   Passphrase,
   PrivateKeyRestoreErrorName,
   SerializedAccountReference,
   SerializedSession,
   SupportedProtocols,
+  SupportedTransferOrigins,
   TransferOptions,
   VaultRestoreErrorName,
 } from "@poktscan/vault";
@@ -21,46 +26,15 @@ import { getVaultPassword, VaultSlice } from "./index";
 import { getVault } from "../../../utils";
 import {
   addImportedAccountAddress,
+  addTransaction,
   removeImportedAccountAddress,
 } from "../app";
+import { getAddressFromPrivateKey } from "../../../utils/networkOperations";
+import TransactionDatasource from "../../../controllers/datasource/Transaction";
 
 const MAX_PASSWORDS_TRIES = 4;
-const VAULT_PASSWORD_ID = "vault";
+export const VAULT_PASSWORD_ID = "vault";
 const ExtensionVaultInstance = getVault();
-
-export interface ImportHdAccountOptions extends ImportRecoveryPhraseOptions {
-  imported?: boolean;
-}
-
-export const importHdWallet = createAsyncThunk(
-  "vault/importHdWallet",
-  async ({ imported, ...options }: ImportHdAccountOptions, context) => {
-    const state = context.getState() as RootState;
-    const { vaultSession } = state.vault;
-
-    const vaultPassword = await getVaultPassword(vaultSession.id);
-    const vaultPassphrase = new Passphrase(vaultPassword);
-
-    const accountReferences = await ExtensionVaultInstance.importRecoveryPhrase(
-      vaultSession.id,
-      vaultPassphrase,
-      options
-    );
-
-    if (imported) {
-      for (const accountReference of accountReferences) {
-        const id =
-          accountReference.accountType === AccountType.HDSeed
-            ? accountReference.id
-            : accountReference.address;
-
-        await context.dispatch(addImportedAccountAddress(id));
-      }
-    }
-
-    return accountReferences.map((account) => account.serialize());
-  }
-);
 
 export type CreateNewAccountFromHdSeedArg = Omit<
   AddHDWalletAccountExternalRequest,
@@ -71,27 +45,58 @@ export const createNewAccountFromHdSeed = createAsyncThunk(
   "vault/createNewAccountFromHdSeed",
   async (options: CreateNewAccountFromHdSeedArg, context) => {
     const {
-      vault: { vaultSession },
+      vault: { vaultSession, accounts },
       app: { accountsImported },
     } = context.getState() as RootState;
 
     const vaultPassword = await getVaultPassword(vaultSession.id);
     const vaultPassphrase = new Passphrase(vaultPassword);
 
-    const accountArr = await ExtensionVaultInstance.addHDWalletAccount(
+    const account = await ExtensionVaultInstance.addHDWalletAccount(
       vaultSession.id,
       vaultPassphrase,
       { ...options }
     );
-    const account = accountArr.pop().serialize();
 
-    const parentIsImported = accountsImported.includes(options.seedAccountId);
+    let seedAccount = accounts.find(
+        (account) =>
+          account.accountType === AccountType.HDSeed &&
+          account.seedId === options.recoveryPhraseId &&
+          account.protocol === options.protocol
+      ),
+      mustAddSeedAccount = false;
+
+    if (!seedAccount) {
+      mustAddSeedAccount = true;
+      const accountsFromVault = await ExtensionVaultInstance.listAccounts(
+        vaultSession.id
+      );
+      seedAccount = accountsFromVault
+        .find(
+          (account) =>
+            account.accountType === AccountType.HDSeed &&
+            account.seedId === options.recoveryPhraseId &&
+            account.protocol === options.protocol
+        )
+        ?.serialize();
+
+      if (!seedAccount) {
+        console.log("Account was not found", { accountsFromVault, options });
+      }
+    }
+
+    const parentIsImported = accountsImported.includes(
+      options.recoveryPhraseId
+    );
 
     if (parentIsImported) {
       await context.dispatch(addImportedAccountAddress(account.address));
     }
 
-    return account;
+    return {
+      childAccount: account.serialize(),
+      seedAccount: mustAddSeedAccount ? seedAccount : null,
+    };
   }
 );
 
@@ -232,7 +237,11 @@ export const getPrivateKeyOfAccount = createAsyncThunk<
 });
 
 export interface SendTransactionParams
-  extends Omit<TransferOptions, "transactionParams"> {
+  extends Omit<TransferOptions, "transactionParams" | "network"> {
+  network: {
+    protocol: SupportedProtocols;
+    chainID: string;
+  };
   transactionParams: {
     maxFeePerGas?: number;
     maxPriorityFeePerGas?: number;
@@ -242,18 +251,43 @@ export interface SendTransactionParams
     gasLimit?: number;
   };
   isRawTransaction?: boolean;
+  metadata?: {
+    requestedBy?: string;
+    maxFeeAmount?: number;
+    swapTo?: SwapTo;
+    amountToSave?: number;
+  };
 }
 
 export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
   "vault/sendTransfer",
-  async (transferOptions, context) => {
+  async ({ metadata, ...transferOptions }, context) => {
     const state = context.getState() as RootState;
     const sessionId = state.vault.vaultSession.id;
 
+    const { chainID, protocol } = transferOptions.network;
+    const customRpc = state.app.customRpcs.find(
+      (customRpc) =>
+        customRpc.protocol === protocol &&
+        customRpc.chainId === chainID &&
+        customRpc.isPreferred
+    );
+
+    const defaultNetwork = state.app.networks.find(
+      (item) => item.protocol === protocol && item.chainId === chainID
+    );
+
     let result: IProtocolTransactionResult<"Pocket" | "Ethereum">;
+
+    const rpcUrl = customRpc?.url || defaultNetwork.rpcUrl;
 
     const transactionArg = {
       ...transferOptions,
+      network: {
+        protocol,
+        chainID,
+        rpcUrl,
+      },
       transactionParams: {
         from: "",
         to: "",
@@ -280,6 +314,69 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
         transactionArg
       );
     }
+
+    let fromAddress: string;
+
+    if (transferOptions.from.type === SupportedTransferOrigins.VaultAccountId) {
+      fromAddress = state.vault.accounts.find(
+        (account) => account.id === transferOptions.from.value
+      )?.address;
+    } else {
+      fromAddress = await getAddressFromPrivateKey(
+        transferOptions.from.value,
+        protocol
+      );
+    }
+
+    const baseTx: BaseTransaction = {
+      hash: result.transactionHash,
+      from: fromAddress,
+      chainId: transferOptions.network.chainID,
+      requestedBy: metadata?.requestedBy,
+      swapTo: metadata?.swapTo,
+      amount: transferOptions.amount,
+      to: transferOptions.to.value,
+      rpcUrl,
+      timestamp: Date.now(),
+    };
+
+    let tx: Transaction;
+
+    if (protocol === SupportedProtocols.Ethereum) {
+      tx = {
+        ...baseTx,
+        protocol: SupportedProtocols.Ethereum,
+        assetId: transferOptions.asset
+          ? state.app.assets.find(
+              (asset) =>
+                asset.chainId === transferOptions.asset.chainID &&
+                asset.protocol === transferOptions.asset.protocol &&
+                asset.contractAddress === transferOptions.asset.contractAddress
+            )?.id
+          : undefined,
+        data: transferOptions.transactionParams.data,
+        isRawTransaction: transferOptions.isRawTransaction || false,
+        maxFeePerGas: transferOptions.transactionParams.maxFeePerGas,
+        maxPriorityFeePerGas:
+          transferOptions.transactionParams.maxPriorityFeePerGas,
+        gasLimit: transferOptions.transactionParams.gasLimit,
+        maxFeeAmount: metadata?.maxFeeAmount || 0,
+        amount: transferOptions.isRawTransaction
+          ? metadata.amountToSave || transferOptions.amount
+          : transferOptions.amount,
+      };
+    } else {
+      tx = {
+        ...baseTx,
+        protocol: SupportedProtocols.Pocket,
+        fee: transferOptions.transactionParams.fee,
+        memo: transferOptions.transactionParams.memo,
+      };
+    }
+
+    await TransactionDatasource.save(tx);
+
+    context.dispatch(addTransaction(tx));
 
     return result.transactionHash;
   }
@@ -310,21 +407,12 @@ const addCreateNewAccountFromHdSeedToBuilder = (builder: VaultSliceBuilder) => {
   });
 
   builder.addCase(createNewAccountFromHdSeed.fulfilled, (state, action) => {
-    const accountReference = action.payload;
-    state.accounts.push(accountReference);
+    const { childAccount, seedAccount } = action.payload;
+    state.accounts.push(childAccount);
 
-    resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
-  });
-};
-
-const addImportHdWalletToBuilder = (builder: VaultSliceBuilder) => {
-  builder.addCase(importHdWallet.rejected, (state, action) => {
-    increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
-  });
-
-  builder.addCase(importHdWallet.fulfilled, (state, action) => {
-    const accounts = action.payload;
-    state.accounts.push(...accounts);
+    if (seedAccount) {
+      state.accounts.push(seedAccount);
+    }
 
     resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
   });
@@ -397,15 +485,14 @@ export const addAccountThunksToBuilder = (builder: VaultSliceBuilder) => {
   addRemoveAccountToBuilder(builder);
   addGetPrivateKeyToBuilder(builder);
   addSendTransferToBuilder(builder);
-  addImportHdWalletToBuilder(builder);
   addCreateNewAccountFromHdSeedToBuilder(builder);
 };
 
-function resetWrongPasswordCounter(id: string, state: VaultSlice) {
+export function resetWrongPasswordCounter(id: string, state: VaultSlice) {
   state.wrongPasswordCounter[id] = undefined;
 }
 
-function increaseWrongPasswordCounter(
+export function increaseWrongPasswordCounter(
   id: string,
   state: VaultSlice,
   error: SerializedError

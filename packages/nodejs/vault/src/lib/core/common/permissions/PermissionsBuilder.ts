@@ -1,31 +1,33 @@
-import merge from 'lodash/merge';
-import union from 'lodash/union';
-import unionBy from 'lodash/unionBy';
+import merge from "lodash/merge";
+import union from "lodash/union";
+import unionBy from "lodash/unionBy";
 
 export enum PermissionResources {
-  account = 'account',
-  transaction = 'transaction',
-  session = 'session',
+  account = "account",
+  transaction = "transaction",
+  session = "session",
+  seed = "seed",
 }
 
 export type ResourceConfig = {
-  [key in keyof typeof PermissionResources]: string[]
+  [key in keyof typeof PermissionResources]: string[];
 };
 
 export type Permission = {
-  resource: keyof typeof PermissionResources
-  action: string
-  identities: string[]
+  resource: keyof typeof PermissionResources;
+  action: string;
+  identities: string[];
 };
 
 export type Resource = {
-  name: keyof typeof PermissionResources
-  permissions: Permission[]
-}
+  name: keyof typeof PermissionResources;
+  permissions: Permission[];
+};
 
 class ResourcePermissionBuilder {
   private readonly builder: PermissionsBuilder;
   private readonly resource: Resource;
+
   constructor(resource: Resource, permissionsBuilder: PermissionsBuilder) {
     this.resource = resource;
     this.builder = permissionsBuilder;
@@ -37,7 +39,9 @@ class ResourcePermissionBuilder {
   }
 
   allowEverything() {
-    this.addActionPermissions(this.builder.getResourceActions(this.resource.name));
+    this.addActionPermissions(
+      this.builder.getResourceActions(this.resource.name)
+    );
     return this;
   }
 
@@ -46,44 +50,61 @@ class ResourcePermissionBuilder {
   }
 
   on(...identities: string[]) {
-    this.setPermissionsIdentities(identities);
+    this.setPermissionsIdentities(identities.map((id) => id.toLowerCase()));
     return this.builder;
   }
 
   onAny() {
-    this.setPermissionsIdentities(['*']);
+    this.setPermissionsIdentities(["*"]);
     return this.builder;
   }
 
   private setPermissionsIdentities(identities: any[]) {
-    this.resource.permissions = this.resource.permissions.map(permission => {
+    this.resource.permissions = this.resource.permissions.map((permission) => {
       return {
         ...permission,
-        identities: union(permission.identities, identities),
+        identities: union(
+          permission.identities.map((id) => id.toLowerCase()),
+          identities.map((id) => id.toLowerCase())
+        ),
       };
     });
   }
 
   private addActionPermissions(actions: string[]) {
-    const isAnyActionUnknown = actions.some(action => !this.builder.isValidAction(this.resource.name, action));
+    const isAnyActionUnknown = actions.some(
+      (action) => !this.builder.isValidAction(this.resource.name, action)
+    );
 
     if (isAnyActionUnknown) {
-      const invalidActions = actions.filter(action => !this.builder.isValidAction(this.resource.name, action));
-      throw new Error(`Unknown actions: ${invalidActions.join(', ')} for resource ${this.resource.name}`);
+      const invalidActions = actions.filter(
+        (action) => !this.builder.isValidAction(this.resource.name, action)
+      );
+      throw new Error(
+        `Unknown actions: ${invalidActions.join(", ")} for resource ${
+          this.resource.name
+        }`
+      );
     }
 
-    const proposedPermissions = actions.map(action => {
+    const proposedPermissions = actions.map((action) => {
       return {
         resource: this.resource.name,
         action,
-        identities: []
+        identities: [],
       };
-    })
+    });
 
-    const uniquePermissions = unionBy(this.resource.permissions, proposedPermissions, 'action');
+    const uniquePermissions = unionBy(
+      this.resource.permissions,
+      proposedPermissions,
+      "action"
+    );
 
-    this.resource.permissions = uniquePermissions.map(permission => {
-      const proposedPermission = proposedPermissions.find(proposedPermission => proposedPermission.action === permission.action);
+    this.resource.permissions = uniquePermissions.map((permission) => {
+      const proposedPermission = proposedPermissions.find(
+        (proposedPermission) => proposedPermission.action === permission.action
+      );
 
       if (!proposedPermission) {
         return permission;
@@ -93,29 +114,37 @@ class ResourcePermissionBuilder {
     });
   }
 }
+
 export class PermissionsBuilder {
   private readonly resources: Resource[] = [];
   private readonly resourceConfig: ResourceConfig = {
-    account: ['create', 'read', 'update', 'delete'],
-    transaction: ['send'],
-    session: ['list', 'revoke'],
-  }
+    account: ["create", "read", "update", "delete"],
+    transaction: ["send"],
+    session: ["list", "revoke"],
+    seed: ["create", "read", "update", "delete"],
+  };
+
   constructor(permissions?: Permission[]) {
     if (permissions) {
-      this.resources = permissions.reduce((resources: Resource[], permission) => {
-        const resource = resources.find(resource => resource.name === permission.resource);
+      this.resources = permissions.reduce(
+        (resources: Resource[], permission) => {
+          const resource = resources.find(
+            (resource) => resource.name === permission.resource
+          );
 
-        if (resource) {
-          resource.permissions.push(permission);
-        } else {
-          resources.push({
-            name: permission.resource,
-            permissions: [permission],
-          });
-        }
+          if (resource) {
+            resource.permissions.push(permission);
+          } else {
+            resources.push({
+              name: permission.resource,
+              permissions: [permission],
+            });
+          }
 
-        return resources;
-      }, []);
+          return resources;
+        },
+        []
+      );
     }
   }
 
@@ -124,7 +153,9 @@ export class PermissionsBuilder {
       throw new Error(`Unknown resource: ${resourceName}`);
     }
 
-    const preExistingResource = this.resources.find(resource => resource.name === resourceName);
+    const preExistingResource = this.resources.find(
+      (resource) => resource.name === resourceName
+    );
 
     if (preExistingResource) {
       return new ResourcePermissionBuilder(preExistingResource, this);
@@ -132,7 +163,7 @@ export class PermissionsBuilder {
 
     const resource = {
       name: resourceName,
-      permissions: []
+      permissions: [],
     };
 
     this.resources.push(resource);
@@ -140,9 +171,12 @@ export class PermissionsBuilder {
     return new ResourcePermissionBuilder(resource, this);
   }
 
-  build () {
-    return this.resources.reduce((permissions: Permission[], resource) =>
-      permissions.concat(resource.permissions), []);
+  build() {
+    return this.resources.reduce(
+      (permissions: Permission[], resource) =>
+        permissions.concat(resource.permissions),
+      []
+    );
   }
 
   getResourceActions(resource: keyof typeof PermissionResources) {
@@ -150,7 +184,7 @@ export class PermissionsBuilder {
   }
 
   isValidAction(resource: keyof typeof PermissionResources, action: string) {
-    const validActions = this.getResourceActions(resource)
+    const validActions = this.getResourceActions(resource);
     return validActions && validActions.includes(action);
   }
 }
