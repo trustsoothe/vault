@@ -1,6 +1,6 @@
 {
   "name": "@poktscan/extension",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "Soothe Vault: browser web extension app for Firefox and Chromium based browsers to manage EVM and Pocket based wallets",
   "main": "build/lavamoat/build.js",
   "scripts": {
@@ -30,6 +30,7 @@
     "browserify-zlib": "0.2.0",
     "buffer": "6.0.3",
     "crypto-browserify": "markhughes/crypto-browserify#feat/213-randomUUID",
+    "decimal.js": "10.4.3",
     "encoding": "0.1.13",
     "ethereum-cryptography": "^2.0.0",
     "events": "3.3.0",

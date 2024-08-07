@@ -15,31 +15,13 @@ import {
   SELECTED_ACCOUNT_CHANGED,
   SELECTED_CHAIN_CHANGED,
 } from "../../../constants/communication";
-import {
-  addNetworksExtraReducers,
-  setGetAccountPending as setGetAccountPendingFromNetwork,
-} from "./network";
+import { addNetworksExtraReducers } from "./network";
 import { SettingsSchema } from "../vault/backup";
+import TransactionDatasource, {
+  Transaction,
+} from "../../../controllers/datasource/Transaction";
 import { addContactThunksToBuilder, Contact } from "./contact";
 import { ChainChangedMessageToProxy } from "../../../types/communications/chainChanged";
-
-export interface AccountBalanceInfo {
-  amount: number;
-  lastUpdatedAt: number;
-  error?: boolean;
-  loading?: boolean;
-}
-
-interface IAccountBalances {
-  [SupportedProtocols.Ethereum]: Record<
-    string,
-    Record<string, AccountBalanceInfo | Record<string, AccountBalanceInfo>>
-  >;
-  [SupportedProtocols.Pocket]: Record<
-    string,
-    Record<string, AccountBalanceInfo>
-  >;
-}
 
 export type ErrorsByNetwork = Record<string, number>;
 
@@ -102,7 +84,6 @@ export interface GeneralAppSlice {
   selectedProtocol: SupportedProtocols;
   selectedChainByProtocol: Partial<Record<SupportedProtocols, string>>;
   selectedAccountByProtocol: Partial<Record<SupportedProtocols, string>>;
-  accountBalances: IAccountBalances;
   networks: Network[];
   assets: IAsset[];
   errorsPreferredNetwork: ErrorsByNetwork;
@@ -123,6 +104,7 @@ export interface GeneralAppSlice {
   };
   requirePasswordForSensitiveOpts: boolean;
   accountsImported: string[];
+  transactions: Array<Transaction>;
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -192,6 +174,10 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       }
     }
 
+    const transactions = await TransactionDatasource.getTransactionsOfNetworks(
+      networks
+    );
+
     return {
       selectedProtocol,
       selectedChainByProtocol,
@@ -204,6 +190,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
       sessionMaxAge,
       requirePasswordForSensitiveOpts,
       accountsImported,
+      transactions,
     };
   }
 );
@@ -551,6 +538,7 @@ export const importAppSettings = createAsyncThunk(
       sessionsMaxAge,
       requirePasswordForSensitiveOpts,
       accountsImported,
+      txs,
     } = settingsParsed;
 
     await browser.storage.local.set({
@@ -566,7 +554,17 @@ export const importAppSettings = createAsyncThunk(
       [ACCOUNTS_IMPORTED_KEY]: accountsImported,
     });
 
-    return settingsParsed;
+    let transactions: Array<Transaction>;
+
+    if (txs) {
+      transactions = JSON.parse(atob(txs));
+
+      if (transactions.length > 0) {
+        await TransactionDatasource.saveMany(transactions);
+      }
+    }
+
+    return { settings: settingsParsed, transactions };
   }
 );
 
@@ -589,17 +587,6 @@ const initialState: GeneralAppSlice = {
     [SupportedProtocols.Ethereum]: "1",
   },
   selectedProtocol: SupportedProtocols.Pocket,
-  accountBalances: {
-    [SupportedProtocols.Pocket]: {
-      mainnet: {},
-      testnet: {},
-    },
-    [SupportedProtocols.Ethereum]: {
-      "1": {},
-      "5": {},
-      "11155111": {},
-    },
-  },
   errorsPreferredNetwork: {},
   networksCanBeSelected: {
     [SupportedProtocols.Ethereum]: [],
@@ -616,12 +603,16 @@ const initialState: GeneralAppSlice = {
   },
   requirePasswordForSensitiveOpts: false,
   accountsImported: [],
+  transactions: [],
 };
 
 const generalAppSlice = createSlice({
   name: "app",
   initialState,
   reducers: {
+    addTransaction: (state, action: PayloadAction<Transaction>) => {
+      state.transactions.push(action.payload);
+    },
     resetRequestsState: (state) => {
       state.externalRequests = [];
       state.requestsWindowId = null;
@@ -677,8 +668,15 @@ const generalAppSlice = createSlice({
     addMintIdSent: (state, action: PayloadAction<string>) => {
       state.idOfMintsSent = [...state.idOfMintsSent, action.payload];
     },
-    // this is here to only set that an account is loading after verifying it in the thunk
-    setGetAccountPending: setGetAccountPendingFromNetwork,
+    setNetworksWithErrors: (state, action: PayloadAction<Array<string>>) => {
+      const networksWithErrors = action.payload;
+      if (networksWithErrors.length) {
+        for (const networkId of networksWithErrors) {
+          const path = ["errorsPreferredNetwork", networkId];
+          set(state, path, get(state, path, 0) + 1);
+        }
+      }
+    },
   },
   extraReducers: (builder) => {
     addNetworksExtraReducers(builder);
@@ -713,6 +711,7 @@ const generalAppSlice = createSlice({
           sessionMaxAge,
           requirePasswordForSensitiveOpts,
           accountsImported,
+          transactions,
         } = action.payload;
 
         state.selectedProtocol = selectedProtocol;
@@ -726,6 +725,7 @@ const generalAppSlice = createSlice({
         state.sessionsMaxAge = sessionMaxAge;
         state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
         state.accountsImported = accountsImported;
+        state.transactions = transactions;
         state.isReadyStatus = "yes";
       }
     );
@@ -778,36 +778,37 @@ const generalAppSlice = createSlice({
       state.accountsImported = action.payload;
     });
 
-    builder.addCase(
-      importAppSettings.fulfilled,
-      (state, { payload: settings }) => {
-        const {
-          assetsIdByAccount,
-          selectedAccountByProtocol,
-          selectedChainByProtocol,
-          selectedProtocol,
-          networksCanBeSelected,
-          customRpcs,
-          contacts,
-          sessionsMaxAge,
-          requirePasswordForSensitiveOpts,
-          accountsImported,
-        } = settings;
+    builder.addCase(importAppSettings.fulfilled, (state, { payload }) => {
+      const {
+        assetsIdByAccount,
+        selectedAccountByProtocol,
+        selectedChainByProtocol,
+        selectedProtocol,
+        networksCanBeSelected,
+        customRpcs,
+        contacts,
+        sessionsMaxAge,
+        requirePasswordForSensitiveOpts,
+        accountsImported,
+      } = payload.settings;
 
-        state.assetsIdByAccount = assetsIdByAccount;
-        state.selectedAccountByProtocol = selectedAccountByProtocol;
-        state.selectedChainByProtocol = selectedChainByProtocol;
-        state.selectedProtocol = selectedProtocol;
-        state.networksCanBeSelected =
-          networksCanBeSelected as NetworkCanBeSelectedMap;
-        state.customRpcs = customRpcs as CustomRPC[];
-        state.contacts = contacts as SerializedAccountReference[];
-        state.sessionsMaxAge =
-          sessionsMaxAge as GeneralAppSlice["sessionsMaxAge"];
-        state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
-        state.accountsImported = accountsImported;
+      state.assetsIdByAccount = assetsIdByAccount;
+      state.selectedAccountByProtocol = selectedAccountByProtocol;
+      state.selectedChainByProtocol = selectedChainByProtocol;
+      state.selectedProtocol = selectedProtocol;
+      state.networksCanBeSelected =
+        networksCanBeSelected as NetworkCanBeSelectedMap;
+      state.customRpcs = customRpcs as CustomRPC[];
+      state.contacts = contacts as SerializedAccountReference[];
+      state.sessionsMaxAge =
+        sessionsMaxAge as GeneralAppSlice["sessionsMaxAge"];
+      state.requirePasswordForSensitiveOpts = requirePasswordForSensitiveOpts;
+      state.accountsImported = accountsImported;
+
+      if (payload.transactions?.length > 0) {
+        state.transactions = payload.transactions;
       }
-    );
+    });
   },
 });
 
@@ -816,12 +817,13 @@ export const {
   removeExternalRequest,
   addExternalRequest,
   addWindow,
-  setGetAccountPending,
   changeActiveTab,
   increaseErrorOfNetwork,
   resetErrorOfNetwork,
   setAppIsReadyStatus,
   addMintIdSent,
+  addTransaction,
+  setNetworksWithErrors,
 } = generalAppSlice.actions;
 
 export default generalAppSlice.reducer;

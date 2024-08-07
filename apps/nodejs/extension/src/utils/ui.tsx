@@ -2,9 +2,9 @@ import type { AppRequests, UiResponsesToProxy } from "../types/communications";
 import type { SupportedProtocols } from "@poktscan/vault";
 import React from "react";
 import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
 import browser from "webextension-polyfill";
 import Typography from "@mui/material/Typography";
-import IconButton from "@mui/material/IconButton";
 import {
   closeSnackbar,
   enqueueSnackbar as enqueueSnackbarNotistack,
@@ -19,18 +19,20 @@ import {
   RequestTimeout,
   UnauthorizedError,
 } from "../errors/communication";
-import { useAppDispatch } from "../hooks/redux";
+import { useAppDispatch } from "../ui/hooks/redux";
+import { themeColors } from "../ui/theme";
 import {
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
+  SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../constants/communication";
-import CloseIcon from "../assets/img/gray_close_icon.svg";
 
 export const closeCurrentWindow = () =>
   browser.windows
@@ -103,6 +105,18 @@ export const removeRequestWithRes = async (
       responseType = SWITCH_CHAIN_RESPONSE;
       break;
     }
+    case PERSONAL_SIGN_REQUEST: {
+      data = null;
+      errorToReturn = OperationRejected;
+      responseType = PERSONAL_SIGN_RESPONSE;
+      break;
+    }
+    case SIGN_TYPED_DATA_REQUEST: {
+      data = null;
+      errorToReturn = OperationRejected;
+      responseType = SIGN_TYPED_DATA_RESPONSE;
+      break;
+    }
   }
 
   const numberOfRequests = requestsLength - 1;
@@ -139,7 +153,8 @@ export const removeRequestWithRes = async (
 
 type Message =
   | ((onClickClose: () => void) => SnackbarMessage)
-  | SnackbarMessage;
+  | SnackbarMessage
+  | { title: string; content: string };
 
 export const enqueueSnackbar = <V extends VariantType>(
   options: OptionsWithExtraProps<V> & {
@@ -154,10 +169,31 @@ export const enqueueSnackbar = <V extends VariantType>(
     }
   };
 
-  const message =
-    typeof options.message === "function"
-      ? options.message(onClickClose)
-      : options.message;
+  let message: React.ReactNode;
+
+  if (typeof options.message === "function") {
+    message = options.message(onClickClose);
+  } else if (
+    typeof options.message === "object" &&
+    "title" in options.message
+  ) {
+    message = (
+      <Stack className={"title-with-content"}>
+        <Typography color={themeColors.bgLightGray} fontWeight={500}>
+          {options.message.title}
+        </Typography>
+        <Typography
+          color={themeColors.light_gray2}
+          whiteSpace={"pre-line"}
+          marginBottom={3.8}
+        >
+          {options.message.content}
+        </Typography>
+      </Stack>
+    );
+  } else {
+    message = options.message;
+  }
 
   snackbarKey = enqueueSnackbarNotistack({
     ...options,
@@ -166,28 +202,140 @@ export const enqueueSnackbar = <V extends VariantType>(
         direction={"row"}
         alignItems={"center"}
         justifyContent={"space-between"}
-        marginLeft={1}
-        marginRight={0.5}
+        marginX={0.9}
         spacing={1}
+        width={1}
       >
-        <Typography
-          fontWeight={500}
-          fontSize={13}
-          color={"#152A48"}
-          width={280}
-          lineHeight={"18px"}
+        {typeof options.message === "object" && "title" in options.message ? (
+          message
+        ) : (
+          <Typography
+            fontWeight={500}
+            color={themeColors.bgLightGray}
+            flexGrow={1}
+          >
+            {message}
+          </Typography>
+        )}
+
+        <Button
+          sx={{
+            width: 40,
+            height: 27,
+            minWidth: 40,
+            borderRadius: "6px",
+            backgroundColor: themeColors.white,
+            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+            "&:hover": {
+              backgroundColor: themeColors.light_gray,
+            },
+          }}
+          className={"okay-button"}
+          onClick={onClickClose}
         >
-          {message}
-        </Typography>
-        <IconButton onClick={onClickClose}>
-          <CloseIcon />
-        </IconButton>
+          Ok
+        </Button>
       </Stack>
     ),
   });
 
   return snackbarKey;
 };
+
+export const enqueueErrorSnackbar = <V extends VariantType>(
+  options: OptionsWithExtraProps<V> & {
+    message?: Message;
+    onRetry: () => void;
+  } & object
+): SnackbarKey => {
+  let snackbarKey: SnackbarKey;
+
+  const onClickClose = () => {
+    if (snackbarKey) {
+      options.onRetry();
+      closeSnackbar(snackbarKey);
+    }
+  };
+
+  let message: React.ReactNode;
+
+  if (typeof options.message === "function") {
+    message = options.message(onClickClose);
+  } else if (
+    typeof options.message === "object" &&
+    "title" in options.message
+  ) {
+    message = (
+      <Stack className={"title-with-content"}>
+        <Typography color={themeColors.bgLightGray} fontWeight={500}>
+          {options.message.title}
+        </Typography>
+        <Typography
+          color={themeColors.light_gray2}
+          whiteSpace={"pre-line"}
+          marginBottom={3.8}
+        >
+          {options.message.content}
+        </Typography>
+      </Stack>
+    );
+  } else {
+    message = options.message;
+  }
+  snackbarKey = enqueueSnackbarNotistack({
+    autoHideDuration: 4000,
+    ...options,
+    variant: options.variant || "error",
+    message: (
+      <Stack
+        direction={"row"}
+        alignItems={"center"}
+        justifyContent={"space-between"}
+        marginX={0.9}
+        spacing={1}
+        width={1}
+      >
+        {typeof options.message === "object" && "title" in options.message ? (
+          message
+        ) : (
+          <Typography
+            fontWeight={500}
+            color={themeColors.bgLightGray}
+            flexGrow={1}
+          >
+            {message}
+          </Typography>
+        )}
+        <Button
+          sx={{
+            width: 60,
+            height: 27,
+            minWidth: 60,
+            borderRadius: "6px",
+            backgroundColor: themeColors.white,
+            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+            "&:hover": {
+              backgroundColor: themeColors.light_gray,
+            },
+          }}
+          className={"retry-button"}
+          onClick={onClickClose}
+        >
+          Retry
+        </Button>
+      </Stack>
+    ),
+  });
+
+  return snackbarKey;
+};
+
+export const wrongPasswordSnackbar = () =>
+  enqueueSnackbar({
+    variant: "error",
+    message: "Wrong password",
+    key: "wrong-password",
+  });
 
 export const roundAndSeparate = (
   value: number,

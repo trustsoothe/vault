@@ -84,13 +84,14 @@ export class VaultRestoreError extends KeyringError {
   }
 }
 
-export const VaultUninitializedErrorName = 'VaultUninitializedError'
+export const VaultUninitializedErrorName = "VaultUninitializedError";
 
 export class VaultUninitializedError extends KeyringError {
   constructor() {
     super({
       name: VaultUninitializedErrorName,
-      message: 'Vault could not be restored from store. Has it been initialized?',
+      message:
+        "Vault could not be restored from store. Has it been initialized?",
     });
   }
 }
@@ -136,6 +137,17 @@ export class AccountExistError extends KeyringError {
   }
 }
 
+export const RecoveryPhraseExistErrorName = "RecoveryPhraseExistError";
+
+export class RecoveryPhraseExistError extends KeyringError {
+  constructor() {
+    super({
+      name: RecoveryPhraseExistErrorName,
+      message: `A recovery phrase with the same combination of words and passphrase already exists within the vault.`,
+    });
+  }
+}
+
 export class ProtocolMismatchError extends KeyringError {
   constructor(message?: string) {
     super({
@@ -145,10 +157,12 @@ export class ProtocolMismatchError extends KeyringError {
   }
 }
 
+export const InvalidPrivateKeyErrorName = "InvalidPrivateKeyError";
+
 export class InvalidPrivateKeyError extends KeyringError {
   constructor(message?: string) {
     super({
-      name: "InvalidPrivateKeyError",
+      name: "InvalidPrivateKeyErrorName",
       message: message || "The provided private key is invalid",
     });
   }
@@ -159,6 +173,15 @@ export class AccountNotFoundError extends KeyringError {
     super({
       name: "AccountNotFoundError",
       message: message || "The provided account was not found",
+    });
+  }
+}
+
+export class RecoveryPhraseNotFoundError extends KeyringError {
+  constructor(message?: string) {
+    super({
+      name: "RecoveryPhraseNotFoundError",
+      message: message || "The requested recovery phrase was not found",
     });
   }
 }

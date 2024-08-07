@@ -1040,7 +1040,21 @@ class ProxyCommunicationController {
           );
         }
 
-        const err = validateTypedDataPayload(data.data);
+        let dataToSign: ProxySignTypedDataReq["data"]["data"] = data.data;
+
+        if (typeof data.data === "string") {
+          try {
+            dataToSign = JSON.parse(data.data);
+          } catch (e) {
+            return this._sendSignTypedResponse(
+              requestId,
+              null,
+              propertyIsNotValid("data")
+            );
+          }
+        }
+
+        const err = validateTypedDataPayload(dataToSign);
 
         if (err) {
           return this._sendSignTypedResponse(requestId, null, err);
@@ -1050,7 +1064,8 @@ class ProxyCommunicationController {
           type: SIGN_TYPED_DATA_REQUEST,
           requestId,
           data: {
-            ...data,
+            address: data.address,
+            data: dataToSign,
             protocol,
             origin: window.location.origin,
             faviconUrl: this._getFaviconUrl(),

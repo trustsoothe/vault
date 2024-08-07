@@ -29,6 +29,7 @@ import store, { RootState } from "../redux/store";
 import InternalCommunicationController from "./communication/Internal";
 import ExternalCommunicationController from "./communication/External";
 import { loadBackupData } from "../redux/slices/vault/backup";
+import { pricesApi } from "../redux/slices/prices";
 
 export default class BackgroundController {
   private readonly internal = new InternalCommunicationController();
@@ -123,6 +124,8 @@ export default class BackgroundController {
     const status = store.getState().app.isReadyStatus;
 
     if (status === "yes") {
+      this._makePriceRequestIfNeeded();
+
       return {
         type: APP_IS_READY_RESPONSE,
         data: {
@@ -240,5 +243,55 @@ export default class BackgroundController {
       }
       // every 5 seconds
     }, 5 * 1000);
+  }
+
+  private _makePriceRequestIfNeeded() {
+    const state = store.getState();
+    const { assets, networks, assetsIdByAccount } = state.app;
+
+    const idOfCoins: Array<string> = [];
+
+    for (const network of networks) {
+      if (network.coinGeckoId) {
+        idOfCoins.push(network.coinGeckoId);
+      }
+    }
+
+    const selectedAssets = Object.values(assetsIdByAccount || {}).reduce(
+      (acc, assetsId) => [...acc, ...assetsId],
+      []
+    );
+
+    for (const assetFromList of assets) {
+      if (
+        assetFromList.coinGeckoId &&
+        selectedAssets.includes(assetFromList.id)
+      ) {
+        idOfCoins.push(assetFromList.coinGeckoId);
+      }
+    }
+
+    const ids = idOfCoins.join(",");
+
+    const result = pricesApi.endpoints.getPrices.select(ids)(store.getState());
+
+    // if the request is older than 60 seconds, we need to make a new request
+    if (
+      !result.fulfilledTimeStamp ||
+      result.fulfilledTimeStamp + 60000 < Date.now()
+    ) {
+      // we don't need to subscribe because we are not using the result
+      // is for the UI to have the latest data
+      store
+        .dispatch(
+          pricesApi.endpoints.getPrices.initiate(ids, {
+            subscribe: false,
+            forceRefetch: true,
+          })
+        )
+        // @ts-ignore
+        .unwrap()
+        .catch();
+    }
   }
 }

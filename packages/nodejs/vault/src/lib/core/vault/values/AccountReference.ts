@@ -1,6 +1,6 @@
-import {SupportedProtocols} from "../../common/values";
-import {AccountType} from "./AccountType";
-import {isNumber} from "lodash";
+import { SupportedProtocols } from "../../common/values";
+import { AccountType } from "./AccountType";
+import { isNumber } from "lodash";
 
 export interface SerializedAccountReference {
   id: string;
@@ -10,16 +10,18 @@ export interface SerializedAccountReference {
   accountType: AccountType;
   parentId: string;
   hdwIndex?: number;
+  seedId?: string;
 }
 
 export interface AccountReferenceOptions {
-    id: string;
-    name: string;
-    address: string;
-    protocol: SupportedProtocols;
-    accountType?: AccountType;
-    parentId?: string;
-    hdwIndex?: number;
+  id: string;
+  name: string;
+  address: string;
+  protocol: SupportedProtocols;
+  accountType?: AccountType;
+  seedId?: string;
+  parentId?: string;
+  hdwIndex?: number;
 }
 
 export class AccountReference {
@@ -28,6 +30,7 @@ export class AccountReference {
   private readonly _address: string = "";
   private readonly _protocol: SupportedProtocols;
   private readonly _accountType: AccountType;
+  private readonly _seedId?: string;
   private readonly _parentId: string = "";
   private readonly _hdwIndex?: number;
 
@@ -37,6 +40,7 @@ export class AccountReference {
     this._address = options.address;
     this._protocol = options.protocol;
     this._accountType = options.accountType || AccountType.Individual;
+    this._seedId = options.seedId;
     this._parentId = options.parentId || "";
     this._hdwIndex = isNumber(options.hdwIndex) ? options.hdwIndex : undefined;
   }
@@ -69,6 +73,10 @@ export class AccountReference {
     return this._hdwIndex;
   }
 
+  get seedId(): string | undefined {
+    return this._seedId;
+  }
+
   serialize(): SerializedAccountReference {
     return {
       id: this.id,
@@ -78,6 +86,7 @@ export class AccountReference {
       accountType: this.accountType,
       parentId: this.parentId,
       hdwIndex: this.hdwIndex,
+      seedId: this.seedId,
     };
   }
 
