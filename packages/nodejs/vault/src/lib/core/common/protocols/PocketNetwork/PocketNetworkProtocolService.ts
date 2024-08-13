@@ -6,12 +6,13 @@ import {
   CreateAccountOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService,
+  SignPersonalDataRequest,
 } from "../IProtocolService";
-import { Account, AccountType } from "../../../vault";
-import { getPublicKeyAsync, signAsync, utils } from "@noble/ed25519";
-import { Buffer } from "buffer";
-import { IEncryptionService } from "../../encryption/IEncryptionService";
-import { AccountReference, SupportedProtocols } from "../../values";
+import {Account, AccountType} from "../../../vault";
+import {getPublicKeyAsync, signAsync, utils} from "@noble/ed25519";
+import {Buffer} from "buffer";
+import {IEncryptionService} from "../../encryption/IEncryptionService";
+import {AccountReference, SupportedProtocols} from "../../values";
 import urlJoin from "url-join";
 import {
   PocketProtocolNetworkSchema,
@@ -33,17 +34,17 @@ import {
   TxEncoderFactory,
   TxSignature,
 } from "./pocket-js";
-import { RawTxRequest } from "@pokt-foundation/pocketjs-types";
-import { ProtocolFee } from "../ProtocolFee";
-import { INetwork } from "../INetwork";
-import { NetworkStatus } from "../../values/NetworkStatus";
-import { IAsset } from "../IAsset";
-import { IProtocolTransactionResult } from "../ProtocolTransaction";
-import { PocketNetworkTransactionTypes } from "./PocketNetworkTransactionTypes";
-import { PocketNetworkProtocolTransaction } from "./PocketNetworkProtocolTransaction";
-import { derivePath, getMasterKeyFromSeed, getPublicKey } from "ed25519-hd-key";
-import { mnemonicToSeed, validateMnemonic } from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
+import {RawTxRequest} from "@pokt-foundation/pocketjs-types";
+import {ProtocolFee} from "../ProtocolFee";
+import {INetwork} from "../INetwork";
+import {NetworkStatus} from "../../values/NetworkStatus";
+import {IAsset} from "../IAsset";
+import {IProtocolTransactionResult} from "../ProtocolTransaction";
+import {PocketNetworkTransactionTypes} from "./PocketNetworkTransactionTypes";
+import {PocketNetworkProtocolTransaction} from "./PocketNetworkProtocolTransaction";
+import {derivePath, getMasterKeyFromSeed, getPublicKey} from "ed25519-hd-key";
+import {mnemonicToSeed, validateMnemonic} from "@scure/bip39";
+import {wordlist} from "@scure/bip39/wordlists/english";
 
 interface CrateAccountFromKeyPairOptions {
   key: Buffer;
@@ -57,9 +58,9 @@ interface CrateAccountFromKeyPairOptions {
 }
 
 export class PocketNetworkProtocolService
-  implements IProtocolService<SupportedProtocols.Pocket>
-{
-  constructor(private encryptionService: IEncryptionService) {}
+    implements IProtocolService<SupportedProtocols.Pocket> {
+  constructor(private encryptionService: IEncryptionService) {
+  }
 
   async createAccountsFromRecoveryPhrase(
     options: ImportRecoveryPhraseOptions
@@ -359,6 +360,15 @@ export class PocketNetworkProtocolService
     }
 
     return await response.json();
+  }
+
+  async signPersonalData(request: SignPersonalDataRequest): Promise<string> {
+    const bytesToSign = Buffer.from(request.challenge, "utf-8").toString("hex");
+    const txBytes = await signAsync(
+        bytesToSign,
+        request.privateKey.slice(0, 64)
+    );
+    return Buffer.from(txBytes).toString("hex");
   }
 
   isValidPrivateKey(privateKey: string): boolean {

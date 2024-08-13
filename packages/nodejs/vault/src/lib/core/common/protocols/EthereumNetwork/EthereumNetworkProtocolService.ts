@@ -4,9 +4,10 @@ import {
   CreateAccountOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService,
+  SignPersonalDataRequest,
 } from "../IProtocolService";
-import { Account, AccountType } from "../../../vault";
-import { AccountReference, SupportedProtocols } from "../../values";
+import {Account, AccountType} from "../../../vault";
+import {AccountReference, SupportedProtocols} from "../../values";
 import Eth from "web3-eth";
 import {
   create,
@@ -17,37 +18,32 @@ import {
   privateKeyToPublicKey,
   signTransaction,
 } from "web3-eth-accounts";
-import { Contract } from "web3-eth-contract";
-import { HttpProvider } from "web3-providers-http";
-import { fromWei, toHex, toWei } from "web3-utils";
-import {
-  ArgumentError,
-  NetworkRequestError,
-  ProtocolTransactionError,
-  RecoveryPhraseError,
-} from "../../../../errors";
-import { IEncryptionService } from "../../encryption/IEncryptionService";
-import { ProtocolFee } from "../ProtocolFee";
-import { INetwork } from "../INetwork";
-import { IAsset } from "../IAsset";
-import { NetworkStatus } from "../../values/NetworkStatus";
+import {Contract} from "web3-eth-contract";
+import {HttpProvider} from "web3-providers-http";
+import {fromWei, toHex, toWei} from "web3-utils";
+import {ArgumentError, NetworkRequestError, ProtocolTransactionError, RecoveryPhraseError,} from "../../../../errors";
+import {IEncryptionService} from "../../encryption/IEncryptionService";
+import {ProtocolFee} from "../ProtocolFee";
+import {INetwork} from "../INetwork";
+import {IAsset} from "../IAsset";
+import {NetworkStatus} from "../../values/NetworkStatus";
 import {
   EthereumProtocolFeeRequestSchema,
   EthereumProtocolNetworkSchema,
   EthereumProtocolSendTransactionForStatusResponseSchema,
 } from "./schemas";
-import { EthereumNetworkFeeRequestOptions } from "./EthereumNetworkFeeRequestOptions";
-import { SUGGESTED_GAS_FEES_URL } from "../../../../constants";
+import {EthereumNetworkFeeRequestOptions} from "./EthereumNetworkFeeRequestOptions";
+import {SUGGESTED_GAS_FEES_URL} from "../../../../constants";
 import ERC20Abi from "./contracts/ERC20Detailed";
-import { IProtocolTransactionResult } from "../ProtocolTransaction";
-import { Buffer } from "buffer";
-import { EthereumNetworkProtocolTransaction } from "./EthereumNetworkProtocolTransaction";
-import { EthereumNetworkTransactionTypes } from "./EthereumNetworkTransactionTypes";
-import { EthereumNetworkFee } from "./EthereumNetworkFee";
-import { SignTypedDataVersion, TypedDataUtils } from "@metamask/eth-sig-util";
-import { ecsign } from "ethereumjs-util";
-import { mnemonicToSeed, validateMnemonic } from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
+import {IProtocolTransactionResult} from "../ProtocolTransaction";
+import {Buffer} from "buffer";
+import {EthereumNetworkProtocolTransaction} from "./EthereumNetworkProtocolTransaction";
+import {EthereumNetworkTransactionTypes} from "./EthereumNetworkTransactionTypes";
+import {EthereumNetworkFee} from "./EthereumNetworkFee";
+import {SignTypedDataVersion, TypedDataUtils} from "@metamask/eth-sig-util";
+import {ecsign} from "ethereumjs-util";
+import {mnemonicToSeed, validateMnemonic} from "@scure/bip39";
+import {wordlist} from "@scure/bip39/wordlists/english";
 import HDKey from "hdkey";
 
 interface SuggestedFeeSpeed {
@@ -72,11 +68,6 @@ interface SuggestedFees {
 
 export interface SignTypedDataRequest {
   data: any; // TODO: Provide a EIP-712 request type
-  privateKey: string;
-}
-
-export interface SignPersonalDataRequest {
-  challenge: string;
   privateKey: string;
 }
 

@@ -10,8 +10,8 @@ import {
   EthereumNetworkFeeRequestOptions,
   IAsset,
   INetwork,
-  SignTypedDataRequest,
-  SignPersonalDataRequest,
+  SignTypedDataRequest, SignPersonalDataRequest,
+
 } from '@poktscan/vault';
 import { WebEncryptionService } from '@poktscan/vault-encryption-web';
 import {MockServerFactory} from '../../../../../mocks/mock-server-factory';
