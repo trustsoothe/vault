@@ -39,6 +39,12 @@ export interface SignPersonalDataRequest {
   privateKey: string;
 }
 
+export interface SignTransactionResult {
+  signature: Buffer;
+  publicKey: string;
+  transactionHex: string;
+}
+
 export interface IProtocolService<T extends SupportedProtocols> {
   createAccount(options: CreateAccountOptions): Promise<Account>;
 
