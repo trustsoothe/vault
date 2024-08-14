@@ -598,9 +598,9 @@ export class PocketNetworkProtocolService
               transactionParams.rewardDelegators,
           );
        case PocketNetworkTransactionTypes.NodeUnjail:
-          return new MsgProtoNodeUnjail(transactionParams.from, transactionParams.from);
+          return new MsgProtoNodeUnjail(transactionParams.from, transactionParams.outputAddress || transactionParams.from);
         case PocketNetworkTransactionTypes.NodeUnstake:
-          return new MsgProtoNodeUnstake(transactionParams.from, transactionParams.from);
+          return new MsgProtoNodeUnstake(transactionParams.from, transactionParams.outputAddress || transactionParams.from);
         case PocketNetworkTransactionTypes.GovChangeParam:
           return new MsgProtoGovChangeParam(
               transactionParams.from,

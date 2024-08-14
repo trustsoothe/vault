@@ -14,7 +14,7 @@ export interface PocketNetworkProtocolTransaction extends IAbstractProtocolTrans
     appAddress?: string;
     serviceURL?: string;
     rewardDelegators?: { [key: string]: number };
-    daoAction?: DAOAction
+    daoAction?: DAOAction;
     paramKey?: string;
     paramValue?: string;
     overrideGovParamsWhitelistValidation?: boolean;
