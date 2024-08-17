@@ -1,0 +1,19 @@
+{
+  "name": "@poktscan/vault-siwp",
+  "version": "0.0.0",
+  "description": "Sign-In With Pocket",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Soothe Inc.",
+  "license": "NONE",
+  "private": true,
+  "scripts": {
+    "test": "vitest"
+  },
+  "dependencies": {
+    "apg-js": "^4.4.0"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.5"
+  }
+}
