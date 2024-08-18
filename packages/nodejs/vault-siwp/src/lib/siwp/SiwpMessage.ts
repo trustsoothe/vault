@@ -158,4 +158,85 @@ export class SiwpMessage {
             );
         }
     }
+
+    /**
+     * This function can be used to retrieve an EIP-4361 formated message for
+     * signature, although you can call it directly it's advised to use
+     * [prepareMessage()] instead which will resolve to the correct method based
+     * on the [type] attribute of this object, in case of other formats being
+     * implemented.
+     * @returns {string} EIP-4361 formated message, ready for EIP-191 signing.
+     */
+    toMessage(): string {
+        /** Validates all fields of the object */
+        this.validateMessage();
+        const headerPrefx = this.scheme ? `${this.scheme}://${this.domain}` : this.domain;
+        const header = `${headerPrefx} wants you to sign in with your Pocket account:`;
+        const uriField = `URI: ${this.uri}`;
+        let prefix = [header, this.address].join('\n');
+        const versionField = `Version: ${this.version}`;
+
+        if (!this.nonce) {
+            this.nonce = generateNonce();
+        }
+
+        const chainField = `Chain ID: ` + this.chainId || '1';
+
+        const nonceField = `Nonce: ${this.nonce}`;
+
+        const suffixArray = [uriField, versionField, chainField, nonceField];
+
+        this.issuedAt = this.issuedAt || new Date().toISOString();
+
+        suffixArray.push(`Issued At: ${this.issuedAt}`);
+
+        if (this.expirationTime) {
+            const expiryField = `Expiration Time: ${this.expirationTime}`;
+
+            suffixArray.push(expiryField);
+        }
+
+        if (this.notBefore) {
+            suffixArray.push(`Not Before: ${this.notBefore}`);
+        }
+
+        if (this.requestId) {
+            suffixArray.push(`Request ID: ${this.requestId}`);
+        }
+
+        if (this.resources) {
+            suffixArray.push(
+                [`Resources:`, ...this.resources.map(x => `- ${x}`)].join('\n')
+            );
+        }
+
+        const suffix = suffixArray.join('\n');
+        prefix = [prefix, this.statement].join('\n\n');
+        if (this.statement) {
+            prefix += '\n';
+        }
+        return [prefix, suffix].join('\n');
+    }
+
+    /**
+     * This method parses all the fields in the object and creates a messaging for signing
+     * message according to the type defined.
+     * @returns {string} Returns a message ready to be signed according with the
+     * type defined in the object.
+     */
+    prepareMessage(): string {
+        let message: string;
+        switch (this.version) {
+            case '1': {
+                message = this.toMessage();
+                break;
+            }
+
+            default: {
+                message = this.toMessage();
+                break;
+            }
+        }
+        return message;
+    }
 }
