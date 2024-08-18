@@ -80,15 +80,7 @@ export class SiwpMessage {
      * Validates the values of this object fields.
      * @throws Throws an {ErrorType} if a field is invalid.
      */
-    private validateMessage(...args: any[]) {
-        /** Checks if the user might be using the function to verify instead of validate. */
-        if (args.length > 0) {
-            throw new SiwpError(
-                SiwpErrorType.UNABLE_TO_PARSE,
-                `Unexpected argument in the validateMessage function.`
-            );
-        }
-
+    private validateMessage() {
         /** `domain` check. */
         if (
             !this.domain ||

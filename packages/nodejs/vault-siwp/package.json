@@ -11,11 +11,11 @@
     "test": "vitest"
   },
   "dependencies": {
-    "apg-js": "^4.4.0",
-    "valid-url": "^1.0.9"
+    "apg-js": "4.4.0",
+    "valid-url": "1.0.9"
   },
   "devDependencies": {
-    "@types/valid-url": "^1.0.7",
-    "vitest": "^2.0.5"
+    "@types/valid-url": "1.0.7",
+    "vitest": "2.0.5"
   }
 }
