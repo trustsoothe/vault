@@ -1,10 +1,10 @@
 {
-    "missing domain": {
+    "domain is missing": {
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -14,12 +14,12 @@
             "https://service.org/login"
         ]
     },
-    "missing address": {
+    "address is missing": {
         "domain": "service.org",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -29,12 +29,12 @@
             "https://service.org/login"
         ]
     },
-    "missing uri": {
+    "uri is missing": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -44,12 +44,12 @@
             "https://service.org/login"
         ]
     },
-    "missing version": {
+    "version is missing": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -59,7 +59,7 @@
             "https://service.org/login"
         ]
     },
-    "missing chainId": {
+    "chainId is missing": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
@@ -74,13 +74,13 @@
             "https://service.org/login"
         ]
     },
-    "missing nonce": {
+    "nonce is missing": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
         "notBefore": "2022-03-17T12:45:13.610Z",
@@ -89,13 +89,13 @@
             "https://service.org/login"
         ]
     },
-    "missing issuedAt": {
+    "issuedAt is missing": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "expirationTime": "2023-03-17T12:45:13.610Z",
         "notBefore": "2022-03-17T12:45:13.610Z",
@@ -104,13 +104,13 @@
             "https://service.org/login"
         ]
     },
-    "domain not RFC4501 authority": {
+    "domain is not a RFC4501 authority": {
         "domain": "#notrfc4501",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -120,13 +120,13 @@
             "https://service.org/login"
         ]
     },
-    "address not EIP-55": {
+    "address is not valid for Pocket Network": {
         "domain": "service.org",
         "address": "0xE5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -136,13 +136,13 @@
             "https://service.org/login"
         ]
     },
-    "uri is non-RFC 3986": {
+    "uri is non-RFC 3986 compliant": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": ":not_a_rfc3986_valid_uri_",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -158,7 +158,7 @@
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "3",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -168,7 +168,7 @@
             "https://service.org/login"
         ]
     },
-    "not a valid chainId": {
+    "chainId is not valid": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
@@ -184,13 +184,13 @@
             "https://service.org/login"
         ]
     },
-    "nonce with less then 8 chars": {
+    "nonce has less then 8 chars": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "1234567",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -200,13 +200,13 @@
             "https://service.org/login"
         ]
     },
-    "non-ISO 8601 issuedAt": {
+    "issuedAt is non-ISO 8601 compliant": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "Wed Oct 05 2011 16:48:00 GMT+0200 (CEST)",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -216,13 +216,13 @@
             "https://service.org/login"
         ]
     },
-    "non-ISO 8601 expirationTime": {
+    "expirationTime is non-ISO 8601 compliant": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "Wed Oct 05 2011 16:48:00 GMT+0200 (CEST)",
@@ -232,13 +232,13 @@
             "https://service.org/login"
         ]
     },
-    "non-ISO 8601 notBefore": {
+    "notBefore is non-ISO 8601 compliant": {
         "domain": "service.org",
         "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -254,7 +254,7 @@
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",
@@ -271,7 +271,7 @@
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
-        "chainId": 1,
+        "chainId": "mainnet",
         "nonce": "12341234",
         "issuedAt": "2022-03-17T12:45:13.610Z",
         "expirationTime": "2023-03-17T12:45:13.610Z",

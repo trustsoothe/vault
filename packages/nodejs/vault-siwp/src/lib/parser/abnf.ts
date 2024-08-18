@@ -229,19 +229,19 @@ const resources = (state: string, chars: any, phraseIndex: number, phraseLength:
 
 export class ParsedMessage {
     [key: string]: any;
-    scheme: string | null;
+    scheme?: string;
     domain: string;
     address: string;
-    statement: string | null;
+    statement?: string;
     uri: string;
     version: string;
-    chainId: number;
+    chainId: "mainnet" | "testnet";
     nonce: string;
     issuedAt: string;
-    expirationTime: string | null;
-    notBefore: string | null;
-    requestId: string | null;
-    resources: Array<string> | null;
+    expirationTime?: string;
+    notBefore?: string;
+    requestId?: string;
+    resources?: Array<string>;
 
     constructor(msg: string) {
         const parser = new apgLib.parser();
