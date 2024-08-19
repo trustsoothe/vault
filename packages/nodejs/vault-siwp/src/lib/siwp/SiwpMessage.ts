@@ -1,7 +1,8 @@
 import {isValidPocketAddress, ParsedMessage} from "../parser";
-import {generateNonce, isValidISO8601Date} from "./utils";
-import {SiwpError, SiwpErrorType} from "./types";
+import {generateNonce, getAddressFromPublicKey, isValidISO8601Date} from "./utils";
+import {SiwpError, SiwpErrorType, SiwpResponse, VerifyOpts, VerifyParams} from "./types";
 import * as uri from 'valid-url';
+import {verifyAsync, signAsync} from '@noble/ed25519';
 
 export class SiwpMessage {
     /**RFC 3986 URI scheme for the authority that is requesting the signing. */
@@ -21,7 +22,7 @@ export class SiwpMessage {
     version: string;
     /**EIP-155 Chain ID to which the session is bound, and the network where
      * Contract Accounts must be resolved. */
-    chainId: "mainnet" | "testnet";
+    chainId: string | "mainnet" | "testnet";
     /**Randomized token used to prevent replay attacks, at least 8 alphanumeric
      * characters. */
     nonce: string;
@@ -43,20 +44,24 @@ export class SiwpMessage {
 
     constructor(param: string | Partial<SiwpMessage>) {
         if (typeof param === 'string') {
-            const parsedMessage = new ParsedMessage(param);
-            this.scheme = parsedMessage.scheme;
-            this.domain = parsedMessage.domain;
-            this.address = parsedMessage.address;
-            this.statement = parsedMessage.statement;
-            this.uri = parsedMessage.uri;
-            this.version = parsedMessage.version;
-            this.nonce = parsedMessage.nonce;
-            this.issuedAt = parsedMessage.issuedAt;
-            this.expirationTime = parsedMessage.expirationTime;
-            this.notBefore = parsedMessage.notBefore;
-            this.requestId = parsedMessage.requestId;
-            this.chainId = parsedMessage.chainId;
-            this.resources = parsedMessage.resources;
+            try {
+                const parsedMessage = new ParsedMessage(param);
+                this.scheme = parsedMessage.scheme;
+                this.domain = parsedMessage.domain;
+                this.address = parsedMessage.address;
+                this.statement = parsedMessage.statement;
+                this.uri = parsedMessage.uri;
+                this.version = parsedMessage.version;
+                this.nonce = parsedMessage.nonce;
+                this.issuedAt = parsedMessage.issuedAt;
+                this.expirationTime = parsedMessage.expirationTime;
+                this.notBefore = parsedMessage.notBefore;
+                this.requestId = parsedMessage.requestId;
+                this.chainId = parsedMessage.chainId;
+                this.resources = parsedMessage.resources;
+            } catch (e) {
+                throw new SiwpError(SiwpErrorType.UNABLE_TO_PARSE, `SiwpMessage`, param);
+            }
         } else {
             this.scheme = param.scheme;
             this.domain = param.domain!;
@@ -131,21 +136,21 @@ export class SiwpMessage {
         /** `issuedAt` conforms to ISO-8601 and is a valid date. */
         if (this.issuedAt) {
             if (!isValidISO8601Date(this.issuedAt)) {
-                throw new Error(SiwpErrorType.INVALID_TIME_FORMAT);
+                throw new SiwpError(SiwpErrorType.INVALID_TIME_FORMAT);
             }
         }
 
         /** `expirationTime` conforms to ISO-8601 and is a valid date. */
         if (this.expirationTime) {
             if (!isValidISO8601Date(this.expirationTime)) {
-                throw new Error(SiwpErrorType.INVALID_TIME_FORMAT);
+                throw new SiwpError(SiwpErrorType.INVALID_TIME_FORMAT);
             }
         }
 
         /** `notBefore` conforms to ISO-8601 and is a valid date. */
         if (this.notBefore) {
             if (!isValidISO8601Date(this.notBefore)) {
-                throw new Error(SiwpErrorType.INVALID_TIME_FORMAT);
+                throw new SiwpError(SiwpErrorType.INVALID_TIME_FORMAT);
             }
         }
 
@@ -238,5 +243,153 @@ export class SiwpMessage {
             }
         }
         return message;
+    }
+
+    /**
+     * Verifies the integrity of the object by matching its signature.
+     * @param params Parameters to verify the integrity of the message, signature is required.
+     * @param opts Options for the verification process
+     * @returns {Promise<SiweMessage>} This object if valid.
+     */
+    async verify(
+        params: VerifyParams,
+        opts: VerifyOpts = { suppressExceptions: false }
+    ): Promise<SiwpResponse> {
+        const fail = (response: SiwpResponse) => {
+            if (opts.suppressExceptions) {
+                return response;
+            } else {
+                throw response;
+            }
+        };
+
+        const { signature, publicKey, scheme, domain, nonce, time } = params;
+
+        /** Scheme for domain binding */
+        if (scheme && scheme !== this.scheme) {
+            return fail({
+                success: false,
+                data: this,
+                error: new SiwpError(
+                    SiwpErrorType.SCHEME_MISMATCH,
+                    scheme,
+                    this.scheme
+                ),
+            });
+        }
+
+        /** Domain binding */
+        if (domain && domain !== this.domain) {
+            return fail({
+                success: false,
+                data: this,
+                error: new SiwpError(
+                    SiwpErrorType.DOMAIN_MISMATCH,
+                    domain,
+                    this.domain
+                ),
+            });
+        }
+
+        /** Nonce binding */
+        if (nonce && nonce !== this.nonce) {
+            return fail({
+                success: false,
+                data: this,
+                error: new SiwpError(SiwpErrorType.NONCE_MISMATCH, nonce, this.nonce),
+            });
+        }
+
+        /** Check time or now */
+        const checkTime = new Date(time || new Date());
+
+        /** Message not expired */
+        if (this.expirationTime) {
+            const expirationDate = new Date(this.expirationTime);
+            if (checkTime.getTime() >= expirationDate.getTime()) {
+                return fail({
+                    success: false,
+                    data: this,
+                    error: new SiwpError(
+                        SiwpErrorType.EXPIRED_MESSAGE,
+                        `${checkTime.toISOString()} < ${expirationDate.toISOString()}`,
+                        `${checkTime.toISOString()} >= ${expirationDate.toISOString()}`
+                    ),
+                });
+            }
+        }
+
+        /** Message is valid already */
+        if (this.notBefore) {
+            const notBefore = new Date(this.notBefore);
+            if (checkTime.getTime() < notBefore.getTime()) {
+                return fail({
+                    success: false,
+                    data: this,
+                    error: new SiwpError(
+                        SiwpErrorType.NOT_YET_VALID_MESSAGE,
+                        `${checkTime.toISOString()} >= ${notBefore.toISOString()}`,
+                        `${checkTime.toISOString()} < ${notBefore.toISOString()}`
+                    ),
+                });
+            }
+        }
+
+        /** Recover address from signature */
+        let addr;
+
+        try {
+            addr = await getAddressFromPublicKey(publicKey);
+        } catch (e) {
+            return fail({
+                success: false,
+                data: this,
+                error: new SiwpError(SiwpErrorType.ADDRESS_UNRECOVERABLE, this.address, addr),
+            })
+        }
+
+        /** The address recovered from the public key does not match the one in the message */
+        if (addr !== this.address) {
+            return fail({
+                success: false,
+                data: this,
+                error: new SiwpError(
+                    SiwpErrorType.ADDRESS_MISMATCH,
+                    this.address,
+                    addr
+                ),
+            });
+        }
+
+        let  message;
+
+        try {
+            message = this.prepareMessage();
+        } catch (e) {
+            return fail({
+                success: false,
+                data: this,
+                error: e as SiwpError,
+            });
+        }
+
+        /** Verify the signature */
+        const isValid = await verifyAsync(signature, message, publicKey);
+
+        if (!isValid) {
+            return fail({
+                success: false,
+                data: this,
+                error: new SiwpError(
+                    SiwpErrorType.INVALID_SIGNATURE,
+                    `Signature does not match the message and public key.`,
+                ),
+            });
+        }
+
+        return {
+            success: true,
+            data: this,
+        };
     }
 }

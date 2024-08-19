@@ -1,3 +1,5 @@
+import { fromUint8Array } from "hex-lite";
+
 const ISO8601 =
     /^(?<date>[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01]))[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(.[0-9]+)?(([Zz])|([+|-]([01][0-9]|2[0-3]):[0-5][0-9]))$/;
 ;
@@ -69,15 +71,24 @@ export const isValidISO8601Date = (inputDate: string): boolean => {
     return inputMatch.groups.date === parsedInputMatch.groups.date;
 };
 
-export const checkInvalidKeys = <T extends {}>(
-    obj: T,
-    keys: Array<keyof T>
-): Array<keyof T> => {
-    const invalidKeys: Array<keyof T> = [];
-    Object.keys(obj).forEach(key => {
-        if (!keys.includes(key as keyof T)) {
-            invalidKeys.push(key as keyof T);
-        }
-    });
-    return invalidKeys;
-};
+function hexStringToByteArray(str: string): Uint8Array {
+    const hexRegExp = str.match(/.{1,2}/g);
+
+    if (hexRegExp) {
+        return Uint8Array.from(hexRegExp.map((byte) => parseInt(byte, 16)));
+    }
+
+    throw new Error("Invalid hex string");
+}
+
+export const getAddressFromPublicKey = async (publicKey: string): Promise<string> => {
+    // @ts-ignore
+    const hash = await globalThis.crypto.subtle.digest(
+        {
+            name: "SHA-256",
+        },
+        hexStringToByteArray(publicKey),
+    );
+
+    return fromUint8Array(new Uint8Array(hash)).slice(0, 40);
+}

@@ -23,4 +23,10 @@ describe('SiwpMessage', () => {
             expect(siwpMessage.prepareMessage()).toBe(testInputObject.message);
         });
     });
+
+    describe('#verify', () => {
+        const privateKey = 'ae531b9e7aaf3e300914d0a95eaef3320ce943e125854eb1490478d44ff45f5479673eefacacd933535e25c2975fe7950247de201690e074719771a6752f1e47';
+        const publicKey = privateKey.slice(64);
+        const address = '961206e997ff088fd4b7d906df2a625851e2a18a';
+    });
 });

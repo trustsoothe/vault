@@ -1,51 +1,40 @@
 {
     "example message": {
         "domain": "login.xyz",
-        "address": "0x9D85ca56217D2bb651b00f15e694EB7E713637D4",
-        "statement": "Sign-In With Ethereum Example Statement",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
+        "statement": "Sign-In With Pocket Example Statement",
         "uri": "https://login.xyz",
         "version": "1",
         "nonce": "bTyXgcQxn2htgkjJn",
         "issuedAt": "2022-01-27T17:09:38.578Z",
-        "chainId": 1,
+        "chainId": "mainnet",
         "expirationTime": "2100-01-07T14:31:43.952Z",
-        "signature": "0xdc35c7f8ba2720df052e0092556456127f00f7707eaa8e3bbff7e56774e7f2e05a093cfc9e02964c33d86e8e066e221b7d153d27e5a2e97ccd5ca7d3f2ce06cb1b"
+        "signature": "0fe84ae2540dd62b5fe396926d668b4c7483d0f8090c6f87beb0e66ff0e97c504bb8f7bd031aa422bdb9f8b1bbb26ac10a4b014a068ae94755730ce44dd7ae0b"
     },
     "not yet valid": {
         "domain": "login.xyz",
-        "address": "0xE6D3Aa1F561A215E5eb1f02Ba8705385F03fCaFB",
-        "statement": "Sign-In With Ethereum Example Statement",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
+        "statement": "Sign-In With Pocket Example Statement",
         "uri": "https://login.xyz",
         "version": "1",
         "nonce": "lx2nx4so",
         "issuedAt": "2022-01-05T14:27:30.883Z",
-        "chainId": 1,
+        "chainId": "mainnet",
         "notBefore": "2100-01-07T14:31:43.952Z",
-        "signature": "0xc2539ace78f13c7eb8c0852d38d269a6f97bebd9f7872097d2e3137b541f8bf50176062a46eeea83086bd2721423fb5755a932ff6ccc046ed482d14e4576042f1c",
+        "signature": "97faaa3b4b4562a158adac1e18ea433a0a7e69139366f1fdf0a95cb6e4151ef37bed650bb4df4b16ba203976d81c3dacffa660432c462456e9f6c6c09db9370c",
         "time": "2101-01-07T14:31:43.952Z"
     },
     "expired message": {
         "domain": "login.xyz",
-        "address": "0x2ecA0068307e706741445764A3D6A4402aC2A5a9",
-        "statement": "Sign-In With Ethereum Example Statement",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
+        "statement": "Sign-In With Pocket Example Statement",
         "uri": "https://login.xyz",
         "version": "1",
         "nonce": "lx2nx4so",
         "issuedAt": "2022-01-05T14:27:30.883Z",
-        "chainId": 1,
+        "chainId": "mainnet",
         "expirationTime": "2021-01-05T00:00:00Z",
-        "signature": "0x7337bc2826c7678cd6bc84f5b3b236efc969b0451f9feca2328b1d3401b030c113f19bdba359ba3f52762c66e9147311fa95fe598a1a4ec9bb383a7b4e3874241b",
+        "signature": "395fed8466a4df12e5f073d251e3bac8f096d7e1c3ff363b8abc3b148b48208c0963b49217d5bd90c2d4b22e9bb90e458d04fb0ba636351222c46deadb18690a",
         "time": "2020-01-05T00:00:00Z"
-    },
-	"recovery byte starting at 0": {
-		"domain": "www.tally.xyz",
-		"address": "0xc95EB884FE852e241D409234bfC7045CB9E31BD7",
-		"statement": "Sign in with Ethereum to Tally",
-		"uri": "https://tally.xyz",
-		"version": "1",
-		"chainId": 1,
-		"nonce": "15050747",
-		"issuedAt": "2022-06-30T14:08:51.382Z",
-		"signature": "0x8c46b6eb8505939892d8e9b075f89f8277321b17b993151f37810cdda38cce6f4a85909d2b53e6a14629c74c0ac38bf4becde78ee5b2529812bf6cceaf7b2a2501"
-	}
+    }
 }

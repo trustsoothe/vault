@@ -1,6 +1,6 @@
 {
     "domain is missing": {
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -31,7 +31,7 @@
     },
     "uri is missing": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "version": "1",
         "chainId": "mainnet",
@@ -46,7 +46,7 @@
     },
     "version is missing": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "chainId": "mainnet",
@@ -61,7 +61,7 @@
     },
     "chainId is missing": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -76,7 +76,7 @@
     },
     "nonce is missing": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -91,7 +91,7 @@
     },
     "issuedAt is missing": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -106,7 +106,7 @@
     },
     "domain is not a RFC4501 authority": {
         "domain": "#notrfc4501",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -122,7 +122,7 @@
     },
     "address is not valid for Pocket Network": {
         "domain": "service.org",
-        "address": "0xE5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -138,7 +138,7 @@
     },
     "uri is non-RFC 3986 compliant": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": ":not_a_rfc3986_valid_uri_",
         "version": "1",
@@ -154,7 +154,7 @@
     },
     "version not 1": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "3",
@@ -170,7 +170,7 @@
     },
     "chainId is not valid": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -186,7 +186,7 @@
     },
     "nonce has less then 8 chars": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -202,7 +202,7 @@
     },
     "issuedAt is non-ISO 8601 compliant": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -218,7 +218,7 @@
     },
     "expirationTime is non-ISO 8601 compliant": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -234,7 +234,7 @@
     },
     "notBefore is non-ISO 8601 compliant": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -250,7 +250,7 @@
     },
     "first resource not-RFC 3986": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",
@@ -267,7 +267,7 @@
     },
     "second resource is not-RFC3986": {
         "domain": "service.org",
-        "address": "0xe5A12547fe4E872D192E3eCecb76F2Ce1aeA4946",
+        "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
         "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
         "uri": "https://service.org/login",
         "version": "1",

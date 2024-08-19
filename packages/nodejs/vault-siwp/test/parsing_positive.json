@@ -1,9 +1,9 @@
 {
     "couple of optional fields": {
-        "message": "service.org wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z\nResources:\n- ipfs://Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu\n- https://example.com/my-web2-claim.json",
+        "message": "service.org wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z\nResources:\n- ipfs://Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu\n- https://example.com/my-web2-claim.json",
         "fields": {
             "domain": "service.org",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
             "uri": "https://service.org/login",
             "version": "1",
@@ -17,10 +17,10 @@
         }
     },
     "no optional field": {
-        "message": "service.org wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "service.org wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "service.org",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
             "uri": "https://service.org/login",
             "version": "1",
@@ -30,10 +30,10 @@
         }
     },
     "timestamp without microseconds": {
-        "message": "service.org wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24Z",
+        "message": "service.org wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24Z",
         "fields": {
             "domain": "service.org",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
             "uri": "https://service.org/login",
             "version": "1",
@@ -43,10 +43,10 @@
         }
     },
     "timezone not utc": {
-        "message": "service.org wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24-02:00",
+        "message": "service.org wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24-02:00",
         "fields": {
             "domain": "service.org",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
             "uri": "https://service.org/login",
             "version": "1",
@@ -56,10 +56,10 @@
         }
     },
     "domain is RFC 3986 authority with IP": {
-        "message": "127.0.0.1 wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "127.0.0.1 wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "127.0.0.1",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
             "uri": "https://service.org/login",
             "version": "1",
@@ -69,10 +69,10 @@
         }
     },
     "domain is RFC 3986 authority with userinfo": {
-        "message": "test@127.0.0.1 wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "test@127.0.0.1 wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "test@127.0.0.1",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
             "uri": "https://service.org/login",
             "version": "1",
@@ -82,10 +82,10 @@
         }
     },
     "domain is RFC 3986 authority with port": {
-        "message": "127.0.0.1:8080 wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "127.0.0.1:8080 wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "127.0.0.1:8080",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
             "uri": "https://service.org/login",
             "version": "1",
@@ -95,10 +95,10 @@
         }
     },
     "domain is localhost authority with port": {
-        "message": "localhost:8080 wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "localhost:8080 wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "localhost:8080",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
             "uri": "https://service.org/login",
             "version": "1",
@@ -108,10 +108,10 @@
         }
     },
     "domain is RFC 3986 authority with userinfo and port": {
-        "message": "test@127.0.0.1:8080 wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "test@127.0.0.1:8080 wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ServiceOrg Terms of Service: https://service.org/tos\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "test@127.0.0.1:8080",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ServiceOrg Terms of Service: https://service.org/tos",
             "uri": "https://service.org/login",
             "version": "1",
@@ -121,10 +121,10 @@
         }
     },
     "no statement": {
-        "message": "service.org wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "service.org wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "service.org",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "uri": "https://service.org/login",
             "version": "1",
             "chainId": "mainnet",
@@ -133,10 +133,10 @@
         }
     },
     "domain ipv6": {
-        "message": "[::cafe] wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "[::cafe] wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\n\nURI: https://service.org/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "[::cafe]",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "uri": "https://service.org/login",
             "version": "1",
             "chainId": "mainnet",
@@ -145,10 +145,10 @@
         }
     },
     "uri ipv6": {
-        "message": "service.org wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\n\nURI: https://[::cafe]\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "service.org wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\n\nURI: https://[::cafe]\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "service.org",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "uri": "https://[::cafe]",
             "version": "1",
             "chainId": "mainnet",
@@ -157,10 +157,10 @@
         }
     },
     "uri ipv4": {
-        "message": "service.org wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\n\nURI: https://127.0.0.1\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "service.org wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\n\nURI: https://127.0.0.1\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "service.org",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "uri": "https://127.0.0.1",
             "version": "1",
             "chainId": "mainnet",
@@ -169,10 +169,10 @@
         }
     },
     "uri with port": {
-        "message": "service.org wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\n\nURI: https://127.0.0.1:4361\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "service.org wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\n\nURI: https://127.0.0.1:4361\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "service.org",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "uri": "https://127.0.0.1:4361",
             "version": "1",
             "chainId": "mainnet",
@@ -181,10 +181,10 @@
         }
     },
     "uri ipv4 query params and fragment": {
-        "message": "service.org wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\n\nURI: https://127.0.0.1/?query=one#begin\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "service.org wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\n\nURI: https://127.0.0.1/?query=one#begin\nVersion: 1\nChain ID: mainnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "service.org",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "uri": "https://127.0.0.1/?query=one#begin",
             "version": "1",
             "chainId": "mainnet",
@@ -193,10 +193,10 @@
         }
     },
     "chainId is testnet": {
-        "message": "service.org wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\n\nURI: https://service.org/login\nVersion: 1\nChain ID: testnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
+        "message": "service.org wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\n\nURI: https://service.org/login\nVersion: 1\nChain ID: testnet\nNonce: 32891757\nIssued At: 2021-09-30T16:25:24.000Z",
         "fields": {
             "domain": "service.org",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "uri": "https://service.org/login",
             "version": "1",
             "chainId": "testnet",
@@ -205,11 +205,11 @@
         }
     },
     "domain contains optional scheme": {
-        "message": "https://example.com wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ExampleOrg Terms of Service: https://example.com/tos\n\nURI: https://example.com/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891756\nIssued At: 2021-09-30T16:25:24Z",
+        "message": "https://example.com wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ExampleOrg Terms of Service: https://example.com/tos\n\nURI: https://example.com/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891756\nIssued At: 2021-09-30T16:25:24Z",
         "fields": {
             "scheme": "https",
             "domain": "example.com",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ExampleOrg Terms of Service: https://example.com/tos",
             "uri": "https://example.com/login",
             "version": "1",
@@ -219,11 +219,11 @@
         }
     },
     "scheme is not parsed from elsehwere in message": {
-        "message": "localhost:3030 wants you to sign in with your Pocket account:\n30fd308b3bf2126030aba7f0e342dcb8b4922a8b\n\nI accept the ExampleOrg Terms of Service: http://localhost:3030/tos\n\nURI: http://localhost:3030/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891756\nIssued At: 2021-09-30T16:25:24Z",
+        "message": "localhost:3030 wants you to sign in with your Pocket account:\n961206e997ff088fd4b7d906df2a625851e2a18a\n\nI accept the ExampleOrg Terms of Service: http://localhost:3030/tos\n\nURI: http://localhost:3030/login\nVersion: 1\nChain ID: mainnet\nNonce: 32891756\nIssued At: 2021-09-30T16:25:24Z",
         "fields": {
             "scheme": null,
             "domain": "localhost:3030",
-            "address": "30fd308b3bf2126030aba7f0e342dcb8b4922a8b",
+            "address": "961206e997ff088fd4b7d906df2a625851e2a18a",
             "statement": "I accept the ExampleOrg Terms of Service: http://localhost:3030/tos",
             "uri": "http://localhost:3030/login",
             "version": "1",

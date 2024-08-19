@@ -1,6 +1,11 @@
+import {SiwpMessage} from "./SiwpMessage";
+
 export interface VerifyParams {
     /** Signature of the message signed by the wallet */
     signature: string;
+
+    /** The signer's public as it is not recoverable from the message and signature in Ed25519 */
+    publicKey: string;
 
     /** RFC 3986 URI scheme for the authority that is requesting the signing. */
     scheme?: string;
@@ -31,6 +36,20 @@ export interface VerifyOpts {
 export const VerifyOptsKeys: Array<keyof VerifyOpts> = [
     'suppressExceptions',
 ];
+
+/**
+ * Returned on verifications.
+ */
+export interface SiwpResponse {
+    /** Boolean representing if the message was verified with success. */
+    success: boolean;
+
+    /** If present `success` MUST be false and will provide extra information on the failure reason. */
+    error?: SiwpError;
+
+    /** Original message that was verified. */
+    data: SiwpMessage;
+}
 
 /**
  * Interface used to return errors in SiweResponses.
@@ -71,7 +90,7 @@ export enum SiwpErrorType {
     /** `nonce` don't match the nonce provided for verification. */
     NONCE_MISMATCH = 'Nonce does not match provided nonce for verification.',
 
-    /** `address` does not conform to EIP-55 or is not a valid address. */
+    /** `address` is not valid */
     INVALID_ADDRESS = 'Invalid address.',
 
     /** `uri` does not conform to RFC 3986. */
@@ -84,7 +103,13 @@ export enum SiwpErrorType {
     NOT_YET_VALID_MESSAGE = 'Message is not valid yet.',
 
     /** Signature doesn't match the address of the message. */
-    INVALID_SIGNATURE = 'Signature does not match address of the message.',
+    INVALID_SIGNATURE = 'Signature does not match the message and public key.',
+
+    /** The address recovered from the public key does not match the one in the message */
+    ADDRESS_MISMATCH = 'Address does not match the public key.',
+
+    /** `address` is not recoverable from the public key. */
+    ADDRESS_UNRECOVERABLE = 'Address is not recoverable from the public key.',
 
     /** `expirationTime`, `notBefore` or `issuedAt` not complient to ISO-8601. */
     INVALID_TIME_FORMAT = 'Invalid time format.',

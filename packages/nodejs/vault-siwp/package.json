@@ -8,13 +8,21 @@
   "license": "NONE",
   "private": true,
   "scripts": {
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit --moduleResolution node --target ES6 --allowSyntheticDefaultImports",
+    "lint": "eslint .",
+    "lint:fix": "yarn lint --fix",
+    "build": "node esbuild.js && tsc -p tsconfig.json",
     "test": "vitest"
   },
   "dependencies": {
+    "@noble/ed25519": "^2.1.0",
     "apg-js": "4.4.0",
+    "hex-lite": "^1.5.0",
     "valid-url": "1.0.9"
   },
   "devDependencies": {
+    "@peculiar/webcrypto": "^1.5.0",
     "@types/valid-url": "1.0.7",
     "vitest": "2.0.5"
   }
