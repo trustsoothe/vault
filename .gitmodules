@@ -1,0 +1,3 @@
+[submodule "packages/nodejs/vault-siwp"]
+	path = packages/nodejs/vault-siwp
+	url = git@github.com:pokt-scan/vault-siwp.git
