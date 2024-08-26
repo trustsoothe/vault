@@ -35,6 +35,7 @@ describe('EthereumNetworkProtocolService', () => {
     name: 'test-account',
     address: '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
     protocol: SupportedProtocols.Ethereum,
+    publicKey: '0x7ff21bc4f68979598e3f9e47bb814a9a3115678b0a577050af08bcb2af0826cb16d4901b7e913f05dcdc57b874bc9f73e8ebe08737704e2c005398466a8f918f',
   });
 
   const accountImport = {

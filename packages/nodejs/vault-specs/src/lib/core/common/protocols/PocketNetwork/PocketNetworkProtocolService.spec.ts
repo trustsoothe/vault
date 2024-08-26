@@ -27,6 +27,7 @@ describe('PocketNetworkProtocolService', () => {
         name: 'test-account',
         address: 'test-address',
         protocol: SupportedProtocols.Pocket,
+        publicKey: 'test-public-key',
       });
 
   const encryptionService: IEncryptionService = new WebEncryptionService();

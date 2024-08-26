@@ -45,6 +45,10 @@ export interface SignTransactionResult {
   transactionHex: string;
 }
 
+export interface PublicKeyResult {
+    publicKey: string;
+}
+
 export interface IProtocolService<T extends SupportedProtocols> {
   createAccount(options: CreateAccountOptions): Promise<Account>;
 

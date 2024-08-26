@@ -138,6 +138,7 @@ export const getAccountBalance = async ({
   const acc = new AccountReference({
     id: "",
     name: "",
+    publicKey: "",
     address,
     protocol,
   });
