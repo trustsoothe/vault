@@ -15,6 +15,7 @@ export interface IAbstractProtocolTransaction<T extends SupportedProtocols, TTra
   to: string;
   amount: string;
   privateKey: string;
+  skipValidation?: boolean;
 }
 
 type AllowedProtocols = keyof typeof SupportedProtocols;

@@ -227,6 +227,7 @@ export class Account implements IEntity {
         parentId: this.parentId,
         hdwIndex: this.hdwIndex,
         seedId: this.seedId,
+        publicKey: this.publicKey,
       });
   }
 }

@@ -127,7 +127,8 @@ describe('session', () => {
             id: '123',
             name: 'Testnet Account',
             address: '0x32344',
-            protocol: asset.protocol
+            protocol: asset.protocol,
+            publicKey: '0x1234'
           });
 
     const permissions =

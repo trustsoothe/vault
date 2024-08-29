@@ -6,6 +6,7 @@ export interface SerializedAccountReference {
   id: string;
   name: string;
   address: string;
+  publicKey: string;
   protocol: SupportedProtocols;
   accountType: AccountType;
   parentId: string;
@@ -17,6 +18,7 @@ export interface AccountReferenceOptions {
   id: string;
   name: string;
   address: string;
+  publicKey: string;
   protocol: SupportedProtocols;
   accountType?: AccountType;
   seedId?: string;
@@ -28,6 +30,7 @@ export class AccountReference {
   private readonly _id: string = "";
   private readonly _name: string = "";
   private readonly _address: string = "";
+  private readonly _publicKey: string;
   private readonly _protocol: SupportedProtocols;
   private readonly _accountType: AccountType;
   private readonly _seedId?: string;
@@ -43,6 +46,7 @@ export class AccountReference {
     this._seedId = options.seedId;
     this._parentId = options.parentId || "";
     this._hdwIndex = isNumber(options.hdwIndex) ? options.hdwIndex : undefined;
+    this._publicKey = options.publicKey;
   }
 
   get id(): string {
@@ -77,6 +81,10 @@ export class AccountReference {
     return this._seedId;
   }
 
+  get publicKey(): string {
+    return this._publicKey;
+  }
+
   serialize(): SerializedAccountReference {
     return {
       id: this.id,
@@ -87,6 +95,7 @@ export class AccountReference {
       parentId: this.parentId,
       hdwIndex: this.hdwIndex,
       seedId: this.seedId,
+      publicKey: this.publicKey,
     };
   }
 
@@ -99,6 +108,8 @@ export class AccountReference {
       accountType: data.accountType,
       parentId: data.parentId,
       hdwIndex: data.hdwIndex,
+      seedId: data.seedId,
+      publicKey: data.publicKey,
     });
   }
 }

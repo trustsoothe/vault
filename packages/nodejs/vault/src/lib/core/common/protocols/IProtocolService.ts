@@ -1,14 +1,13 @@
-import { Account } from "../../vault";
-import { AccountReference, Passphrase, SupportedProtocols } from "../values";
-import { ProtocolFee } from "./ProtocolFee";
-import { INetwork } from "./INetwork";
-import { IAsset } from "./IAsset";
-import { NetworkStatus } from "../values/NetworkStatus";
-import { IAbstractProtocolFeeRequestOptions } from "./ProtocolFeeRequestOptions";
-import {
-  IProtocolTransactionResult,
-  ProtocolTransaction,
-} from "./ProtocolTransaction";
+import {Account} from "../../vault";
+import {AccountReference, Passphrase, SupportedProtocols} from "../values";
+import {ProtocolFee} from "./ProtocolFee";
+import {INetwork} from "./INetwork";
+import {IAsset} from "./IAsset";
+import {NetworkStatus} from "../values/NetworkStatus";
+import {IAbstractProtocolFeeRequestOptions} from "./ProtocolFeeRequestOptions";
+import {IProtocolTransactionResult, ProtocolTransaction,} from "./ProtocolTransaction";
+import {PocketNetworkProtocolTransaction} from "./PocketNetwork";
+import {EthereumNetworkProtocolTransaction} from "./EthereumNetwork/EthereumNetworkProtocolTransaction";
 
 export interface CreateAccountOptions {
   name?: string;
@@ -35,6 +34,43 @@ export interface AddHDWalletAccountOptions {
   seedAccount: Account;
   index: number;
   name?: string;
+}
+
+export interface SignPersonalDataRequest {
+  challenge: string;
+  privateKey: string;
+}
+
+export interface SignTransactionResult {
+  signature: Buffer;
+  publicKey: string;
+  transactionHex: string;
+}
+
+export interface PublicKeyResult {
+    publicKey: string;
+}
+
+export enum TransactionValidationResultType {
+    Error = 'error',
+    Warning = 'warning',
+    Info = 'info',
+}
+
+export class ValidateTransactionResult {
+    constructor(
+        public readonly results: ReadonlyArray<TransactionValidationResult> = [],
+    ) {}
+
+    get hasErrors(): boolean {
+        return this.results.some((r) => r.type === TransactionValidationResultType.Error);
+    }
+}
+
+export interface TransactionValidationResult {
+  type: TransactionValidationResultType;
+  message: string;
+  key?: string;
 }
 
 export interface IProtocolService<T extends SupportedProtocols> {
@@ -87,4 +123,8 @@ export interface IProtocolService<T extends SupportedProtocols> {
   ): Promise<Account[]>;
 
   createHDWalletAccount(options: AddHDWalletAccountOptions): Promise<Account>;
+
+  signPersonalData(request: SignPersonalDataRequest): Promise<string>;
+
+  validateTransaction(transaction: ProtocolTransaction<T>, network: INetwork): Promise<ValidateTransactionResult>;
 }

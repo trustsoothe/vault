@@ -1899,4 +1899,40 @@ export default <
       expect(isValid).toBeTruthy()
     });
   });
+
+  describe('getPublicKey', () => {
+    describe('Pocket Network', () => {
+      const examplePrivateKey = 'f0f18c7494262c805ddb2ce6dc2cc89970c22687872e8b514d133fafc260e43d49b7b82f1aec833f854da378d6658246475d3774bd323d70b098015c2b5ae6db'
+      const exampleAddress = '30fd308b3bf2126030aba7f0e342dcb8b4922a8b';
+
+        test('returns the public key of the account', async () => {
+          const {vaultTeller, session: ownerSession, passphrase} = await createVault();
+          const account = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
+            name: 'example-account',
+            protocol: pocketAsset.protocol,
+            skipEncryption: true,
+            privateKey: examplePrivateKey,
+          })
+
+          const publicKey = await vaultTeller.getPublicKey(ownerSession.id, exampleAddress)
+          expect(publicKey).toEqual(examplePrivateKey.slice(64))
+        })
+    })
+    describe('Ethereum', () => {
+        const examplePrivateKey = '0x8a27b2867fbc0eeede2e921d457ec9c64e1d26a961003e3322ca337fb2b5058e';
+        const exampleAddress = '0x1d9e7479f9B59a7887D090B82F0191A091a7013e';
+        test('returns the public key of the account', async () => {
+            const {vaultTeller, session: ownerSession, passphrase} = await createVault();
+            const account = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
+                name: 'example-account',
+                protocol: SupportedProtocols.Ethereum,
+                skipEncryption: true,
+                privateKey: examplePrivateKey,
+            });
+
+            const publicKey = await vaultTeller.getPublicKey(ownerSession.id, exampleAddress);
+            expect(publicKey).toEqual(account.publicKey);
+        });
+    });
+  });
 }

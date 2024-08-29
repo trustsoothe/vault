@@ -395,6 +395,17 @@ export class VaultTeller {
     return authorizedAccounts?.map((a) => a.asAccountReference()) || [];
   }
 
+  async getPublicKey(sessionId: string, address: string) {
+    const accounts = await this.listAccounts(sessionId);
+    const account = accounts.find((a) => a.address === address);
+
+    if (!account) {
+      throw new AccountNotFoundError();
+    }
+
+    return account.publicKey;
+  }
+
   async removeAccount(
     sessionId: string,
     vaultPassphrase: Passphrase,
