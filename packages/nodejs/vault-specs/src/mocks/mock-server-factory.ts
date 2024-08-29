@@ -7,6 +7,8 @@ import {
   queryFeeHandlerFactory as pocketQueryFeeHandlerFactory,
   queryFeeFailureHandlerFactory as pocketQueryFeeFailureHandlerFactory,
   sendTransactionHandlerFactory as pocketSendTransactionHandlerFactory,
+  queryNodeHandlerFactory as pocketQueryNodeHandlerFactory,
+  queryNodeFailureHandlerFactory as pocketQueryNodeFailureHandlerFactory,
 } from './pocket-network';
 
 import {
@@ -89,6 +91,27 @@ export class MockServerFactory  {
       default:
         throw new ProtocolNotSupported(this._network.protocol);
     }
+  }
+
+  addSuccessfulQueryNodeHandler() {
+    switch (this._network.protocol) {
+      case SupportedProtocols.Pocket:
+        this._handlers.push(...pocketQueryNodeHandlerFactory(this._network));
+        return this;
+      case SupportedProtocols.Ethereum:
+      default:
+        throw new ProtocolNotSupported(this._network.protocol);
+    }
+  }
+
+  addFailedQueryNodeHandler() {
+      switch (this._network.protocol) {
+        case SupportedProtocols.Pocket:
+          this._handlers.push(...pocketQueryNodeFailureHandlerFactory(this._network));
+          return this;
+        case SupportedProtocols.Ethereum:
+        default:
+      }
   }
 
   buildServer() {

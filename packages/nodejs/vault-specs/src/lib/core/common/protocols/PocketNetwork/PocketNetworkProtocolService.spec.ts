@@ -6,8 +6,12 @@ import {
   IEncryptionService,
   INetwork,
   NetworkRequestError,
-  PocketNetworkProtocolService, SignPersonalDataRequest,
-  SupportedProtocols
+  PocketNetworkProtocolService,
+  SignPersonalDataRequest,
+  PocketNetworkTransactionTypes,
+  SupportedProtocols,
+  PocketNetworkTransactionValidationResults,
+  PocketNetworkProtocolTransaction, TransactionValidationResultType,
 } from "@poktscan/vault";
 
 // @ts-ignore
@@ -130,4 +134,73 @@ Expiration Time: 2024-08-14T16:25:38.796Z`,
       expect(expectedSignature).toEqual(signature);
     })
   })
+
+  describe('validateTransaction', () => {
+    describe(`${PocketNetworkTransactionTypes.NodeStake}`, () => {
+      const mockServer = new MockServerFactory(network);
+      const server = mockServer.addSuccessfulQueryNodeHandler().buildServer();
+
+      beforeAll(() => server.listen());
+
+      afterEach(() => server.resetHandlers());
+
+      afterAll(() => server.close());
+
+      test('throws if undefined is provided', () => {
+        // @ts-ignore
+        return expect(protocolService.validateTransaction(undefined, network)).rejects.toThrow(ArgumentError);
+      })
+
+      test('throws if null is provided', () => {
+        // @ts-ignore
+        return expect(protocolService.validateTransaction(null, network)).rejects.toThrow(ArgumentError);
+      })
+
+      test('throws if network is not provided', () => {
+        // @ts-ignore
+        return expect(protocolService.validateTransaction({} as any, null)).rejects.toThrow(ArgumentError);
+      })
+
+      test(`returns "${PocketNetworkTransactionValidationResults.InvalidSigner}"`, async () => {
+        const transaction: PocketNetworkProtocolTransaction = {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.NodeStake,
+            from: 'a931db71f2d88e479b259dad6ea02dae9f83b70c',
+          to: '',
+          nodePublicKey: 'af6c2cacd7070eda73ed7b142f88b5d9581b08210aaf609abe336ba36489c5b9',
+          amount: '100',
+          privateKey: accountImport.privateKey,
+        }
+
+        const validationResult =  await protocolService.validateTransaction(transaction, network);
+
+        expect(validationResult.results).toContainEqual({
+          type: TransactionValidationResultType.Error,
+          message: PocketNetworkTransactionValidationResults.InvalidSigner,
+          key: 'privateKey',
+        });
+      });
+
+      test(`returns "${PocketNetworkTransactionValidationResults.OutputAddressChanged}"`, async () => {
+        const transaction: PocketNetworkProtocolTransaction = {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.NodeStake,
+          from: accountImport.address,
+          to: '',
+          nodePublicKey: accountImport.publicKey,
+          amount: '100',
+          privateKey: accountImport.privateKey,
+          outputAddress: 'output-address',
+        }
+
+        const validationResult =  await protocolService.validateTransaction(transaction, network);
+
+        expect(validationResult.results).toContainEqual({
+          type: TransactionValidationResultType.Info,
+          message: PocketNetworkTransactionValidationResults.OutputAddressChanged,
+          key: 'outputAddress',
+        });
+      });
+    });
+  });
 })

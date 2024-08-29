@@ -1,12 +1,15 @@
 // @ts-ignore
-import { fromUint8Array } from "hex-lite";
+import {fromUint8Array} from "hex-lite";
 import {
   AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService,
-  SignPersonalDataRequest, SignTransactionResult,
+  SignPersonalDataRequest,
+  SignTransactionResult,
+  TransactionValidationResultType,
+  ValidateTransactionResult,
 } from "../IProtocolService";
 import {Account, AccountType} from "../../../vault";
 import {getPublicKeyAsync, signAsync, utils} from "@noble/ed25519";
@@ -32,7 +35,9 @@ import {
   CoinDenom,
   MsgProtoAppStake,
   MsgProtoAppTransfer,
-  MsgProtoAppUnstake, MsgProtoGovChangeParam, MsgProtoGovDAOTransfer,
+  MsgProtoAppUnstake,
+  MsgProtoGovChangeParam,
+  MsgProtoGovDAOTransfer,
   MsgProtoNodeStakeTx,
   MsgProtoNodeUnjail,
   MsgProtoNodeUnstake,
@@ -44,10 +49,12 @@ import {RawTxRequest} from "@pokt-foundation/pocketjs-types";
 import {ProtocolFee} from "../ProtocolFee";
 import {INetwork} from "../INetwork";
 import {NetworkStatus} from "../../values/NetworkStatus";
-import {IAsset} from "../IAsset";
-import {IProtocolTransactionResult} from "../ProtocolTransaction";
+import {IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
 import {PocketNetworkTransactionTypes} from "./PocketNetworkTransactionTypes";
-import {PocketNetworkProtocolTransaction} from "./PocketNetworkProtocolTransaction";
+import {
+  PocketNetworkProtocolTransaction,
+  PocketNetworkTransactionValidationResults
+} from "./PocketNetworkProtocolTransaction";
 import {derivePath, getMasterKeyFromSeed, getPublicKey} from "ed25519-hd-key";
 import {mnemonicToSeed, validateMnemonic} from "@scure/bip39";
 import {wordlist} from "@scure/bip39/wordlists/english";
@@ -289,7 +296,6 @@ export class PocketNetworkProtocolService
   async getBalance(
     account: AccountReference,
     network: INetwork,
-    asset?: IAsset
   ): Promise<number> {
     this.validateNetwork(network);
 
@@ -455,6 +461,88 @@ export class PocketNetworkProtocolService
     return /^[0-9A-Fa-f]{128}$/.test(privateKey);
   }
 
+  async validateTransaction(
+      transaction: ProtocolTransaction<SupportedProtocols.Pocket>,
+      network: INetwork,
+  ) {
+    if (!transaction) {
+        throw new ArgumentError("transaction params are required");
+    }
+
+    if (!network) {
+        throw new ArgumentError("network is required");
+    }
+
+    if (transaction.skipValidation) {
+        return new ValidateTransactionResult();
+    }
+
+    switch (transaction.transactionType) {
+      case PocketNetworkTransactionTypes.NodeStake:
+        return this.validateNodeStakeTransaction(transaction, network);
+      default:
+        return new ValidateTransactionResult();
+    }
+  }
+
+  private async queryNode(address: string, network: INetwork) {
+    let response;
+
+    const url = urlJoin(network.rpcUrl, "v1/query/node");
+
+    try {
+      response = await globalThis.fetch(url, {
+          method: "POST",
+          body: JSON.stringify({
+              address,
+          }),
+      });
+    } catch (e) {
+        throw new NetworkRequestError("Failed to query node");
+    }
+
+    if (!response.ok) {
+        throw new NetworkRequestError("Failed to query node");
+    }
+
+    return await response.json();
+  }
+
+  private async validateNodeStakeTransaction(
+      transaction: PocketNetworkProtocolTransaction,
+      network: INetwork
+  ) {
+    const node = await this.queryNode(transaction.from, network);
+    const expectedPublicKey = this.getPublicKeyFromPrivateKey(transaction.privateKey);
+    const expectedAddress = await this.getAddressFromPublicKey(expectedPublicKey);
+
+
+
+    if (![transaction.from, transaction.outputAddress || ''].includes(expectedAddress)) {
+      return new ValidateTransactionResult([
+        {
+          type: TransactionValidationResultType.Error,
+          message: PocketNetworkTransactionValidationResults.InvalidSigner,
+          key: "privateKey",
+        },
+      ]);
+    }
+
+
+    if (transaction.outputAddress && transaction.outputAddress !== node.output_address) {
+        return new ValidateTransactionResult([
+            {
+              type: TransactionValidationResultType.Info,
+              message: PocketNetworkTransactionValidationResults.OutputAddressChanged,
+              key: "outputAddress",
+            },
+        ]);
+    }
+
+
+    return new ValidateTransactionResult();
+  }
+
   private async createAccountFromKeyPair(
     options: CrateAccountFromKeyPairOptions
   ): Promise<Account> {
@@ -580,18 +668,18 @@ export class PocketNetworkProtocolService
             );
         case PocketNetworkTransactionTypes.AppStake:
           return new MsgProtoAppStake(
-              transactionParams.appPubKey || '',
+              transactionParams.appPublicKey || '',
               transactionParams.chains || [],
               this.getAmountInUpokt(transactionParams.amount),
           );
         case PocketNetworkTransactionTypes.AppTransfer:
-          return new MsgProtoAppTransfer(transactionParams.appPubKey || '');
+          return new MsgProtoAppTransfer(transactionParams.appPublicKey || '');
         case PocketNetworkTransactionTypes.AppUnstake:
           return new MsgProtoAppUnstake(transactionParams.appAddress || '');
         case PocketNetworkTransactionTypes.NodeStake:
           return new MsgProtoNodeStakeTx(
-              publicKey,
-              transactionParams.outputAddress || await this.getAddressFromPublicKey(publicKey),
+              transactionParams.nodePublicKey || publicKey,
+              transactionParams.outputAddress || await this.getAddressFromPublicKey(transactionParams.nodePublicKey || publicKey),
               transactionParams.chains || [],
               this.getAmountInUpokt(transactionParams.amount),
               new URL(transactionParams.serviceURL || ''),

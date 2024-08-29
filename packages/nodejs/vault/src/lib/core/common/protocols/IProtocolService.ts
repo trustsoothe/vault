@@ -6,6 +6,8 @@ import {IAsset} from "./IAsset";
 import {NetworkStatus} from "../values/NetworkStatus";
 import {IAbstractProtocolFeeRequestOptions} from "./ProtocolFeeRequestOptions";
 import {IProtocolTransactionResult, ProtocolTransaction,} from "./ProtocolTransaction";
+import {PocketNetworkProtocolTransaction} from "./PocketNetwork";
+import {EthereumNetworkProtocolTransaction} from "./EthereumNetwork/EthereumNetworkProtocolTransaction";
 
 export interface CreateAccountOptions {
   name?: string;
@@ -47,6 +49,28 @@ export interface SignTransactionResult {
 
 export interface PublicKeyResult {
     publicKey: string;
+}
+
+export enum TransactionValidationResultType {
+    Error = 'error',
+    Warning = 'warning',
+    Info = 'info',
+}
+
+export class ValidateTransactionResult {
+    constructor(
+        public readonly results: ReadonlyArray<TransactionValidationResult> = [],
+    ) {}
+
+    get hasErrors(): boolean {
+        return this.results.some((r) => r.type === TransactionValidationResultType.Error);
+    }
+}
+
+export interface TransactionValidationResult {
+  type: TransactionValidationResultType;
+  message: string;
+  key?: string;
 }
 
 export interface IProtocolService<T extends SupportedProtocols> {
@@ -101,4 +125,6 @@ export interface IProtocolService<T extends SupportedProtocols> {
   createHDWalletAccount(options: AddHDWalletAccountOptions): Promise<Account>;
 
   signPersonalData(request: SignPersonalDataRequest): Promise<string>;
+
+  validateTransaction(transaction: ProtocolTransaction<T>, network: INetwork): Promise<ValidateTransactionResult>;
 }

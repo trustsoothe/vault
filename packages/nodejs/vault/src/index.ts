@@ -23,6 +23,9 @@ import type { INetworkOptions } from "./lib/core/network/INetworkOptions";
 import type { VaultOptions } from "./lib/VaultTeller";
 import type {SignPersonalDataRequest, SignTypedDataRequest} from "./lib/core/common/protocols";
 import type { AddHDWalletAccountExternalRequest } from "./lib/VaultTeller";
+import {
+  PocketNetworkProtocolTransaction
+} from "./lib/core/common/protocols/PocketNetwork/PocketNetworkProtocolTransaction";
 
 export type {
   IEncryptionService,
@@ -36,4 +39,5 @@ export type {
   SignTypedDataRequest,
   SignPersonalDataRequest,
   AddHDWalletAccountExternalRequest,
+  PocketNetworkProtocolTransaction,
 };

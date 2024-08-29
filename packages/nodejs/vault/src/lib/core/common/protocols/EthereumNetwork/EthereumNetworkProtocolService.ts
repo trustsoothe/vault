@@ -4,7 +4,7 @@ import {
   CreateAccountOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService,
-  SignPersonalDataRequest,
+  SignPersonalDataRequest, ValidateTransactionResult,
 } from "../IProtocolService";
 import {Account, AccountType} from "../../../vault";
 import {AccountReference, SupportedProtocols} from "../../values";
@@ -493,6 +493,29 @@ export class EthereumNetworkProtocolService
     const { account } = this.createWeb3Account(request.privateKey);
     const result = account.sign(request.challenge);
     return result.signature;
+  }
+
+  async validateTransaction(
+    transaction: EthereumNetworkProtocolTransaction,
+    network: INetwork,
+  ): Promise<ValidateTransactionResult> {
+    if (!transaction) {
+        throw new ArgumentError("transaction params are required");
+    }
+
+    if (transaction.skipValidation) {
+        return new ValidateTransactionResult();
+    }
+
+    switch (transaction.transactionType) {
+        case EthereumNetworkTransactionTypes.Transfer:
+        case EthereumNetworkTransactionTypes.Raw:
+            return new ValidateTransactionResult();
+        default:
+            throw new ProtocolTransactionError(
+            "Unsupported transaction type. Not implemented."
+            );
+    }
   }
 
   private async deriveHDAccountAtIndex(
