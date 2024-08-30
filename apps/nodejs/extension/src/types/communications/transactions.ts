@@ -25,6 +25,8 @@ import {
   ANSWER_UNSTAKE_APP_RESPONSE,
   ANSWER_UNSTAKE_NODE_REQUEST,
   ANSWER_UNSTAKE_NODE_RESPONSE,
+  ANSWER_VALIDATE_POKT_TX_REQUEST,
+  ANSWER_VALIDATE_POKT_TX_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   DAO_TRANSFER_REQUEST,
@@ -69,7 +71,7 @@ import {
   UnauthorizedErrorSessionInvalid,
   UnknownError,
 } from "../../errors/communication";
-import type { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols, ValidateTransactionResult } from "@poktscan/vault";
 
 export type ExternalBasePoktTxErrors =
   | BaseErrors
@@ -337,3 +339,29 @@ export type AnswerPoktTxRequests =
   | AnswerStakeNodeReq
   | AnswerUnstakeAppReq
   | AnswerTransferAppReq;
+
+export type PoktTxRequest =
+  | AppStakeNodeReq
+  | AppUnstakeNodeReq
+  | AppUnjailNodeReq
+  | AppStakeAppReq
+  | AppTransferAppReq
+  | AppUnstakeAppReq
+  | AppChangeParamReq
+  | AppDaoTransferReq;
+
+export type AnswerValidatePoktTxReq = {
+  type: typeof ANSWER_VALIDATE_POKT_TX_REQUEST;
+  data: {
+    request: PoktTxRequest;
+  };
+};
+
+export type AnswerValidatePoktTxRes = {
+  type: typeof ANSWER_VALIDATE_POKT_TX_RESPONSE;
+  data: {
+    answered: boolean;
+    result: ValidateTransactionResult;
+  };
+  error: null | typeof UnknownError;
+};

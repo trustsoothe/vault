@@ -76,6 +76,7 @@ import {
   ANSWER_UNJAIL_NODE_REQUEST,
   ANSWER_UNSTAKE_APP_REQUEST,
   ANSWER_UNSTAKE_NODE_REQUEST,
+  ANSWER_VALIDATE_POKT_TX_REQUEST,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
   CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
   EXPORT_VAULT_REQUEST,
@@ -122,6 +123,8 @@ import {
   AnswerUnstakeAppRes,
   AnswerUnstakeNodeReq,
   AnswerUnstakeNodeRes,
+  AnswerValidatePoktTxReq,
+  AnswerValidatePoktTxRes,
 } from "../../types/communications/transactions";
 
 export default class AppToBackground {
@@ -471,6 +474,17 @@ export default class AppToBackground {
   ): Promise<AnswerDaoTransferRes> {
     const message: AnswerDaoTransferReq = {
       type: ANSWER_DAO_TRANSFER_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async validatePoktTx(
+    data: AnswerValidatePoktTxReq["data"]
+  ): Promise<AnswerValidatePoktTxRes> {
+    const message: AnswerValidatePoktTxReq = {
+      type: ANSWER_VALIDATE_POKT_TX_REQUEST,
       data,
     };
 

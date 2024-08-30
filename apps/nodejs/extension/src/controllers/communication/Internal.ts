@@ -75,10 +75,12 @@ import {
   Passphrase,
   PermissionResources,
   PermissionsBuilder,
+  PocketNetworkProtocolService,
   PrivateKeyRestoreErrorName,
   ProtocolServiceFactory,
   RecoveryPhraseExistErrorName,
   SupportedProtocols,
+  ValidateTransactionResult,
   VaultRestoreErrorName,
 } from "@poktscan/vault";
 import { WebEncryptionService } from "@poktscan/vault-encryption-web";
@@ -112,6 +114,8 @@ import {
   ANSWER_UNSTAKE_APP_RESPONSE,
   ANSWER_UNSTAKE_NODE_REQUEST,
   ANSWER_UNSTAKE_NODE_RESPONSE,
+  ANSWER_VALIDATE_POKT_TX_REQUEST,
+  ANSWER_VALIDATE_POKT_TX_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
@@ -196,6 +200,7 @@ import {
 import {
   addNewAccount,
   createNewAccountFromHdSeed,
+  getPoktTxFromRequest,
   getPrivateKeyOfAccount,
   importAccount,
   removeAccount,
@@ -230,9 +235,10 @@ import {
   updateRecoveryPhrase,
 } from "../../redux/slices/vault/phrases";
 import {
-  AnswerBasePoktTxReq,
   AnswerBasePoktTxResponseData,
   AnswerPoktTxRequests,
+  AnswerValidatePoktTxReq,
+  AnswerValidatePoktTxRes,
   InternalChangeParamRes,
   InternalDaoTransferRes,
   InternalResponse,
@@ -286,6 +292,7 @@ const mapMessageType: Record<InternalRequests["type"], true> = {
   [ANSWER_UNSTAKE_APP_REQUEST]: true,
   [ANSWER_CHANGE_PARAM_REQUEST]: true,
   [ANSWER_DAO_TRANSFER_REQUEST]: true,
+  [ANSWER_VALIDATE_POKT_TX_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -473,6 +480,10 @@ class InternalCommunicationController implements ICommunicationController {
         DAO_TRANSFER_REQUEST,
         DAO_TRANSFER_RESPONSE
       );
+    }
+
+    if (message?.type === ANSWER_VALIDATE_POKT_TX_REQUEST) {
+      return this._validatePoktTx(message);
     }
   }
 
@@ -1475,6 +1486,57 @@ class InternalCommunicationController implements ICommunicationController {
         data: null,
         error: UnknownError,
       } as Res;
+    }
+  }
+
+  private async _validatePoktTx(
+    message: AnswerValidatePoktTxReq
+  ): Promise<AnswerValidatePoktTxRes> {
+    try {
+      const result = await getPoktTxFromRequest({
+        state: store.getState(),
+        request: message.data.request,
+        privateKey: "",
+        fee: 0.01,
+      });
+
+      const protocolService = new PocketNetworkProtocolService(
+        new WebEncryptionService()
+      );
+
+      const validationResult = await protocolService.validateTransaction(
+        result.transaction,
+        result.network
+      );
+
+      return {
+        type: ANSWER_VALIDATE_POKT_TX_RESPONSE,
+        data: {
+          answered: true,
+          result: validationResult,
+        },
+        error: null,
+      };
+    } catch (e) {
+      console.log(e);
+      if (e?.message?.startsWith("validator not found for")) {
+        return {
+          type: ANSWER_VALIDATE_POKT_TX_RESPONSE,
+          data: {
+            answered: true,
+            result: new ValidateTransactionResult(),
+          },
+          error: null,
+        };
+      }
+      return {
+        type: ANSWER_VALIDATE_POKT_TX_RESPONSE,
+        data: {
+          answered: true,
+          result: null,
+        },
+        error: UnknownError,
+      };
     }
   }
 

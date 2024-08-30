@@ -1289,9 +1289,13 @@
     },
     "external:../../../packages/nodejs/vault/dist/index.js": {
       "globals": {
+        "Buffer": true,
+        "URL": true,
         "WebAssembly.Instance": true,
         "WebAssembly.Module": true,
         "XMLHttpRequest": true,
+        "atob": true,
+        "btoa": true,
         "crypto": true,
         "fetch": true
       },

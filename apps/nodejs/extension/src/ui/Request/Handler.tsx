@@ -168,6 +168,17 @@ export default function Handler() {
       address = currentRequest.transferData.from;
       break;
     }
+    case STAKE_NODE_REQUEST:
+    case UNSTAKE_NODE_REQUEST:
+    case UNJAIL_NODE_REQUEST:
+    case STAKE_APP_REQUEST:
+    case TRANSFER_APP_REQUEST:
+    case UNSTAKE_APP_REQUEST:
+    case CHANGE_PARAM_REQUEST:
+    case DAO_TRANSFER_REQUEST: {
+      address = currentRequest.transactionData.address;
+      break;
+    }
     case PERSONAL_SIGN_REQUEST:
     case SIGN_TYPED_DATA_REQUEST: {
       address = currentRequest.address;

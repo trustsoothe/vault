@@ -1,7 +1,7 @@
 import type { IProtocolTransactionResult } from "@poktscan/vault/dist/lib/core/common/protocols/ProtocolTransaction";
-import type { RootState } from "../../store";
+import { RootState } from "../../store";
 import type { VaultSliceBuilder } from "../../../types";
-import {
+import TransactionDatasource, {
   BaseTransaction,
   PoktTransaction,
   SwapTo,
@@ -36,8 +36,10 @@ import {
   removeImportedAccountAddress,
 } from "../app";
 import { getAddressFromPrivateKey } from "../../../utils/networkOperations";
-import TransactionDatasource from "../../../controllers/datasource/Transaction";
-import { AnswerPoktTxRequests } from "../../../types/communications/transactions";
+import {
+  AnswerPoktTxRequests,
+  PoktTxRequest,
+} from "../../../types/communications/transactions";
 import {
   ANSWER_CHANGE_PARAM_REQUEST,
   ANSWER_DAO_TRANSFER_REQUEST,
@@ -47,6 +49,14 @@ import {
   ANSWER_UNJAIL_NODE_REQUEST,
   ANSWER_UNSTAKE_APP_REQUEST,
   ANSWER_UNSTAKE_NODE_REQUEST,
+  CHANGE_PARAM_REQUEST,
+  DAO_TRANSFER_REQUEST,
+  STAKE_APP_REQUEST,
+  STAKE_NODE_REQUEST,
+  TRANSFER_APP_REQUEST,
+  UNJAIL_NODE_REQUEST,
+  UNSTAKE_APP_REQUEST,
+  UNSTAKE_NODE_REQUEST,
 } from "../../../constants/communication";
 
 const MAX_PASSWORDS_TRIES = 4;
@@ -399,6 +409,159 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
     return result.transactionHash;
   }
 );
+
+export const getPoktTxFromRequest = async ({
+  state,
+  request,
+  privateKey,
+  fee,
+}: {
+  state: RootState;
+  request: PoktTxRequest;
+  privateKey: string;
+  fee: number;
+}) => {
+  let transaction: Partial<PocketNetworkProtocolTransaction>;
+
+  const {
+    vault: { vaultSession, accounts },
+    app: { customRpcs, networks },
+  } = state;
+
+  const account = accounts.find(
+    (account) =>
+      account.address === request.transactionData.address &&
+      account.protocol === SupportedProtocols.Pocket
+  );
+
+  switch (request.type) {
+    case STAKE_NODE_REQUEST: {
+      transaction = {
+        protocol: SupportedProtocols.Pocket,
+        transactionType: PocketNetworkTransactionTypes.NodeStake,
+        from: request.transactionData.address,
+        nodePublicKey:
+          request.transactionData.operatorPublicKey ||
+          (await ExtensionVaultInstance.getPublicKey(
+            vaultSession.id,
+            account.address
+          )),
+        outputAddress: request.transactionData.outputAddress || account.address,
+        chains: request.transactionData.chains,
+        amount: (Number(request.transactionData.amount) / 1e6).toString(),
+        serviceURL: request.transactionData.serviceURL,
+        rewardDelegators: request.transactionData.rewardDelegators,
+        memo: request.transactionData.memo,
+      };
+      break;
+    }
+    case UNSTAKE_NODE_REQUEST: {
+      transaction = {
+        protocol: SupportedProtocols.Pocket,
+        transactionType: PocketNetworkTransactionTypes.NodeUnstake,
+        from:
+          request.transactionData.nodeAddress ||
+          request.transactionData.address,
+        outputAddress: request.transactionData.address,
+      };
+      break;
+    }
+    case UNJAIL_NODE_REQUEST: {
+      transaction = {
+        protocol: SupportedProtocols.Pocket,
+        transactionType: PocketNetworkTransactionTypes.NodeUnjail,
+        from:
+          request.transactionData.nodeAddress ||
+          request.transactionData.address,
+        outputAddress: request.transactionData.address,
+      };
+      break;
+    }
+    case STAKE_APP_REQUEST: {
+      transaction = {
+        protocol: SupportedProtocols.Pocket,
+        transactionType: PocketNetworkTransactionTypes.AppStake,
+        appPublicKey: await ExtensionVaultInstance.getPublicKey(
+          vaultSession.id,
+          account.address
+        ),
+        chains: request.transactionData.chains,
+        amount: (Number(request.transactionData.amount) / 1e6).toString(),
+      };
+      break;
+    }
+    case TRANSFER_APP_REQUEST: {
+      transaction = {
+        protocol: SupportedProtocols.Pocket,
+        transactionType: PocketNetworkTransactionTypes.AppTransfer,
+        appPublicKey: request.transactionData.newAppPublicKey,
+      };
+      break;
+    }
+    case UNSTAKE_APP_REQUEST: {
+      transaction = {
+        protocol: SupportedProtocols.Pocket,
+        transactionType: PocketNetworkTransactionTypes.AppUnstake,
+        appAddress: request.transactionData.address,
+      };
+      break;
+    }
+    case CHANGE_PARAM_REQUEST: {
+      transaction = {
+        protocol: SupportedProtocols.Pocket,
+        transactionType: PocketNetworkTransactionTypes.GovChangeParam,
+        paramKey: request.transactionData.paramKey,
+        paramValue: request.transactionData.paramValue,
+        overrideGovParamsWhitelistValidation:
+          request.transactionData.overrideGovParamsWhitelistValidation,
+      };
+      break;
+    }
+    case DAO_TRANSFER_REQUEST: {
+      transaction = {
+        protocol: SupportedProtocols.Pocket,
+        transactionType: PocketNetworkTransactionTypes.GovDAOTransfer,
+        from: request.transactionData.address,
+        to: request.transactionData.to,
+        amount: (Number(request.transactionData.amount) / 1e6).toString(),
+        memo: request.transactionData.memo,
+        daoAction: request.transactionData.daoAction,
+      };
+      break;
+    }
+    default: {
+      throw new Error("Transaction type not supported");
+    }
+  }
+
+  transaction.privateKey = privateKey;
+  transaction.fee = fee;
+  transaction.memo = request.transactionData.memo;
+
+  const customRpc = customRpcs.find(
+    (customRpc) =>
+      customRpc.protocol === SupportedProtocols.Pocket &&
+      customRpc.chainId === request.transactionData.chainId &&
+      customRpc.isPreferred
+  );
+
+  const defaultNetwork = networks.find(
+    (item) =>
+      item.protocol === SupportedProtocols.Pocket &&
+      item.chainId === request.transactionData.chainId
+  );
+
+  const rpcUrl = customRpc?.url || defaultNetwork.rpcUrl;
+
+  return {
+    transaction: transaction as PocketNetworkProtocolTransaction,
+    network: {
+      protocol: SupportedProtocols.Pocket,
+      chainID: request.transactionData.chainId,
+      rpcUrl,
+    },
+  };
+};
 
 export const sendPoktTx = createAsyncThunk(
   "vault/sendPoktTx",

@@ -110,6 +110,7 @@ import {
   AnswerUnjailNodeReq,
   AnswerUnstakeAppReq,
   AnswerUnstakeNodeReq,
+  AnswerValidatePoktTxReq,
   AppChangeParamReq,
   AppDaoTransferReq,
   AppStakeAppReq,
@@ -253,7 +254,8 @@ export type InternalRequests =
   | AnswerTransferAppReq
   | AnswerUnstakeAppReq
   | AnswerChangeParamReq
-  | AnswerDaoTransferReq;
+  | AnswerDaoTransferReq
+  | AnswerValidatePoktTxReq;
 /**Responses that the Proxy can receive from Internal controller */
 export type InternalResponses =
   | InternalConnectionRes
