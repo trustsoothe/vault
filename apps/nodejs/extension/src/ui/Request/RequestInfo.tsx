@@ -64,21 +64,23 @@ export default function RequestInfo({
 }: RequestInfoProps) {
   return (
     <Stack
-      paddingTop={2}
-      paddingX={2.4}
-      paddingBottom={2.4}
+      paddingTop={title || description ? 2 : 1.4}
+      paddingX={title || description ? 2.4 : 1.6}
+      paddingBottom={title || description ? 2.4 : 1.4}
       bgcolor={themeColors.bgLightGray}
       borderBottom={`1px solid ${themeColors.borderLightGray}`}
     >
-      <Typography variant={"subtitle2"}>{title}</Typography>
-      <Typography
-        fontSize={11}
-        marginTop={0.3}
-        marginBottom={1.2}
-        lineHeight={"16px"}
-      >
-        {description}
-      </Typography>
+      {title && <Typography variant={"subtitle2"}>{title}</Typography>}
+      {description && (
+        <Typography
+          fontSize={11}
+          marginTop={0.3}
+          marginBottom={1.2}
+          lineHeight={"16px"}
+        >
+          {description}
+        </Typography>
+      )}
       <RequestOrigin origin={origin} />
     </Stack>
   );

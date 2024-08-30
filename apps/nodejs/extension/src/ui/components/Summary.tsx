@@ -17,7 +17,7 @@ interface DividerItem {
 
 export type SummaryRowItem = RowItem | DividerItem;
 
-interface SummaryProps {
+export interface SummaryProps {
   rows: Array<SummaryRowItem>;
   containerProps?: StackProps;
 }

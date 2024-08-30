@@ -1,6 +1,10 @@
 import { z } from "zod";
 import browser from "webextension-polyfill";
-import { SupportedProtocols } from "@poktscan/vault";
+import {
+  DAOAction,
+  PocketNetworkTransactionTypes,
+  SupportedProtocols,
+} from "@poktscan/vault";
 import { isValidAddress } from "../../utils/networkOperations";
 
 export const BaseTransaction = z.object({
@@ -36,13 +40,39 @@ export const PoktTransaction = BaseTransaction.extend({
   protocol: z.literal(SupportedProtocols.Pocket),
   fee: z.number(),
   memo: z.string().optional(),
+  to: z.string().optional(),
+  type: z
+    .nativeEnum(PocketNetworkTransactionTypes)
+    .default(PocketNetworkTransactionTypes.Send),
+  transactionParams: z
+    .object({
+      // todo: add validation for this
+      nodePublicKey: z.string().optional(),
+      outputAddress: z.string().optional(),
+      memo: z.string().optional(),
+      appPublicKey: z.string().optional(),
+      chains: z.array(z.string()).optional(),
+      appAddress: z.string().optional(),
+      serviceURL: z.string().optional(),
+      rewardDelegators: z.record(z.number()).optional(),
+      daoAction: z.nativeEnum(DAOAction).optional(),
+      paramKey: z.string().optional(),
+      paramValue: z.string().optional(),
+      overrideGovParamsWhitelistValidation: z
+        .boolean()
+        .optional()
+        .default(false),
+    })
+    .optional(),
 })
   .refine(
     (value) => isValidAddress(value.from, value.protocol),
     "invalid from address"
   )
   .refine(
-    (value) => isValidAddress(value.to, value.protocol),
+    (value) =>
+      (!value.to && value.type !== PocketNetworkTransactionTypes.Send) ||
+      isValidAddress(value.to, value.protocol),
     "invalid to address"
   );
 

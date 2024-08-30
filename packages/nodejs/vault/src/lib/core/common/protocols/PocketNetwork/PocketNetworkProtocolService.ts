@@ -100,7 +100,7 @@ export class PocketNetworkProtocolService
           hdwAccountIndex: 0,
           hdwIndex: 0,
           concatPublicKey: false,
-      });
+        });
 
     const hdChildAccount = await this.deriveHDAccountAtIndex(hdSeedAccount, 0);
 
@@ -559,8 +559,8 @@ export class PocketNetworkProtocolService
       seedId: options.seedId,
       protocol: SupportedProtocols.Pocket,
       privateKey: options.concatPublicKey
-          ? `${options.key.toString("hex")}${publicKey}`
-          : options.key.toString("hex"),
+        ? `${options.key.toString("hex")}${publicKey}`
+        : options.key.toString("hex"),
       secure: false,
     });
   }
@@ -596,7 +596,7 @@ export class PocketNetworkProtocolService
     return this.createAccountFromKeyPair({
       key: derivedKeys.key,
       name: name ? name : `${seedAccount.name} ${index + 1}`,
-      seedId: '',
+      seedId: "",
       accountType: AccountType.HDChild,
       hdwAccountIndex: 0,
       hdwIndex: index,
@@ -631,7 +631,7 @@ export class PocketNetworkProtocolService
     return privateKey.slice(64, privateKey.length);
   }
 
-  private async getAddressFromPublicKey(publicKey: string): Promise<string> {
+  public async getAddressFromPublicKey(publicKey: string): Promise<string> {
     // @ts-ignore
     const hash = await globalThis.crypto.subtle.digest(
       {

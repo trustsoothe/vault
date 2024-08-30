@@ -49,10 +49,13 @@ export default function RequestHeader({
   );
 
   const selectedChain = selectedChainByProtocol[protocol];
-  const address = accountAddress || selectedAccountByProtocol[protocol];
+  const address = (
+    accountAddress || selectedAccountByProtocol[protocol]
+  ).toLowerCase();
 
   const selectedAccount = accounts.find(
-    (account) => account.address === address && account.protocol === protocol
+    (account) =>
+      account.address.toLowerCase() === address && account.protocol === protocol
   );
   const selectedNetwork = networks.find(
     (network) =>

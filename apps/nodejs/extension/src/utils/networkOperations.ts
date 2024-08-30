@@ -16,6 +16,7 @@ import {
   EthereumNetworkFeeRequestOptions,
   IAsset,
   INetwork,
+  PocketNetworkProtocolService,
   ProtocolServiceFactory,
   SupportedProtocols,
 } from "@poktscan/vault";
@@ -138,9 +139,9 @@ export const getAccountBalance = async ({
   const acc = new AccountReference({
     id: "",
     name: "",
-    publicKey: "",
     address,
     protocol,
+    publicKey: "",
   });
 
   const asset: IAsset =
@@ -589,3 +590,9 @@ export const validateTypedDataPayload = (
     return propertyIsNotValid("TypedData (params[1])");
   }
 };
+
+export function getAddressFromPublicKey(publicKey: string): Promise<string> {
+  return new PocketNetworkProtocolService(
+    new WebEncryptionService()
+  ).getAddressFromPublicKey(publicKey);
+}

@@ -1,8 +1,9 @@
 import type { IProtocolTransactionResult } from "@poktscan/vault/dist/lib/core/common/protocols/ProtocolTransaction";
 import type { RootState } from "../../store";
 import type { VaultSliceBuilder } from "../../../types";
-import type {
+import {
   BaseTransaction,
+  PoktTransaction,
   SwapTo,
   Transaction,
 } from "../../../controllers/datasource/Transaction";
@@ -13,7 +14,11 @@ import {
   AccountType,
   AccountUpdateOptions,
   AddHDWalletAccountExternalRequest,
+  INetwork,
   Passphrase,
+  PocketNetworkProtocolService,
+  PocketNetworkProtocolTransaction,
+  PocketNetworkTransactionTypes,
   PrivateKeyRestoreErrorName,
   SerializedAccountReference,
   SerializedSession,
@@ -22,6 +27,7 @@ import {
   TransferOptions,
   VaultRestoreErrorName,
 } from "@poktscan/vault";
+import { WebEncryptionService } from "@poktscan/vault-encryption-web";
 import { getVaultPassword, VaultSlice } from "./index";
 import { getVault } from "../../../utils";
 import {
@@ -31,6 +37,17 @@ import {
 } from "../app";
 import { getAddressFromPrivateKey } from "../../../utils/networkOperations";
 import TransactionDatasource from "../../../controllers/datasource/Transaction";
+import { AnswerPoktTxRequests } from "../../../types/communications/transactions";
+import {
+  ANSWER_CHANGE_PARAM_REQUEST,
+  ANSWER_DAO_TRANSFER_REQUEST,
+  ANSWER_STAKE_APP_REQUEST,
+  ANSWER_STAKE_NODE_REQUEST,
+  ANSWER_TRANSFER_APP_REQUEST,
+  ANSWER_UNJAIL_NODE_REQUEST,
+  ANSWER_UNSTAKE_APP_REQUEST,
+  ANSWER_UNSTAKE_NODE_REQUEST,
+} from "../../../constants/communication";
 
 const MAX_PASSWORDS_TRIES = 4;
 export const VAULT_PASSWORD_ID = "vault";
@@ -270,7 +287,8 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
       (customRpc) =>
         customRpc.protocol === protocol &&
         customRpc.chainId === chainID &&
-        customRpc.isPreferred
+        customRpc.isPreferred &&
+        state.app.errorsPreferredNetwork
     );
 
     const defaultNetwork = state.app.networks.find(
@@ -298,7 +316,7 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
 
     if (
       !state.app.requirePasswordForSensitiveOpts &&
-      !transactionArg.from.passphrase
+      !transferOptions.from.passphrase
     ) {
       set(transactionArg, "from.passphrase", await getVaultPassword(sessionId));
     }
@@ -377,6 +395,208 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
     await TransactionDatasource.save(tx);
 
     context.dispatch(addTransaction(tx));
+
+    return result.transactionHash;
+  }
+);
+
+export const sendPoktTx = createAsyncThunk(
+  "vault/sendPoktTx",
+  async (request: AnswerPoktTxRequests, context) => {
+    const {
+      vault: { vaultSession, accounts },
+      app: { requirePasswordForSensitiveOpts, networks, customRpcs },
+    } = context.getState() as RootState;
+
+    const account = accounts.find(
+      (account) =>
+        account.address === request.data.transactionData.address &&
+        account.protocol === SupportedProtocols.Pocket
+    );
+
+    let transaction: Partial<PocketNetworkProtocolTransaction>;
+
+    const {
+      data: { fee, vaultPassword: passwordFromArg },
+    } = request;
+
+    switch (request.type) {
+      case ANSWER_STAKE_NODE_REQUEST: {
+        transaction = {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.NodeStake,
+          from: request.data.transactionData.address,
+          nodePublicKey:
+            request.data.transactionData.operatorPublicKey ||
+            (await ExtensionVaultInstance.getPublicKey(
+              vaultSession.id,
+              account.address
+            )),
+          outputAddress:
+            request.data.transactionData.outputAddress || account.address,
+          chains: request.data.transactionData.chains,
+          amount: (
+            Number(request.data.transactionData.amount) / 1e6
+          ).toString(),
+          serviceURL: request.data.transactionData.serviceURL,
+          rewardDelegators: request.data.transactionData.rewardDelegators,
+          memo: request.data.transactionData.memo,
+        };
+        break;
+      }
+      case ANSWER_UNSTAKE_NODE_REQUEST: {
+        transaction = {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.NodeUnstake,
+          from:
+            request.data.transactionData.nodeAddress ||
+            request.data.transactionData.address,
+          outputAddress: request.data.transactionData.address,
+        };
+        break;
+      }
+      case ANSWER_UNJAIL_NODE_REQUEST: {
+        transaction = {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.NodeUnjail,
+          from:
+            request.data.transactionData.nodeAddress ||
+            request.data.transactionData.address,
+          outputAddress: request.data.transactionData.address,
+        };
+        break;
+      }
+      case ANSWER_STAKE_APP_REQUEST: {
+        transaction = {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.AppStake,
+          appPublicKey: await ExtensionVaultInstance.getPublicKey(
+            vaultSession.id,
+            account.address
+          ),
+          chains: request.data.transactionData.chains,
+          amount: (
+            Number(request.data.transactionData.amount) / 1e6
+          ).toString(),
+        };
+        break;
+      }
+      case ANSWER_TRANSFER_APP_REQUEST: {
+        transaction = {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.AppTransfer,
+          appPublicKey: request.data.transactionData.newAppPublicKey,
+        };
+        break;
+      }
+      case ANSWER_UNSTAKE_APP_REQUEST: {
+        transaction = {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.AppUnstake,
+          appAddress: request.data.transactionData.address,
+        };
+        break;
+      }
+      case ANSWER_CHANGE_PARAM_REQUEST: {
+        transaction = {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.GovChangeParam,
+          paramKey: request.data.transactionData.paramKey,
+          paramValue: request.data.transactionData.paramValue,
+          overrideGovParamsWhitelistValidation:
+            request.data.transactionData.overrideGovParamsWhitelistValidation,
+        };
+        break;
+      }
+      case ANSWER_DAO_TRANSFER_REQUEST: {
+        transaction = {
+          protocol: SupportedProtocols.Pocket,
+          transactionType: PocketNetworkTransactionTypes.GovDAOTransfer,
+          from: request.data.transactionData.address,
+          to: request.data.transactionData.to,
+          amount: (
+            Number(request.data.transactionData.amount) / 1e6
+          ).toString(),
+          memo: request.data.transactionData.memo,
+          daoAction: request.data.transactionData.daoAction,
+        };
+        break;
+      }
+      default: {
+        throw new Error("Transaction type not supported");
+      }
+    }
+
+    const vaultPassword =
+      passwordFromArg || requirePasswordForSensitiveOpts
+        ? passwordFromArg
+        : await getVaultPassword(vaultSession.id);
+
+    transaction.privateKey = await context
+      .dispatch(
+        getPrivateKeyOfAccount({
+          account,
+          vaultPassword,
+        })
+      )
+      .unwrap();
+    transaction.fee = fee;
+    transaction.memo = request.data.transactionData.memo;
+
+    const customRpc = customRpcs.find(
+      (customRpc) =>
+        customRpc.protocol === SupportedProtocols.Pocket &&
+        customRpc.chainId === request.data.transactionData.chainId &&
+        customRpc.isPreferred
+    );
+
+    const defaultNetwork = networks.find(
+      (item) =>
+        item.protocol === SupportedProtocols.Pocket &&
+        item.chainId === request.data.transactionData.chainId
+    );
+
+    const rpcUrl = customRpc?.url || defaultNetwork.rpcUrl;
+
+    const protocolService = new PocketNetworkProtocolService(
+      new WebEncryptionService()
+    );
+
+    const network: INetwork = {
+      protocol: SupportedProtocols.Pocket,
+      chainID: request.data.transactionData.chainId,
+      rpcUrl,
+    };
+
+    console.log({ transaction });
+    // const validationResult = await protocolService.validateTransaction(
+    //   transaction as PocketNetworkProtocolTransaction,
+    //   network
+    // );
+
+    const result = await protocolService.sendTransaction(
+      network,
+      transaction as PocketNetworkProtocolTransaction
+    );
+
+    const transactionToSave: PoktTransaction = {
+      protocol: SupportedProtocols.Pocket,
+      chainId: request.data.transactionData.chainId,
+      from: request.data.transactionData.address,
+      hash: result.transactionHash,
+      requestedBy: request.data.request?.origin,
+      amount: transaction.amount ? Number(transaction.amount) : 0,
+      to: transaction.to || "",
+      rpcUrl,
+      timestamp: Date.now(),
+      transactionParams: transaction,
+      fee,
+      type: transaction.transactionType,
+    };
+
+    await TransactionDatasource.save(transactionToSave);
+
+    context.dispatch(addTransaction(transactionToSave));
 
     return result.transactionHash;
   }
@@ -478,6 +698,20 @@ const addSendTransferToBuilder = (builder: VaultSliceBuilder) => {
   });
 };
 
+const addSendPoktTxToBuilder = (builder: VaultSliceBuilder) => {
+  builder.addCase(sendPoktTx.fulfilled, (state, action) => {
+    if (!!action.meta.arg.data.vaultPassword) {
+      resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+    }
+  });
+
+  builder.addCase(sendPoktTx.rejected, (state, action) => {
+    if (!!action.meta.arg.data.vaultPassword) {
+      increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
+    }
+  });
+};
+
 export const addAccountThunksToBuilder = (builder: VaultSliceBuilder) => {
   addAddNewAccountToBuilder(builder);
   addImportAccountToBuilder(builder);
@@ -485,6 +719,7 @@ export const addAccountThunksToBuilder = (builder: VaultSliceBuilder) => {
   addRemoveAccountToBuilder(builder);
   addGetPrivateKeyToBuilder(builder);
   addSendTransferToBuilder(builder);
+  addSendPoktTxToBuilder(builder);
   addCreateNewAccountFromHdSeedToBuilder(builder);
 };
 

@@ -19,9 +19,14 @@ import { themeColors } from "../theme";
 interface RenderMessageProps {
   message: object | object[];
   marginLeft?: number;
+  capitalizeMessage?: boolean;
 }
 
-function RenderMessage({ message, marginLeft = 0.5 }: RenderMessageProps) {
+export function RenderMessage({
+  message,
+  marginLeft = 0.5,
+  capitalizeMessage = true,
+}: RenderMessageProps) {
   const children: React.ReactNode[] = [];
 
   for (const key in message) {
@@ -40,12 +45,17 @@ function RenderMessage({ message, marginLeft = 0.5 }: RenderMessageProps) {
             fontWeight={400}
             marginBottom={0.4}
           >
-            {capitalize(key)}:
+            {capitalizeMessage ? capitalize(key) : key}:
           </Typography>
-          <RenderMessage message={value} marginLeft={marginLeft + 0.5} />
+          <RenderMessage
+            message={value}
+            marginLeft={marginLeft + 0.5}
+            capitalizeMessage={capitalizeMessage}
+          />
         </Stack>
       );
     } else {
+      const isAddress = isValidAddress(value, SupportedProtocols.Ethereum);
       children.push(
         <Stack
           direction={"row"}
@@ -54,11 +64,17 @@ function RenderMessage({ message, marginLeft = 0.5 }: RenderMessageProps) {
           spacing={0.7}
           marginBottom={0.3}
         >
-          <Typography fontSize={12}>{capitalize(key)}:</Typography>
-          {isValidAddress(value, SupportedProtocols.Ethereum) ? (
+          <Typography
+            fontSize={12}
+            lineHeight={isAddress ? "19.5px" : undefined}
+          >
+            {capitalizeMessage ? capitalize(key) : key}:
+          </Typography>
+          {isAddress ? (
             <CopyAddressButton
               address={value}
               sxProps={{
+                paddingTop: "2px!important",
                 boxShadow: "none",
                 marginRight: -0.8,
                 color: themeColors.black,

@@ -18,6 +18,7 @@ export const SAVE_CONTACT_PAGE = "/contact/save";
 export const REMOVE_CONTACT_PAGE = "/contact/remove";
 export const SIGN_TYPED_DATA_PAGE = "/sign/typed_data";
 export const PERSONAL_SIGN_PAGE = "/sign/personal";
+export const POKT_TRANSACTION_PAGE = "/poktTx";
 
 export const CHANGE_SELECTED_CHAIN_PAGE = "/network/change_chain";
 

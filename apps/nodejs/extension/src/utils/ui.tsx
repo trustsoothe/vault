@@ -22,16 +22,32 @@ import {
 import { useAppDispatch } from "../ui/hooks/redux";
 import { themeColors } from "../ui/theme";
 import {
+  CHANGE_PARAM_REQUEST,
+  CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  DAO_TRANSFER_REQUEST,
+  DAO_TRANSFER_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
   SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
+  STAKE_APP_REQUEST,
+  STAKE_APP_RESPONSE,
+  STAKE_NODE_REQUEST,
+  STAKE_NODE_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
+  TRANSFER_APP_REQUEST,
+  TRANSFER_APP_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
+  UNJAIL_NODE_REQUEST,
+  UNJAIL_NODE_RESPONSE,
+  UNSTAKE_APP_REQUEST,
+  UNSTAKE_APP_RESPONSE,
+  UNSTAKE_NODE_REQUEST,
+  UNSTAKE_NODE_RESPONSE,
 } from "../constants/communication";
 
 export const closeCurrentWindow = () =>
@@ -63,7 +79,16 @@ export const removeRequestWithRes = async (
     | typeof CONNECTION_RESPONSE_MESSAGE
     | typeof SWITCH_CHAIN_RESPONSE
     | typeof SIGN_TYPED_DATA_RESPONSE
-    | typeof PERSONAL_SIGN_RESPONSE;
+    | typeof PERSONAL_SIGN_RESPONSE
+    | typeof STAKE_NODE_RESPONSE
+    | typeof UNSTAKE_NODE_RESPONSE
+    | typeof UNJAIL_NODE_RESPONSE
+    | typeof STAKE_APP_RESPONSE
+    | typeof TRANSFER_APP_RESPONSE
+    | typeof UNSTAKE_APP_RESPONSE
+    | typeof CHANGE_PARAM_RESPONSE
+    | typeof DAO_TRANSFER_RESPONSE;
+
   let data: UiResponsesToProxy["data"] = null;
   let errorToReturn: UiResponsesToProxy["error"] = null;
 
@@ -72,8 +97,56 @@ export const removeRequestWithRes = async (
   }
 
   switch (request.type) {
+    case STAKE_NODE_REQUEST:
+    case UNSTAKE_NODE_REQUEST:
+    case UNJAIL_NODE_REQUEST:
+    case STAKE_APP_REQUEST:
+    case TRANSFER_APP_REQUEST:
+    case UNSTAKE_APP_REQUEST:
+    case CHANGE_PARAM_REQUEST:
+    case DAO_TRANSFER_REQUEST:
     case TRANSFER_REQUEST: {
-      responseType = TRANSFER_RESPONSE;
+      switch (request.type) {
+        case TRANSFER_REQUEST: {
+          responseType = TRANSFER_RESPONSE;
+          break;
+        }
+        case STAKE_NODE_REQUEST: {
+          responseType = STAKE_NODE_RESPONSE;
+          break;
+        }
+        case UNSTAKE_NODE_REQUEST: {
+          responseType = UNSTAKE_NODE_RESPONSE;
+          break;
+        }
+        case UNJAIL_NODE_REQUEST: {
+          responseType = UNJAIL_NODE_RESPONSE;
+          break;
+        }
+        case STAKE_APP_REQUEST: {
+          responseType = STAKE_APP_RESPONSE;
+          break;
+        }
+        case TRANSFER_APP_REQUEST: {
+          responseType = TRANSFER_APP_RESPONSE;
+          break;
+        }
+        case UNSTAKE_APP_REQUEST: {
+          responseType = UNSTAKE_APP_RESPONSE;
+          break;
+        }
+        case CHANGE_PARAM_REQUEST: {
+          responseType = CHANGE_PARAM_RESPONSE;
+          break;
+        }
+        case DAO_TRANSFER_REQUEST: {
+          responseType = DAO_TRANSFER_RESPONSE;
+          break;
+        }
+        default: {
+          throw new Error("Invalid request type");
+        }
+      }
       if (error.code === OperationRejected.code) {
         data = {
           rejected: true,

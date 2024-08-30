@@ -62,12 +62,20 @@ import type {
 } from "../../types/communications/vault";
 import browser from "webextension-polyfill";
 import {
+  ANSWER_CHANGE_PARAM_REQUEST,
   ANSWER_CONNECTION_REQUEST,
+  ANSWER_DAO_TRANSFER_REQUEST,
   ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_PERSONAL_SIGN_REQUEST,
   ANSWER_SIGNED_TYPED_DATA_REQUEST,
+  ANSWER_STAKE_APP_REQUEST,
+  ANSWER_STAKE_NODE_REQUEST,
   ANSWER_SWITCH_CHAIN_REQUEST,
+  ANSWER_TRANSFER_APP_REQUEST,
   ANSWER_TRANSFER_REQUEST,
+  ANSWER_UNJAIL_NODE_REQUEST,
+  ANSWER_UNSTAKE_APP_REQUEST,
+  ANSWER_UNSTAKE_NODE_REQUEST,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
   CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
   EXPORT_VAULT_REQUEST,
@@ -97,6 +105,24 @@ import {
   ImportHdWalletReq,
   ImportHdWalletRes,
 } from "../../types/communications/hdWallet";
+import {
+  AnswerChangeParamReq,
+  AnswerChangeParamRes,
+  AnswerDaoTransferReq,
+  AnswerDaoTransferRes,
+  AnswerStakeAppReq,
+  AnswerStakeAppRes,
+  AnswerStakeNodeReq,
+  AnswerStakeNodeRes,
+  AnswerTransferAppReq,
+  AnswerTransferAppRes,
+  AnswerUnjailNodeReq,
+  AnswerUnjailNodeRes,
+  AnswerUnstakeAppReq,
+  AnswerUnstakeAppRes,
+  AnswerUnstakeNodeReq,
+  AnswerUnstakeNodeRes,
+} from "../../types/communications/transactions";
 
 export default class AppToBackground {
   static async answerConnection(
@@ -357,6 +383,94 @@ export default class AppToBackground {
   ): Promise<GetRecoveryPhraseIdRes> {
     const message: GetRecoveryPhraseIdReq = {
       type: GET_RECOVERY_PHRASE_ID_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async stakeNode(
+    data: AnswerStakeNodeReq["data"]
+  ): Promise<AnswerStakeNodeRes> {
+    const message: AnswerStakeNodeReq = {
+      type: ANSWER_STAKE_NODE_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async unstakeNode(
+    data: AnswerUnstakeNodeReq["data"]
+  ): Promise<AnswerUnstakeNodeRes> {
+    const message: AnswerUnstakeNodeReq = {
+      type: ANSWER_UNSTAKE_NODE_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async unjailNode(
+    data: AnswerUnjailNodeReq["data"]
+  ): Promise<AnswerUnjailNodeRes> {
+    const message: AnswerUnjailNodeReq = {
+      type: ANSWER_UNJAIL_NODE_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async stakeApp(
+    data: AnswerStakeAppReq["data"]
+  ): Promise<AnswerStakeAppRes> {
+    const message: AnswerStakeAppReq = {
+      type: ANSWER_STAKE_APP_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async transferApp(
+    data: AnswerTransferAppReq["data"]
+  ): Promise<AnswerTransferAppRes> {
+    const message: AnswerTransferAppReq = {
+      type: ANSWER_TRANSFER_APP_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async unstakeApp(
+    data: AnswerUnstakeAppReq["data"]
+  ): Promise<AnswerUnstakeAppRes> {
+    const message: AnswerUnstakeAppReq = {
+      type: ANSWER_UNSTAKE_APP_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async changeParam(
+    data: AnswerChangeParamReq["data"]
+  ): Promise<AnswerChangeParamRes> {
+    const message: AnswerChangeParamReq = {
+      type: ANSWER_CHANGE_PARAM_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async daoTransfer(
+    data: AnswerDaoTransferReq["data"]
+  ): Promise<AnswerDaoTransferRes> {
+    const message: AnswerDaoTransferReq = {
+      type: ANSWER_DAO_TRANSFER_REQUEST,
       data,
     };
 
