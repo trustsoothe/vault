@@ -516,8 +516,6 @@ export class PocketNetworkProtocolService
     const expectedPublicKey = this.getPublicKeyFromPrivateKey(transaction.privateKey);
     const expectedAddress = await this.getAddressFromPublicKey(expectedPublicKey);
 
-
-
     if (![transaction.from, transaction.outputAddress || ''].includes(expectedAddress)) {
       return new ValidateTransactionResult([
         {
@@ -527,7 +525,6 @@ export class PocketNetworkProtocolService
         },
       ]);
     }
-
 
     if (transaction.outputAddress && transaction.outputAddress !== node.output_address) {
         return new ValidateTransactionResult([
