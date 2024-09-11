@@ -7,17 +7,23 @@ import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { SupportedProtocols } from "@poktscan/vault";
+import {
+  PocketNetworkTransactionTypes,
+  SupportedProtocols,
+} from "@poktscan/vault";
 import { transactionsSelector } from "../../redux/slices/app/transactions";
 import { enqueueErrorSnackbar, roundAndSeparate } from "../../utils/ui";
-import { Transaction } from "../../controllers/datasource/Transaction";
+import {
+  PoktTransaction,
+  Transaction,
+} from "../../controllers/datasource/Transaction";
 import MintTransactionModal from "../Transaction/MintTransactionModal";
+import { AccountInfoFromAddress } from "../components/AccountInfo";
 import { contactsSelector } from "../../redux/selectors/contact";
 import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import TransactionDetailModal from "./TransactionDetailModal";
 import ActivityIcon from "../assets/img/activity_logo.svg";
 import ReceivedIcon from "../assets/img/receive_icon.svg";
-import AccountInfo from "../components/AccountInfo";
 import SentIcon from "../assets/img/sent_icon.svg";
 import { useAppSelector } from "../hooks/redux";
 import useUsdPrice from "../hooks/useUsdPrice";
@@ -35,6 +41,8 @@ import {
   TxStatus,
   useLazyGetActiveMintsQuery,
 } from "../../redux/slices/wpokt";
+import { getAddressFromPublicKey } from "../../utils/networkOperations";
+import { getTransactionTypeLabel } from "../Request/PoktTransactionRequest";
 
 interface TransactionItemProps {
   transaction: Transaction | MintTransaction;
@@ -211,10 +219,9 @@ function TransactionItem({
             >
               {wasReceived ? "Sender" : "Recipient"}
             </Typography>
-            <AccountInfo
+            <AccountInfoFromAddress
               address={transaction.otherAccount.address}
-              name={transaction.otherAccount.name}
-              type={transaction.otherAccount.isContact ? "contact" : "account"}
+              protocol={transaction.protocol}
             />
           </Stack>
           <Stack width={1} direction={"row"} alignItems={"center"}>
@@ -224,6 +231,271 @@ function TransactionItem({
               color={themeColors.textSecondary}
             >
               {pendingMint ? "Pending Mint" : time}
+            </Typography>
+          </Stack>
+        </Stack>
+      </Stack>
+    </Button>
+  );
+}
+
+function AccountFromPublicKey({ publicKey }: { publicKey: string }) {
+  const [address, setAddress] = useState("");
+
+  useEffect(() => {
+    getAddressFromPublicKey(publicKey).then(setAddress);
+  }, [publicKey]);
+
+  if (!address) return null;
+
+  return (
+    <AccountInfoFromAddress
+      address={address}
+      protocol={SupportedProtocols.Pocket}
+    />
+  );
+}
+
+interface PoktTransactionItem {
+  transaction: PoktTransaction;
+  openTransactionDetail: (transaction: Transaction | MintTransaction) => void;
+}
+
+function PoktTransactionItem({
+  transaction,
+  openTransactionDetail,
+}: PoktTransactionItem) {
+  const { coinSymbol, usdPrice, isLoading, error } = useUsdPrice({
+    protocol: transaction.protocol,
+    chainId: transaction.chainId,
+  });
+
+  const amountComponent = (
+    <Stack
+      direction={"row"}
+      alignItems={"center"}
+      spacing={0.5}
+      justifyContent={"flex-end"}
+    >
+      <Typography
+        lineHeight={"16px"}
+        variant={"subtitle2"}
+        color={themeColors.black}
+        noWrap={true}
+      >
+        {roundAndSeparate(transaction.amount, 6, "0.00")}
+      </Typography>
+      <Typography
+        variant={"subtitle2"}
+        lineHeight={"16px"}
+        color={themeColors.black}
+      >
+        {coinSymbol}
+      </Typography>
+      {isLoading ? (
+        <Skeleton variant={"rectangular"} width={50} height={14} />
+      ) : (
+        <Typography
+          variant={"body2"}
+          lineHeight={"16px"}
+          whiteSpace={"nowrap"}
+          color={themeColors.textSecondary}
+        >
+          ($
+          {error
+            ? "-"
+            : roundAndSeparate(transaction.amount * usdPrice, 2, "0.00")}
+          )
+        </Typography>
+      )}
+    </Stack>
+  );
+
+  let components: [React.ReactNode, React.ReactNode, React.ReactNode];
+
+  switch (transaction.type) {
+    case PocketNetworkTransactionTypes.NodeStake: {
+      components = [
+        amountComponent,
+        "Node",
+        transaction.transactionParams.nodePublicKey ? (
+          <AccountFromPublicKey
+            publicKey={transaction.transactionParams.nodePublicKey}
+          />
+        ) : (
+          <AccountInfoFromAddress
+            address={transaction.from}
+            protocol={transaction.protocol}
+          />
+        ),
+      ];
+      break;
+    }
+    case PocketNetworkTransactionTypes.NodeUnjail:
+    case PocketNetworkTransactionTypes.NodeUnstake: {
+      components = [
+        null,
+        "Node",
+        <AccountInfoFromAddress
+          address={transaction.from}
+          protocol={transaction.protocol}
+        />,
+      ];
+      break;
+    }
+    case PocketNetworkTransactionTypes.AppStake: {
+      components = [
+        amountComponent,
+        "App",
+        <AccountFromPublicKey
+          publicKey={transaction.transactionParams.appPublicKey}
+        />,
+      ];
+      break;
+    }
+    case PocketNetworkTransactionTypes.AppTransfer: {
+      components = [
+        null,
+        "To",
+        <AccountFromPublicKey
+          publicKey={transaction.transactionParams.appPublicKey}
+        />,
+      ];
+      break;
+    }
+    case PocketNetworkTransactionTypes.AppUnstake: {
+      components = [
+        null,
+        "App",
+        <AccountInfoFromAddress
+          address={transaction.transactionParams.appAddress}
+          protocol={transaction.protocol}
+        />,
+      ];
+      break;
+    }
+    case PocketNetworkTransactionTypes.GovChangeParam: {
+      components = [null, "Param", transaction.transactionParams.paramKey];
+      break;
+    }
+    case PocketNetworkTransactionTypes.GovDAOTransfer: {
+      const isTransfer =
+        transaction.transactionParams.daoAction === "dao_transfer";
+      components = [
+        amountComponent,
+        isTransfer ? "Transfer to" : "Burn",
+        isTransfer ? (
+          <AccountInfoFromAddress
+            address={transaction.transactionParams.to}
+            protocol={transaction.protocol}
+          />
+        ) : null,
+      ];
+      break;
+    }
+    case PocketNetworkTransactionTypes.GovUpgrade: {
+      const { version, features, height } =
+        transaction.transactionParams.upgrade;
+      const upgradingFeature = version === "FEATURE";
+
+      components = [
+        null,
+        upgradingFeature ? "Features" : "Version",
+        upgradingFeature
+          ? features.length > 1
+            ? `${features.length} Features`
+            : features.at(0).split(":").at(0)
+          : transaction.transactionParams.upgrade.version,
+      ];
+      break;
+    }
+  }
+
+  const time = new Date(transaction.timestamp).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <Button
+      sx={{
+        width: 1,
+        height: 74,
+        paddingY: 0.8,
+        fontWeight: 400,
+        paddingLeft: 0.4,
+        paddingRight: 0.6,
+        borderRadius: "8px",
+        color: themeColors.black,
+        backgroundColor: themeColors.white,
+      }}
+      onClick={() => openTransactionDetail(transaction)}
+    >
+      <Stack
+        width={1}
+        height={74}
+        spacing={1.2}
+        direction={"row"}
+        alignItems={"center"}
+        position={"relative"}
+        sx={{
+          "& svg.tx_type": {
+            minWidth: 34,
+            minHeight: 34,
+          },
+          "& div.avatar": {
+            width: 12,
+            height: 12,
+            marginRight: -0.3,
+          },
+          "& svg.avatar": {
+            marginTop: 0.1,
+            transform: "scale(0.8)",
+            marginRight: -0.3,
+          },
+        }}
+      >
+        <SentIcon className={"tx_type"} />
+        <Stack spacing={0.4} flexGrow={1}>
+          <Stack
+            width={1}
+            spacing={1.5}
+            direction={"row"}
+            alignItems={"center"}
+            justifyContent={"space-between"}
+          >
+            <Typography
+              lineHeight={"16px"}
+              variant={"subtitle2"}
+              color={themeColors.black}
+            >
+              {getTransactionTypeLabel(transaction.type)}
+            </Typography>
+            {components[0]}
+          </Stack>
+          <Stack
+            width={1}
+            spacing={1}
+            direction={"row"}
+            alignItems={"center"}
+            justifyContent={"space-between"}
+          >
+            <Typography
+              lineHeight={"16px"}
+              variant={"subtitle2"}
+              color={themeColors.black}
+            >
+              {components[1]}
+            </Typography>
+            {components[2]}
+          </Stack>
+          <Stack width={1} direction={"row"} alignItems={"center"}>
+            <Typography
+              variant={"body2"}
+              lineHeight={"14px"}
+              color={themeColors.textSecondary}
+            >
+              {time}
             </Typography>
           </Stack>
         </Stack>
@@ -520,6 +792,21 @@ export default function Activity() {
                     timestamp: transaction.timestamp,
                     otherAccount: transaction.otherAccount,
                   };
+                }
+
+                if (
+                  "hash" in transaction &&
+                  transaction.protocol === SupportedProtocols.Pocket &&
+                  transaction.type &&
+                  transaction.type !== PocketNetworkTransactionTypes.Send
+                ) {
+                  return (
+                    <PoktTransactionItem
+                      key={transaction.hash}
+                      transaction={transaction}
+                      openTransactionDetail={openTxDetail}
+                    />
+                  );
                 }
 
                 return (

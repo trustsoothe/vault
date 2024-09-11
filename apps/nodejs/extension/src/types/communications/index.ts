@@ -110,6 +110,7 @@ import {
   AnswerUnjailNodeReq,
   AnswerUnstakeAppReq,
   AnswerUnstakeNodeReq,
+  AnswerUpgradeReq,
   AnswerValidatePoktTxReq,
   AppChangeParamReq,
   AppDaoTransferReq,
@@ -119,6 +120,7 @@ import {
   AppUnjailNodeReq,
   AppUnstakeAppReq,
   AppUnstakeNodeReq,
+  AppUpgradeReq,
   ExternalChangeParamReq,
   ExternalDaoTransferReq,
   ExternalStakeAppReq,
@@ -127,6 +129,7 @@ import {
   ExternalUnjailNodeReq,
   ExternalUnstakeAppReq,
   ExternalUnstakeNodeReq,
+  ExternalUpgradeReq,
   InternalChangeParamRes,
   InternalDaoTransferRes,
   InternalStakeAppRes,
@@ -135,6 +138,7 @@ import {
   InternalUnjailNodeRes,
   InternalUnstakeAppRes,
   InternalUnstakeNodeRes,
+  InternalUpgradeRes,
   ProxyChangeParamReq,
   ProxyChangeParamRes,
   ProxyDaoTransferReq,
@@ -151,9 +155,14 @@ import {
   ProxyUnstakeAppRes,
   ProxyUnstakeNodeReq,
   ProxyUnstakeNodeRes,
+  ProxyUpgradeReq,
+  ProxyUpgradeRes,
 } from "./transactions";
 import {
+  AnswerPublicKeyReq,
+  AppPublicKeyReq,
   ExternalPublicKeyReq,
+  InternalPublicKeyRes,
   ProxyPublicKeyReq,
   ProxyPublicKeyRes,
 } from "./publicKey";
@@ -176,7 +185,8 @@ export type ProxyRequests =
   | ProxyUnstakeAppReq
   | ProxyChangeParamReq
   | ProxyDaoTransferReq
-  | ProxyPublicKeyReq;
+  | ProxyPublicKeyReq
+  | ProxyUpgradeReq;
 export type ProxyResponses =
   | ProxyConnectionRes
   | ProxySelectedChainRes
@@ -196,6 +206,7 @@ export type ProxyResponses =
   | ProxyUnstakeAppRes
   | ProxyChangeParamRes
   | ProxyDaoTransferRes
+  | ProxyUpgradeRes
   | ProxyUnstakeNodeRes;
 
 export type ExternalRequests =
@@ -217,7 +228,8 @@ export type ExternalRequests =
   | ExternalUnstakeAppReq
   | ExternalDaoTransferReq
   | ExternalChangeParamReq
-  | ExternalUnstakeNodeReq;
+  | ExternalUnstakeNodeReq
+  | ExternalUpgradeReq;
 export type ExternalResponses = ExternalConnectionRes;
 
 export type InternalRequests =
@@ -240,6 +252,7 @@ export type InternalRequests =
   | AnswerSwitchChainReq
   | AnswerSignedTypedDataReq
   | AnswerPersonalSignReq
+  | AnswerPublicKeyReq
   | ExportVaultReq
   | ShouldExportVaultReq
   | ImportVaultReq
@@ -255,6 +268,7 @@ export type InternalRequests =
   | AnswerUnstakeAppReq
   | AnswerChangeParamReq
   | AnswerDaoTransferReq
+  | AnswerUpgradeReq
   | AnswerValidatePoktTxReq;
 /**Responses that the Proxy can receive from Internal controller */
 export type InternalResponses =
@@ -273,7 +287,9 @@ export type InternalResponses =
   | InternalTransferAppRes
   | InternalUnstakeAppRes
   | InternalChangeParamRes
-  | InternalDaoTransferRes;
+  | InternalDaoTransferRes
+  | InternalUpgradeRes
+  | InternalPublicKeyRes;
 
 export type UiResponsesToProxy =
   | InternalConnectionRes
@@ -288,6 +304,7 @@ export type AppRequests = (
   | AppSwitchChainReq
   | AppSignTypedDataReq
   | AppPersonalSignReq
+  | AppPublicKeyReq
   | AppStakeNodeReq
   | AppUnstakeNodeReq
   | AppUnjailNodeReq
@@ -296,6 +313,7 @@ export type AppRequests = (
   | AppUnstakeAppReq
   | AppChangeParamReq
   | AppDaoTransferReq
+  | AppUpgradeReq
 ) & { requestedAt?: number };
 
 export type RequestExistsError<T> = T extends typeof TRANSFER_RESPONSE

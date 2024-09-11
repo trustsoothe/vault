@@ -109,7 +109,7 @@ export default function SendPokt({ onCancel, isWrapping }: SendPoktProps) {
       }}
       form={<SendFormPokt isWrapping={isWrapping} />}
       summary={<Summary isSwapping={isWrapping} />}
-      success={<Submitted isSwapping={isWrapping} />}
+      success={<Submitted isSwapping={isWrapping} onCancel={onCancel} />}
       onCancel={onCancel}
       onDone={onCancel}
     />

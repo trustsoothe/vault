@@ -19,6 +19,7 @@ import { themeColors } from "../theme";
 interface RenderMessageProps {
   message: object | object[];
   marginLeft?: number;
+  fontSize?: number;
   capitalizeMessage?: boolean;
 }
 
@@ -26,13 +27,14 @@ export function RenderMessage({
   message,
   marginLeft = 0.5,
   capitalizeMessage = true,
+  fontSize = 13,
 }: RenderMessageProps) {
   const children: React.ReactNode[] = [];
 
   for (const key in message) {
     const value = message[key];
 
-    if (typeof value === "object") {
+    if (typeof value === "object" && value) {
       children.push(
         <Stack
           marginLeft={`${marginLeft * 10}px!important`}
@@ -40,7 +42,7 @@ export function RenderMessage({
           marginTop={"5px!important"}
         >
           <Typography
-            fontSize={13}
+            fontSize={fontSize}
             color={themeColors.black}
             fontWeight={400}
             marginBottom={0.4}
@@ -51,11 +53,13 @@ export function RenderMessage({
             message={value}
             marginLeft={marginLeft + 0.5}
             capitalizeMessage={capitalizeMessage}
+            fontSize={fontSize}
           />
         </Stack>
       );
     } else {
       const isAddress = isValidAddress(value, SupportedProtocols.Ethereum);
+      console.log({ value });
       children.push(
         <Stack
           direction={"row"}
@@ -65,7 +69,7 @@ export function RenderMessage({
           marginBottom={0.3}
         >
           <Typography
-            fontSize={12}
+            fontSize={fontSize === 13 ? fontSize - 1 : fontSize}
             lineHeight={isAddress ? "19.5px" : undefined}
           >
             {capitalizeMessage ? capitalize(key) : key}:
@@ -81,14 +85,16 @@ export function RenderMessage({
                 marginLeft: "0!important",
                 height: 19.5,
                 backgroundColor: "transparent",
+                fontSize,
               }}
             />
           ) : (
             <Typography
               color={themeColors.black}
               sx={{ wordBreak: "break-word" }}
+              fontSize={fontSize}
             >
-              {value}
+              {!value && typeof value === "object" ? "null" : value}
             </Typography>
           )}
         </Stack>

@@ -25,6 +25,8 @@ import {
   ANSWER_UNSTAKE_APP_RESPONSE,
   ANSWER_UNSTAKE_NODE_REQUEST,
   ANSWER_UNSTAKE_NODE_RESPONSE,
+  ANSWER_UPGRADE_REQUEST,
+  ANSWER_UPGRADE_RESPONSE,
   ANSWER_VALIDATE_POKT_TX_REQUEST,
   ANSWER_VALIDATE_POKT_TX_RESPONSE,
   CHANGE_PARAM_REQUEST,
@@ -43,6 +45,8 @@ import {
   UNSTAKE_APP_RESPONSE,
   UNSTAKE_NODE_REQUEST,
   UNSTAKE_NODE_RESPONSE,
+  UPGRADE_REQUEST,
+  UPGRADE_RESPONSE,
 } from "../../constants/communication";
 import {
   ChangeParamBody,
@@ -52,6 +56,7 @@ import {
   TransferAppBody,
   UnstakeAppBody,
   UnstakeNodeBody,
+  UpgradeBody,
 } from "../../controllers/communication/Proxy";
 import {
   OperationRejected,
@@ -66,6 +71,7 @@ import {
   RequestUnjailNodeExists,
   RequestUnstakeAppExists,
   RequestUnstakeNodeExists,
+  RequestUpgradeExists,
   SessionIdNotPresented,
   UnauthorizedError,
   UnauthorizedErrorSessionInvalid,
@@ -330,6 +336,25 @@ export type AnswerDaoTransferRes = DaoTransferCreator["AnswerRes"];
 export type InternalDaoTransferRes = DaoTransferCreator["InternalRes"];
 export type ProxyDaoTransferRes = DaoTransferCreator["ProxyRes"];
 
+// Upgrade
+
+type UpgradeCreator = Creator<
+  typeof UPGRADE_REQUEST,
+  UpgradeBody,
+  typeof RequestUpgradeExists,
+  typeof ANSWER_UPGRADE_REQUEST,
+  typeof ANSWER_UPGRADE_RESPONSE,
+  typeof UPGRADE_RESPONSE
+>;
+
+export type ProxyUpgradeReq = UpgradeCreator["ProxyReq"];
+export type ExternalUpgradeReq = UpgradeCreator["ExternalReq"];
+export type AppUpgradeReq = UpgradeCreator["AppReq"];
+export type AnswerUpgradeReq = UpgradeCreator["AnswerReq"];
+export type AnswerUpgradeRes = UpgradeCreator["AnswerRes"];
+export type InternalUpgradeRes = UpgradeCreator["InternalRes"];
+export type ProxyUpgradeRes = UpgradeCreator["ProxyRes"];
+
 export type AnswerPoktTxRequests =
   | AnswerDaoTransferReq
   | AnswerChangeParamReq
@@ -338,7 +363,8 @@ export type AnswerPoktTxRequests =
   | AnswerUnstakeNodeReq
   | AnswerStakeNodeReq
   | AnswerUnstakeAppReq
-  | AnswerTransferAppReq;
+  | AnswerTransferAppReq
+  | AnswerUpgradeReq;
 
 export type PoktTxRequest =
   | AppStakeNodeReq
@@ -348,7 +374,8 @@ export type PoktTxRequest =
   | AppTransferAppReq
   | AppUnstakeAppReq
   | AppChangeParamReq
-  | AppDaoTransferReq;
+  | AppDaoTransferReq
+  | AppUpgradeReq;
 
 export type AnswerValidatePoktTxReq = {
   type: typeof ANSWER_VALIDATE_POKT_TX_REQUEST;

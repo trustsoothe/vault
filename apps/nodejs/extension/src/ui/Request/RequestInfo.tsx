@@ -55,22 +55,30 @@ interface RequestInfoProps {
   title: string;
   description: string;
   origin: string;
+  paddingBottom?: number;
+  paddingTop?: number;
 }
 
 export default function RequestInfo({
   title,
   description,
   origin,
+  paddingBottom = 2.4,
+  paddingTop = 2,
 }: RequestInfoProps) {
   return (
     <Stack
-      paddingTop={title || description ? 2 : 1.4}
-      paddingX={title || description ? 2.4 : 1.6}
+      paddingTop={title || description ? paddingTop : 1.4}
+      paddingX={title || description ? paddingBottom : 1.6}
       paddingBottom={title || description ? 2.4 : 1.4}
       bgcolor={themeColors.bgLightGray}
       borderBottom={`1px solid ${themeColors.borderLightGray}`}
     >
-      {title && <Typography variant={"subtitle2"}>{title}</Typography>}
+      {title && (
+        <Typography variant={"subtitle2"} marginBottom={description ? 0 : 0.6}>
+          {title}
+        </Typography>
+      )}
       {description && (
         <Typography
           fontSize={11}

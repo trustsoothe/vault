@@ -1,9 +1,15 @@
-import type { Transaction } from "../../controllers/datasource/Transaction";
+import type {
+  PoktTransaction,
+  Transaction,
+} from "../../controllers/datasource/Transaction";
 import Decimal from "decimal.js";
+import Stack from "@mui/material/Stack";
 import React, { useEffect, useRef } from "react";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import {
+  PocketNetworkFee,
+  PocketNetworkTransactionTypes,
   SerializedAccountReference,
   SupportedProtocols,
 } from "@poktscan/vault";
@@ -15,7 +21,6 @@ import Summary, { SummaryRowItem } from "../components/Summary";
 import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import DialogButtons from "../components/DialogButtons";
 import { Hash } from "../Transaction/TransactionHash";
-import AccountInfo from "../components/AccountInfo";
 import { useAppSelector } from "../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
 import useUsdPrice from "../hooks/useUsdPrice";
@@ -23,6 +28,235 @@ import {
   accountsSelector,
   selectedAccountAddressSelector,
 } from "../../redux/selectors/account";
+import UpgradeSummary from "../PoktTransaction/Upgrade/Summary";
+import StakeAppSummary from "../PoktTransaction/StakeApp/Summary";
+import UnstakeApp from "../PoktTransaction/UnstakeApp/SummaryForm";
+import StakeNodeSummary from "../PoktTransaction/StakeNode/Summary";
+import TransferAppSummary from "../PoktTransaction/TransferApp/Summary";
+import ChangeParamSummary from "../PoktTransaction/ChangeParam/Summary";
+import DaoTransferSummary from "../PoktTransaction/DaoTransfer/Summary";
+import { getTransactionTypeLabel } from "../Request/PoktTransactionRequest";
+import AccountInfo, { AccountInfoFromAddress } from "../components/AccountInfo";
+import UnstakeUnjailNodeSummary from "../PoktTransaction/UnstakeUnjailNode/Summary";
+
+interface PoktTxDetailProps {
+  transaction: Transaction;
+}
+
+function PoktTransactionDetailModal(props: PoktTxDetailProps) {
+  const networks = useAppSelector(networksSelector);
+  const poktTx = props.transaction as PoktTransaction;
+  const network = networks.find(
+    (network) =>
+      network.protocol === poktTx.protocol && network.chainId === poktTx.chainId
+  );
+  const fee: {
+    fee: PocketNetworkFee;
+    fetchingFee: boolean;
+  } = {
+    fee: {
+      value: poktTx.fee,
+      protocol: SupportedProtocols.Pocket,
+    },
+    fetchingFee: false,
+  };
+  let summaryComponent: React.ReactNode;
+
+  switch (poktTx.type) {
+    case PocketNetworkTransactionTypes.NodeStake: {
+      summaryComponent = (
+        <StakeNodeSummary
+          fromAddress={poktTx.from}
+          chainId={poktTx.chainId}
+          amount={poktTx.amount}
+          chains={poktTx.transactionParams.chains}
+          serviceURL={poktTx.transactionParams.serviceURL}
+          fee={fee}
+          outputAddress={poktTx.transactionParams.outputAddress}
+          memo={poktTx.transactionParams.memo}
+          rewardDelegators={poktTx.transactionParams.rewardDelegators}
+          addValidation={false}
+          nodePublicKey={poktTx.transactionParams.nodePublicKey}
+        />
+      );
+      break;
+    }
+    case PocketNetworkTransactionTypes.NodeUnstake:
+    case PocketNetworkTransactionTypes.NodeUnjail: {
+      summaryComponent = (
+        <UnstakeUnjailNodeSummary
+          chainId={poktTx.chainId}
+          signerAddress={poktTx.transactionParams.outputAddress || poktTx.from}
+          nodeAddress={poktTx.from}
+          fee={fee}
+          addValidation={false}
+        />
+      );
+      break;
+    }
+    case PocketNetworkTransactionTypes.AppStake: {
+      summaryComponent = (
+        <StakeAppSummary
+          appAddress={poktTx.from}
+          chainId={poktTx.chainId}
+          amount={poktTx.amount}
+          chains={poktTx.transactionParams.chains}
+          fee={fee}
+          memo={poktTx.transactionParams.memo}
+          addValidation={false}
+        />
+      );
+      break;
+    }
+    case PocketNetworkTransactionTypes.AppTransfer: {
+      summaryComponent = (
+        <TransferAppSummary
+          appAddress={poktTx.from}
+          chainId={poktTx.chainId}
+          fee={fee}
+          memo={poktTx.transactionParams.memo}
+          newAppPublicKey={poktTx.transactionParams.appPublicKey}
+          addValidation={false}
+        />
+      );
+      break;
+    }
+    case PocketNetworkTransactionTypes.AppUnstake: {
+      summaryComponent = (
+        <UnstakeApp
+          fromAddress={poktTx.from}
+          chainId={poktTx.chainId}
+          fee={fee}
+          memo={poktTx.transactionParams.memo}
+          canEditMemo={false}
+          addTitle={false}
+          addValidation={false}
+        />
+      );
+      break;
+    }
+    case PocketNetworkTransactionTypes.GovChangeParam: {
+      summaryComponent = (
+        <ChangeParamSummary
+          fromAddress={poktTx.from}
+          chainId={poktTx.chainId}
+          fee={fee}
+          memo={poktTx.transactionParams.memo}
+          paramKey={poktTx.transactionParams.paramKey}
+          paramValue={poktTx.transactionParams.paramValue}
+          overrideGovParamsWhitelistValidation={
+            poktTx.transactionParams.overrideGovParamsWhitelistValidation
+          }
+          addValidation={false}
+        />
+      );
+      break;
+    }
+    case PocketNetworkTransactionTypes.GovDAOTransfer: {
+      summaryComponent = (
+        <DaoTransferSummary
+          fromAddress={poktTx.from}
+          chainId={poktTx.chainId}
+          fee={fee}
+          memo={poktTx.transactionParams.memo}
+          daoAction={poktTx.transactionParams.daoAction}
+          amount={poktTx.amount}
+          to={poktTx.transactionParams.to}
+          addValidation={false}
+        />
+      );
+      break;
+    }
+    case PocketNetworkTransactionTypes.GovUpgrade: {
+      summaryComponent = (
+        <UpgradeSummary
+          fromAddress={poktTx.from}
+          chainId={poktTx.chainId}
+          fee={fee}
+          memo={poktTx.transactionParams.memo}
+          upgradeHeight={poktTx.transactionParams.upgrade.height.toString()}
+          upgradeVersion={poktTx.transactionParams.upgrade.version}
+          upgradeType={
+            poktTx.transactionParams.upgrade.version === "FEATURE"
+              ? "features"
+              : "version"
+          }
+          features={poktTx.transactionParams.upgrade.features.map(
+            (rawFeature) => {
+              const [feature, height] = rawFeature.split(":");
+              return {
+                feature,
+                height,
+              };
+            }
+          )}
+          addValidation={false}
+        />
+      );
+      break;
+    }
+    default: {
+      throw new Error("Invalid transaction request");
+    }
+  }
+
+  return (
+    <DialogContent
+      sx={{
+        padding: "20px!important",
+        rowGap: 1.6,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <SuccessActionBanner
+        label={`${getTransactionTypeLabel(poktTx.type)} Transaction Sent`}
+      />
+      <Summary
+        rows={[
+          {
+            type: "row",
+            label: "From",
+            value: (
+              <AccountInfoFromAddress
+                address={poktTx.from}
+                protocol={poktTx.protocol}
+              />
+            ),
+          },
+          {
+            type: "divider",
+          },
+          getNetworkRow(network),
+        ]}
+      />
+      <Stack
+        sx={{
+          "& > div": {
+            overflow: "unset",
+          },
+        }}
+      >
+        {summaryComponent}
+      </Stack>
+      <Summary
+        rows={[
+          {
+            type: "row",
+            label: "Tx. Hash",
+            value: (
+              <Hash
+                hash={poktTx.hash}
+                protocol={poktTx.protocol}
+                chainId={poktTx.chainId}
+              />
+            ),
+          },
+        ]}
+      />
+    </DialogContent>
+  );
+}
 
 interface ContentProps {
   transaction: Transaction;
@@ -236,6 +470,18 @@ export default function TransactionDetailModal({
 
   const transaction = transactionFromProps || lastTxRef.current;
 
+  let contentComponent: React.ReactNode;
+
+  if (
+    transaction?.protocol === SupportedProtocols.Pocket &&
+    !!transaction.type &&
+    transaction.type !== PocketNetworkTransactionTypes.Send
+  ) {
+    contentComponent = <PoktTransactionDetailModal transaction={transaction} />;
+  } else if (transaction) {
+    contentComponent = <Content transaction={transaction} />;
+  }
+
   return (
     <BaseDialog
       open={!!transactionFromProps}
@@ -243,7 +489,7 @@ export default function TransactionDetailModal({
       onClose={onClose}
       isLoading={false}
     >
-      {transaction && <Content transaction={transaction} />}
+      {contentComponent}
       <DialogActions sx={{ height: 85, padding: 0 }}>
         <DialogButtons
           primaryButtonProps={{ children: "Done", onClick: onClose }}

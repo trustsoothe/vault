@@ -180,6 +180,18 @@ interface DaoTransferRequest {
   ];
 }
 
+interface UpgradeRequest {
+  method: typeof PocketNetworkMethod.UPGRADE;
+  params: [
+    {
+      address: string;
+      height: number;
+      version: string;
+      features: string[];
+    }
+  ];
+}
+
 export type Method =
   | AccountRequest
   | ChainRequest
@@ -201,6 +213,7 @@ export type Method =
   | UnstakeAppRequest
   | ChangeParamRequest
   | DaoTransferRequest
+  | UpgradeRequest
   | PublicKeyRequest;
 
 export type SuccessfulCallback = (error: null, res: unknown) => unknown;

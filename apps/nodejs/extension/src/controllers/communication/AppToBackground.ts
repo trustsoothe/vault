@@ -60,6 +60,37 @@ import type {
   UpdateRecoveryPhraseReq,
   UpdateRecoveryPhraseRes,
 } from "../../types/communications/vault";
+import type {
+  CreateAccountFromHdSeedReq,
+  CreateAccountFromHdSeedRes,
+  GetRecoveryPhraseIdReq,
+  GetRecoveryPhraseIdRes,
+  ImportHdWalletReq,
+  ImportHdWalletRes,
+} from "../../types/communications/hdWallet";
+import type {
+  AnswerChangeParamReq,
+  AnswerChangeParamRes,
+  AnswerDaoTransferReq,
+  AnswerDaoTransferRes,
+  AnswerStakeAppReq,
+  AnswerStakeAppRes,
+  AnswerStakeNodeReq,
+  AnswerStakeNodeRes,
+  AnswerTransferAppReq,
+  AnswerTransferAppRes,
+  AnswerUnjailNodeReq,
+  AnswerUnjailNodeRes,
+  AnswerUnstakeAppReq,
+  AnswerUnstakeAppRes,
+  AnswerUnstakeNodeReq,
+  AnswerUnstakeNodeRes,
+  AnswerUpgradeReq,
+  AnswerUpgradeRes,
+  AnswerValidatePoktTxReq,
+  AnswerValidatePoktTxRes,
+} from "../../types/communications/transactions";
+import type { AnswerPublicKeyReq } from "../../types/communications/publicKey";
 import browser from "webextension-polyfill";
 import {
   ANSWER_CHANGE_PARAM_REQUEST,
@@ -67,6 +98,7 @@ import {
   ANSWER_DAO_TRANSFER_REQUEST,
   ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_PERSONAL_SIGN_REQUEST,
+  ANSWER_PUBLIC_KEY_REQUEST,
   ANSWER_SIGNED_TYPED_DATA_REQUEST,
   ANSWER_STAKE_APP_REQUEST,
   ANSWER_STAKE_NODE_REQUEST,
@@ -76,6 +108,7 @@ import {
   ANSWER_UNJAIL_NODE_REQUEST,
   ANSWER_UNSTAKE_APP_REQUEST,
   ANSWER_UNSTAKE_NODE_REQUEST,
+  ANSWER_UPGRADE_REQUEST,
   ANSWER_VALIDATE_POKT_TX_REQUEST,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
   CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
@@ -98,34 +131,6 @@ import {
   UPDATE_ACCOUNT_REQUEST,
   UPDATE_RECOVERY_PHRASE_REQUEST,
 } from "../../constants/communication";
-import {
-  CreateAccountFromHdSeedReq,
-  CreateAccountFromHdSeedRes,
-  GetRecoveryPhraseIdReq,
-  GetRecoveryPhraseIdRes,
-  ImportHdWalletReq,
-  ImportHdWalletRes,
-} from "../../types/communications/hdWallet";
-import {
-  AnswerChangeParamReq,
-  AnswerChangeParamRes,
-  AnswerDaoTransferReq,
-  AnswerDaoTransferRes,
-  AnswerStakeAppReq,
-  AnswerStakeAppRes,
-  AnswerStakeNodeReq,
-  AnswerStakeNodeRes,
-  AnswerTransferAppReq,
-  AnswerTransferAppRes,
-  AnswerUnjailNodeReq,
-  AnswerUnjailNodeRes,
-  AnswerUnstakeAppReq,
-  AnswerUnstakeAppRes,
-  AnswerUnstakeNodeReq,
-  AnswerUnstakeNodeRes,
-  AnswerValidatePoktTxReq,
-  AnswerValidatePoktTxRes,
-} from "../../types/communications/transactions";
 
 export default class AppToBackground {
   static async answerConnection(
@@ -480,11 +485,31 @@ export default class AppToBackground {
     return browser.runtime.sendMessage(message);
   }
 
+  static async upgrade(
+    data: AnswerUpgradeReq["data"]
+  ): Promise<AnswerUpgradeRes> {
+    const message: AnswerUpgradeReq = {
+      type: ANSWER_UPGRADE_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
   static async validatePoktTx(
     data: AnswerValidatePoktTxReq["data"]
   ): Promise<AnswerValidatePoktTxRes> {
     const message: AnswerValidatePoktTxReq = {
       type: ANSWER_VALIDATE_POKT_TX_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async getPublicKey(data: AnswerPublicKeyReq["data"]): Promise<void> {
+    const message: AnswerPublicKeyReq = {
+      type: ANSWER_PUBLIC_KEY_REQUEST,
       data,
     };
 

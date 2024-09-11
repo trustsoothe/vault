@@ -15,9 +15,21 @@ import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 
 interface AmountInputProps {
   marginTop?: string | number;
+  label?: string;
+  minAmount?: number;
+  amountToReduce?: number;
+  disableInput?: boolean;
+  amountToSumOnMax?: number;
 }
 
-export default function AmountInput({ marginTop = 1.6 }: AmountInputProps) {
+export default function AmountInput({
+  marginTop = 1.6,
+  label = "Amount",
+  minAmount,
+  amountToReduce = 0,
+  amountToSumOnMax = 0,
+  disableInput: disableInputFromProps,
+}: AmountInputProps) {
   const asset = useSelectedAsset();
   const { watch, setValue, clearErrors, getValues, control } =
     useFormContext<TransactionFormValues>();
@@ -37,6 +49,7 @@ export default function AmountInput({ marginTop = 1.6 }: AmountInputProps) {
   });
 
   const disableInput =
+    disableInputFromProps ||
     (!balance && isLoadingBalance) ||
     (protocol === SupportedProtocols.Ethereum &&
       !isValidAddress(recipientAddress, protocol)) ||
@@ -65,7 +78,10 @@ export default function AmountInput({ marginTop = 1.6 }: AmountInputProps) {
 
     const transferFromBalance = asset
       ? balance
-      : new Decimal(balance).minus(new Decimal(fee)).toNumber();
+      : new Decimal(balance)
+          .add(new Decimal(amountToSumOnMax))
+          .minus(new Decimal(fee))
+          .toNumber();
 
     if (transferFromBalance) {
       setValue("amount", (transferFromBalance || "").toString());
@@ -80,9 +96,14 @@ export default function AmountInput({ marginTop = 1.6 }: AmountInputProps) {
       rules={{
         required: "Required",
         validate: (value, formValues) => {
+          const amountFromInput = Number(value);
+
+          if (minAmount && amountFromInput < minAmount) {
+            return `Min allowed is ${minAmount} ${coinSymbol}`;
+          }
+
           if (!formValues.fee || (isLoadingBalance && !balance)) return "";
 
-          const amountFromInput = Number(value);
           const fee = Number(
             formValues.fee.protocol === SupportedProtocols.Pocket
               ? formValues.fee.value
@@ -93,18 +114,29 @@ export default function AmountInput({ marginTop = 1.6 }: AmountInputProps) {
             return "Invalid amount";
           }
 
-          const total = amountFromInput + (asset ? 0 : fee);
-
           if (amountFromInput < 0) {
             return `Min is 0`;
           }
 
-          return total > balance ? "Insufficient balance" : true;
+          const decimals = asset
+            ? asset.decimals
+            : protocol === SupportedProtocols.Ethereum
+            ? 18
+            : 6;
+
+          const total = new Decimal(amountFromInput)
+            .add(new Decimal(asset ? 0 : fee))
+            .minus(new Decimal(amountToReduce))
+            .toDecimalPlaces(decimals);
+
+          return total.gt(new Decimal(balance).toDecimalPlaces(decimals))
+            ? "Insufficient balance"
+            : true;
         },
       }}
       render={({ field, fieldState: { error } }) => (
         <TextField
-          placeholder={`Amount (${coinSymbol})`}
+          placeholder={`${label} (${coinSymbol})`}
           required
           fullWidth
           size={"small"}

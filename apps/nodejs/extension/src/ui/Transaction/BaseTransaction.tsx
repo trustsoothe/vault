@@ -168,7 +168,10 @@ export default function BaseTransaction({
       .then((res) => {
         if (res.error) {
           feeErrorSnackbarKey.current = enqueueErrorSnackbar({
-            message: "Failed to fetch Fee",
+            message: {
+              title: "Failed to fetch Fee",
+              content: "There was an error trying to fetch the Fee.",
+            },
             onRetry: getFee,
           });
         } else {

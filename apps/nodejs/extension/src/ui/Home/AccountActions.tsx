@@ -1,12 +1,16 @@
 import type { IAsset } from "../../redux/slices/app";
 import React, { useMemo, useState } from "react";
+import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import { shallowEqual } from "react-redux";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import { useSearchParams } from "react-router-dom";
-import { SupportedProtocols } from "@poktscan/vault";
+import {
+  PocketNetworkTransactionTypes,
+  SupportedProtocols,
+} from "@poktscan/vault";
 import PoktscanLogo from "../assets/img/poktscan_small_icon.svg";
 import {
   explorerAccountUrlSelector,
@@ -25,6 +29,8 @@ import {
   assetsSelector,
   existsAssetsForSelectedNetworkSelector,
 } from "../../redux/selectors/asset";
+import PoktTransactionModal from "../PoktTransaction/PoktTransactionModal";
+import { getTransactionTypeLabel } from "../Request/PoktTransactionRequest";
 
 interface AssetItemProps {
   asset: IAsset;
@@ -220,6 +226,7 @@ export default function AccountActions() {
               onSelectAsset={onSelectAsset}
             />
           ))}
+
         <Button
           fullWidth
           component={"a"}
@@ -253,6 +260,7 @@ export default function AccountActions() {
             )}
           </Stack>
         </Button>
+        {protocol === SupportedProtocols.Pocket && <PoktTransactionActions />}
         {protocol === SupportedProtocols.Ethereum &&
           existsAssetsForSelectedNetwork &&
           !selectedAsset && (
@@ -287,6 +295,85 @@ export default function AccountActions() {
             </Button>
           )}
       </Stack>
+    </>
+  );
+}
+
+function PoktTransactionActions() {
+  const [selectedType, setSelectedType] =
+    useState<PocketNetworkTransactionTypes>(null);
+
+  const closeModal = () => setSelectedType(null);
+
+  const items = [
+    {
+      description: "Execute a stake node transaction",
+      type: PocketNetworkTransactionTypes.NodeStake,
+    },
+    {
+      description: "Execute an unstake node transaction",
+      type: PocketNetworkTransactionTypes.NodeUnstake,
+    },
+    {
+      description: "Execute an unjail node transaction",
+      type: PocketNetworkTransactionTypes.NodeUnjail,
+    },
+    {
+      description: "Execute a stake app transaction",
+      type: PocketNetworkTransactionTypes.AppStake,
+    },
+    {
+      description: "Execute a change param transaction",
+      type: PocketNetworkTransactionTypes.GovChangeParam,
+    },
+    {
+      description: "Execute a DAO transfer transaction",
+      type: PocketNetworkTransactionTypes.GovDAOTransfer,
+    },
+    {
+      description: "Execute an upgrade transaction",
+      type: PocketNetworkTransactionTypes.GovUpgrade,
+    },
+  ];
+
+  return (
+    <>
+      <PoktTransactionModal type={selectedType} onClose={closeModal} />
+      <Divider
+        flexItem
+        sx={{
+          "& span": {
+            color: themeColors.textSecondary,
+          },
+        }}
+      >
+        Transactions
+      </Divider>
+      {items.map((item) => (
+        <Button
+          fullWidth
+          key={item.type}
+          sx={{
+            height: 55,
+            padding: 0,
+            borderRadius: "8px",
+            boxSizing: "border-box",
+          }}
+          onClick={() => {
+            setSelectedType(item.type);
+          }}
+        >
+          <SmallGrayContainer
+            flexGrow={1}
+            sx={{ flexDirection: "column!important", alignItems: "flex-start" }}
+          >
+            <Typography variant={"subtitle2"} color={themeColors.black}>
+              {getTransactionTypeLabel(item.type)}
+            </Typography>
+            <Typography fontSize={11}>{item.description}</Typography>
+          </SmallGrayContainer>
+        </Button>
+      ))}
     </>
   );
 }

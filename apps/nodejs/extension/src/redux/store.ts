@@ -4,6 +4,7 @@ import { balanceApi } from "./slices/balance";
 import generalAppReducer from "./slices/app";
 import { pricesApi } from "./slices/prices";
 import { wpoktApi } from "./slices/wpokt";
+import { poktApi } from "./slices/pokt";
 
 const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ const store = configureStore({
     [pricesApi.reducerPath]: pricesApi.reducer,
     [wpoktApi.reducerPath]: wpoktApi.reducer,
     [balanceApi.reducerPath]: balanceApi.reducer,
+    [poktApi.reducerPath]: poktApi.reducer,
   },
   // we are not passing all middlewares here, because we are already setting them in the UI store
   // and placing them here would cause to execute the queries twice

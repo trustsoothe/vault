@@ -16,6 +16,7 @@ import {
   CONNECTION_REQUEST_MESSAGE,
   DAO_TRANSFER_REQUEST,
   PERSONAL_SIGN_REQUEST,
+  PUBLIC_KEY_REQUEST,
   SIGN_TYPED_DATA_REQUEST,
   STAKE_APP_REQUEST,
   STAKE_NODE_REQUEST,
@@ -25,6 +26,7 @@ import {
   UNJAIL_NODE_REQUEST,
   UNSTAKE_APP_REQUEST,
   UNSTAKE_NODE_REQUEST,
+  UPGRADE_REQUEST,
 } from "../../constants/communication";
 import RequestHeader from "./Header";
 import {
@@ -35,6 +37,7 @@ import {
   SIGN_TYPED_DATA_PAGE,
   TRANSFER_PAGE,
 } from "../../constants/routes";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
 export default function Handler() {
   const navigate = useNavigate();
@@ -53,6 +56,14 @@ export default function Handler() {
         ];
 
       switch (currentRequest.type) {
+        case PUBLIC_KEY_REQUEST: {
+          AppToBackground.getPublicKey({
+            request: currentRequest,
+          }).finally(() => {
+            closeCurrentWindow().catch();
+          });
+          break;
+        }
         case CONNECTION_REQUEST_MESSAGE: {
           navigate(REQUEST_CONNECTION_PAGE, { state: currentRequest });
           break;
@@ -76,7 +87,8 @@ export default function Handler() {
         case TRANSFER_APP_REQUEST:
         case UNSTAKE_APP_REQUEST:
         case CHANGE_PARAM_REQUEST:
-        case DAO_TRANSFER_REQUEST: {
+        case DAO_TRANSFER_REQUEST:
+        case UPGRADE_REQUEST: {
           navigate(POKT_TRANSACTION_PAGE, { state: currentRequest });
           break;
         }
@@ -161,11 +173,12 @@ export default function Handler() {
     return null;
   }
 
-  let address: string;
+  let address: string, chainId: string;
 
   switch (currentRequest.type) {
     case TRANSFER_REQUEST: {
       address = currentRequest.transferData.from;
+      chainId = currentRequest.transferData.chainId;
       break;
     }
     case STAKE_NODE_REQUEST:
@@ -175,8 +188,10 @@ export default function Handler() {
     case TRANSFER_APP_REQUEST:
     case UNSTAKE_APP_REQUEST:
     case CHANGE_PARAM_REQUEST:
-    case DAO_TRANSFER_REQUEST: {
+    case DAO_TRANSFER_REQUEST:
+    case UPGRADE_REQUEST: {
       address = currentRequest.transactionData.address;
+      chainId = currentRequest.transactionData.chainId;
       break;
     }
     case PERSONAL_SIGN_REQUEST:
@@ -226,6 +241,7 @@ export default function Handler() {
       <RequestHeader
         accountAddress={address}
         protocol={currentRequest.protocol}
+        chainId={chainId}
       />
       <Outlet />
     </Stack>

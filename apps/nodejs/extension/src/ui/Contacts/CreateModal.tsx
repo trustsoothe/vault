@@ -4,6 +4,7 @@ import type {
 } from "@poktscan/vault";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { useSearchParams } from "react-router-dom";
 import { Controller, useForm } from "react-hook-form";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
@@ -58,20 +59,25 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
   const [contactSaved, setContactSaved] = useState<Contact>(null);
   const [accountAlreadyExists, setAccountAlreadyExists] =
     useState<SerializedAccountReference>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { reset, control, watch, handleSubmit, setValue, clearErrors } =
     useForm<CreateContactFormValues>({
       defaultValues: {
         name: "",
-        protocol,
-        address: "",
+        protocol:
+          (searchParams.get("protocol") as SupportedProtocols) || protocol,
+        address: searchParams.get("address") || "",
       },
     });
 
   const [name, address] = watch(["name", "address"]);
 
   useDidMountEffect(() => {
-    setValue("protocol", protocol);
+    setValue(
+      "protocol",
+      (searchParams.get("protocol") as SupportedProtocols) || protocol
+    );
   }, [protocol]);
 
   const closeSnackbars = () => {
@@ -83,7 +89,12 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      reset({ name: "", protocol, address: "" });
+      reset({
+        name: "",
+        protocol:
+          (searchParams.get("protocol") as SupportedProtocols) || protocol,
+        address: searchParams.get("address") || "",
+      });
       setStatus("normal");
     }, 150);
 
@@ -109,6 +120,10 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
     )
       .unwrap()
       .then(({ contactSaved }) => {
+        if (searchParams.get("address") && searchParams.get("protocol")) {
+          setSearchParams({});
+        }
+
         setContactSaved(contactSaved);
         closeSnackbars();
         setStatus("success");

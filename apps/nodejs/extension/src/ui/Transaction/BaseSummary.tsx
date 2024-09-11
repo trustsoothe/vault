@@ -276,12 +276,30 @@ export default function BaseSummary({
             return "";
           }
 
+          const decimals = selectedAsset
+            ? selectedAsset.decimals
+            : protocol === SupportedProtocols.Ethereum
+            ? 18
+            : 6;
+
           if (selectedAsset) {
-            if (amountNum > balance || feeOfTx > nativeBalance) {
+            if (
+              new Decimal(amountNum)
+                .toDecimalPlaces(decimals)
+                .gt(new Decimal(balance).toDecimalPlaces(decimals)) ||
+              new Decimal(feeOfTx)
+                .toDecimalPlaces(decimals)
+                .gt(new Decimal(nativeBalance).toDecimalPlaces(decimals))
+            ) {
               return "Insufficient balance";
             }
           } else {
-            if (amountNum + feeOfTx > balance) {
+            if (
+              new Decimal(amountNum)
+                .add(feeOfTx)
+                .toDecimalPlaces(decimals)
+                .gt(new Decimal(balance).toDecimalPlaces(decimals))
+            ) {
               return "Insufficient balance";
             }
           }
@@ -311,6 +329,6 @@ export default function BaseSummary({
           )}
         </>
       )}
-    ></Controller>
+    />
   );
 }

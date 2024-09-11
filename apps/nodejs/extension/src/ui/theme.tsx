@@ -81,11 +81,17 @@ const theme = createTheme({
   components: {
     MuiAutocomplete: {
       defaultProps: {
+        popupIcon: <ExpandIcon />,
         clearIcon: (
           <Box sx={{ path: { fill: themeColors.primary } }}>
             <CloseIcon />
           </Box>
         ),
+      },
+      styleOverrides: {
+        endAdornment: {
+          top: "calc(50% - 11px)",
+        },
       },
     },
     MuiMenuItem: {

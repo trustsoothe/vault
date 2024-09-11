@@ -1,4 +1,3 @@
-import type { IProtocolTransactionResult } from "@poktscan/vault/dist/lib/core/common/protocols/ProtocolTransaction";
 import { RootState } from "../../store";
 import type { VaultSliceBuilder } from "../../../types";
 import TransactionDatasource, {
@@ -14,7 +13,6 @@ import {
   AccountType,
   AccountUpdateOptions,
   AddHDWalletAccountExternalRequest,
-  INetwork,
   Passphrase,
   PocketNetworkProtocolService,
   PocketNetworkProtocolTransaction,
@@ -34,8 +32,14 @@ import {
   addImportedAccountAddress,
   addTransaction,
   removeImportedAccountAddress,
+  setNetworksWithErrors,
 } from "../app";
-import { getAddressFromPrivateKey } from "../../../utils/networkOperations";
+import {
+  getAddressFromPrivateKey,
+  isValidAddress,
+  isValidPublicKey,
+  runWithNetworks,
+} from "../../../utils/networkOperations";
 import {
   AnswerPoktTxRequests,
   PoktTxRequest,
@@ -49,6 +53,7 @@ import {
   ANSWER_UNJAIL_NODE_REQUEST,
   ANSWER_UNSTAKE_APP_REQUEST,
   ANSWER_UNSTAKE_NODE_REQUEST,
+  ANSWER_UPGRADE_REQUEST,
   CHANGE_PARAM_REQUEST,
   DAO_TRANSFER_REQUEST,
   STAKE_APP_REQUEST,
@@ -292,30 +297,9 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
     const state = context.getState() as RootState;
     const sessionId = state.vault.vaultSession.id;
 
-    const { chainID, protocol } = transferOptions.network;
-    const customRpc = state.app.customRpcs.find(
-      (customRpc) =>
-        customRpc.protocol === protocol &&
-        customRpc.chainId === chainID &&
-        customRpc.isPreferred &&
-        state.app.errorsPreferredNetwork
-    );
-
-    const defaultNetwork = state.app.networks.find(
-      (item) => item.protocol === protocol && item.chainId === chainID
-    );
-
-    let result: IProtocolTransactionResult<"Pocket" | "Ethereum">;
-
-    const rpcUrl = customRpc?.url || defaultNetwork.rpcUrl;
-
-    const transactionArg = {
+    const transactionArg: TransferOptions = {
       ...transferOptions,
-      network: {
-        protocol,
-        chainID,
-        rpcUrl,
-      },
+      network: null,
       transactionParams: {
         from: "",
         to: "",
@@ -331,16 +315,32 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
       set(transactionArg, "from.passphrase", await getVaultPassword(sessionId));
     }
 
-    if (transferOptions.isRawTransaction) {
-      result = await ExtensionVaultInstance.sendRawTransaction(
-        sessionId,
-        transactionArg
-      );
-    } else {
-      result = await ExtensionVaultInstance.transferFunds(
-        sessionId,
-        transactionArg
-      );
+    const { result, rpcWithErrors, rpcUrl } = await runWithNetworks(
+      {
+        protocol: transferOptions.network.protocol,
+        chainId: transferOptions.network.chainID,
+        customRpcs: state.app.customRpcs,
+        networks: state.app.networks,
+        errorsPreferredNetwork: state.app.errorsPreferredNetwork,
+      },
+      async (network) => {
+        transactionArg.network = network;
+        if (transferOptions.isRawTransaction) {
+          return await ExtensionVaultInstance.sendRawTransaction(
+            sessionId,
+            transactionArg
+          );
+        } else {
+          return await ExtensionVaultInstance.transferFunds(
+            sessionId,
+            transactionArg
+          );
+        }
+      }
+    );
+
+    if (rpcWithErrors.length) {
+      await context.dispatch(setNetworksWithErrors(rpcWithErrors));
     }
 
     let fromAddress: string;
@@ -352,7 +352,7 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
     } else {
       fromAddress = await getAddressFromPrivateKey(
         transferOptions.from.value,
-        protocol
+        transferOptions.network.protocol
       );
     }
 
@@ -370,7 +370,7 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
 
     let tx: Transaction;
 
-    if (protocol === SupportedProtocols.Ethereum) {
+    if (transferOptions.network.protocol === SupportedProtocols.Ethereum) {
       tx = {
         ...baseTx,
         protocol: SupportedProtocols.Ethereum,
@@ -568,7 +568,12 @@ export const sendPoktTx = createAsyncThunk(
   async (request: AnswerPoktTxRequests, context) => {
     const {
       vault: { vaultSession, accounts },
-      app: { requirePasswordForSensitiveOpts, networks, customRpcs },
+      app: {
+        requirePasswordForSensitiveOpts,
+        networks,
+        customRpcs,
+        errorsPreferredNetwork,
+      },
     } = context.getState() as RootState;
 
     const account = accounts.find(
@@ -585,25 +590,45 @@ export const sendPoktTx = createAsyncThunk(
 
     switch (request.type) {
       case ANSWER_STAKE_NODE_REQUEST: {
+        const transactionData = request.data.transactionData;
+
+        let nodePublicKey: string;
+
+        if (isValidPublicKey(transactionData.operatorPublicKey || "")) {
+          nodePublicKey = transactionData.operatorPublicKey;
+        } else if (
+          transactionData.operatorPublicKey &&
+          isValidAddress(
+            transactionData.operatorPublicKey,
+            SupportedProtocols.Pocket
+          ) &&
+          transactionData.operatorPublicKey !== transactionData.address
+        ) {
+          nodePublicKey = await ExtensionVaultInstance.getPublicKey(
+            vaultSession.id,
+            transactionData.operatorPublicKey
+          );
+        } else {
+          nodePublicKey = await ExtensionVaultInstance.getPublicKey(
+            vaultSession.id,
+            account.address
+          );
+        }
+
         transaction = {
           protocol: SupportedProtocols.Pocket,
           transactionType: PocketNetworkTransactionTypes.NodeStake,
-          from: request.data.transactionData.address,
-          nodePublicKey:
-            request.data.transactionData.operatorPublicKey ||
-            (await ExtensionVaultInstance.getPublicKey(
-              vaultSession.id,
-              account.address
-            )),
-          outputAddress:
-            request.data.transactionData.outputAddress || account.address,
-          chains: request.data.transactionData.chains,
-          amount: (
-            Number(request.data.transactionData.amount) / 1e6
-          ).toString(),
-          serviceURL: request.data.transactionData.serviceURL,
-          rewardDelegators: request.data.transactionData.rewardDelegators,
-          memo: request.data.transactionData.memo,
+          from: transactionData.address,
+          nodePublicKey,
+          outputAddress: transactionData.outputAddress || account.address,
+          chains: transactionData.chains,
+          amount: (Number(transactionData.amount) / 1e6).toString(),
+          serviceURL: transactionData.serviceURL,
+          rewardDelegators:
+            Object.keys(transactionData.rewardDelegators || {}).length > 0
+              ? transactionData.rewardDelegators
+              : undefined,
+          memo: transactionData.memo,
         };
         break;
       }
@@ -645,10 +670,35 @@ export const sendPoktTx = createAsyncThunk(
         break;
       }
       case ANSWER_TRANSFER_APP_REQUEST: {
+        let newAppPublicKey: string;
+
+        const transactionData = request.data.transactionData;
+
+        if (isValidPublicKey(transactionData.newAppPublicKey || "")) {
+          newAppPublicKey = transactionData.newAppPublicKey;
+        } else if (
+          transactionData.newAppPublicKey &&
+          isValidAddress(
+            transactionData.newAppPublicKey,
+            SupportedProtocols.Pocket
+          ) &&
+          transactionData.newAppPublicKey !== transactionData.address
+        ) {
+          newAppPublicKey = await ExtensionVaultInstance.getPublicKey(
+            vaultSession.id,
+            transactionData.newAppPublicKey
+          );
+        } else {
+          newAppPublicKey = await ExtensionVaultInstance.getPublicKey(
+            vaultSession.id,
+            account.address
+          );
+        }
+
         transaction = {
           protocol: SupportedProtocols.Pocket,
           transactionType: PocketNetworkTransactionTypes.AppTransfer,
-          appPublicKey: request.data.transactionData.newAppPublicKey,
+          appPublicKey: newAppPublicKey,
         };
         break;
       }
@@ -662,6 +712,7 @@ export const sendPoktTx = createAsyncThunk(
       }
       case ANSWER_CHANGE_PARAM_REQUEST: {
         transaction = {
+          from: request.data.transactionData.address,
           protocol: SupportedProtocols.Pocket,
           transactionType: PocketNetworkTransactionTypes.GovChangeParam,
           paramKey: request.data.transactionData.paramKey,
@@ -680,9 +731,39 @@ export const sendPoktTx = createAsyncThunk(
           amount: (
             Number(request.data.transactionData.amount) / 1e6
           ).toString(),
-          memo: request.data.transactionData.memo,
           daoAction: request.data.transactionData.daoAction,
         };
+        break;
+      }
+      case ANSWER_UPGRADE_REQUEST: {
+        if (request.data.transactionData.version === "FEATURE") {
+          transaction = {
+            protocol: SupportedProtocols.Pocket,
+            transactionType: PocketNetworkTransactionTypes.GovUpgrade,
+            from: request.data.transactionData.address,
+            upgrade: {
+              height: 1,
+              version: request.data.transactionData.version,
+              features: request.data.transactionData.features as string[],
+              //@ts-ignore
+              oldUpgradeHeight: 0,
+            },
+          };
+        } else {
+          transaction = {
+            protocol: SupportedProtocols.Pocket,
+            transactionType: PocketNetworkTransactionTypes.GovUpgrade,
+            from: request.data.transactionData.address,
+            upgrade: {
+              height: Number(request.data.transactionData.height),
+              version: request.data.transactionData.version,
+              features: [],
+              //@ts-ignore
+              oldUpgradeHeight: 0,
+            },
+          };
+        }
+
         break;
       }
       default: {
@@ -706,41 +787,29 @@ export const sendPoktTx = createAsyncThunk(
     transaction.fee = fee;
     transaction.memo = request.data.transactionData.memo;
 
-    const customRpc = customRpcs.find(
-      (customRpc) =>
-        customRpc.protocol === SupportedProtocols.Pocket &&
-        customRpc.chainId === request.data.transactionData.chainId &&
-        customRpc.isPreferred
-    );
-
-    const defaultNetwork = networks.find(
-      (item) =>
-        item.protocol === SupportedProtocols.Pocket &&
-        item.chainId === request.data.transactionData.chainId
-    );
-
-    const rpcUrl = customRpc?.url || defaultNetwork.rpcUrl;
-
     const protocolService = new PocketNetworkProtocolService(
       new WebEncryptionService()
     );
 
-    const network: INetwork = {
-      protocol: SupportedProtocols.Pocket,
-      chainID: request.data.transactionData.chainId,
-      rpcUrl,
-    };
-
-    console.log({ transaction });
-    // const validationResult = await protocolService.validateTransaction(
-    //   transaction as PocketNetworkProtocolTransaction,
-    //   network
-    // );
-
-    const result = await protocolService.sendTransaction(
-      network,
-      transaction as PocketNetworkProtocolTransaction
+    const { result, rpcWithErrors, rpcUrl } = await runWithNetworks(
+      {
+        protocol: SupportedProtocols.Pocket,
+        chainId: request.data.transactionData.chainId,
+        customRpcs,
+        networks,
+        errorsPreferredNetwork,
+      },
+      async (network) => {
+        return await protocolService.sendTransaction(
+          network,
+          transaction as PocketNetworkProtocolTransaction
+        );
+      }
     );
+
+    if (rpcWithErrors.length) {
+      await context.dispatch(setNetworksWithErrors(rpcWithErrors));
+    }
 
     const transactionToSave: PoktTransaction = {
       protocol: SupportedProtocols.Pocket,

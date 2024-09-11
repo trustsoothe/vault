@@ -108,6 +108,14 @@ export const RequestDaoTransferExists = createError(
   -32602,
   "There is a pending dao transfer request from this origin and protocol."
 );
+export const RequestUpgradeExists = createError(
+  -32602,
+  "There is a pending upgrade transaction request from this origin and protocol."
+);
+export const RequestPublicKeyExists = createError(
+  -32602,
+  "There is a pending public key request from this origin and protocol."
+);
 
 export const UnrecognizedChainId = createError(4092, "Unrecognized chain ID.");
 export const ChainIdIsNotActive = createError(

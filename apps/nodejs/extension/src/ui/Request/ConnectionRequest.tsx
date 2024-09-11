@@ -104,41 +104,45 @@ export default function ConnectionRequest() {
       <Stack flexGrow={1}>
         <RequestInfo
           title={"Grant Access"}
-          description={
-            "Select which accounts you want to grant access to this site."
-          }
+          description={""}
           origin={connectionRequest.origin}
+          paddingBottom={1.4}
+          paddingTop={1}
         />
         <Stack bgcolor={themeColors.white} padding={2.4} flexGrow={1}>
           {selectableAccounts.length > 0 && (
             <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
+              spacing={0.7}
+              direction={"row"}
+              alignItems={"center"}
               marginBottom={"10px!important"}
               paddingRight={2.7}
             >
               <Typography
-                fontSize={12}
+                fontSize={11}
                 lineHeight={"16px"}
                 marginTop={0.8}
                 color={themeColors.textSecondary}
               >
-                Want to create a new account?
+                Select the accounts you want to grant access to this site.
+                <br />
+                If you want to create a new account,{" "}
+                <Typography
+                  fontSize={11}
+                  lineHeight={"16px"}
+                  sx={{
+                    color: themeColors.primary,
+                    cursor: "pointer",
+                    "&:hover": {
+                      textDecoration: "underline",
+                    },
+                  }}
+                  component={"span"}
+                  onClick={toggleShowNewAccountModal}
+                >
+                  click here
+                </Typography>
               </Typography>
-              <Button
-                sx={{
-                  height: 26,
-                  borderRadius: "8px",
-                  fontSize: 12,
-                  paddingX: 0.8,
-                  fontWeight: 400,
-                }}
-                variant={"outlined"}
-                onClick={toggleShowNewAccountModal}
-              >
-                Click here
-              </Button>
             </Stack>
           )}
           <Stack
@@ -146,12 +150,14 @@ export default function ConnectionRequest() {
             minHeight={0}
             flexBasis={"1px"}
             overflow={"auto"}
-            spacing={0.2}
+            spacing={1}
             paddingRight={0.5}
           >
             {selectableAccounts.length > 0 ? (
               selectableAccounts.map((account) => (
                 <AccountSelectableItem
+                  backgroundColor={themeColors.bgLightGray}
+                  border={`1px solid ${themeColors.borderLightGray}`}
                   isSelected={selectedAccounts.includes(account.address)}
                   onClickAccount={toggleSelectAccount}
                   account={account}

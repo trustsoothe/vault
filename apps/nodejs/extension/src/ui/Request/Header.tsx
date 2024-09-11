@@ -33,11 +33,13 @@ const Container = styled(Stack)<StackProps>(() => ({
 interface RequestHeaderProps {
   protocol: SupportedProtocols;
   accountAddress?: string;
+  chainId?: string;
 }
 
 export default function RequestHeader({
   protocol,
   accountAddress,
+  chainId,
 }: RequestHeaderProps) {
   const networks = useAppSelector(networksSelector);
   const accounts = useAppSelector(accountsSelector);
@@ -48,10 +50,10 @@ export default function RequestHeader({
     selectedAccountByProtocolSelector
   );
 
-  const selectedChain = selectedChainByProtocol[protocol];
+  const selectedChain = chainId || selectedChainByProtocol[protocol];
   const address = (
     accountAddress || selectedAccountByProtocol[protocol]
-  ).toLowerCase();
+  )?.toLowerCase();
 
   const selectedAccount = accounts.find(
     (account) =>

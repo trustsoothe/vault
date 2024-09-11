@@ -1,4 +1,16 @@
 import type {
+  ExternalBasePoktTxErrors,
+  ExternalResponse,
+  InternalResponse,
+  ProxyPoktTxRes,
+} from "../../types/communications/transactions";
+import type {
+  ExternalPublicKeyReq,
+  ExternalPublicKeyResToProxy,
+  InternalPublicKeyRes,
+  ProxyPublicKeyRes,
+} from "../../types/communications/publicKey";
+import type {
   InternalResponses,
   ProxyRequests,
 } from "../../types/communications";
@@ -110,16 +122,16 @@ import {
   STAKE_NODE_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
-  TRANSFER_APP_REQUEST,
   TRANSFER_APP_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
   UNJAIL_NODE_REQUEST,
   UNJAIL_NODE_RESPONSE,
-  UNSTAKE_APP_REQUEST,
   UNSTAKE_APP_RESPONSE,
   UNSTAKE_NODE_REQUEST,
   UNSTAKE_NODE_RESPONSE,
+  UPGRADE_REQUEST,
+  UPGRADE_RESPONSE,
 } from "../../constants/communication";
 import {
   BlockNotSupported,
@@ -134,17 +146,6 @@ import {
   isValidAddress,
   validateTypedDataPayload,
 } from "../../utils/networkOperations";
-import {
-  ExternalBasePoktTxErrors,
-  ExternalResponse,
-  InternalResponse,
-  ProxyPoktTxRes,
-} from "../../types/communications/transactions";
-import {
-  ExternalPublicKeyReq,
-  ExternalPublicKeyRes,
-  ProxyPublicKeyRes,
-} from "../../types/communications/publicKey";
 
 export type TPocketTransferBody = z.infer<typeof PocketTransferBody>;
 
@@ -174,29 +175,100 @@ const PocketTransferBody = z.object({
 });
 export type DaoTransferBody = z.infer<typeof DaoTransferBody>;
 
-const DaoTransferBody = z.object({
-  address: z
-    .string()
-    .length(40)
-    .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Pocket),
-      "from is not a valid address"
-    ),
-  to: z
-    .string()
-    .length(40)
-    .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Pocket),
-      "from is not a valid address"
-    ),
-  amount: z
-    .string()
-    .nonempty()
-    .regex(/^\d+$/)
-    .refine((value) => Number(value) > 0, "amount should be greater than 0"),
-  memo: memoSchema,
-  daoAction: z.nativeEnum(DAOAction),
-});
+const DaoTransferBody = z
+  .object({
+    address: z
+      .string()
+      .length(40)
+      .refine(
+        (value) => isValidAddress(value, SupportedProtocols.Pocket),
+        "address is not a valid address"
+      ),
+    to: z.string().optional(),
+    amount: z
+      .string()
+      .nonempty()
+      .regex(/^\d+$/)
+      .refine((value) => Number(value) > 0, "amount should be greater than 0"),
+    memo: memoSchema,
+    daoAction: z.nativeEnum(DAOAction),
+  })
+  .refine(
+    (value) =>
+      value.daoAction === "dao_burn"
+        ? true
+        : isValidAddress(value.to || "", SupportedProtocols.Pocket),
+    {
+      path: ["to"],
+      message: "to is not a valid address",
+    }
+  );
+
+export type UpgradeBody = z.infer<typeof UpgradeBody>;
+
+const UpgradeBody = z
+  .object({
+    address: z
+      .string()
+      .length(40)
+      .refine(
+        (value) => isValidAddress(value, SupportedProtocols.Pocket),
+        "address is not a valid address"
+      ),
+    height: z.number().min(1).int(),
+    version: z.union([
+      z.string().regex(/^(\d+)\.(\d+)\.(\d+)(\.(\d+))?$/),
+      z.literal("FEATURE"),
+    ]),
+    memo: memoSchema,
+    features: z
+      .array(
+        z
+          .string()
+          .regex(
+            /^[A-Za-z]+:\d+$/,
+            "malformed feature, format should be: KEY:HEIGHT"
+          )
+          .refine(
+            (value) => {
+              const [_, height] = value.split(":");
+              return Number(height) >= 0;
+            },
+            {
+              message: "height should be greater or equal to 0",
+            }
+          )
+      )
+      .optional()
+      .default([]),
+  })
+  .refine(
+    (value) =>
+      value.version !== "FEATURE" ||
+      (value.version === "FEATURE" && value.height !== 1),
+    {
+      path: ["height"],
+      message: "height should be equal to 1 when version is FEATURE",
+    }
+  )
+  .refine(
+    (value) =>
+      value.version !== "FEATURE" ||
+      (value.version === "FEATURE" && value.features.length > 0),
+    {
+      path: ["features"],
+      message: "features should not be empty when version is FEATURE",
+    }
+  )
+  .refine(
+    (value) =>
+      value.version === "FEATURE" ||
+      (value.version !== "FEATURE" && value.features.length === 0),
+    {
+      path: ["features"],
+      message: "features should be empty when version is not FEATURE",
+    }
+  );
 
 const numberRegex = /^0x([1-9a-f]+[0-9a-f]*|0)$/;
 const stringRegex = /^0x[0-9a-f]*$/;
@@ -243,7 +315,7 @@ const StakeNodeBody = z.object({
     ),
   operatorPublicKey: z.string().nonempty().optional(),
   memo: memoSchema,
-  rewardDelegators: z.record(z.number()).optional(),
+  rewardDelegators: z.record(z.string(), z.number()).optional(),
 });
 
 export type StakeNodeBody = z.infer<typeof StakeNodeBody>;
@@ -415,7 +487,7 @@ class ProxyCommunicationController {
           }
 
           if (data.type === PUBLIC_KEY_REQUEST) {
-            await this._handleGetPublicKey(
+            await this._sendPublicKeyRequest(
               data.protocol,
               data.id,
               data.data?.address
@@ -466,28 +538,6 @@ class ProxyCommunicationController {
             );
           }
 
-          if (data.type === TRANSFER_APP_REQUEST) {
-            await this._sendPoktTxRequest(
-              data.protocol,
-              data.id,
-              data.data,
-              TransferAppBody,
-              TRANSFER_APP_REQUEST,
-              TRANSFER_APP_RESPONSE
-            );
-          }
-
-          if (data.type === UNSTAKE_APP_REQUEST) {
-            await this._sendPoktTxRequest(
-              data.protocol,
-              data.id,
-              data.data,
-              UnstakeAppBody,
-              UNSTAKE_APP_REQUEST,
-              UNSTAKE_APP_RESPONSE
-            );
-          }
-
           if (data.type === CHANGE_PARAM_REQUEST) {
             await this._sendPoktTxRequest(
               data.protocol,
@@ -504,9 +554,20 @@ class ProxyCommunicationController {
               data.protocol,
               data.id,
               data.data,
-              DaoTransferBody,
+              DaoTransferBody as any,
               DAO_TRANSFER_REQUEST,
               DAO_TRANSFER_RESPONSE
+            );
+          }
+
+          if (data.type === UPGRADE_REQUEST) {
+            await this._sendPoktTxRequest(
+              data.protocol,
+              data.id,
+              data.data,
+              UpgradeBody as any,
+              UPGRADE_REQUEST,
+              UPGRADE_RESPONSE
             );
           }
         }
@@ -537,6 +598,7 @@ class ProxyCommunicationController {
             UNSTAKE_APP_RESPONSE,
             CHANGE_PARAM_RESPONSE,
             DAO_TRANSFER_RESPONSE,
+            UPGRADE_RESPONSE,
           ].includes(message.type)
         ) {
           await this._handlePoktTxResponse(
@@ -558,6 +620,10 @@ class ProxyCommunicationController {
 
         if (message.type === PERSONAL_SIGN_RESPONSE) {
           this._handlePersonalSignResponse(message);
+        }
+
+        if (message.type === PUBLIC_KEY_RESPONSE) {
+          this._handlePublicKeyResponse(message);
         }
 
         if (message.type === SELECTED_ACCOUNT_CHANGED) {
@@ -1546,46 +1612,31 @@ class ProxyCommunicationController {
     }
   }
 
-  private async _handleGetPublicKey(
+  private async _sendPublicKeyRequest(
     protocol: SupportedProtocols,
     requestId: string,
     address: string
   ) {
-    let proxyResponse: ProxyPublicKeyRes;
-
     try {
       const sessionId = this._sessionByProtocol[protocol]?.id;
       if (!sessionId) {
-        proxyResponse = {
-          id: requestId,
-          type: PUBLIC_KEY_RESPONSE,
-          from: "VAULT_KEYRING",
-          data: null,
-          error: UnauthorizedError,
-        };
-        return window.postMessage(proxyResponse, window.location.origin);
+        return this._sendPublicKeyResponse(requestId, null, UnauthorizedError);
       }
 
       if (!address) {
-        proxyResponse = {
-          id: requestId,
-          type: PUBLIC_KEY_RESPONSE,
-          from: "VAULT_KEYRING",
-          data: null,
-          error: propertyIsRequired("address"),
-        };
-        return window.postMessage(proxyResponse, window.location.origin);
+        return this._sendPublicKeyResponse(
+          requestId,
+          null,
+          propertyIsRequired("address")
+        );
       }
 
       if (!isValidAddress(address, protocol)) {
-        proxyResponse = {
-          id: requestId,
-          type: PUBLIC_KEY_RESPONSE,
-          from: "VAULT_KEYRING",
-          data: null,
-          error: propertyIsNotValid("address"),
-        };
-        return window.postMessage(proxyResponse, window.location.origin);
+        return this._sendPublicKeyResponse(
+          requestId,
+          null,
+          propertyIsNotValid("address")
+        );
       }
 
       const message: ExternalPublicKeyReq = {
@@ -1600,38 +1651,75 @@ class ProxyCommunicationController {
         },
       };
 
-      const response: ExternalPublicKeyRes = await browser.runtime.sendMessage(
-        message
-      );
+      const response: ExternalPublicKeyResToProxy =
+        await browser.runtime.sendMessage(message);
 
-      if (response?.error) {
-        proxyResponse = {
-          id: response.requestId || requestId,
-          from: "VAULT_KEYRING",
+      if (response && response?.type === PUBLIC_KEY_RESPONSE) {
+        this._sendPublicKeyResponse(
+          requestId,
+          response?.data?.publicKey,
+          response?.error
+        );
+      }
+    } catch (e) {
+      this._sendPublicKeyResponse(requestId, null, UnknownError);
+    }
+  }
+
+  private _handlePublicKeyResponse(response: InternalPublicKeyRes) {
+    try {
+      const { error, data, requestId } = response;
+
+      if (data) {
+        this._sendPublicKeyResponse(requestId, data.publicKey);
+      } else {
+        this._sendPublicKeyResponse(requestId, null, error);
+      }
+    } catch (e) {
+      this._sendPublicKeyResponse(response?.requestId, null, UnknownError);
+    }
+  }
+
+  private _sendPublicKeyResponse(
+    requestId: string,
+    publicKey: string | null,
+    error?
+  ) {
+    try {
+      let response: ProxyPublicKeyRes;
+
+      if (error) {
+        response = {
+          id: requestId,
           type: PUBLIC_KEY_RESPONSE,
-          error: response?.error,
+          from: "VAULT_KEYRING",
           data: null,
+          error,
         };
       } else {
-        proxyResponse = {
-          id: response.requestId || requestId,
-          from: "VAULT_KEYRING",
+        response = {
+          id: requestId,
           type: PUBLIC_KEY_RESPONSE,
+          from: "VAULT_KEYRING",
           error: null,
-          data: response?.data,
+          data: {
+            publicKey,
+          },
         };
       }
 
-      window.postMessage(proxyResponse, window.location.origin);
+      window.postMessage(response, window.location.origin);
     } catch (e) {
-      proxyResponse = {
-        id: requestId,
-        from: "VAULT_KEYRING",
-        type: PUBLIC_KEY_RESPONSE,
-        data: null,
-        error: UnknownError,
-      };
-      window.postMessage(proxyResponse, window.location.origin);
+      window.postMessage(
+        {
+          id: requestId,
+          type: PUBLIC_KEY_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error: UnknownError,
+        } as ProxyPublicKeyRes,
+        window.location.origin
+      );
     }
   }
 
@@ -1679,13 +1767,14 @@ class ProxyCommunicationController {
         try {
           transactionData = validator.parse(data);
         } catch (e) {
-          console.log("ERR", e);
           const zodError: ZodError = e;
           const path = zodError?.issues?.[0]?.path?.[0] as string;
 
           const errorToReturn = !data?.[path]
-            ? propertyIsRequired(path)
-            : propertyIsNotValid(path);
+            ? propertyIsRequired(zodError?.issues?.[0]?.path?.join(".") || path)
+            : propertyIsNotValid(
+                zodError?.issues?.[0]?.path?.join(".") || path
+              );
           return this._sendPoktTxResponse<typeof responseType, PRes>(
             responseType,
             requestId,

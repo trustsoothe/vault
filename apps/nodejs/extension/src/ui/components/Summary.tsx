@@ -6,7 +6,7 @@ import { themeColors } from "../theme";
 
 interface RowItem {
   type: "row";
-  label: string;
+  label: React.ReactElement | React.ReactNode | string;
   value: React.ReactElement | React.ReactNode;
   containerProps?: StackProps;
 }
@@ -52,14 +52,18 @@ export default function Summary({ rows, containerProps }: SummaryProps) {
 
         return (
           <Stack
-            key={row.label}
+            key={index}
             direction={"row"}
             alignItems={"center"}
             justifyContent={"space-between"}
             width={1}
             {...row.containerProps}
           >
-            <Typography whiteSpace={"nowrap"}>{row.label}</Typography>
+            {typeof row.label === "string" ? (
+              <Typography noWrap>{row.label}</Typography>
+            ) : (
+              row.label
+            )}
 
             {typeof row.value === "string" ? (
               <Typography

@@ -26,6 +26,18 @@ import {
   vaultLockedForWrongPasswordsSelector,
 } from "../../redux/selectors/session";
 import { themeColors } from "../theme";
+import {
+  CHANGE_PARAM_REQUEST,
+  DAO_TRANSFER_REQUEST,
+  PUBLIC_KEY_REQUEST,
+  STAKE_APP_REQUEST,
+  STAKE_NODE_REQUEST,
+  TRANSFER_APP_REQUEST,
+  UNJAIL_NODE_REQUEST,
+  UNSTAKE_APP_REQUEST,
+  UNSTAKE_NODE_REQUEST,
+  UPGRADE_REQUEST,
+} from "../../constants/communication";
 
 interface UnlockVaultForm {
   password: string;
@@ -138,6 +150,43 @@ export default function UnlockVault() {
         requestDescription = "is trying to change the network";
         break;
 
+      case STAKE_NODE_REQUEST:
+        requestDescription = "is trying to execute a stake node transaction";
+        break;
+      case UNSTAKE_NODE_REQUEST:
+        requestDescription = "is trying to execute an unstake node transaction";
+        break;
+
+      case UNJAIL_NODE_REQUEST:
+        requestDescription = "is trying to execute an unjail node transaction";
+        break;
+
+      case STAKE_APP_REQUEST:
+        requestDescription = "is trying to execute a stake app transaction";
+        break;
+
+      case TRANSFER_APP_REQUEST:
+        requestDescription = "is trying to execute a transfer app transaction";
+        break;
+
+      case UNSTAKE_APP_REQUEST:
+        requestDescription = "is trying to execute an unstake app transaction";
+        break;
+
+      case CHANGE_PARAM_REQUEST:
+        requestDescription = "is trying to execute a change param transaction";
+        break;
+
+      case DAO_TRANSFER_REQUEST:
+        requestDescription = "is trying to execute a dao transfer transaction";
+        break;
+      case UPGRADE_REQUEST:
+        requestDescription = "is trying to execute an upgrade transaction";
+        break;
+
+      case PUBLIC_KEY_REQUEST:
+        requestDescription = "is trying to get your public key";
+        break;
       case "SIGN_TYPED_DATA_REQUEST":
       case "PERSONAL_SIGN_REQUEST":
         requestDescription = "is trying to sign data with your account";

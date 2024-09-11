@@ -1,4 +1,6 @@
+import PasteIcon from "@mui/icons-material/ContentPaste";
 import type { TextFieldProps } from "@mui/material";
+import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import React from "react";
@@ -7,10 +9,16 @@ interface TextFieldWithPasteProps
   extends Omit<TextFieldProps<"filled">, "onPaste" | "variant"> {
   onPaste: (value: string) => void;
   overrideEndAdornment?: boolean;
+  smallButton?: boolean;
 }
 
 function TextFieldWithPaste(
-  { onPaste, overrideEndAdornment, ...props }: TextFieldWithPasteProps,
+  {
+    onPaste,
+    overrideEndAdornment,
+    smallButton = false,
+    ...props
+  }: TextFieldWithPasteProps,
   ref: React.ForwardedRef<HTMLInputElement>
 ) {
   const pasteText = () => {
@@ -22,11 +30,24 @@ function TextFieldWithPaste(
   return (
     <TextField
       {...props}
+      inputRef={ref}
       InputProps={{
         ...props?.InputProps,
         endAdornment:
           overrideEndAdornment && props?.InputProps?.endAdornment ? (
             props?.InputProps?.endAdornment
+          ) : smallButton ? (
+            <IconButton
+              onClick={pasteText}
+              sx={{
+                marginRight: -1,
+                minWidth: 0,
+                height: 28,
+                width: 28,
+              }}
+            >
+              <PasteIcon color={"primary"} sx={{ fontSize: 18 }} />
+            </IconButton>
           ) : (
             <Button
               variant={"text"}

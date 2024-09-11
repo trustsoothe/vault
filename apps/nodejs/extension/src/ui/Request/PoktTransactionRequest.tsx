@@ -3,26 +3,17 @@ import Stack from "@mui/material/Stack";
 import { useLocation } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
+import { FormProvider, useForm } from "react-hook-form";
 import React, { useEffect, useRef, useState } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
-import {
-  enqueueErrorSnackbar,
-  roundAndSeparate,
-  wrongPasswordSnackbar,
-} from "../../utils/ui";
+import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../utils/ui";
 import {
   PocketNetworkFee,
+  PocketNetworkTransactionTypes,
   SupportedProtocols,
   ValidateTransactionResult,
 } from "@poktscan/vault";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import VaultPasswordInput from "../Transaction/VaultPasswordInput";
-import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
-import Summary, { SummaryProps } from "../components/Summary";
-import { AmountWithUsd } from "../Transaction/BaseSummary";
-import CopyAddressButton from "../Home/CopyAddressButton";
 import DialogButtons from "../components/DialogButtons";
-import AccountInfo from "../components/AccountInfo";
 import { WIDTH } from "../../constants/ui";
 import RequestInfo from "./RequestInfo";
 import { themeColors } from "../theme";
@@ -35,9 +26,18 @@ import {
   UNJAIL_NODE_REQUEST,
   UNSTAKE_APP_REQUEST,
   UNSTAKE_NODE_REQUEST,
+  UPGRADE_REQUEST,
 } from "../../constants/communication";
+import UpgradeSummary from "../PoktTransaction/Upgrade/Summary";
+import StakeAppSummary from "../PoktTransaction/StakeApp/Summary";
+import UnstakeApp from "../PoktTransaction/UnstakeApp/SummaryForm";
+import StakeNodeSummary from "../PoktTransaction/StakeNode/Summary";
+import TransferAppSummary from "../PoktTransaction/TransferApp/Summary";
+import ChangeParamSummary from "../PoktTransaction/ChangeParam/Summary";
+import DaoTransferSummary from "../PoktTransaction/DaoTransfer/Summary";
+import UnstakeUnjailNodeSummary from "../PoktTransaction/UnstakeUnjailNode/Summary";
 
-function getTransactionFn(transactionRequest: PoktTxRequest) {
+export function getTransactionFn(transactionRequest: PoktTxRequest) {
   let fn:
     | typeof AppToBackground.stakeNode
     | typeof AppToBackground.unstakeNode
@@ -46,7 +46,8 @@ function getTransactionFn(transactionRequest: PoktTxRequest) {
     | typeof AppToBackground.transferApp
     | typeof AppToBackground.unstakeApp
     | typeof AppToBackground.changeParam
-    | typeof AppToBackground.daoTransfer;
+    | typeof AppToBackground.daoTransfer
+    | typeof AppToBackground.upgrade;
 
   switch (transactionRequest.type) {
     case STAKE_NODE_REQUEST:
@@ -73,476 +74,63 @@ function getTransactionFn(transactionRequest: PoktTxRequest) {
     case DAO_TRANSFER_REQUEST:
       fn = AppToBackground.daoTransfer;
       break;
+    case UPGRADE_REQUEST:
+      fn = AppToBackground.upgrade;
+      break;
     default:
       throw new Error("Invalid transaction request");
   }
   return fn;
 }
 
+export function getTransactionTypeLabel(type: PocketNetworkTransactionTypes) {
+  switch (type) {
+    case PocketNetworkTransactionTypes.NodeStake:
+      return "Stake Node";
+    case PocketNetworkTransactionTypes.NodeUnstake:
+      return "Unstake Node";
+    case PocketNetworkTransactionTypes.NodeUnjail:
+      return "Unjail Node";
+    case PocketNetworkTransactionTypes.AppStake:
+      return "Stake App";
+    case PocketNetworkTransactionTypes.AppTransfer:
+      return "Transfer App";
+    case PocketNetworkTransactionTypes.AppUnstake:
+      return "Unstake App";
+    case PocketNetworkTransactionTypes.GovChangeParam:
+      return "Change Param";
+    case PocketNetworkTransactionTypes.GovDAOTransfer:
+      return "DAO Transfer";
+    case PocketNetworkTransactionTypes.GovUpgrade:
+      return "Upgrade";
+    default:
+      throw new Error("Invalid transaction request type: " + type);
+  }
+}
+
 function getTransactionType(transactionRequest: PoktTxRequest) {
   switch (transactionRequest.type) {
     case STAKE_NODE_REQUEST:
-      return "Stake Node";
+      return PocketNetworkTransactionTypes.NodeStake;
     case UNSTAKE_NODE_REQUEST:
-      return "Unstake Node";
+      return PocketNetworkTransactionTypes.NodeUnstake;
     case UNJAIL_NODE_REQUEST:
-      return "Unjail Node";
+      return PocketNetworkTransactionTypes.NodeUnjail;
     case STAKE_APP_REQUEST:
-      return "Stake App";
+      return PocketNetworkTransactionTypes.AppStake;
     case TRANSFER_APP_REQUEST:
-      return "Transfer App";
+      return PocketNetworkTransactionTypes.AppTransfer;
     case UNSTAKE_APP_REQUEST:
-      return "Unstake App";
+      return PocketNetworkTransactionTypes.AppUnstake;
     case CHANGE_PARAM_REQUEST:
-      return "Change Param";
+      return PocketNetworkTransactionTypes.GovChangeParam;
     case DAO_TRANSFER_REQUEST:
-      return "DAO Transfer";
+      return PocketNetworkTransactionTypes.GovDAOTransfer;
+    case UPGRADE_REQUEST:
+      return PocketNetworkTransactionTypes.GovUpgrade;
     default:
       throw new Error("Invalid transaction request");
   }
-}
-
-function getTransactionDescription(transactionRequest: PoktTxRequest) {
-  switch (transactionRequest.type) {
-    case STAKE_NODE_REQUEST: {
-      const { transactionData } = transactionRequest;
-
-      return `Are you sure you want to stake ${roundAndSeparate(
-        Number(transactionData.amount) / 1e6,
-        6
-      )} POKT? You will have to wait 21 days after unstaking it to recover your stake.`;
-    }
-    case UNSTAKE_NODE_REQUEST: {
-      return "Are you sure you want to unstake this node?\nYou will have to wait 21 days after unstaking it to recover your stake and your node will not received any rewards.";
-    }
-    default:
-      return "";
-  }
-}
-
-function getTransactionRows(
-  transactionRequest: PoktTxRequest,
-  balanceAndUsdPrice: ReturnType<typeof useBalanceAndUsdPrice>,
-  fee: {
-    fee: PocketNetworkFee;
-    fetchingFee: boolean;
-  }
-): Array<SummaryProps> {
-  let summaries: Array<SummaryProps> = [];
-
-  switch (transactionRequest.type) {
-    case STAKE_NODE_REQUEST: {
-      const firstSummary: SummaryProps = {
-        containerProps: {
-          paddingBottom: 0,
-        },
-        rows: [
-          {
-            type: "row",
-            label: "Stake Amount",
-            value: (
-              <AmountWithUsd
-                balance={
-                  Number(transactionRequest.transactionData.amount) / 1e6
-                }
-                decimals={6}
-                symbol={balanceAndUsdPrice.coinSymbol}
-                usdBalance={balanceAndUsdPrice.usdBalance}
-                isLoadingUsdPrice={false}
-              />
-            ),
-          },
-          {
-            type: "row",
-            label: "Fee",
-            value: (
-              <AmountWithUsd
-                balance={fee.fee?.value || 0}
-                decimals={6}
-                symbol={balanceAndUsdPrice.coinSymbol}
-                usdBalance={balanceAndUsdPrice.usdBalance}
-                isLoadingUsdPrice={
-                  fee.fetchingFee || balanceAndUsdPrice.isLoadingUsdPrice
-                }
-              />
-            ),
-          },
-          {
-            type: "row",
-            label: "Service URL",
-            value: transactionRequest.transactionData.serviceURL,
-          },
-          {
-            type: "row",
-            label: "Node Address",
-            value: (
-              <CopyAddressButton
-                address={transactionRequest.transactionData.nodeAddress}
-                sxProps={{
-                  fontWeight: 500,
-                  boxShadow: "none",
-                  marginRight: -0.8,
-                  color: themeColors.black,
-                  backgroundColor: "transparent",
-                }}
-              />
-            ),
-          },
-        ],
-      };
-
-      if (
-        transactionRequest.transactionData.outputAddress ||
-        transactionRequest.transactionData.address !==
-          transactionRequest.transactionData.nodeAddress
-      ) {
-        firstSummary.rows.push({
-          type: "row",
-          label: "Output Address",
-          value: (
-            <CopyAddressButton
-              address={
-                transactionRequest.transactionData.outputAddress ||
-                transactionRequest.transactionData.address
-              }
-              sxProps={{
-                fontWeight: 500,
-                boxShadow: "none",
-                marginRight: -0.8,
-                color: themeColors.black,
-                backgroundColor: "transparent",
-              }}
-            />
-          ),
-        });
-      }
-
-      summaries.push(firstSummary, {
-        containerProps: {
-          paddingTop: 0.8,
-        },
-        rows: [
-          {
-            type: "row",
-            label: "Chains",
-            value: transactionRequest.transactionData.chains.join("\n"),
-            containerProps: {
-              sx: {
-                alignItems: "flex-start",
-                "& h6": {
-                  whiteSpace: "pre",
-                },
-              },
-            },
-          },
-        ],
-      });
-
-      if (transactionRequest.transactionData.rewardDelegators) {
-        summaries.push(
-          {
-            containerProps: {
-              paddingTop: 0,
-              paddingBottom: 0,
-              marginTop: -1.2,
-            },
-            rows: [
-              {
-                type: "row",
-                label: "Reward Delegators",
-                value: "",
-                containerProps: {
-                  sx: {
-                    alignItems: "flex-start",
-                    "& h6": {
-                      whiteSpace: "pre",
-                    },
-                  },
-                },
-              },
-            ],
-          },
-          {
-            containerProps: {
-              paddingTop: 0.4,
-              paddingLeft: 2,
-              sx: {
-                "& p": {
-                  textOverflow: "ellipsis",
-                  overflow: "hidden",
-                  whiteSpace: "nowrap",
-                },
-                "& h6": {
-                  textOverflow: "unset",
-                  overflow: "unset",
-                  whiteSpace: "unset",
-                },
-              },
-            },
-            rows:
-              Object.entries(
-                transactionRequest.transactionData.rewardDelegators
-              ).map(([key, value]) => ({
-                type: "row",
-                label: key,
-                value: value + "%",
-              })) || [],
-          }
-        );
-      }
-
-      break;
-    }
-    case UNJAIL_NODE_REQUEST:
-    case UNSTAKE_NODE_REQUEST: {
-      summaries = [
-        {
-          rows: [
-            {
-              type: "row",
-              label: "Node Address",
-              value: (
-                <CopyAddressButton
-                  address={
-                    transactionRequest.transactionData.nodeAddress ||
-                    transactionRequest.transactionData.address
-                  }
-                  sxProps={{
-                    fontWeight: 500,
-                    boxShadow: "none",
-                    marginRight: -0.8,
-                    color: themeColors.black,
-                    backgroundColor: "transparent",
-                  }}
-                />
-              ),
-            },
-          ],
-        },
-      ];
-      break;
-    }
-    case STAKE_APP_REQUEST: {
-      summaries = [
-        {
-          rows: [
-            {
-              type: "row",
-              label: "Stake Amount",
-              value: (
-                <AmountWithUsd
-                  balance={
-                    Number(transactionRequest.transactionData.amount) / 1e6
-                  }
-                  decimals={6}
-                  symbol={balanceAndUsdPrice.coinSymbol}
-                  usdBalance={balanceAndUsdPrice.usdBalance}
-                  isLoadingUsdPrice={
-                    fee.fetchingFee || balanceAndUsdPrice.isLoadingUsdPrice
-                  }
-                />
-              ),
-            },
-            {
-              type: "row",
-              label: "Fee",
-              value: (
-                <AmountWithUsd
-                  balance={fee.fee?.value || 0}
-                  decimals={6}
-                  symbol={balanceAndUsdPrice.coinSymbol}
-                  usdBalance={balanceAndUsdPrice.usdBalance}
-                  isLoadingUsdPrice={
-                    fee.fetchingFee || balanceAndUsdPrice.isLoadingUsdPrice
-                  }
-                />
-              ),
-            },
-          ],
-        },
-        {
-          containerProps: {
-            paddingTop: 0.8,
-          },
-          rows: [
-            {
-              type: "row",
-              label: "Chains",
-              value: transactionRequest.transactionData.chains.join("\n"),
-              containerProps: {
-                sx: {
-                  alignItems: "flex-start",
-                  "& h6": {
-                    whiteSpace: "pre",
-                  },
-                },
-              },
-            },
-          ],
-        },
-      ];
-
-      break;
-    }
-    case TRANSFER_APP_REQUEST: {
-      summaries = [
-        {
-          rows: [
-            {
-              type: "row",
-              label: "Transfer To",
-              // todo: get public key from vault
-              value: transactionRequest.transactionData.newAppPublicKey,
-            },
-          ],
-        },
-      ];
-
-      break;
-    }
-    case UNSTAKE_APP_REQUEST: {
-      summaries = [
-        {
-          rows: [
-            {
-              type: "row",
-              label: "App Address",
-              value: (
-                <CopyAddressButton
-                  address={transactionRequest.transactionData.address}
-                  sxProps={{
-                    fontWeight: 500,
-                    boxShadow: "none",
-                    marginRight: -0.8,
-                    color: themeColors.black,
-                    backgroundColor: "transparent",
-                  }}
-                />
-              ),
-            },
-          ],
-        },
-      ];
-      break;
-    }
-    case CHANGE_PARAM_REQUEST: {
-      summaries = [
-        {
-          rows: [
-            {
-              type: "row",
-              label: "Parameter",
-              value: transactionRequest.transactionData.paramKey,
-            },
-            {
-              type: "row",
-              label: "Value",
-              value: transactionRequest.transactionData.paramValue,
-            },
-            {
-              type: "row",
-              label: "Override Gov Params Whitelist Validation",
-              value:
-                transactionRequest.transactionData
-                  .overrideGovParamsWhitelistValidation,
-            },
-          ],
-        },
-      ];
-
-      break;
-    }
-    case DAO_TRANSFER_REQUEST: {
-      summaries = [
-        {
-          rows: [
-            {
-              type: "row",
-              label: "From",
-              value: (
-                <AccountInfo
-                  address={transactionRequest.transactionData.address}
-                  name={"Main POKT"}
-                />
-              ),
-            },
-            {
-              type: "row",
-              label: "To",
-              value: (
-                <AccountInfo
-                  address={transactionRequest.transactionData.to}
-                  name={"New App"}
-                />
-              ),
-            },
-            {
-              type: "row",
-              label: "Amount",
-              value: (
-                <AmountWithUsd
-                  balance={
-                    Number(transactionRequest.transactionData.amount) / 1e6
-                  }
-                  decimals={6}
-                  symbol={balanceAndUsdPrice.coinSymbol}
-                  usdBalance={balanceAndUsdPrice.usdBalance}
-                  isLoadingUsdPrice={
-                    fee.fetchingFee || balanceAndUsdPrice.isLoadingUsdPrice
-                  }
-                />
-              ),
-            },
-            {
-              type: "row",
-              label: "Fee",
-              value: (
-                <AmountWithUsd
-                  balance={fee.fee?.value || 0}
-                  decimals={6}
-                  symbol={balanceAndUsdPrice.coinSymbol}
-                  usdBalance={balanceAndUsdPrice.usdBalance}
-                  isLoadingUsdPrice={
-                    fee.fetchingFee || balanceAndUsdPrice.isLoadingUsdPrice
-                  }
-                />
-              ),
-            },
-            {
-              type: "row",
-              label: "DAO Action",
-              value:
-                transactionRequest.transactionData.daoAction === "dao_burn"
-                  ? "Burn"
-                  : "Transfer",
-            },
-          ],
-        },
-      ];
-      break;
-    }
-    default: {
-      throw new Error("Invalid transaction request");
-    }
-  }
-
-  if (transactionRequest.transactionData.memo) {
-    summaries.push({
-      containerProps: {
-        paddingTop: 0,
-        marginTop: -0.6,
-      },
-      rows: [
-        {
-          type: "row",
-          label: "Memo",
-          value: transactionRequest.transactionData.memo,
-        },
-      ],
-    });
-  }
-
-  return summaries;
 }
 
 interface PoktTxForm {
@@ -560,11 +148,6 @@ export default function PoktTransactionRequest() {
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
   const transactionRequest: PoktTxRequest = location.state;
-  const balanceAndUsdPrice = useBalanceAndUsdPrice({
-    address: transactionRequest.transactionData.address,
-    protocol: SupportedProtocols.Pocket,
-    chainId: transactionRequest.transactionData.chainId,
-  });
   const [validation, setValidation] = useState<{
     loading: boolean;
     result: ValidateTransactionResult;
@@ -596,7 +179,7 @@ export default function PoktTransactionRequest() {
       fetchingFee: true,
     },
   });
-  const { getValues, reset, handleSubmit, watch, setValue } = methods;
+  const { getValues, handleSubmit, watch, setValue } = methods;
 
   const [fee, fetchingFee] = watch(["fee", "fetchingFee"]);
 
@@ -741,11 +324,162 @@ export default function PoktTransactionRequest() {
       .finally(() => setIsLoading(false));
   };
 
-  const description = getTransactionDescription(transactionRequest);
-  const summaries = getTransactionRows(transactionRequest, balanceAndUsdPrice, {
-    fee,
-    fetchingFee,
-  });
+  let summaryComponent;
+
+  switch (transactionRequest.type) {
+    case STAKE_NODE_REQUEST: {
+      summaryComponent = (
+        <StakeNodeSummary
+          fromAddress={transactionRequest.transactionData.address}
+          chainId={transactionRequest.transactionData.chainId}
+          amount={Number(transactionRequest.transactionData.amount) / 1e6}
+          chains={transactionRequest.transactionData.chains}
+          serviceURL={transactionRequest.transactionData.serviceURL}
+          fee={{
+            fee,
+            fetchingFee,
+          }}
+          nodeAddress={transactionRequest.transactionData.nodeAddress}
+          outputAddress={transactionRequest.transactionData.outputAddress}
+          memo={transactionRequest.transactionData.memo}
+          rewardDelegators={transactionRequest.transactionData.rewardDelegators}
+        />
+      );
+      break;
+    }
+    case UNJAIL_NODE_REQUEST:
+    case UNSTAKE_NODE_REQUEST: {
+      summaryComponent = (
+        <UnstakeUnjailNodeSummary
+          signerAddress={transactionRequest.transactionData.address}
+          nodeAddress={transactionRequest.transactionData.nodeAddress}
+          chainId={transactionRequest.transactionData.chainId}
+          fee={{
+            fee,
+            fetchingFee,
+          }}
+        />
+      );
+      break;
+    }
+    case STAKE_APP_REQUEST: {
+      summaryComponent = (
+        <StakeAppSummary
+          appAddress={transactionRequest.transactionData.address}
+          chainId={transactionRequest.transactionData.chainId}
+          amount={Number(transactionRequest.transactionData.amount) / 1e6}
+          chains={transactionRequest.transactionData.chains}
+          fee={{
+            fee,
+            fetchingFee,
+          }}
+          memo={transactionRequest.transactionData.memo}
+        />
+      );
+      break;
+    }
+    case TRANSFER_APP_REQUEST: {
+      summaryComponent = (
+        <TransferAppSummary
+          appAddress={transactionRequest.transactionData.address}
+          chainId={transactionRequest.transactionData.chainId}
+          fee={{
+            fee,
+            fetchingFee,
+          }}
+          memo={transactionRequest.transactionData.memo}
+          newAppPublicKey={transactionRequest.transactionData.newAppPublicKey}
+        />
+      );
+      break;
+    }
+    case UNSTAKE_APP_REQUEST: {
+      summaryComponent = (
+        <UnstakeApp
+          fromAddress={transactionRequest.transactionData.address}
+          chainId={transactionRequest.transactionData.chainId}
+          fee={{
+            fee,
+            fetchingFee,
+          }}
+          memo={transactionRequest.transactionData.memo}
+          canEditMemo={false}
+          addTitle={false}
+        />
+      );
+      break;
+    }
+    case CHANGE_PARAM_REQUEST: {
+      summaryComponent = (
+        <ChangeParamSummary
+          fromAddress={transactionRequest.transactionData.address}
+          chainId={transactionRequest.transactionData.chainId}
+          fee={{
+            fee,
+            fetchingFee,
+          }}
+          memo={transactionRequest.transactionData.memo}
+          paramKey={transactionRequest.transactionData.paramKey}
+          paramValue={transactionRequest.transactionData.paramValue}
+          overrideGovParamsWhitelistValidation={
+            transactionRequest.transactionData
+              .overrideGovParamsWhitelistValidation
+          }
+        />
+      );
+      break;
+    }
+    case DAO_TRANSFER_REQUEST: {
+      summaryComponent = (
+        <DaoTransferSummary
+          fromAddress={transactionRequest.transactionData.address}
+          chainId={transactionRequest.transactionData.chainId}
+          fee={{
+            fee,
+            fetchingFee,
+          }}
+          memo={transactionRequest.transactionData.memo}
+          daoAction={transactionRequest.transactionData.daoAction}
+          amount={Number(transactionRequest.transactionData.amount) / 1e6}
+          to={transactionRequest.transactionData.to}
+        />
+      );
+      break;
+    }
+    case UPGRADE_REQUEST: {
+      summaryComponent = (
+        <UpgradeSummary
+          fromAddress={transactionRequest.transactionData.address}
+          chainId={transactionRequest.transactionData.chainId}
+          fee={{
+            fee,
+            fetchingFee,
+          }}
+          memo={transactionRequest.transactionData.memo}
+          upgradeHeight={transactionRequest.transactionData.height.toString()}
+          upgradeVersion={transactionRequest.transactionData.version}
+          upgradeType={
+            transactionRequest.transactionData.version === "FEATURE"
+              ? "features"
+              : "version"
+          }
+          features={transactionRequest.transactionData.features.map(
+            (rawFeature) => {
+              const [feature, height] = rawFeature.split(":");
+              return {
+                feature,
+                height,
+              };
+            }
+          )}
+        />
+      );
+      break;
+    }
+    default: {
+      throw new Error("Invalid transaction request");
+    }
+  }
 
   return (
     <Stack
@@ -768,58 +502,10 @@ export default function PoktTransactionRequest() {
         flexBasis={"1px"}
       >
         <Typography variant={"subtitle2"}>
-          {getTransactionType(transactionRequest)} Transaction
+          {getTransactionTypeLabel(getTransactionType(transactionRequest))}{" "}
+          Transaction
         </Typography>
-        {description && (
-          <Typography fontSize={11} whiteSpace={"pre-line"}>
-            {description}
-          </Typography>
-        )}
-        <FormProvider {...methods}>
-          <Controller
-            control={methods.control}
-            name="amount"
-            rules={{
-              validate: () => {
-                if ("amount" in transactionRequest.transactionData) {
-                  if (isNaN(balanceAndUsdPrice?.balance) || isNaN(fee?.value)) {
-                    return "";
-                  }
-
-                  if (
-                    Number(transactionRequest.transactionData.amount) / 1e6 +
-                      fee.value >
-                    balanceAndUsdPrice.balance
-                  ) {
-                    return `Insufficient balance. Current balance: ${balanceAndUsdPrice.balance} ${balanceAndUsdPrice.coinSymbol}`;
-                  }
-                }
-
-                return true;
-              },
-            }}
-            render={({ fieldState: { error } }) => (
-              <>
-                <Stack overflow={"auto"} marginTop={1}>
-                  {summaries.map((summary, index) => (
-                    <Summary {...summary} key={index} />
-                  ))}
-                </Stack>
-                {error && (
-                  <Typography
-                    fontSize={11}
-                    marginTop={0.8}
-                    lineHeight={"16px"}
-                    color={themeColors.red}
-                  >
-                    {error.message}
-                  </Typography>
-                )}
-              </>
-            )}
-          />
-          <VaultPasswordInput />
-        </FormProvider>
+        <FormProvider {...methods}>{summaryComponent}</FormProvider>
       </Stack>
       <Stack height={85}>
         <DialogButtons

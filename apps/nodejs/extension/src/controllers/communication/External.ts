@@ -63,6 +63,7 @@ import {
   RequestConnectionExists,
   RequestDaoTransferExists,
   RequestPersonalSignExists,
+  RequestPublicKeyExists,
   RequestSignedTypedDataExists,
   RequestStakeAppExists,
   RequestStakeNodeExists,
@@ -72,6 +73,7 @@ import {
   RequestUnjailNodeExists,
   RequestUnstakeAppExists,
   RequestUnstakeNodeExists,
+  RequestUpgradeExists,
   SessionIdNotPresented,
   UnauthorizedError,
   UnknownError,
@@ -124,6 +126,8 @@ import {
   UNSTAKE_APP_RESPONSE,
   UNSTAKE_NODE_REQUEST,
   UNSTAKE_NODE_RESPONSE,
+  UPGRADE_REQUEST,
+  UPGRADE_RESPONSE,
 } from "../../constants/communication";
 import { getVault, isHex, returnExtensionErr } from "../../utils";
 import { HEIGHT, WIDTH } from "../../constants/ui";
@@ -160,6 +164,7 @@ const mapMessageType: Record<ExternalRequests["type"], true> = {
   [CHANGE_PARAM_REQUEST]: true,
   [DAO_TRANSFER_REQUEST]: true,
   [PUBLIC_KEY_REQUEST]: true,
+  [UPGRADE_REQUEST]: true,
 };
 
 const errorReqExistByResType = {
@@ -176,6 +181,8 @@ const errorReqExistByResType = {
   [UNSTAKE_APP_RESPONSE]: RequestUnstakeAppExists,
   [CHANGE_PARAM_RESPONSE]: RequestChangeParamExists,
   [DAO_TRANSFER_RESPONSE]: RequestDaoTransferExists,
+  [PUBLIC_KEY_RESPONSE]: RequestPublicKeyExists,
+  [UPGRADE_RESPONSE]: RequestUpgradeExists,
 };
 
 const ExtensionVaultInstance = getVault();
@@ -295,7 +302,7 @@ class ExternalCommunicationController implements ICommunicationController {
     }
 
     if (message?.type === PUBLIC_KEY_REQUEST) {
-      const response = await this._handleGetPublicKey(message);
+      const response = await this._handleGetPublicKey(message, sender);
 
       if (response && response.type === PUBLIC_KEY_RESPONSE) {
         return response;
@@ -351,6 +358,90 @@ class ExternalCommunicationController implements ICommunicationController {
         requestId: message?.requestId,
         type: REQUEST_BEING_HANDLED,
       };
+    }
+
+    if (message?.type === UNJAIL_NODE_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        UNJAIL_NODE_RESPONSE
+      );
+
+      if (response && response.type === UNJAIL_NODE_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === STAKE_APP_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        STAKE_APP_RESPONSE
+      );
+
+      if (response && response.type === STAKE_APP_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === TRANSFER_APP_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        TRANSFER_APP_RESPONSE
+      );
+
+      if (response && response.type === TRANSFER_APP_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === UNSTAKE_APP_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        UNSTAKE_APP_RESPONSE
+      );
+
+      if (response && response.type === UNSTAKE_APP_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === CHANGE_PARAM_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        CHANGE_PARAM_RESPONSE
+      );
+
+      if (response && response.type === CHANGE_PARAM_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === DAO_TRANSFER_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        DAO_TRANSFER_RESPONSE
+      );
+
+      if (response && response.type === DAO_TRANSFER_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === UPGRADE_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        UPGRADE_RESPONSE
+      );
+
+      if (response && response.type === UPGRADE_RESPONSE) {
+        return response;
+      }
     }
   }
 
@@ -764,6 +855,7 @@ class ExternalCommunicationController implements ICommunicationController {
       | typeof PERSONAL_SIGN_RESPONSE
       | typeof STAKE_NODE_RESPONSE
       | typeof UNSTAKE_NODE_RESPONSE
+      | typeof PUBLIC_KEY_RESPONSE
   >(
     request: AppRequests,
     responseMessage: T
@@ -835,7 +927,8 @@ class ExternalCommunicationController implements ICommunicationController {
   }
 
   private async _handleGetPublicKey(
-    message: ExternalPublicKeyReq
+    message: ExternalPublicKeyReq,
+    sender: MessageSender
   ): Promise<ExternalPublicKeyRes> {
     try {
       const { origin, address, sessionId } = message?.data || {};
@@ -875,17 +968,35 @@ class ExternalCommunicationController implements ICommunicationController {
         };
       }
 
-      return {
-        type: PUBLIC_KEY_RESPONSE,
-        error: null,
-        data: {
-          publicKey: await ExtensionVaultInstance.getPublicKey(
-            sessionId,
-            address
-          ),
+      const vaultStatus = store.getState().vault;
+
+      if (
+        (vaultStatus.isUnlockedStatus === "yes" || vaultStatus.vaultSession) &&
+        ExtensionVaultInstance.isUnlocked
+      ) {
+        return {
+          type: PUBLIC_KEY_RESPONSE,
+          error: null,
+          data: {
+            publicKey: await ExtensionVaultInstance.getPublicKey(
+              sessionId,
+              address
+            ),
+          },
+          requestId: message?.requestId,
+        };
+      }
+
+      return this._addExternalRequest(
+        {
+          type: PUBLIC_KEY_REQUEST,
+          tabId: sender.tab.id,
+          protocol: SupportedProtocols.Pocket,
+          requestId: message?.requestId,
+          ...message.data,
         },
-        requestId: message?.requestId,
-      };
+        PUBLIC_KEY_RESPONSE
+      );
     } catch (e) {
       if (e?.name === VaultIsLockedErrorName) {
         return {

@@ -1,4 +1,4 @@
-import type { ErrorsByNetwork } from "../redux/slices/app";
+import type { CustomRPC, ErrorsByNetwork, Network } from "../redux/slices/app";
 import { Buffer } from "buffer";
 import { z, ZodError } from "zod";
 import crypto from "crypto-browserify";
@@ -12,9 +12,6 @@ import {
 } from "web3-validator";
 import { decrypt, encrypt, keyStoreSchema } from "web3-eth-accounts";
 import {
-  AccountReference,
-  EthereumNetworkFeeRequestOptions,
-  IAsset,
   INetwork,
   PocketNetworkProtocolService,
   ProtocolServiceFactory,
@@ -49,176 +46,6 @@ export const isValidPrivateKey = (
     protocol,
     null
   ).isValidPrivateKey(privateKey);
-};
-
-interface GetFeeParam<T extends SupportedProtocols = SupportedProtocols> {
-  protocol: T;
-  chainId: string;
-  networks: NetworkForOperations[];
-  errorsPreferredNetwork?: ErrorsByNetwork;
-  options: T extends SupportedProtocols.Ethereum
-    ? EthereumNetworkFeeRequestOptions
-    : undefined;
-}
-
-export const getFee = async ({
-  protocol,
-  chainId,
-  networks,
-  errorsPreferredNetwork,
-  options,
-}: GetFeeParam) => {
-  const ProtocolService = ProtocolServiceFactory.getProtocolService(
-    protocol,
-    new WebEncryptionService()
-  );
-
-  const networksWithErrors: string[] = [];
-
-  if (errorsPreferredNetwork) {
-    const preferredNetworks = networks.filter((item) => {
-      const errors = errorsPreferredNetwork?.[item.id] || 0;
-      return (
-        item.isPreferred &&
-        item.protocol === protocol &&
-        item.chainID === chainId &&
-        errors <= 5
-      );
-    });
-
-    if (preferredNetworks.length) {
-      for (const preferredNetwork of preferredNetworks) {
-        try {
-          const fee = await ProtocolService.getFee(
-            preferredNetwork,
-            protocol === SupportedProtocols.Ethereum ? options : undefined
-          );
-
-          return { fee, networksWithErrors };
-        } catch (e) {
-          networksWithErrors.push(preferredNetwork.id);
-        }
-      }
-    }
-  }
-
-  const networkSerialized = networks.find(
-    (item) => item.chainID === chainId && item.protocol === protocol
-  );
-
-  const fee = await ProtocolService.getFee(
-    networkSerialized,
-    protocol === SupportedProtocols.Ethereum ? options : undefined
-  );
-  return { fee, networksWithErrors };
-};
-
-export interface NetworkForOperations extends INetwork {
-  isPreferred?: boolean;
-  isDefault: boolean;
-  id: string;
-}
-
-interface GetAccountBalanceParam {
-  address: string;
-  protocol: SupportedProtocols;
-  chainId: string;
-  networks: NetworkForOperations[];
-  errorsPreferredNetwork?: ErrorsByNetwork;
-  asset?: { contractAddress: string; decimals: number };
-}
-
-export const getAccountBalance = async ({
-  address,
-  protocol,
-  chainId,
-  networks,
-  errorsPreferredNetwork,
-  asset: partialAsset,
-}: GetAccountBalanceParam) => {
-  const acc = new AccountReference({
-    id: "",
-    name: "",
-    address,
-    protocol,
-    publicKey: "",
-  });
-
-  const asset: IAsset =
-    protocol === SupportedProtocols.Ethereum && partialAsset
-      ? {
-          ...partialAsset,
-          protocol,
-          chainID: chainId,
-        }
-      : undefined;
-
-  const ProtocolService = ProtocolServiceFactory.getProtocolService(
-    protocol,
-    new WebEncryptionService()
-  );
-
-  const networksWithErrors: string[] = [];
-
-  if (errorsPreferredNetwork) {
-    const preferredNetworks = networks.filter((item) => {
-      const errors = errorsPreferredNetwork?.[item.id] || 0;
-      return (
-        item.isPreferred &&
-        item.protocol === protocol &&
-        item.chainID === chainId &&
-        errors <= 5
-      );
-    });
-
-    if (preferredNetworks.length) {
-      for (const preferredNetwork of preferredNetworks) {
-        try {
-          const balance = await ProtocolService.getBalance(
-            acc,
-            preferredNetwork,
-            asset
-          );
-
-          return {
-            balance: balance
-              ? balance /
-                (protocol === SupportedProtocols.Pocket
-                  ? 1e6
-                  : asset
-                  ? 1
-                  : 1e18)
-              : 0,
-            networksWithErrors,
-          };
-        } catch (e) {
-          networksWithErrors.push(preferredNetwork.id);
-        }
-      }
-    }
-  }
-
-  const networkSerialized = networks.find(
-    (item) => item.chainID === chainId && item.protocol === protocol
-  );
-
-  if (!networkSerialized) {
-    throw new Error("there is not a default network for this protocol");
-  }
-
-  const balance = await ProtocolService.getBalance(
-    acc,
-    networkSerialized,
-    asset
-  );
-
-  return {
-    balance: balance
-      ? balance /
-        (protocol === SupportedProtocols.Pocket ? 1e6 : asset ? 1 : 1e18)
-      : 0,
-    networksWithErrors,
-  };
 };
 
 export const isNetworkUrlHealthy = async (network: INetwork) => {
@@ -595,4 +422,73 @@ export function getAddressFromPublicKey(publicKey: string): Promise<string> {
   return new PocketNetworkProtocolService(
     new WebEncryptionService()
   ).getAddressFromPublicKey(publicKey);
+}
+
+export function isValidPublicKey(publicKey: string): boolean {
+  return /^[0-9A-Fa-f]{64}$/.test(publicKey);
+}
+
+interface RunWithNetworksParam {
+  protocol: SupportedProtocols;
+  chainId: string;
+  customRpcs?: Array<CustomRPC>;
+  networks: Array<Network>;
+  errorsPreferredNetwork: ErrorsByNetwork;
+}
+
+export async function runWithNetworks<T>(
+  {
+    protocol,
+    chainId,
+    customRpcs,
+    networks,
+    errorsPreferredNetwork,
+  }: RunWithNetworksParam,
+  callback: (network: INetwork) => Promise<T>
+): Promise<{ rpcWithErrors: Array<string>; result: T; rpcUrl: string }> {
+  const rpcUrls = customRpcs
+    .filter(
+      (item) =>
+        item.protocol === protocol &&
+        item.chainId === chainId &&
+        item.isPreferred &&
+        (errorsPreferredNetwork[item.id] || 0) <= 5
+    )
+    .map((item) => ({
+      id: item.id,
+      url: item.url,
+    }));
+
+  const defaultNetwork = networks.find(
+    (item) => item.chainId === chainId && item.protocol === protocol
+  );
+
+  const rpcWithError: Array<string> = [];
+  let result: T, rpcUrl: string;
+
+  for (const { url, id } of [
+    ...rpcUrls,
+    {
+      id: defaultNetwork.id,
+      url: defaultNetwork.rpcUrl,
+    },
+  ]) {
+    try {
+      result = await callback({
+        protocol,
+        chainID: chainId,
+        rpcUrl: url,
+      });
+      rpcUrl = url;
+      break;
+    } catch (e) {
+      if (defaultNetwork.id !== id) {
+        rpcWithError.push(id);
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  return { rpcWithErrors: rpcWithError, result, rpcUrl };
 }

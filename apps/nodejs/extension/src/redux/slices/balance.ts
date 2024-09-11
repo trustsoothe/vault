@@ -1,10 +1,13 @@
-import type { SupportedProtocols } from "@poktscan/vault";
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
-import { setNetworksWithErrors } from "./app";
+import { WebEncryptionService } from "@poktscan/vault-encryption-web";
 import {
-  getAccountBalance as getBalance,
-  NetworkForOperations,
-} from "../../utils/networkOperations";
+  AccountReference,
+  IAsset,
+  ProtocolServiceFactory,
+  SupportedProtocols,
+} from "@poktscan/vault";
+import { setNetworksWithErrors } from "./app";
+import { runWithNetworks } from "../../utils/networkOperations";
 
 export interface GetAccountBalanceArg {
   address: string;
@@ -21,7 +24,12 @@ export const balanceApi = createApi({
   endpoints: (builder) => ({
     getBalance: builder.query({
       queryFn: async (
-        { address, protocol, chainId, asset }: GetAccountBalanceArg,
+        {
+          address,
+          protocol,
+          chainId,
+          asset: partialAsset,
+        }: GetAccountBalanceArg,
         api
       ) => {
         try {
@@ -29,45 +37,58 @@ export const balanceApi = createApi({
             app: { networks, customRpcs, errorsPreferredNetwork },
           } = api.getState() as any;
 
-          const allNetworks = [
-            ...networks.map(
-              (network) =>
-                ({
-                  protocol: network.protocol,
-                  id: network.id,
-                  chainID: network.chainId,
-                  isDefault: true,
-                  isPreferred: false,
-                  rpcUrl: network.rpcUrl,
-                } as NetworkForOperations)
-            ),
-            ...customRpcs.map(
-              (rpc) =>
-                ({
-                  protocol: rpc.protocol,
-                  id: rpc.id,
-                  chainID: rpc.chainId,
-                  isDefault: false,
-                  isPreferred: rpc.isPreferred,
-                  rpcUrl: rpc.url,
-                } as NetworkForOperations)
-            ),
-          ];
-
-          const result = await getBalance({
+          const accountReference = new AccountReference({
+            id: "",
+            name: "",
             address,
             protocol,
-            chainId,
-            networks: allNetworks,
-            errorsPreferredNetwork,
-            asset,
+            publicKey: "",
           });
 
-          if (result.networksWithErrors.length) {
-            api.dispatch(setNetworksWithErrors(result.networksWithErrors));
+          const protocolService = ProtocolServiceFactory.getProtocolService(
+            protocol,
+            new WebEncryptionService()
+          );
+
+          const { result, rpcWithErrors } = await runWithNetworks(
+            {
+              protocol,
+              chainId,
+              customRpcs,
+              networks,
+              errorsPreferredNetwork,
+            },
+            async (network) => {
+              const asset: IAsset =
+                protocol === SupportedProtocols.Ethereum && partialAsset
+                  ? {
+                      ...partialAsset,
+                      protocol,
+                      chainID: chainId,
+                    }
+                  : undefined;
+              const balance = await protocolService.getBalance(
+                accountReference,
+                network,
+                asset
+              );
+
+              return balance
+                ? balance /
+                    (protocol === SupportedProtocols.Pocket
+                      ? 1e6
+                      : asset
+                      ? 1
+                      : 1e18)
+                : 0;
+            }
+          );
+
+          if (rpcWithErrors.length) {
+            await api.dispatch(setNetworksWithErrors(rpcWithErrors));
           }
 
-          return { data: result.balance };
+          return { data: result };
         } catch (error) {
           return { error };
         }

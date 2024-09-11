@@ -42,16 +42,14 @@ import {
   STAKE_NODE_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
-  TRANSFER_APP_REQUEST,
-  TRANSFER_APP_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
   UNJAIL_NODE_REQUEST,
   UNJAIL_NODE_RESPONSE,
-  UNSTAKE_APP_REQUEST,
-  UNSTAKE_APP_RESPONSE,
   UNSTAKE_NODE_REQUEST,
   UNSTAKE_NODE_RESPONSE,
+  UPGRADE_REQUEST,
+  UPGRADE_RESPONSE,
 } from "../../constants/communication";
 import {
   ProviderNotReady,
@@ -79,6 +77,7 @@ export enum PocketNetworkMethod {
   UNSTAKE_APP = "pokt_unstakeApp",
   CHANGE_PARAM = "pokt_changeParam",
   DAO_TRANSFER = "pokt_daoTransfer",
+  UPGRADE = "pokt_upgrade",
 }
 
 export enum EthereumMethod {
@@ -259,20 +258,16 @@ export default class BaseProvider extends EventEmitter {
         sootheRequestType = STAKE_APP_REQUEST;
         break;
       }
-      case PocketNetworkMethod.TRANSFER_APP: {
-        sootheRequestType = TRANSFER_APP_REQUEST;
-        break;
-      }
-      case PocketNetworkMethod.UNSTAKE_APP: {
-        sootheRequestType = UNSTAKE_APP_REQUEST;
-        break;
-      }
       case PocketNetworkMethod.CHANGE_PARAM: {
         sootheRequestType = CHANGE_PARAM_REQUEST;
         break;
       }
       case PocketNetworkMethod.DAO_TRANSFER: {
         sootheRequestType = DAO_TRANSFER_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.UPGRADE: {
+        sootheRequestType = UPGRADE_REQUEST;
         break;
       }
       default: {
@@ -376,16 +371,6 @@ export default class BaseProvider extends EventEmitter {
         requestData = params?.[0];
         break;
       }
-      case TRANSFER_APP_REQUEST: {
-        responseType = TRANSFER_APP_RESPONSE;
-        requestData = params?.[0];
-        break;
-      }
-      case UNSTAKE_APP_REQUEST: {
-        responseType = UNSTAKE_APP_RESPONSE;
-        requestData = params?.[0];
-        break;
-      }
       case CHANGE_PARAM_REQUEST: {
         responseType = CHANGE_PARAM_RESPONSE;
         requestData = params?.[0];
@@ -393,6 +378,11 @@ export default class BaseProvider extends EventEmitter {
       }
       case DAO_TRANSFER_REQUEST: {
         responseType = DAO_TRANSFER_RESPONSE;
+        requestData = params?.[0];
+        break;
+      }
+      case UPGRADE_REQUEST: {
+        responseType = UPGRADE_RESPONSE;
         requestData = params?.[0];
         break;
       }
