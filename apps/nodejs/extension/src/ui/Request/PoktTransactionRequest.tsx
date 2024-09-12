@@ -501,7 +501,7 @@ export default function PoktTransactionRequest() {
         minHeight={0}
         flexBasis={"1px"}
       >
-        <Typography variant={"subtitle2"}>
+        <Typography variant={"subtitle2"} marginBottom={0.8}>
           {getTransactionTypeLabel(getTransactionType(transactionRequest))}{" "}
           Transaction
         </Typography>
