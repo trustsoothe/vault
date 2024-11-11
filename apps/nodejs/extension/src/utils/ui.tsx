@@ -22,16 +22,36 @@ import {
 import { useAppDispatch } from "../ui/hooks/redux";
 import { themeColors } from "../ui/theme";
 import {
+  CHANGE_PARAM_REQUEST,
+  CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  DAO_TRANSFER_REQUEST,
+  DAO_TRANSFER_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
+  PUBLIC_KEY_REQUEST,
+  PUBLIC_KEY_RESPONSE,
   SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
+  STAKE_APP_REQUEST,
+  STAKE_APP_RESPONSE,
+  STAKE_NODE_REQUEST,
+  STAKE_NODE_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
+  TRANSFER_APP_REQUEST,
+  TRANSFER_APP_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
+  UNJAIL_NODE_REQUEST,
+  UNJAIL_NODE_RESPONSE,
+  UNSTAKE_APP_REQUEST,
+  UNSTAKE_APP_RESPONSE,
+  UNSTAKE_NODE_REQUEST,
+  UNSTAKE_NODE_RESPONSE,
+  UPGRADE_REQUEST,
+  UPGRADE_RESPONSE,
 } from "../constants/communication";
 
 export const closeCurrentWindow = () =>
@@ -63,7 +83,18 @@ export const removeRequestWithRes = async (
     | typeof CONNECTION_RESPONSE_MESSAGE
     | typeof SWITCH_CHAIN_RESPONSE
     | typeof SIGN_TYPED_DATA_RESPONSE
-    | typeof PERSONAL_SIGN_RESPONSE;
+    | typeof PERSONAL_SIGN_RESPONSE
+    | typeof STAKE_NODE_RESPONSE
+    | typeof UNSTAKE_NODE_RESPONSE
+    | typeof UNJAIL_NODE_RESPONSE
+    | typeof STAKE_APP_RESPONSE
+    | typeof TRANSFER_APP_RESPONSE
+    | typeof UNSTAKE_APP_RESPONSE
+    | typeof CHANGE_PARAM_RESPONSE
+    | typeof DAO_TRANSFER_RESPONSE
+    | typeof PUBLIC_KEY_RESPONSE
+    | typeof UPGRADE_RESPONSE;
+
   let data: UiResponsesToProxy["data"] = null;
   let errorToReturn: UiResponsesToProxy["error"] = null;
 
@@ -72,8 +103,61 @@ export const removeRequestWithRes = async (
   }
 
   switch (request.type) {
+    case STAKE_NODE_REQUEST:
+    case UNSTAKE_NODE_REQUEST:
+    case UNJAIL_NODE_REQUEST:
+    case STAKE_APP_REQUEST:
+    case TRANSFER_APP_REQUEST:
+    case UNSTAKE_APP_REQUEST:
+    case CHANGE_PARAM_REQUEST:
+    case DAO_TRANSFER_REQUEST:
+    case UPGRADE_REQUEST:
     case TRANSFER_REQUEST: {
-      responseType = TRANSFER_RESPONSE;
+      switch (request.type) {
+        case TRANSFER_REQUEST: {
+          responseType = TRANSFER_RESPONSE;
+          break;
+        }
+        case STAKE_NODE_REQUEST: {
+          responseType = STAKE_NODE_RESPONSE;
+          break;
+        }
+        case UNSTAKE_NODE_REQUEST: {
+          responseType = UNSTAKE_NODE_RESPONSE;
+          break;
+        }
+        case UNJAIL_NODE_REQUEST: {
+          responseType = UNJAIL_NODE_RESPONSE;
+          break;
+        }
+        case STAKE_APP_REQUEST: {
+          responseType = STAKE_APP_RESPONSE;
+          break;
+        }
+        case TRANSFER_APP_REQUEST: {
+          responseType = TRANSFER_APP_RESPONSE;
+          break;
+        }
+        case UNSTAKE_APP_REQUEST: {
+          responseType = UNSTAKE_APP_RESPONSE;
+          break;
+        }
+        case CHANGE_PARAM_REQUEST: {
+          responseType = CHANGE_PARAM_RESPONSE;
+          break;
+        }
+        case DAO_TRANSFER_REQUEST: {
+          responseType = DAO_TRANSFER_RESPONSE;
+          break;
+        }
+        case UPGRADE_REQUEST: {
+          responseType = UPGRADE_RESPONSE;
+          break;
+        }
+        default: {
+          throw new Error("Invalid request type");
+        }
+      }
       if (error.code === OperationRejected.code) {
         data = {
           rejected: true,
@@ -109,6 +193,12 @@ export const removeRequestWithRes = async (
       data = null;
       errorToReturn = OperationRejected;
       responseType = PERSONAL_SIGN_RESPONSE;
+      break;
+    }
+    case PUBLIC_KEY_REQUEST: {
+      data = null;
+      errorToReturn = OperationRejected;
+      responseType = PUBLIC_KEY_RESPONSE;
       break;
     }
     case SIGN_TYPED_DATA_REQUEST: {
@@ -251,13 +341,15 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
   let snackbarKey: SnackbarKey;
 
   const onClickClose = () => {
+    options.onRetry();
     if (snackbarKey) {
-      options.onRetry();
       closeSnackbar(snackbarKey);
+      snackbarKey = null;
     }
   };
 
-  let message: React.ReactNode;
+  let message: React.ReactNode,
+    addCloseButton = false;
 
   if (typeof options.message === "function") {
     message = options.message(onClickClose);
@@ -265,6 +357,7 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
     typeof options.message === "object" &&
     "title" in options.message
   ) {
+    addCloseButton = true;
     message = (
       <Stack className={"title-with-content"}>
         <Typography color={themeColors.bgLightGray} fontWeight={500}>
@@ -273,7 +366,7 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
         <Typography
           color={themeColors.light_gray2}
           whiteSpace={"pre-line"}
-          marginBottom={3.8}
+          marginBottom={1.2}
         >
           {options.message.content}
         </Typography>
@@ -282,11 +375,66 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
   } else {
     message = options.message;
   }
+
+  const retryButton = (
+    <Button
+      sx={{
+        width: 60,
+        height: 27,
+        minWidth: 60,
+        borderRadius: "6px",
+        backgroundColor: themeColors.white,
+        boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+        "&:hover": {
+          backgroundColor: themeColors.light_gray,
+        },
+      }}
+      className={"retry-button"}
+      onClick={onClickClose}
+    >
+      Retry
+    </Button>
+  );
+
   snackbarKey = enqueueSnackbarNotistack({
     autoHideDuration: 4000,
     ...options,
     variant: options.variant || "error",
-    message: (
+    message: addCloseButton ? (
+      <Stack marginX={0.9} spacing={1} width={1}>
+        {message}
+        <Stack
+          direction={"row"}
+          className={"retry-button"}
+          alignItems={"center"}
+          spacing={1}
+        >
+          <Button
+            sx={{
+              width: 60,
+              height: 27,
+              minWidth: 60,
+              borderRadius: "6px",
+              backgroundColor: themeColors.white,
+              boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+              "&:hover": {
+                backgroundColor: themeColors.light_gray,
+              },
+            }}
+            className={"retry-button"}
+            onClick={() => {
+              if (snackbarKey) {
+                closeSnackbar(snackbarKey);
+                snackbarKey = null;
+              }
+            }}
+          >
+            Close
+          </Button>
+          {retryButton}
+        </Stack>
+      </Stack>
+    ) : (
       <Stack
         direction={"row"}
         alignItems={"center"}
@@ -295,34 +443,14 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
         spacing={1}
         width={1}
       >
-        {typeof options.message === "object" && "title" in options.message ? (
-          message
-        ) : (
-          <Typography
-            fontWeight={500}
-            color={themeColors.bgLightGray}
-            flexGrow={1}
-          >
-            {message}
-          </Typography>
-        )}
-        <Button
-          sx={{
-            width: 60,
-            height: 27,
-            minWidth: 60,
-            borderRadius: "6px",
-            backgroundColor: themeColors.white,
-            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
-            "&:hover": {
-              backgroundColor: themeColors.light_gray,
-            },
-          }}
-          className={"retry-button"}
-          onClick={onClickClose}
+        <Typography
+          fontWeight={500}
+          color={themeColors.bgLightGray}
+          flexGrow={1}
         >
-          Retry
-        </Button>
+          {message}
+        </Typography>
+        {retryButton}
       </Stack>
     ),
   });

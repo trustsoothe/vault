@@ -1,5 +1,6 @@
+import type { Upgrade } from "./pocket-js/models/proto/generated/tx-signer";
 // @ts-ignore
-import {fromUint8Array} from "hex-lite";
+import { fromUint8Array } from "hex-lite";
 import {
   AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
@@ -11,11 +12,11 @@ import {
   TransactionValidationResultType,
   ValidateTransactionResult,
 } from "../IProtocolService";
-import {Account, AccountType} from "../../../vault";
-import {getPublicKeyAsync, signAsync, utils} from "@noble/ed25519";
-import {Buffer} from "buffer";
-import {IEncryptionService} from "../../encryption/IEncryptionService";
-import {AccountReference, SupportedProtocols} from "../../values";
+import { Account, AccountType } from "../../../vault";
+import { getPublicKeyAsync, signAsync, utils } from "@noble/ed25519";
+import { Buffer } from "buffer";
+import { IEncryptionService } from "../../encryption/IEncryptionService";
+import { AccountReference, SupportedProtocols } from "../../values";
 import urlJoin from "url-join";
 import {
   PocketProtocolNetworkSchema,
@@ -38,6 +39,7 @@ import {
   MsgProtoAppUnstake,
   MsgProtoGovChangeParam,
   MsgProtoGovDAOTransfer,
+  MsgProtoGovUpgrade,
   MsgProtoNodeStakeTx,
   MsgProtoNodeUnjail,
   MsgProtoNodeUnstake,
@@ -45,19 +47,22 @@ import {
   TxEncoderFactory,
   TxSignature,
 } from "./pocket-js";
-import {RawTxRequest} from "@pokt-foundation/pocketjs-types";
-import {ProtocolFee} from "../ProtocolFee";
-import {INetwork} from "../INetwork";
-import {NetworkStatus} from "../../values/NetworkStatus";
-import {IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
-import {PocketNetworkTransactionTypes} from "./PocketNetworkTransactionTypes";
+import { RawTxRequest } from "@pokt-foundation/pocketjs-types";
+import { ProtocolFee } from "../ProtocolFee";
+import { INetwork } from "../INetwork";
+import { NetworkStatus } from "../../values/NetworkStatus";
+import {
+  IProtocolTransactionResult,
+  ProtocolTransaction,
+} from "../ProtocolTransaction";
+import { PocketNetworkTransactionTypes } from "./PocketNetworkTransactionTypes";
 import {
   PocketNetworkProtocolTransaction,
-  PocketNetworkTransactionValidationResults
+  PocketNetworkTransactionValidationResults,
 } from "./PocketNetworkProtocolTransaction";
-import {derivePath, getMasterKeyFromSeed, getPublicKey} from "ed25519-hd-key";
-import {mnemonicToSeed, validateMnemonic} from "@scure/bip39";
-import {wordlist} from "@scure/bip39/wordlists/english";
+import { derivePath, getMasterKeyFromSeed, getPublicKey } from "ed25519-hd-key";
+import { mnemonicToSeed, validateMnemonic } from "@scure/bip39";
+import { wordlist } from "@scure/bip39/wordlists/english";
 
 interface CrateAccountFromKeyPairOptions {
   key: Buffer;
@@ -71,9 +76,9 @@ interface CrateAccountFromKeyPairOptions {
 }
 
 export class PocketNetworkProtocolService
-    implements IProtocolService<SupportedProtocols.Pocket> {
-  constructor(private encryptionService: IEncryptionService) {
-  }
+  implements IProtocolService<SupportedProtocols.Pocket>
+{
+  constructor(private encryptionService: IEncryptionService) {}
 
   async createAccountsFromRecoveryPhrase(
     options: ImportRecoveryPhraseOptions
@@ -100,7 +105,7 @@ export class PocketNetworkProtocolService
           hdwAccountIndex: 0,
           hdwIndex: 0,
           concatPublicKey: false,
-      });
+        });
 
     const hdChildAccount = await this.deriveHDAccountAtIndex(hdSeedAccount, 0);
 
@@ -295,7 +300,7 @@ export class PocketNetworkProtocolService
 
   async getBalance(
     account: AccountReference,
-    network: INetwork,
+    network: INetwork
   ): Promise<number> {
     this.validateNetwork(network);
 
@@ -344,7 +349,10 @@ export class PocketNetworkProtocolService
   ): Promise<IProtocolTransactionResult<SupportedProtocols.Pocket>> {
     const signatureResult = await this.signTransaction(network, transaction);
 
-    const rawTx = new RawTxRequest(transaction.from, signatureResult.transactionHex);
+    const rawTx = new RawTxRequest(
+      transaction.from,
+      signatureResult.transactionHex
+    );
 
     const url = urlJoin(network.rpcUrl, "v1/client/rawtx");
 
@@ -356,8 +364,8 @@ export class PocketNetworkProtocolService
     if (!response.ok) {
       const responseText = await response.text();
       throw new NetworkRequestError(
-          "Failed when sending transaction at the network level.",
-          new Error(responseText)
+        "Failed when sending transaction at the network level.",
+        new Error(responseText)
       );
     }
 
@@ -365,8 +373,8 @@ export class PocketNetworkProtocolService
 
     if (responseRawBody.code || responseRawBody.raw_log) {
       throw new ProtocolTransactionError(
-          "Failed to send transaction at the protocol level",
-          new Error(responseRawBody.raw_log)
+        "Failed to send transaction at the protocol level",
+        new Error(responseRawBody.raw_log)
       );
     }
 
@@ -395,11 +403,30 @@ export class PocketNetworkProtocolService
     return await response.json();
   }
 
+  async getAllParamsByHeight(network: INetwork, height?: number) {
+    this.validateNetwork(network);
+
+    const url = urlJoin(network.rpcUrl, "v1/query/allparams");
+
+    const response = await globalThis.fetch(url, {
+      method: "POST",
+      body: JSON.stringify({
+        height: height || 0,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new NetworkRequestError("Failed to fetch all params");
+    }
+
+    return await response.json();
+  }
+
   async signPersonalData(request: SignPersonalDataRequest): Promise<string> {
     const bytesToSign = Buffer.from(request.challenge, "utf-8").toString("hex");
     const txBytes = await signAsync(
-        bytesToSign,
-        request.privateKey.slice(0, 64)
+      bytesToSign,
+      request.privateKey.slice(0, 64)
     );
     return Buffer.from(txBytes).toString("hex");
   }
@@ -410,11 +437,14 @@ export class PocketNetworkProtocolService
     return this.getAddressFromPublicKey(publicKey);
   }
 
-  async signTransaction(network: INetwork, transactionParams: PocketNetworkProtocolTransaction): Promise<SignTransactionResult> {
+  async signTransaction(
+    network: INetwork,
+    transactionParams: PocketNetworkProtocolTransaction
+  ): Promise<SignTransactionResult> {
     const txMsg = await this.buildTransactionMessage(transactionParams);
 
     const entropy = Number(
-        BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString()
+      BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString()
     ).toString();
 
     let fee = transactionParams.fee ? transactionParams.fee * 1e6 : undefined;
@@ -425,27 +455,27 @@ export class PocketNetworkProtocolService
     }
 
     const signer = TxEncoderFactory.createEncoder(
-        entropy,
-        network.chainID,
-        txMsg,
-        fee.toString(),
-        CoinDenom.Upokt,
-        transactionParams.memo || ""
+      entropy,
+      network.chainID,
+      txMsg,
+      fee.toString(),
+      CoinDenom.Upokt,
+      transactionParams.memo || ""
     );
 
     const bytesToSign = signer.marshalStdSignDoc();
 
     const signature = await signAsync(
-        bytesToSign.toString("hex"),
-        transactionParams.privateKey.slice(0, 64)
+      bytesToSign.toString("hex"),
+      transactionParams.privateKey.slice(0, 64)
     );
 
     const marshalledTx = new TxSignature(
-        Buffer.from(
-            this.getPublicKeyFromPrivateKey(transactionParams.privateKey),
-            "hex"
-        ),
-        Buffer.from(signature)
+      Buffer.from(
+        this.getPublicKeyFromPrivateKey(transactionParams.privateKey),
+        "hex"
+      ),
+      Buffer.from(signature)
     );
 
     const transactionHex = signer.marshalStdTx(marshalledTx).toString("hex");
@@ -454,7 +484,7 @@ export class PocketNetworkProtocolService
       signature: Buffer.from(signature),
       transactionHex,
       publicKey: this.getPublicKeyFromPrivateKey(transactionParams.privateKey),
-    }
+    };
   }
 
   isValidPrivateKey(privateKey: string): boolean {
@@ -462,19 +492,19 @@ export class PocketNetworkProtocolService
   }
 
   async validateTransaction(
-      transaction: ProtocolTransaction<SupportedProtocols.Pocket>,
-      network: INetwork,
+    transaction: ProtocolTransaction<SupportedProtocols.Pocket>,
+    network: INetwork
   ) {
     if (!transaction) {
-        throw new ArgumentError("transaction params are required");
+      throw new ArgumentError("transaction params are required");
     }
 
     if (!network) {
-        throw new ArgumentError("network is required");
+      throw new ArgumentError("network is required");
     }
 
     if (transaction.skipValidation) {
-        return new ValidateTransactionResult();
+      return new ValidateTransactionResult();
     }
 
     switch (transaction.transactionType) {
@@ -485,40 +515,101 @@ export class PocketNetworkProtocolService
     }
   }
 
-  private async queryNode(address: string, network: INetwork) {
-    let response;
+  public async queryNode(address: string, network: INetwork) {
+    let response: Response;
 
     const url = urlJoin(network.rpcUrl, "v1/query/node");
 
     try {
       response = await globalThis.fetch(url, {
-          method: "POST",
-          body: JSON.stringify({
-              address,
-          }),
+        method: "POST",
+        body: JSON.stringify({
+          address,
+        }),
       });
     } catch (e) {
-        throw new NetworkRequestError("Failed to query node");
+      //@ts-ignore
+      if (e?.message?.startsWith("validator not found for")) {
+        return null;
+      }
+
+      throw new NetworkRequestError("Failed to query node");
     }
 
     if (!response.ok) {
-        throw new NetworkRequestError("Failed to query node");
+      if (response.status === 400) {
+        try {
+          const json = await response.json();
+
+          if (json?.message?.startsWith("validator not found for")) {
+            return null;
+          }
+        } catch (e) {}
+      }
+      throw new NetworkRequestError("Failed to query node");
+    }
+
+    return await response.json();
+  }
+
+  public async queryApp(address: string, network: INetwork) {
+    let response: Response;
+
+    const url = urlJoin(network.rpcUrl, "v1/query/app");
+
+    try {
+      response = await globalThis.fetch(url, {
+        method: "POST",
+        body: JSON.stringify({
+          address,
+        }),
+      });
+    } catch (e) {
+      //@ts-ignore
+      if (e?.message?.includes("application does not exist for that address")) {
+        return null;
+      }
+
+      throw new NetworkRequestError("Failed to query node");
+    }
+
+    if (!response.ok) {
+      if (response.status === 400) {
+        try {
+          const json = await response.json();
+
+          if (
+            json?.message?.includes(
+              "application does not exist for that address"
+            )
+          ) {
+            return null;
+          }
+        } catch (e) {}
+      }
+      throw new NetworkRequestError("Failed to query app");
     }
 
     return await response.json();
   }
 
   private async validateNodeStakeTransaction(
-      transaction: PocketNetworkProtocolTransaction,
-      network: INetwork
+    transaction: PocketNetworkProtocolTransaction,
+    network: INetwork
   ) {
     const node = await this.queryNode(transaction.from, network);
-    const expectedPublicKey = this.getPublicKeyFromPrivateKey(transaction.privateKey);
-    const expectedAddress = await this.getAddressFromPublicKey(expectedPublicKey);
+    const expectedPublicKey = this.getPublicKeyFromPrivateKey(
+      transaction.privateKey
+    );
+    const expectedAddress = await this.getAddressFromPublicKey(
+      expectedPublicKey
+    );
 
-
-
-    if (![transaction.from, transaction.outputAddress || ''].includes(expectedAddress)) {
+    if (
+      ![transaction.from, transaction.outputAddress || ""].includes(
+        expectedAddress
+      )
+    ) {
       return new ValidateTransactionResult([
         {
           type: TransactionValidationResultType.Error,
@@ -528,17 +619,19 @@ export class PocketNetworkProtocolService
       ]);
     }
 
-
-    if (transaction.outputAddress && transaction.outputAddress !== node.output_address) {
-        return new ValidateTransactionResult([
-            {
-              type: TransactionValidationResultType.Info,
-              message: PocketNetworkTransactionValidationResults.OutputAddressChanged,
-              key: "outputAddress",
-            },
-        ]);
+    if (
+      transaction.outputAddress &&
+      transaction.outputAddress !== node.output_address
+    ) {
+      return new ValidateTransactionResult([
+        {
+          type: TransactionValidationResultType.Info,
+          message:
+            PocketNetworkTransactionValidationResults.OutputAddressChanged,
+          key: "outputAddress",
+        },
+      ]);
     }
-
 
     return new ValidateTransactionResult();
   }
@@ -559,8 +652,8 @@ export class PocketNetworkProtocolService
       seedId: options.seedId,
       protocol: SupportedProtocols.Pocket,
       privateKey: options.concatPublicKey
-          ? `${options.key.toString("hex")}${publicKey}`
-          : options.key.toString("hex"),
+        ? `${options.key.toString("hex")}${publicKey}`
+        : options.key.toString("hex"),
       secure: false,
     });
   }
@@ -596,7 +689,7 @@ export class PocketNetworkProtocolService
     return this.createAccountFromKeyPair({
       key: derivedKeys.key,
       name: name ? name : `${seedAccount.name} ${index + 1}`,
-      seedId: '',
+      seedId: "",
       accountType: AccountType.HDChild,
       hdwAccountIndex: 0,
       hdwIndex: index,
@@ -631,7 +724,7 @@ export class PocketNetworkProtocolService
     return privateKey.slice(64, privateKey.length);
   }
 
-  private async getAddressFromPublicKey(publicKey: string): Promise<string> {
+  public async getAddressFromPublicKey(publicKey: string): Promise<string> {
     // @ts-ignore
     const hash = await globalThis.crypto.subtle.digest(
       {
@@ -657,56 +750,74 @@ export class PocketNetworkProtocolService
     return (Number(amount) * 1e6).toString();
   }
 
-  private async buildTransactionMessage(transactionParams: PocketNetworkProtocolTransaction) {
-    const publicKey = this.getPublicKeyFromPrivateKey(transactionParams.privateKey).toString();
-     switch (transactionParams.transactionType) {
-        case PocketNetworkTransactionTypes.Send:
-            return new MsgProtoSend(
-                transactionParams.from,
-                transactionParams.to,
-                this.getAmountInUpokt(transactionParams.amount),
-            );
-        case PocketNetworkTransactionTypes.AppStake:
-          return new MsgProtoAppStake(
-              transactionParams.appPublicKey || '',
-              transactionParams.chains || [],
-              this.getAmountInUpokt(transactionParams.amount),
-          );
-        case PocketNetworkTransactionTypes.AppTransfer:
-          return new MsgProtoAppTransfer(transactionParams.appPublicKey || '');
-        case PocketNetworkTransactionTypes.AppUnstake:
-          return new MsgProtoAppUnstake(transactionParams.appAddress || '');
-        case PocketNetworkTransactionTypes.NodeStake:
-          return new MsgProtoNodeStakeTx(
-              transactionParams.nodePublicKey || publicKey,
-              transactionParams.outputAddress || await this.getAddressFromPublicKey(transactionParams.nodePublicKey || publicKey),
-              transactionParams.chains || [],
-              this.getAmountInUpokt(transactionParams.amount),
-              new URL(transactionParams.serviceURL || ''),
-              transactionParams.rewardDelegators,
-          );
-       case PocketNetworkTransactionTypes.NodeUnjail:
-          return new MsgProtoNodeUnjail(transactionParams.from, transactionParams.outputAddress || transactionParams.from);
-        case PocketNetworkTransactionTypes.NodeUnstake:
-          return new MsgProtoNodeUnstake(transactionParams.from, transactionParams.outputAddress || transactionParams.from);
-        case PocketNetworkTransactionTypes.GovChangeParam:
-          return new MsgProtoGovChangeParam(
-              transactionParams.from,
-              transactionParams.paramKey!,
-              transactionParams.paramValue!,
-              transactionParams.overrideGovParamsWhitelistValidation,
-          );
-        case PocketNetworkTransactionTypes.GovDAOTransfer:
-          return new MsgProtoGovDAOTransfer(
-              transactionParams.from,
-              transactionParams.to,
-              transactionParams.amount,
-              transactionParams.daoAction!,
-          );
-        default:
-            throw new ProtocolTransactionError(
-            "Unsupported transaction type. Not implemented."
-            );
-     }
+  private async buildTransactionMessage(
+    transactionParams: PocketNetworkProtocolTransaction
+  ) {
+    const publicKey = this.getPublicKeyFromPrivateKey(
+      transactionParams.privateKey
+    ).toString();
+    switch (transactionParams.transactionType) {
+      case PocketNetworkTransactionTypes.Send:
+        return new MsgProtoSend(
+          transactionParams.from,
+          transactionParams.to,
+          this.getAmountInUpokt(transactionParams.amount)
+        );
+      case PocketNetworkTransactionTypes.AppStake:
+        return new MsgProtoAppStake(
+          transactionParams.appPublicKey || "",
+          transactionParams.chains || [],
+          this.getAmountInUpokt(transactionParams.amount)
+        );
+      case PocketNetworkTransactionTypes.AppTransfer:
+        return new MsgProtoAppTransfer(transactionParams.appPublicKey || "");
+      case PocketNetworkTransactionTypes.AppUnstake:
+        return new MsgProtoAppUnstake(transactionParams.appAddress || "");
+      case PocketNetworkTransactionTypes.NodeStake:
+        return new MsgProtoNodeStakeTx(
+          transactionParams.nodePublicKey || publicKey,
+          transactionParams.outputAddress ||
+            (await this.getAddressFromPublicKey(
+              transactionParams.nodePublicKey || publicKey
+            )),
+          transactionParams.chains || [],
+          this.getAmountInUpokt(transactionParams.amount),
+          new URL(transactionParams.serviceURL || ""),
+          transactionParams.rewardDelegators
+        );
+      case PocketNetworkTransactionTypes.NodeUnjail:
+        return new MsgProtoNodeUnjail(
+          transactionParams.from,
+          transactionParams.outputAddress || transactionParams.from
+        );
+      case PocketNetworkTransactionTypes.NodeUnstake:
+        return new MsgProtoNodeUnstake(
+          transactionParams.from,
+          transactionParams.outputAddress || transactionParams.from
+        );
+      case PocketNetworkTransactionTypes.GovChangeParam:
+        return new MsgProtoGovChangeParam(
+          transactionParams.from,
+          transactionParams.paramKey!,
+          transactionParams.paramValue!,
+          transactionParams.overrideGovParamsWhitelistValidation
+        );
+      case PocketNetworkTransactionTypes.GovDAOTransfer:
+        return new MsgProtoGovDAOTransfer(
+          transactionParams.from,
+          transactionParams.to,
+          this.getAmountInUpokt(transactionParams.amount),
+          transactionParams.daoAction!
+        );
+      case PocketNetworkTransactionTypes.GovUpgrade:
+        return new MsgProtoGovUpgrade(
+          transactionParams.from,
+          transactionParams.upgrade as Upgrade
+        );
+      default:
+        throw new ProtocolTransactionError(
+          "Unsupported transaction type. Not implemented."
+        );
+    }
   }
 }

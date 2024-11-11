@@ -27,7 +27,10 @@ import type {
   ExternalPersonalSignReq,
   ExternalPersonalSignRes,
 } from "../../types/communications/personalSign";
-import type { BaseErrors } from "../../types/communications/common";
+import type {
+  BaseErrors,
+  BaseExternalRequestBodyWithSession,
+} from "../../types/communications/common";
 import type {
   ExternalListAccountsReq,
   ExternalListAccountsRes,
@@ -52,14 +55,25 @@ import {
   INetwork,
   PocketNetworkProtocolService,
   SupportedProtocols,
+  VaultIsLockedErrorName,
 } from "@poktscan/vault";
 import {
   propertyIsRequired,
+  RequestChangeParamExists,
   RequestConnectionExists,
+  RequestDaoTransferExists,
   RequestPersonalSignExists,
+  RequestPublicKeyExists,
   RequestSignedTypedDataExists,
+  RequestStakeAppExists,
+  RequestStakeNodeExists,
   RequestSwitchChainExists,
+  RequestTransferAppExists,
   RequestTransferExists,
+  RequestUnjailNodeExists,
+  RequestUnstakeAppExists,
+  RequestUnstakeNodeExists,
+  RequestUpgradeExists,
   SessionIdNotPresented,
   UnauthorizedError,
   UnknownError,
@@ -72,8 +86,12 @@ import {
   getBlockedSites,
 } from "../../redux/slices/app";
 import {
+  CHANGE_PARAM_REQUEST,
+  CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  DAO_TRANSFER_REQUEST,
+  DAO_TRANSFER_RESPONSE,
   DISCONNECT_RESPONSE,
   EXTERNAL_ACCOUNT_BALANCE_REQUEST,
   EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
@@ -85,20 +103,44 @@ import {
   LIST_ACCOUNTS_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
+  PUBLIC_KEY_REQUEST,
+  PUBLIC_KEY_RESPONSE,
   REQUEST_BEING_HANDLED,
   SELECTED_CHAIN_REQUEST,
   SELECTED_CHAIN_RESPONSE,
   SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
+  STAKE_APP_REQUEST,
+  STAKE_APP_RESPONSE,
+  STAKE_NODE_REQUEST,
+  STAKE_NODE_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
+  TRANSFER_APP_REQUEST,
+  TRANSFER_APP_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
+  UNJAIL_NODE_REQUEST,
+  UNJAIL_NODE_RESPONSE,
+  UNSTAKE_APP_REQUEST,
+  UNSTAKE_APP_RESPONSE,
+  UNSTAKE_NODE_REQUEST,
+  UNSTAKE_NODE_RESPONSE,
+  UPGRADE_REQUEST,
+  UPGRADE_RESPONSE,
 } from "../../constants/communication";
 import { getVault, isHex, returnExtensionErr } from "../../utils";
 import { HEIGHT, WIDTH } from "../../constants/ui";
-import { isValidAddress } from "../../utils/networkOperations";
+import {
+  getAddressFromPublicKey,
+  isValidAddress,
+} from "../../utils/networkOperations";
 import { balanceApi } from "../../redux/slices/balance";
+import { ExternalResponse } from "../../types/communications/transactions";
+import {
+  ExternalPublicKeyReq,
+  ExternalPublicKeyRes,
+} from "../../types/communications/publicKey";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -113,6 +155,16 @@ const mapMessageType: Record<ExternalRequests["type"], true> = {
   [GET_POKT_TRANSACTION_REQUEST]: true,
   [SIGN_TYPED_DATA_REQUEST]: true,
   [PERSONAL_SIGN_REQUEST]: true,
+  [STAKE_NODE_REQUEST]: true,
+  [UNSTAKE_NODE_REQUEST]: true,
+  [UNJAIL_NODE_REQUEST]: true,
+  [STAKE_APP_REQUEST]: true,
+  [TRANSFER_APP_REQUEST]: true,
+  [UNSTAKE_APP_REQUEST]: true,
+  [CHANGE_PARAM_REQUEST]: true,
+  [DAO_TRANSFER_REQUEST]: true,
+  [PUBLIC_KEY_REQUEST]: true,
+  [UPGRADE_REQUEST]: true,
 };
 
 const errorReqExistByResType = {
@@ -121,6 +173,16 @@ const errorReqExistByResType = {
   [TRANSFER_RESPONSE]: RequestTransferExists,
   [SIGN_TYPED_DATA_RESPONSE]: RequestSignedTypedDataExists,
   [PERSONAL_SIGN_RESPONSE]: RequestPersonalSignExists,
+  [STAKE_NODE_RESPONSE]: RequestStakeNodeExists,
+  [UNSTAKE_NODE_RESPONSE]: RequestUnstakeNodeExists,
+  [UNJAIL_NODE_RESPONSE]: RequestUnjailNodeExists,
+  [STAKE_APP_RESPONSE]: RequestStakeAppExists,
+  [TRANSFER_APP_RESPONSE]: RequestTransferAppExists,
+  [UNSTAKE_APP_RESPONSE]: RequestUnstakeAppExists,
+  [CHANGE_PARAM_RESPONSE]: RequestChangeParamExists,
+  [DAO_TRANSFER_RESPONSE]: RequestDaoTransferExists,
+  [PUBLIC_KEY_RESPONSE]: RequestPublicKeyExists,
+  [UPGRADE_RESPONSE]: RequestUpgradeExists,
 };
 
 const ExtensionVaultInstance = getVault();
@@ -237,6 +299,149 @@ class ExternalCommunicationController implements ICommunicationController {
         requestId: message?.requestId,
         type: REQUEST_BEING_HANDLED,
       };
+    }
+
+    if (message?.type === PUBLIC_KEY_REQUEST) {
+      const response = await this._handleGetPublicKey(message, sender);
+
+      if (response && response.type === PUBLIC_KEY_RESPONSE) {
+        return response;
+      }
+
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
+    }
+
+    if (message?.type === STAKE_NODE_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        STAKE_NODE_RESPONSE,
+        async (message) => {
+          let nodeAddress = message.data.transactionData.address;
+
+          if (message.data.transactionData.operatorPublicKey) {
+            nodeAddress = await getAddressFromPublicKey(
+              message.data.transactionData.operatorPublicKey
+            );
+          }
+          return {
+            nodeAddress,
+          };
+        }
+      );
+
+      if (response && response.type === STAKE_NODE_RESPONSE) {
+        return response;
+      }
+
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
+    }
+
+    if (message?.type === UNSTAKE_NODE_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        UNSTAKE_NODE_RESPONSE
+      );
+
+      if (response && response.type === UNSTAKE_NODE_RESPONSE) {
+        return response;
+      }
+
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
+    }
+
+    if (message?.type === UNJAIL_NODE_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        UNJAIL_NODE_RESPONSE
+      );
+
+      if (response && response.type === UNJAIL_NODE_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === STAKE_APP_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        STAKE_APP_RESPONSE
+      );
+
+      if (response && response.type === STAKE_APP_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === TRANSFER_APP_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        TRANSFER_APP_RESPONSE
+      );
+
+      if (response && response.type === TRANSFER_APP_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === UNSTAKE_APP_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        UNSTAKE_APP_RESPONSE
+      );
+
+      if (response && response.type === UNSTAKE_APP_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === CHANGE_PARAM_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        CHANGE_PARAM_RESPONSE
+      );
+
+      if (response && response.type === CHANGE_PARAM_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === DAO_TRANSFER_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        DAO_TRANSFER_RESPONSE
+      );
+
+      if (response && response.type === DAO_TRANSFER_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === UPGRADE_REQUEST) {
+      const response = await this._handlePoktTxRequest(
+        message,
+        sender,
+        UPGRADE_RESPONSE
+      );
+
+      if (response && response.type === UPGRADE_RESPONSE) {
+        return response;
+      }
     }
   }
 
@@ -436,6 +641,84 @@ class ExternalCommunicationController implements ICommunicationController {
     }
   }
 
+  private async _handlePoktTxRequest<
+    EReq extends {
+      type: string;
+      requestId: string;
+      data: BaseExternalRequestBodyWithSession & {
+        transactionData;
+      };
+    },
+    TRes extends string,
+    ERes extends ExternalResponse<TRes>
+  >(
+    message: EReq,
+    sender: MessageSender,
+    responseType: TRes,
+    addData?: (
+      message: EReq
+    ) => Promise<Partial<EReq["data"]["transactionData"]>>
+  ): Promise<ERes> {
+    try {
+      const {
+        sessionId,
+        protocol,
+        transactionData: { address },
+      } = message?.data || {};
+
+      if (!sessionId) {
+        return {
+          type: responseType,
+          error: SessionIdNotPresented,
+          data: null,
+          requestId: message?.requestId,
+        } as ERes;
+      }
+
+      try {
+        await ExtensionVaultInstance.validateSessionForPermissions(
+          sessionId,
+          "transaction",
+          "send",
+          [address]
+        );
+      } catch (error) {
+        return {
+          requestId: message?.requestId,
+          ...returnExtensionErr(error, responseType),
+        } as ERes;
+      }
+
+      const chainId = store
+        .getState()
+        .app.selectedChainByProtocol[protocol].toString();
+
+      return this._addExternalRequest(
+        {
+          // @ts-ignore
+          type: message.type,
+          tabId: sender.tab.id,
+          protocol,
+          requestId: message?.requestId,
+          ...message.data,
+          transactionData: {
+            ...message.data?.transactionData,
+            chainId,
+            ...(addData && (await addData(message))),
+          },
+        },
+        responseType
+      ) as unknown as ERes;
+    } catch (e) {
+      return {
+        type: responseType,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
+      } as ERes;
+    }
+  }
+
   private async _handleSignTypedDataRequest(
     message: ExternalSignTypedDataReq,
     sender: MessageSender
@@ -570,6 +853,9 @@ class ExternalCommunicationController implements ICommunicationController {
       | typeof SWITCH_CHAIN_RESPONSE
       | typeof SIGN_TYPED_DATA_RESPONSE
       | typeof PERSONAL_SIGN_RESPONSE
+      | typeof STAKE_NODE_RESPONSE
+      | typeof UNSTAKE_NODE_RESPONSE
+      | typeof PUBLIC_KEY_RESPONSE
   >(
     request: AppRequests,
     responseMessage: T
@@ -637,6 +923,96 @@ class ExternalCommunicationController implements ICommunicationController {
           requestId: request?.requestId,
         };
       }
+    }
+  }
+
+  private async _handleGetPublicKey(
+    message: ExternalPublicKeyReq,
+    sender: MessageSender
+  ): Promise<ExternalPublicKeyRes> {
+    try {
+      const { origin, address, sessionId } = message?.data || {};
+
+      if (!sessionId) {
+        return {
+          type: PUBLIC_KEY_RESPONSE,
+          error: SessionIdNotPresented,
+          data: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      const checkOriginResponse = await this._checkOriginIsBlocked(
+        origin,
+        PUBLIC_KEY_RESPONSE
+      );
+
+      if (checkOriginResponse) {
+        return {
+          requestId: message?.requestId,
+          ...checkOriginResponse,
+        };
+      }
+
+      try {
+        await ExtensionVaultInstance.validateSessionForPermissions(
+          sessionId,
+          "account",
+          "read",
+          [address]
+        );
+      } catch (error) {
+        return {
+          requestId: message?.requestId,
+          ...returnExtensionErr(error, PUBLIC_KEY_RESPONSE),
+        };
+      }
+
+      const vaultStatus = store.getState().vault;
+
+      if (
+        (vaultStatus.isUnlockedStatus === "yes" || vaultStatus.vaultSession) &&
+        ExtensionVaultInstance.isUnlocked
+      ) {
+        return {
+          type: PUBLIC_KEY_RESPONSE,
+          error: null,
+          data: {
+            publicKey: await ExtensionVaultInstance.getPublicKey(
+              sessionId,
+              address
+            ),
+          },
+          requestId: message?.requestId,
+        };
+      }
+
+      return this._addExternalRequest(
+        {
+          type: PUBLIC_KEY_REQUEST,
+          tabId: sender.tab.id,
+          protocol: SupportedProtocols.Pocket,
+          requestId: message?.requestId,
+          ...message.data,
+        },
+        PUBLIC_KEY_RESPONSE
+      );
+    } catch (e) {
+      if (e?.name === VaultIsLockedErrorName) {
+        return {
+          type: PUBLIC_KEY_RESPONSE,
+          error: UnauthorizedError,
+          data: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      return {
+        type: PUBLIC_KEY_RESPONSE,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
+      };
     }
   }
 
@@ -913,6 +1289,9 @@ class ExternalCommunicationController implements ICommunicationController {
       | typeof SWITCH_CHAIN_RESPONSE
       | typeof SIGN_TYPED_DATA_RESPONSE
       | typeof PERSONAL_SIGN_RESPONSE
+      | typeof STAKE_NODE_RESPONSE
+      | typeof UNSTAKE_NODE_RESPONSE
+      | typeof PUBLIC_KEY_RESPONSE
   >(
     origin: string,
     responseMessage: T

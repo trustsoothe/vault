@@ -19,15 +19,22 @@ import { themeColors } from "../theme";
 interface RenderMessageProps {
   message: object | object[];
   marginLeft?: number;
+  fontSize?: number;
+  capitalizeMessage?: boolean;
 }
 
-function RenderMessage({ message, marginLeft = 0.5 }: RenderMessageProps) {
+export function RenderMessage({
+  message,
+  marginLeft = 0.5,
+  capitalizeMessage = true,
+  fontSize = 13,
+}: RenderMessageProps) {
   const children: React.ReactNode[] = [];
 
   for (const key in message) {
     const value = message[key];
 
-    if (typeof value === "object") {
+    if (typeof value === "object" && value) {
       children.push(
         <Stack
           marginLeft={`${marginLeft * 10}px!important`}
@@ -35,17 +42,24 @@ function RenderMessage({ message, marginLeft = 0.5 }: RenderMessageProps) {
           marginTop={"5px!important"}
         >
           <Typography
-            fontSize={13}
+            fontSize={fontSize}
             color={themeColors.black}
             fontWeight={400}
             marginBottom={0.4}
           >
-            {capitalize(key)}:
+            {capitalizeMessage ? capitalize(key) : key}:
           </Typography>
-          <RenderMessage message={value} marginLeft={marginLeft + 0.5} />
+          <RenderMessage
+            message={value}
+            marginLeft={marginLeft + 0.5}
+            capitalizeMessage={capitalizeMessage}
+            fontSize={fontSize}
+          />
         </Stack>
       );
     } else {
+      const isAddress = isValidAddress(value, SupportedProtocols.Ethereum);
+      console.log({ value });
       children.push(
         <Stack
           direction={"row"}
@@ -54,25 +68,33 @@ function RenderMessage({ message, marginLeft = 0.5 }: RenderMessageProps) {
           spacing={0.7}
           marginBottom={0.3}
         >
-          <Typography fontSize={12}>{capitalize(key)}:</Typography>
-          {isValidAddress(value, SupportedProtocols.Ethereum) ? (
+          <Typography
+            fontSize={fontSize === 13 ? fontSize - 1 : fontSize}
+            lineHeight={isAddress ? "19.5px" : undefined}
+          >
+            {capitalizeMessage ? capitalize(key) : key}:
+          </Typography>
+          {isAddress ? (
             <CopyAddressButton
               address={value}
               sxProps={{
+                paddingTop: "2px!important",
                 boxShadow: "none",
                 marginRight: -0.8,
                 color: themeColors.black,
                 marginLeft: "0!important",
                 height: 19.5,
                 backgroundColor: "transparent",
+                fontSize,
               }}
             />
           ) : (
             <Typography
               color={themeColors.black}
               sx={{ wordBreak: "break-word" }}
+              fontSize={fontSize}
             >
-              {value}
+              {!value && typeof value === "object" ? "null" : value}
             </Typography>
           )}
         </Stack>

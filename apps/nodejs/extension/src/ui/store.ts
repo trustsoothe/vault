@@ -3,6 +3,7 @@ import { applyMiddleware, Store } from "webext-redux";
 import { balanceApi } from "../redux/slices/balance";
 import { pricesApi } from "../redux/slices/prices";
 import { wpoktApi } from "../redux/slices/wpokt";
+import { poktApi } from "../redux/slices/pokt";
 
 export default function getStore() {
   const store = new Store();
@@ -15,7 +16,8 @@ export default function getStore() {
     },
     wpoktApi.middleware,
     pricesApi.middleware,
-    balanceApi.middleware
+    balanceApi.middleware,
+    poktApi.middleware
   );
   Object.assign(storeWithMiddleware, {
     dispatch: storeWithMiddleware.dispatch.bind(storeWithMiddleware),

@@ -63,10 +63,12 @@ export class ForbiddenSessionError extends KeyringError {
   }
 }
 
+export const VaultIsLockedErrorName = "VaultIsLockedError";
+
 export class VaultIsLockedError extends KeyringError {
   constructor() {
     super({
-      name: "VaultIsLockedError",
+      name: VaultIsLockedErrorName,
       message: "Invalid Operation: Vault is locked",
     });
   }

@@ -1,10 +1,11 @@
 import type { AppPersonalSignReq } from "../../types/communications/personalSign";
-import { toUtf8 } from "web3-utils";
+import { hexToString } from "web3-utils";
 import Stack from "@mui/material/Stack";
 import { useLocation } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import React, { useEffect, useRef, useState } from "react";
+import { SupportedProtocols } from "@poktscan/vault";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import DialogButtons from "../components/DialogButtons";
 import { enqueueErrorSnackbar } from "../../utils/ui";
@@ -65,6 +66,16 @@ export default function PersonalSign() {
       .finally(() => setIsLoading(false));
   };
 
+  let messageToSign: string;
+
+  if (signRequest.protocol === SupportedProtocols.Pocket) {
+    messageToSign = signRequest.challenge;
+  } else {
+    try {
+      messageToSign = hexToString(signRequest.challenge);
+    } catch (e) {}
+  }
+
   return (
     <Stack flexGrow={1}>
       <RequestInfo
@@ -91,7 +102,7 @@ export default function PersonalSign() {
             fontWeight={300}
             sx={{ wordBreak: "break-word" }}
           >
-            {toUtf8(signRequest.challenge)}
+            {messageToSign ? messageToSign : signRequest.challenge}
           </Typography>
         </Stack>
       </Stack>

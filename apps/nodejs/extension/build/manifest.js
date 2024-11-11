@@ -3,7 +3,7 @@ const baseManifest = {
   name: "Soothe Vault (BETA)",
   description:
     "THIS EXTENSION IS FOR BETA TESTING. Extension to manage your EVM and Pocket wallets",
-  version: "0.0.4",
+  version: "0.0.6",
   icons: {
     16: "icons/16.png",
     19: "icons/19.png",

@@ -387,7 +387,7 @@ export class VaultTeller {
     }
 
     const authorizedAccounts = this._vault?.accounts.filter((account) =>
-      session.isAllowed("account", "read", [account.id])
+      session.isAllowed("account", "read", [account.address])
     );
 
     await this.updateSessionLastActivity(sessionId);
@@ -397,7 +397,9 @@ export class VaultTeller {
 
   async getPublicKey(sessionId: string, address: string) {
     const accounts = await this.listAccounts(sessionId);
-    const account = accounts.find((a) => a.address === address);
+    const account = accounts.find(
+      (a) => a.address.toLowerCase() === address.toLowerCase()
+    );
 
     if (!account) {
       throw new AccountNotFoundError();

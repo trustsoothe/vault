@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
+import { useSearchParams } from "react-router-dom";
 import { Contact, removeContact } from "../../redux/slices/app/contact";
 import { enqueueErrorSnackbar, enqueueSnackbar } from "../../utils/ui";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
@@ -74,7 +75,7 @@ function ContactItem({ contact, openRenameModal }: CustomItemProps) {
   return (
     <>
       <SmallGrayContainer>
-        <ContactIcon />
+        <ContactIcon style={{ minWidth: 16 }} />
         <Stack spacing={0.4} flexGrow={1}>
           <Typography variant={"subtitle2"} lineHeight={"16px"}>
             {contact.name}
@@ -148,8 +149,11 @@ function ContactItem({ contact, openRenameModal }: CustomItemProps) {
 
 export default function ContactList() {
   const contacts = useAppSelector(contactsSelector);
+  const [searchParams] = useSearchParams();
   const [contactToRename, setContactToRename] = useState<Contact>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(
+    !!searchParams.get("address") && !!searchParams.get("protocol")
+  );
 
   const toggleShowCreateModal = () => setShowCreateModal((prev) => !prev);
   const closeRenameModal = () => setContactToRename(null);

@@ -1,4 +1,16 @@
 import type {
+  ExternalBasePoktTxErrors,
+  ExternalResponse,
+  InternalResponse,
+  ProxyPoktTxRes,
+} from "../../types/communications/transactions";
+import type {
+  ExternalPublicKeyReq,
+  ExternalPublicKeyResToProxy,
+  InternalPublicKeyRes,
+  ProxyPublicKeyRes,
+} from "../../types/communications/publicKey";
+import type {
   InternalResponses,
   ProxyRequests,
 } from "../../types/communications";
@@ -74,13 +86,17 @@ import type {
 import type { AccountsChangedToProvider } from "../../types/communications/accountChanged";
 import browser from "webextension-polyfill";
 import { z, ZodError } from "zod";
-import { SupportedProtocols } from "@poktscan/vault";
+import { DAOAction, SupportedProtocols } from "@poktscan/vault";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,
   APP_IS_READY_REQUEST,
+  CHANGE_PARAM_REQUEST,
+  CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  DAO_TRANSFER_REQUEST,
+  DAO_TRANSFER_RESPONSE,
   DISCONNECT_RESPONSE,
   EXTERNAL_ACCOUNT_BALANCE_REQUEST,
   EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
@@ -92,16 +108,30 @@ import {
   LIST_ACCOUNTS_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
+  PUBLIC_KEY_REQUEST,
+  PUBLIC_KEY_RESPONSE,
   SELECTED_ACCOUNT_CHANGED,
   SELECTED_CHAIN_CHANGED,
   SELECTED_CHAIN_REQUEST,
   SELECTED_CHAIN_RESPONSE,
   SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
+  STAKE_APP_REQUEST,
+  STAKE_APP_RESPONSE,
+  STAKE_NODE_REQUEST,
+  STAKE_NODE_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
+  TRANSFER_APP_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
+  UNJAIL_NODE_REQUEST,
+  UNJAIL_NODE_RESPONSE,
+  UNSTAKE_APP_RESPONSE,
+  UNSTAKE_NODE_REQUEST,
+  UNSTAKE_NODE_RESPONSE,
+  UPGRADE_REQUEST,
+  UPGRADE_RESPONSE,
 } from "../../constants/communication";
 import {
   BlockNotSupported,
@@ -110,6 +140,7 @@ import {
   propertyIsRequired,
   UnauthorizedError,
   UnknownError,
+  UnsupportedMethod,
 } from "../../errors/communication";
 import {
   isValidAddress,
@@ -117,6 +148,8 @@ import {
 } from "../../utils/networkOperations";
 
 export type TPocketTransferBody = z.infer<typeof PocketTransferBody>;
+
+const memoSchema = z.string().max(75).optional();
 
 const PocketTransferBody = z.object({
   from: z
@@ -138,8 +171,104 @@ const PocketTransferBody = z.object({
     .nonempty()
     .regex(/^\d+$/)
     .refine((value) => Number(value) > 0, "amount should be greater than 0"),
-  memo: z.string().max(75).optional(),
+  memo: memoSchema,
 });
+export type DaoTransferBody = z.infer<typeof DaoTransferBody>;
+
+const DaoTransferBody = z
+  .object({
+    address: z
+      .string()
+      .length(40)
+      .refine(
+        (value) => isValidAddress(value, SupportedProtocols.Pocket),
+        "address is not a valid address"
+      ),
+    to: z.string().optional(),
+    amount: z
+      .string()
+      .nonempty()
+      .regex(/^\d+$/)
+      .refine((value) => Number(value) > 0, "amount should be greater than 0"),
+    memo: memoSchema,
+    daoAction: z.nativeEnum(DAOAction),
+  })
+  .refine(
+    (value) =>
+      value.daoAction === "dao_burn"
+        ? true
+        : isValidAddress(value.to || "", SupportedProtocols.Pocket),
+    {
+      path: ["to"],
+      message: "to is not a valid address",
+    }
+  );
+
+export type UpgradeBody = z.infer<typeof UpgradeBody>;
+
+const UpgradeBody = z
+  .object({
+    address: z
+      .string()
+      .length(40)
+      .refine(
+        (value) => isValidAddress(value, SupportedProtocols.Pocket),
+        "address is not a valid address"
+      ),
+    height: z.number().min(1).int(),
+    version: z.union([
+      z.string().regex(/^(\d+)\.(\d+)\.(\d+)(\.(\d+))?$/),
+      z.literal("FEATURE"),
+    ]),
+    memo: memoSchema,
+    features: z
+      .array(
+        z
+          .string()
+          .regex(
+            /^[A-Za-z]+:\d+$/,
+            "malformed feature, format should be: KEY:HEIGHT"
+          )
+          .refine(
+            (value) => {
+              const [_, height] = value.split(":");
+              return Number(height) >= 0;
+            },
+            {
+              message: "height should be greater or equal to 0",
+            }
+          )
+      )
+      .optional()
+      .default([]),
+  })
+  .refine(
+    (value) =>
+      value.version !== "FEATURE" ||
+      (value.version === "FEATURE" && value.height !== 1),
+    {
+      path: ["height"],
+      message: "height should be equal to 1 when version is FEATURE",
+    }
+  )
+  .refine(
+    (value) =>
+      value.version !== "FEATURE" ||
+      (value.version === "FEATURE" && value.features.length > 0),
+    {
+      path: ["features"],
+      message: "features should not be empty when version is FEATURE",
+    }
+  )
+  .refine(
+    (value) =>
+      value.version === "FEATURE" ||
+      (value.version !== "FEATURE" && value.features.length === 0),
+    {
+      path: ["features"],
+      message: "features should be empty when version is not FEATURE",
+    }
+  );
 
 const numberRegex = /^0x([1-9a-f]+[0-9a-f]*|0)$/;
 const stringRegex = /^0x[0-9a-f]*$/;
@@ -165,6 +294,111 @@ const EthTransferBody = z.object({
   maxPriorityFeePerGas: z.string().regex(numberRegex).optional(),
   maxFeePerGas: z.string().regex(numberRegex).optional(),
 });
+
+const StakeNodeBody = z.object({
+  amount: z.string().nonempty(),
+  chains: z.array(z.string()).nonempty(),
+  serviceURL: z.string().nonempty(),
+  address: z
+    .string()
+    .nonempty()
+    .refine(
+      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      "address is not a valid address"
+    ),
+  outputAddress: z
+    .string()
+    .optional()
+    .refine(
+      (value) => !value || isValidAddress(value, SupportedProtocols.Pocket),
+      "outputAddress is not a valid address"
+    ),
+  operatorPublicKey: z.string().nonempty().optional(),
+  memo: memoSchema,
+  rewardDelegators: z.record(z.string(), z.number()).optional(),
+});
+
+export type StakeNodeBody = z.infer<typeof StakeNodeBody>;
+
+const TransferAppBody = z.object({
+  address: z
+    .string()
+    .nonempty()
+    .refine(
+      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      "address is not a valid address"
+    ),
+  // todo: add validation for this
+  newAppPublicKey: z.string().nonempty(),
+  memo: memoSchema,
+});
+
+export type TransferAppBody = z.infer<typeof TransferAppBody>;
+
+const StakeAppBody = z.object({
+  amount: z.string().nonempty(),
+  chains: z.array(z.string()).nonempty(),
+  address: z
+    .string()
+    .nonempty()
+    .refine(
+      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      "address is not a valid address"
+    ),
+  memo: memoSchema,
+});
+
+export type StakeAppBody = z.infer<typeof StakeAppBody>;
+
+const UnstakeAppBody = z.object({
+  address: z
+    .string()
+    .nonempty()
+    .refine(
+      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      "address is not a valid address"
+    ),
+  memo: memoSchema,
+});
+
+export type UnstakeAppBody = z.infer<typeof UnstakeAppBody>;
+
+const ChangeParamBody = z.object({
+  address: z
+    .string()
+    .nonempty()
+    .refine(
+      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      "address is not a valid address"
+    ),
+  paramKey: z.string().nonempty(),
+  paramValue: z.string().nonempty(),
+  overrideGovParamsWhitelistValidation: z.boolean().optional().default(false),
+  memo: memoSchema,
+});
+
+export type ChangeParamBody = z.infer<typeof ChangeParamBody>;
+
+const UnstakeNodeBody = z.object({
+  address: z
+    .string()
+    .nonempty()
+    .refine(
+      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      "address is not a valid address"
+    ),
+  nodeAddress: z
+    .string()
+    .nonempty()
+    .optional()
+    .refine(
+      (value) => !value || isValidAddress(value, SupportedProtocols.Pocket),
+      "address is not a valid address"
+    ),
+  memo: memoSchema,
+});
+
+export type UnstakeNodeBody = z.infer<typeof UnstakeNodeBody>;
 
 // Controller to manage the communication between the webpages and the content script
 class ProxyCommunicationController {
@@ -251,6 +485,91 @@ class ProxyCommunicationController {
               data.data
             );
           }
+
+          if (data.type === PUBLIC_KEY_REQUEST) {
+            await this._sendPublicKeyRequest(
+              data.protocol,
+              data.id,
+              data.data?.address
+            );
+          }
+
+          if (data.type === STAKE_NODE_REQUEST) {
+            await this._sendPoktTxRequest(
+              data.protocol,
+              data.id,
+              data.data,
+              StakeNodeBody,
+              STAKE_NODE_REQUEST,
+              STAKE_NODE_RESPONSE
+            );
+          }
+
+          if (data.type === UNSTAKE_NODE_REQUEST) {
+            await this._sendPoktTxRequest(
+              data.protocol,
+              data.id,
+              data.data,
+              UnstakeNodeBody,
+              UNSTAKE_NODE_REQUEST,
+              UNSTAKE_NODE_RESPONSE
+            );
+          }
+
+          if (data.type === UNJAIL_NODE_REQUEST) {
+            await this._sendPoktTxRequest(
+              data.protocol,
+              data.id,
+              data.data,
+              UnstakeNodeBody,
+              UNJAIL_NODE_REQUEST,
+              UNJAIL_NODE_RESPONSE
+            );
+          }
+
+          if (data.type === STAKE_APP_REQUEST) {
+            await this._sendPoktTxRequest(
+              data.protocol,
+              data.id,
+              data.data,
+              StakeAppBody,
+              STAKE_APP_REQUEST,
+              STAKE_APP_RESPONSE
+            );
+          }
+
+          if (data.type === CHANGE_PARAM_REQUEST) {
+            await this._sendPoktTxRequest(
+              data.protocol,
+              data.id,
+              data.data,
+              ChangeParamBody,
+              CHANGE_PARAM_REQUEST,
+              CHANGE_PARAM_RESPONSE
+            );
+          }
+
+          if (data.type === DAO_TRANSFER_REQUEST) {
+            await this._sendPoktTxRequest(
+              data.protocol,
+              data.id,
+              data.data,
+              DaoTransferBody as any,
+              DAO_TRANSFER_REQUEST,
+              DAO_TRANSFER_RESPONSE
+            );
+          }
+
+          if (data.type === UPGRADE_REQUEST) {
+            await this._sendPoktTxRequest(
+              data.protocol,
+              data.id,
+              data.data,
+              UpgradeBody as any,
+              UPGRADE_REQUEST,
+              UPGRADE_RESPONSE
+            );
+          }
         }
       }
     );
@@ -269,6 +588,24 @@ class ProxyCommunicationController {
           await this._handleTransferResponse(message);
         }
 
+        if (
+          [
+            STAKE_NODE_RESPONSE,
+            UNSTAKE_NODE_RESPONSE,
+            UNJAIL_NODE_RESPONSE,
+            STAKE_APP_RESPONSE,
+            TRANSFER_APP_RESPONSE,
+            UNSTAKE_APP_RESPONSE,
+            CHANGE_PARAM_RESPONSE,
+            DAO_TRANSFER_RESPONSE,
+            UPGRADE_RESPONSE,
+          ].includes(message.type)
+        ) {
+          await this._handlePoktTxResponse(
+            message as InternalResponse<typeof message.type>
+          );
+        }
+
         if (message.type === DISCONNECT_RESPONSE) {
           this._handleDisconnect(message.data?.protocol);
         }
@@ -283,6 +620,10 @@ class ProxyCommunicationController {
 
         if (message.type === PERSONAL_SIGN_RESPONSE) {
           this._handlePersonalSignResponse(message);
+        }
+
+        if (message.type === PUBLIC_KEY_RESPONSE) {
+          this._handlePublicKeyResponse(message);
         }
 
         if (message.type === SELECTED_ACCOUNT_CHANGED) {
@@ -1167,7 +1508,10 @@ class ProxyCommunicationController {
           );
         }
 
-        if (!stringRegex.test(data?.challenge)) {
+        if (
+          protocol === SupportedProtocols.Ethereum &&
+          !stringRegex.test(data?.challenge)
+        ) {
           this._sendPersonalSignResponse(
             requestId,
             null,
@@ -1191,7 +1535,7 @@ class ProxyCommunicationController {
           await browser.runtime.sendMessage(message);
 
         if (response?.type === PERSONAL_SIGN_RESPONSE) {
-          this._sendSignTypedResponse(
+          this._sendPersonalSignResponse(
             response.requestId || requestId,
             null,
             response.error
@@ -1263,6 +1607,315 @@ class ProxyCommunicationController {
           data: null,
           error: UnknownError,
         } as ProxyPersonalSignRes,
+        window.location.origin
+      );
+    }
+  }
+
+  private async _sendPublicKeyRequest(
+    protocol: SupportedProtocols,
+    requestId: string,
+    address: string
+  ) {
+    try {
+      const sessionId = this._sessionByProtocol[protocol]?.id;
+      if (!sessionId) {
+        return this._sendPublicKeyResponse(requestId, null, UnauthorizedError);
+      }
+
+      if (!address) {
+        return this._sendPublicKeyResponse(
+          requestId,
+          null,
+          propertyIsRequired("address")
+        );
+      }
+
+      if (!isValidAddress(address, protocol)) {
+        return this._sendPublicKeyResponse(
+          requestId,
+          null,
+          propertyIsNotValid("address")
+        );
+      }
+
+      const message: ExternalPublicKeyReq = {
+        type: PUBLIC_KEY_REQUEST,
+        requestId,
+        data: {
+          sessionId,
+          origin: window.location.origin,
+          protocol,
+          address,
+          faviconUrl: this._getFaviconUrl(),
+        },
+      };
+
+      const response: ExternalPublicKeyResToProxy =
+        await browser.runtime.sendMessage(message);
+
+      if (response && response?.type === PUBLIC_KEY_RESPONSE) {
+        this._sendPublicKeyResponse(
+          requestId,
+          response?.data?.publicKey,
+          response?.error
+        );
+      }
+    } catch (e) {
+      this._sendPublicKeyResponse(requestId, null, UnknownError);
+    }
+  }
+
+  private _handlePublicKeyResponse(response: InternalPublicKeyRes) {
+    try {
+      const { error, data, requestId } = response;
+
+      if (data) {
+        this._sendPublicKeyResponse(requestId, data.publicKey);
+      } else {
+        this._sendPublicKeyResponse(requestId, null, error);
+      }
+    } catch (e) {
+      this._sendPublicKeyResponse(response?.requestId, null, UnknownError);
+    }
+  }
+
+  private _sendPublicKeyResponse(
+    requestId: string,
+    publicKey: string | null,
+    error?
+  ) {
+    try {
+      let response: ProxyPublicKeyRes;
+
+      if (error) {
+        response = {
+          id: requestId,
+          type: PUBLIC_KEY_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error,
+        };
+      } else {
+        response = {
+          id: requestId,
+          type: PUBLIC_KEY_RESPONSE,
+          from: "VAULT_KEYRING",
+          error: null,
+          data: {
+            publicKey,
+          },
+        };
+      }
+
+      window.postMessage(response, window.location.origin);
+    } catch (e) {
+      window.postMessage(
+        {
+          id: requestId,
+          type: PUBLIC_KEY_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error: UnknownError,
+        } as ProxyPublicKeyRes,
+        window.location.origin
+      );
+    }
+  }
+
+  private async _sendPoktTxRequest<
+    D extends object,
+    V extends z.ZodObject<any>,
+    EReq extends {
+      type: string;
+      requestId: string;
+      data: {
+        origin: string;
+        faviconUrl: string;
+        sessionId: string;
+        protocol: SupportedProtocols;
+        transactionData: z.infer<V>;
+      };
+    },
+    TRes extends string,
+    ERes extends ExternalResponse<TRes>,
+    PRes extends ProxyPoktTxRes<TRes>
+  >(
+    protocol: SupportedProtocols,
+    requestId: string,
+    data: D,
+    validator: V,
+    requestType: EReq["type"],
+    responseType: Extract<ERes, { data: null }>["type"]
+  ) {
+    let requestWasSent = false;
+
+    try {
+      if (protocol !== SupportedProtocols.Pocket) {
+        return this._sendPoktTxResponse<typeof responseType, PRes>(
+          responseType,
+          requestId,
+          null,
+          UnsupportedMethod
+        );
+      }
+
+      const sessionId = this._sessionByProtocol[protocol]?.id;
+      if (sessionId) {
+        let transactionData: z.infer<V>;
+
+        try {
+          transactionData = validator.parse(data);
+        } catch (e) {
+          const zodError: ZodError = e;
+          const path = zodError?.issues?.[0]?.path?.[0] as string;
+
+          const errorToReturn = !data?.[path]
+            ? propertyIsRequired(zodError?.issues?.[0]?.path?.join(".") || path)
+            : propertyIsNotValid(
+                zodError?.issues?.[0]?.path?.join(".") || path
+              );
+          return this._sendPoktTxResponse<typeof responseType, PRes>(
+            responseType,
+            requestId,
+            null,
+            errorToReturn
+          );
+        }
+
+        const message = {
+          type: requestType,
+          requestId,
+          data: {
+            origin: window.location.origin,
+            faviconUrl: this._getFaviconUrl(),
+            sessionId,
+            protocol,
+            transactionData,
+          },
+        } as EReq;
+
+        const response: ERes = await browser.runtime.sendMessage(message);
+
+        requestWasSent = true;
+
+        if (response && response?.type === responseType) {
+          this._sendPoktTxResponse<typeof responseType, PRes>(
+            responseType,
+            requestId,
+            null,
+            response.error
+          );
+
+          if (response?.error?.isSessionInvalid) {
+            this._handleDisconnect(protocol);
+          }
+        }
+      } else {
+        return this._sendPoktTxResponse<typeof responseType, PRes>(
+          responseType,
+          requestId,
+          null,
+          UnauthorizedError
+        );
+      }
+    } catch (e) {
+      if (!requestWasSent) {
+        this._sendPoktTxResponse<typeof responseType, PRes>(
+          responseType,
+          requestId,
+          null,
+          UnknownError
+        );
+      }
+    }
+  }
+
+  private async _handlePoktTxResponse<T extends string>(
+    response: InternalResponse<T>
+  ) {
+    try {
+      const { error, data, requestId, type } = response;
+
+      if (data) {
+        if (data.rejected) {
+          this._sendPoktTxResponse<typeof type, ProxyPoktTxRes<typeof type>>(
+            response.type,
+            requestId,
+            null,
+            OperationRejected
+          );
+        } else {
+          this._sendPoktTxResponse<typeof type, ProxyPoktTxRes<typeof type>>(
+            response.type,
+            requestId,
+            data.hash,
+            null
+          );
+        }
+      } else {
+        this._sendPoktTxResponse<typeof type, ProxyPoktTxRes<typeof type>>(
+          response.type,
+          requestId,
+          null,
+          error
+        );
+
+        // @ts-ignore
+        if (error?.isSessionInvalid) {
+          this._handleDisconnect(response.data.protocol);
+        }
+      }
+    } catch (e) {
+      this._sendPoktTxResponse<
+        typeof response.type,
+        ProxyPoktTxRes<typeof response.type>
+      >(response.type, response?.requestId, null, UnknownError);
+    }
+  }
+
+  private _sendPoktTxResponse<
+    Type extends string,
+    T extends ProxyPoktTxRes<Type>
+  >(
+    proxyResponseType: Type,
+    requestId: string,
+    hash: string | null,
+    error: ExternalBasePoktTxErrors | null
+  ) {
+    try {
+      let response: T;
+
+      if (error) {
+        response = {
+          id: requestId,
+          type: proxyResponseType,
+          from: "VAULT_KEYRING",
+          data: null,
+          error,
+        } as T;
+      } else {
+        response = {
+          id: requestId,
+          type: proxyResponseType,
+          from: "VAULT_KEYRING",
+          error: null,
+          data: {
+            hash,
+          },
+        } as T;
+      }
+
+      window.postMessage(response, window.location.origin);
+    } catch (e) {
+      window.postMessage(
+        {
+          id: requestId,
+          type: proxyResponseType,
+          from: "VAULT_KEYRING",
+          data: null,
+          error: UnknownError,
+        } as T,
         window.location.origin
       );
     }

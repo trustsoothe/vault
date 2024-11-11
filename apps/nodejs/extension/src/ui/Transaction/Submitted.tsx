@@ -2,14 +2,16 @@ import React from "react";
 import DialogContent from "@mui/material/DialogContent";
 import SuccessActionBanner from "../components/SuccessActionBanner";
 import TransactionHash from "./TransactionHash";
+import AddContactButton from "./AddContact";
 import Summary from "../components/Summary";
 import BaseSummary from "./BaseSummary";
 
 interface SubmittedProps {
   isSwapping?: boolean;
+  onCancel?: () => void;
 }
 
-export default function Submitted({ isSwapping }: SubmittedProps) {
+export default function Submitted({ isSwapping, onCancel }: SubmittedProps) {
   return (
     <DialogContent sx={{ padding: "20px!important" }}>
       <SuccessActionBanner
@@ -27,6 +29,7 @@ export default function Submitted({ isSwapping }: SubmittedProps) {
           },
         ]}
       />
+      <AddContactButton onCancel={onCancel} />
     </DialogContent>
   );
 }

@@ -82,6 +82,116 @@ interface PersonalSignRequest {
   params: [string, string];
 }
 
+interface PublicKeyRequest {
+  method: typeof PocketNetworkMethod.PUBLIC_KEY;
+  params: [{ address: string }];
+}
+
+interface SignMessageRequest {
+  method: typeof PocketNetworkMethod.SIGN_MESSAGE;
+  params: [{ address: string; message: string }];
+}
+
+interface StakeNodeRequest {
+  method: typeof PocketNetworkMethod.STAKE_NODE;
+  params: [
+    {
+      amount: string;
+      chains: string[];
+      serviceURL: string;
+      address: string;
+      operatorPublicKey?: string;
+      rewardDelegators?: Record<string, number>;
+    }
+  ];
+}
+
+interface UnstakeNodeRequest {
+  method: typeof PocketNetworkMethod.UNSTAKE_NODE;
+  params: [
+    {
+      nodeAddress: string;
+      address: string;
+    }
+  ];
+}
+
+interface UnjailNodeRequest {
+  method: typeof PocketNetworkMethod.UNJAIL_NODE;
+  params: [
+    {
+      nodeAddress: string;
+      address: string;
+    }
+  ];
+}
+
+interface StakeAppRequest {
+  method: typeof PocketNetworkMethod.STAKE_APP;
+  params: [
+    {
+      address: string;
+      amount: string;
+      chains: string[];
+    }
+  ];
+}
+
+interface TransferAppRequest {
+  method: typeof PocketNetworkMethod.TRANSFER_APP;
+  params: [
+    {
+      address: string;
+      newAppPublicKey: string;
+    }
+  ];
+}
+
+interface UnstakeAppRequest {
+  method: typeof PocketNetworkMethod.UNSTAKE_APP;
+  params: [
+    {
+      address: string;
+    }
+  ];
+}
+
+interface ChangeParamRequest {
+  method: typeof PocketNetworkMethod.CHANGE_PARAM;
+  params: [
+    {
+      address: string;
+      paramKey: string;
+      paramValue: string;
+      overrideGovParamsWhitelistValidation: boolean;
+    }
+  ];
+}
+
+interface DaoTransferRequest {
+  method: typeof PocketNetworkMethod.DAO_TRANSFER;
+  params: [
+    {
+      address: string;
+      to: string;
+      amount: string;
+      daoAction: string;
+    }
+  ];
+}
+
+interface UpgradeRequest {
+  method: typeof PocketNetworkMethod.UPGRADE;
+  params: [
+    {
+      address: string;
+      height: number;
+      version: string;
+      features: string[];
+    }
+  ];
+}
+
 export type Method =
   | AccountRequest
   | ChainRequest
@@ -93,7 +203,18 @@ export type Method =
   | GetPoktTxRequest
   | SwitchChainRequest
   | SignTypedDataRequest
-  | PersonalSignRequest;
+  | PersonalSignRequest
+  | SignMessageRequest
+  | StakeNodeRequest
+  | UnstakeNodeRequest
+  | UnjailNodeRequest
+  | StakeAppRequest
+  | TransferAppRequest
+  | UnstakeAppRequest
+  | ChangeParamRequest
+  | DaoTransferRequest
+  | UpgradeRequest
+  | PublicKeyRequest;
 
 export type SuccessfulCallback = (error: null, res: unknown) => unknown;
 export type ErrorCallback = (error: unknown, res: null) => unknown;

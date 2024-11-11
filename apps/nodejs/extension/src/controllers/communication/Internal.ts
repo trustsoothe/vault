@@ -1,3 +1,7 @@
+import type {
+  AnswerPublicKeyReq,
+  InternalPublicKeyRes,
+} from "../../types/communications/publicKey";
 import type { AppRequests, InternalRequests } from "../../types/communications";
 import type {
   AnswerTransferReq,
@@ -65,6 +69,31 @@ import type {
   SetRequirePasswordForOptsRes,
 } from "../../types/communications/app";
 import type { ICommunicationController } from "../../types";
+import type {
+  CreateAccountFromHdSeedReq,
+  CreateAccountFromHdSeedRes,
+  GetRecoveryPhraseIdReq,
+  GetRecoveryPhraseIdRes,
+  ImportHdWalletReq,
+  ImportHdWalletRes,
+} from "../../types/communications/hdWallet";
+import type {
+  AnswerBasePoktTxResponseData,
+  AnswerPoktTxRequests,
+  AnswerValidatePoktTxReq,
+  AnswerValidatePoktTxRes,
+  InternalChangeParamRes,
+  InternalDaoTransferRes,
+  InternalResponse,
+  InternalStakeAppRes,
+  InternalStakeNodeRes,
+  InternalTransferAppRes,
+  InternalUnjailNodeRes,
+  InternalUnstakeAppRes,
+  InternalUnstakeNodeRes,
+  InternalUpgradeRes,
+} from "../../types/communications/transactions";
+import type { BaseResponse } from "../../types/communications/common";
 import browser, { type Runtime } from "webextension-polyfill";
 import {
   AccountExistErrorName,
@@ -75,32 +104,60 @@ import {
   Passphrase,
   PermissionResources,
   PermissionsBuilder,
+  PocketNetworkProtocolService,
   PrivateKeyRestoreErrorName,
+  ProtocolServiceFactory,
   RecoveryPhraseExistErrorName,
   SupportedProtocols,
+  ValidateTransactionResult,
   VaultRestoreErrorName,
 } from "@poktscan/vault";
 import { WebEncryptionService } from "@poktscan/vault-encryption-web";
 import store, { RootState } from "../../redux/store";
 import {
+  ANSWER_CHANGE_PARAM_REQUEST,
+  ANSWER_CHANGE_PARAM_RESPONSE,
   ANSWER_CONNECTION_REQUEST,
   ANSWER_CONNECTION_RESPONSE,
+  ANSWER_DAO_TRANSFER_REQUEST,
+  ANSWER_DAO_TRANSFER_RESPONSE,
   ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_NEW_ACCOUNT_RESPONSE,
   ANSWER_PERSONAL_SIGN_REQUEST,
   ANSWER_PERSONAL_SIGN_RESPONSE,
+  ANSWER_PUBLIC_KEY_REQUEST,
   ANSWER_SIGNED_TYPED_DATA_REQUEST,
   ANSWER_SIGNED_TYPED_DATA_RESPONSE,
+  ANSWER_STAKE_APP_REQUEST,
+  ANSWER_STAKE_APP_RESPONSE,
+  ANSWER_STAKE_NODE_REQUEST,
+  ANSWER_STAKE_NODE_RESPONSE,
   ANSWER_SWITCH_CHAIN_REQUEST,
   ANSWER_SWITCH_CHAIN_RESPONSE,
+  ANSWER_TRANSFER_APP_REQUEST,
+  ANSWER_TRANSFER_APP_RESPONSE,
   ANSWER_TRANSFER_REQUEST,
   ANSWER_TRANSFER_RESPONSE,
+  ANSWER_UNJAIL_NODE_REQUEST,
+  ANSWER_UNJAIL_NODE_RESPONSE,
+  ANSWER_UNSTAKE_APP_REQUEST,
+  ANSWER_UNSTAKE_APP_RESPONSE,
+  ANSWER_UNSTAKE_NODE_REQUEST,
+  ANSWER_UNSTAKE_NODE_RESPONSE,
+  ANSWER_UPGRADE_REQUEST,
+  ANSWER_UPGRADE_RESPONSE,
+  ANSWER_VALIDATE_POKT_TX_REQUEST,
+  ANSWER_VALIDATE_POKT_TX_RESPONSE,
+  CHANGE_PARAM_REQUEST,
+  CHANGE_PARAM_RESPONSE,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
   CHECK_PERMISSION_FOR_SESSION_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
   CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,
   CREATE_ACCOUNT_FROM_HD_SEED_RESPONSE,
+  DAO_TRANSFER_REQUEST,
+  DAO_TRANSFER_RESPONSE,
   EXPORT_VAULT_REQUEST,
   EXPORT_VAULT_RESPONSE,
   GET_RECOVERY_PHRASE_ID_REQUEST,
@@ -121,6 +178,8 @@ import {
   PERSONAL_SIGN_RESPONSE,
   PK_ACCOUNT_REQUEST,
   PK_ACCOUNT_RESPONSE,
+  PUBLIC_KEY_REQUEST,
+  PUBLIC_KEY_RESPONSE,
   REMOVE_ACCOUNT_REQUEST,
   REMOVE_ACCOUNT_RESPONSE,
   REMOVE_RECOVERY_PHRASE_REQUEST,
@@ -135,22 +194,36 @@ import {
   SHOULD_EXPORT_VAULT_RESPONSE,
   SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
+  STAKE_APP_REQUEST,
+  STAKE_APP_RESPONSE,
+  STAKE_NODE_REQUEST,
+  STAKE_NODE_RESPONSE,
   SWITCH_CHAIN_RESPONSE,
+  TRANSFER_APP_REQUEST,
+  TRANSFER_APP_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
+  UNJAIL_NODE_REQUEST,
+  UNJAIL_NODE_RESPONSE,
   UNLOCK_VAULT_REQUEST,
   UNLOCK_VAULT_RESPONSE,
+  UNSTAKE_APP_REQUEST,
+  UNSTAKE_APP_RESPONSE,
+  UNSTAKE_NODE_REQUEST,
+  UNSTAKE_NODE_RESPONSE,
   UPDATE_ACCOUNT_REQUEST,
   UPDATE_ACCOUNT_RESPONSE,
   UPDATE_RECOVERY_PHRASE_REQUEST,
   UPDATE_RECOVERY_PHRASE_RESPONSE,
+  UPGRADE_REQUEST,
+  UPGRADE_RESPONSE,
 } from "../../constants/communication";
 import {
   changeActiveTab,
   changeSelectedNetwork,
-  increaseErrorOfNetwork,
   removeExternalRequest,
   resetRequestsState,
+  setNetworksWithErrors,
   setRequirePasswordSensitiveOpts,
   setSessionMaxAgeData,
 } from "../../redux/slices/app";
@@ -163,9 +236,11 @@ import {
 import {
   addNewAccount,
   createNewAccountFromHdSeed,
+  getPoktTxFromRequest,
   getPrivateKeyOfAccount,
   importAccount,
   removeAccount,
+  sendPoktTx,
   sendTransfer,
   updateAccount,
 } from "../../redux/slices/vault/account";
@@ -175,21 +250,13 @@ import {
   revokeSession,
 } from "../../redux/slices/vault/session";
 import { OperationRejected, UnknownError } from "../../errors/communication";
-import { getFee, NetworkForOperations } from "../../utils/networkOperations";
+import { runWithNetworks } from "../../utils/networkOperations";
 import { getVault } from "../../utils";
 import {
   exportVault,
   hashString,
   importVault,
 } from "../../redux/slices/vault/backup";
-import {
-  CreateAccountFromHdSeedReq,
-  CreateAccountFromHdSeedRes,
-  GetRecoveryPhraseIdReq,
-  GetRecoveryPhraseIdRes,
-  ImportHdWalletReq,
-  ImportHdWalletRes,
-} from "../../types/communications/hdWallet";
 import {
   importRecoveryPhrase,
   removeRecoveryPhrase,
@@ -229,6 +296,17 @@ const mapMessageType: Record<InternalRequests["type"], true> = {
   [UPDATE_RECOVERY_PHRASE_REQUEST]: true,
   [REMOVE_RECOVERY_PHRASE_REQUEST]: true,
   [GET_RECOVERY_PHRASE_ID_REQUEST]: true,
+  [ANSWER_STAKE_NODE_REQUEST]: true,
+  [ANSWER_UNSTAKE_NODE_REQUEST]: true,
+  [ANSWER_UNJAIL_NODE_REQUEST]: true,
+  [ANSWER_STAKE_APP_REQUEST]: true,
+  [ANSWER_TRANSFER_APP_REQUEST]: true,
+  [ANSWER_UNSTAKE_APP_REQUEST]: true,
+  [ANSWER_CHANGE_PARAM_REQUEST]: true,
+  [ANSWER_DAO_TRANSFER_REQUEST]: true,
+  [ANSWER_VALIDATE_POKT_TX_REQUEST]: true,
+  [ANSWER_PUBLIC_KEY_REQUEST]: true,
+  [ANSWER_UPGRADE_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -345,6 +423,95 @@ class InternalCommunicationController implements ICommunicationController {
     if (message?.type === GET_RECOVERY_PHRASE_ID_REQUEST) {
       return this._getRecoveryPhraseIdByPhrase(message);
     }
+
+    if (message?.type === ANSWER_UNSTAKE_NODE_REQUEST) {
+      return this._answerBasePoktTxRequest(
+        message,
+        ANSWER_UNSTAKE_NODE_RESPONSE,
+        UNSTAKE_NODE_REQUEST,
+        UNSTAKE_NODE_RESPONSE
+      );
+    }
+
+    if (message?.type === ANSWER_STAKE_NODE_REQUEST) {
+      return this._answerBasePoktTxRequest(
+        message,
+        ANSWER_STAKE_NODE_RESPONSE,
+        STAKE_NODE_REQUEST,
+        STAKE_NODE_RESPONSE
+      );
+    }
+
+    if (message?.type === ANSWER_UNJAIL_NODE_REQUEST) {
+      return this._answerBasePoktTxRequest(
+        message,
+        ANSWER_UNJAIL_NODE_RESPONSE,
+        UNJAIL_NODE_REQUEST,
+        UNJAIL_NODE_RESPONSE
+      );
+    }
+
+    if (message?.type === ANSWER_STAKE_APP_REQUEST) {
+      return this._answerBasePoktTxRequest(
+        message,
+        ANSWER_STAKE_APP_RESPONSE,
+        STAKE_APP_REQUEST,
+        STAKE_APP_RESPONSE
+      );
+    }
+
+    if (message?.type === ANSWER_TRANSFER_APP_REQUEST) {
+      return this._answerBasePoktTxRequest(
+        message,
+        ANSWER_TRANSFER_APP_RESPONSE,
+        TRANSFER_APP_REQUEST,
+        TRANSFER_APP_RESPONSE
+      );
+    }
+
+    if (message?.type === ANSWER_UNSTAKE_APP_REQUEST) {
+      return this._answerBasePoktTxRequest(
+        message,
+        ANSWER_UNSTAKE_APP_RESPONSE,
+        UNSTAKE_APP_REQUEST,
+        UNSTAKE_APP_RESPONSE
+      );
+    }
+
+    if (message?.type === ANSWER_CHANGE_PARAM_REQUEST) {
+      return this._answerBasePoktTxRequest(
+        message,
+        ANSWER_CHANGE_PARAM_RESPONSE,
+        CHANGE_PARAM_REQUEST,
+        CHANGE_PARAM_RESPONSE
+      );
+    }
+
+    if (message?.type === ANSWER_DAO_TRANSFER_REQUEST) {
+      return this._answerBasePoktTxRequest(
+        message,
+        ANSWER_DAO_TRANSFER_RESPONSE,
+        DAO_TRANSFER_REQUEST,
+        DAO_TRANSFER_RESPONSE
+      );
+    }
+
+    if (message?.type === ANSWER_UPGRADE_REQUEST) {
+      return this._answerBasePoktTxRequest(
+        message,
+        ANSWER_UPGRADE_RESPONSE,
+        UPGRADE_REQUEST,
+        UPGRADE_RESPONSE
+      );
+    }
+
+    if (message?.type === ANSWER_VALIDATE_POKT_TX_REQUEST) {
+      return this._validatePoktTx(message);
+    }
+
+    if (message?.type === ANSWER_PUBLIC_KEY_REQUEST) {
+      return this._answerPublicKeyRequest(message);
+    }
   }
 
   private async _handleOnRemovedWindow(windowId: number) {
@@ -358,7 +525,17 @@ class InternalCommunicationController implements ICommunicationController {
             | InternalConnectionRes
             | InternalSwitchChainRes
             | InternalSignedTypedDataRes
-            | InternalPersonalSignRes;
+            | InternalPersonalSignRes
+            | InternalUnstakeNodeRes
+            | InternalStakeNodeRes
+            | InternalUnjailNodeRes
+            | InternalStakeAppRes
+            | InternalTransferAppRes
+            | InternalUnstakeAppRes
+            | InternalChangeParamRes
+            | InternalDaoTransferRes
+            | InternalUpgradeRes
+            | InternalPublicKeyRes;
 
           if (request.type === CONNECTION_REQUEST_MESSAGE) {
             response = {
@@ -381,6 +558,105 @@ class InternalCommunicationController implements ICommunicationController {
               },
               error: null,
             } as InternalTransferRes;
+          } else if (request.type === UNSTAKE_NODE_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: UNSTAKE_NODE_RESPONSE,
+              data: {
+                rejected: true,
+                hash: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalUnstakeNodeRes;
+          } else if (request.type === STAKE_NODE_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: STAKE_NODE_RESPONSE,
+              data: {
+                rejected: true,
+                hash: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalStakeNodeRes;
+          } else if (request.type === UNJAIL_NODE_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: UNJAIL_NODE_RESPONSE,
+              data: {
+                rejected: true,
+                hash: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalUnjailNodeRes;
+          } else if (request.type === STAKE_APP_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: STAKE_APP_RESPONSE,
+              data: {
+                rejected: true,
+                hash: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalStakeAppRes;
+          } else if (request.type === TRANSFER_APP_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: TRANSFER_APP_RESPONSE,
+              data: {
+                rejected: true,
+                hash: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalTransferAppRes;
+          } else if (request.type === UNSTAKE_APP_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: UNSTAKE_APP_RESPONSE,
+              data: {
+                rejected: true,
+                hash: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalUnstakeAppRes;
+          } else if (request.type === CHANGE_PARAM_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: CHANGE_PARAM_RESPONSE,
+              data: {
+                rejected: true,
+                hash: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalChangeParamRes;
+          } else if (request.type === DAO_TRANSFER_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: DAO_TRANSFER_RESPONSE,
+              data: {
+                rejected: true,
+                hash: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalDaoTransferRes;
+          } else if (request.type === UPGRADE_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: UPGRADE_RESPONSE,
+              data: {
+                rejected: true,
+                hash: null,
+                protocol: null,
+              },
+              error: null,
+            } as InternalUpgradeRes;
           } else if (request.type === SIGN_TYPED_DATA_REQUEST) {
             response = {
               requestId: request.requestId,
@@ -395,6 +671,13 @@ class InternalCommunicationController implements ICommunicationController {
               data: null,
               error: OperationRejected,
             } as InternalPersonalSignRes;
+          } else if (request.type === PUBLIC_KEY_REQUEST) {
+            response = {
+              requestId: request.requestId,
+              type: PUBLIC_KEY_RESPONSE,
+              data: null,
+              error: OperationRejected,
+            } as InternalPublicKeyRes;
           } else {
             response = {
               requestId: request.requestId,
@@ -883,7 +1166,10 @@ class InternalCommunicationController implements ICommunicationController {
           request.sessionId
         );
 
-        const signResult = await ethService.signPersonalData({
+        const signResult = await ProtocolServiceFactory.getProtocolService(
+          request.protocol,
+          new WebEncryptionService()
+        ).signPersonalData({
           privateKey: pk,
           challenge: request.challenge,
         });
@@ -932,6 +1218,48 @@ class InternalCommunicationController implements ICommunicationController {
         data: null,
         error: UnknownError,
       };
+    }
+  }
+
+  private async _answerPublicKeyRequest(message: AnswerPublicKeyReq) {
+    try {
+      const { request } = message?.data || {};
+      const { origin, tabId, type } = request;
+
+      const publicKey = await getVault().getPublicKey(
+        request.sessionId,
+        request.address
+      );
+
+      const responseToProxy: InternalPublicKeyRes = {
+        requestId: request?.requestId,
+        type: PUBLIC_KEY_RESPONSE,
+        data: {
+          publicKey,
+        },
+        error: null,
+      };
+
+      await Promise.all([
+        browser.tabs.sendMessage(tabId, responseToProxy),
+        store.dispatch(
+          removeExternalRequest({ origin, type, protocol: request.protocol })
+        ) as unknown as Promise<unknown>,
+      ]);
+      await this._updateBadgeText();
+    } catch (e) {
+      const tabId = message?.data?.request?.tabId;
+
+      if (tabId) {
+        await browser.tabs
+          .sendMessage(tabId, {
+            type: PUBLIC_KEY_RESPONSE,
+            data: null,
+            error: UnknownError,
+            requestId: message?.data?.request?.requestId,
+          } as InternalPublicKeyRes)
+          .catch();
+      }
     }
   }
 
@@ -1107,6 +1435,198 @@ class InternalCommunicationController implements ICommunicationController {
       return {
         type: ANSWER_TRANSFER_RESPONSE,
         data: null,
+        error: UnknownError,
+      };
+    }
+  }
+
+  private async _answerBasePoktTxRequest<
+    Req extends AnswerPoktTxRequests,
+    TRes extends string,
+    Res extends BaseResponse<TRes, AnswerBasePoktTxResponseData>,
+    ETRes extends string,
+    IRes extends InternalResponse<ETRes>
+  >(
+    message: Req,
+    responseType: TRes,
+    externalReqType: string,
+    externalResponseType: ETRes
+  ): Promise<Res> {
+    try {
+      const {
+        rejected,
+        request,
+        vaultPassword: vaultPasswordFromRequest,
+      } = message?.data || {};
+
+      let hash: string | null = null;
+      let response: IRes;
+
+      if (typeof rejected === "boolean" && rejected && request) {
+        response = {
+          type: externalResponseType,
+          requestId: request.requestId,
+          data: {
+            rejected: true,
+            hash: null,
+            protocol: request.protocol,
+          },
+          error: null,
+        } as IRes;
+        await Promise.all([
+          browser.tabs.sendMessage(request.tabId, response),
+          store.dispatch(
+            removeExternalRequest({
+              origin: request.origin,
+              type: externalReqType,
+              protocol: request.protocol,
+            })
+          ),
+        ]);
+      } else if (!rejected) {
+        const {
+          app: { requirePasswordForSensitiveOpts },
+          vault: { vaultSession },
+        } = store.getState();
+
+        if (requirePasswordForSensitiveOpts) {
+          const vaultPassword = await getVaultPassword(vaultSession.id);
+
+          if (vaultPassword !== vaultPasswordFromRequest) {
+            return {
+              type: responseType,
+              data: {
+                answered: true,
+                hash: null,
+                isPasswordWrong: true,
+              },
+              error: null,
+            } as Res;
+          }
+        }
+
+        hash = await store.dispatch(sendPoktTx(message)).unwrap();
+
+        if (request) {
+          response = {
+            type: externalResponseType,
+            requestId: request.requestId,
+            data: {
+              rejected: false,
+              hash,
+              protocol: request.protocol,
+            },
+            error: null,
+          } as IRes;
+          await Promise.all([
+            browser.tabs.sendMessage(request.tabId, response),
+            store.dispatch(
+              removeExternalRequest({
+                origin: request.origin,
+                type: externalReqType,
+                protocol: request.protocol,
+              })
+            ),
+          ]);
+        }
+      }
+
+      if (request) {
+        await this._updateBadgeText();
+      }
+
+      return {
+        type: responseType,
+        data: {
+          answered: true,
+          hash,
+        },
+        error: null,
+      } as Res;
+    } catch (error) {
+      if (
+        error?.name === PrivateKeyRestoreErrorName ||
+        error?.name === VaultRestoreErrorName
+      ) {
+        return {
+          type: responseType,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+            hash: null,
+          },
+          error: null,
+        } as Res;
+      }
+
+      const tabId = message?.data?.request?.tabId;
+
+      if (tabId) {
+        await browser.tabs
+          .sendMessage(tabId, {
+            type: STAKE_NODE_RESPONSE,
+            data: null,
+            error: UnknownError,
+          })
+          .catch();
+      }
+
+      console.log(`Tx ${message?.type} ERROR:`, error);
+
+      return {
+        type: responseType,
+        data: null,
+        error: UnknownError,
+      } as Res;
+    }
+  }
+
+  private async _validatePoktTx(
+    message: AnswerValidatePoktTxReq
+  ): Promise<AnswerValidatePoktTxRes> {
+    try {
+      const result = await getPoktTxFromRequest({
+        state: store.getState(),
+        request: message.data.request,
+        privateKey: "",
+        fee: 0.01,
+      });
+
+      const protocolService = new PocketNetworkProtocolService(
+        new WebEncryptionService()
+      );
+
+      const validationResult = await protocolService.validateTransaction(
+        result.transaction,
+        result.network
+      );
+
+      return {
+        type: ANSWER_VALIDATE_POKT_TX_RESPONSE,
+        data: {
+          answered: true,
+          result: validationResult,
+        },
+        error: null,
+      };
+    } catch (e) {
+      console.log(e);
+      if (e?.message?.startsWith("validator not found for")) {
+        return {
+          type: ANSWER_VALIDATE_POKT_TX_RESPONSE,
+          data: {
+            answered: true,
+            result: new ValidateTransactionResult(),
+          },
+          error: null,
+        };
+      }
+      return {
+        type: ANSWER_VALIDATE_POKT_TX_RESPONSE,
+        data: {
+          answered: true,
+          result: null,
+        },
         error: UnknownError,
       };
     }
@@ -1429,36 +1949,48 @@ class InternalCommunicationController implements ICommunicationController {
     data: { protocol, chainId, toAddress, asset, ...optionProps },
   }: NetworkFeeReq): Promise<NetworkFeeRes> {
     try {
-      const networks = this._getNetworks();
-      const errorsPreferredNetwork =
-        store.getState().app.errorsPreferredNetwork;
-      const result = await getFee({
-        protocol,
-        chainId: chainId as any,
-        networks,
-        errorsPreferredNetwork,
-        options:
-          protocol === SupportedProtocols.Ethereum
-            ? {
-                to: toAddress,
-                protocol,
-                asset: asset ? { ...asset, chainID: asset.chainId } : undefined,
-                ...optionProps,
-              }
-            : undefined,
-      });
+      const { customRpcs, networks, errorsPreferredNetwork } =
+        store.getState().app;
 
-      if (result.networksWithErrors?.length) {
-        for (const networkId of result.networksWithErrors) {
-          await store.dispatch(increaseErrorOfNetwork(networkId));
+      const protocolService = ProtocolServiceFactory.getProtocolService(
+        protocol,
+        new WebEncryptionService()
+      );
+
+      const { result, rpcWithErrors } = await runWithNetworks(
+        {
+          protocol,
+          chainId,
+          customRpcs,
+          networks,
+          errorsPreferredNetwork,
+        },
+        async (network) => {
+          return protocolService.getFee(
+            network,
+            protocol === SupportedProtocols.Ethereum
+              ? {
+                  to: toAddress,
+                  protocol,
+                  asset: asset
+                    ? { ...asset, chainID: asset.chainId }
+                    : undefined,
+                  ...optionProps,
+                }
+              : undefined
+          );
         }
+      );
+
+      if (rpcWithErrors.length) {
+        await store.dispatch(setNetworksWithErrors(rpcWithErrors));
       }
 
       return {
         type: NETWORK_FEE_RESPONSE,
         data: {
           answered: true,
-          networkFee: result.fee,
+          networkFee: result,
         },
         error: null,
       };
@@ -1469,37 +2001,6 @@ class InternalCommunicationController implements ICommunicationController {
         error: UnknownError,
       };
     }
-  }
-
-  private _getNetworks(): NetworkForOperations[] {
-    const {
-      app: { networks, customRpcs },
-    } = store.getState();
-
-    return [
-      ...networks.map(
-        (network) =>
-          ({
-            protocol: network.protocol,
-            id: network.id,
-            chainID: network.chainId,
-            isDefault: true,
-            isPreferred: false,
-            rpcUrl: network.rpcUrl,
-          } as NetworkForOperations)
-      ),
-      ...customRpcs.map(
-        (rpc) =>
-          ({
-            protocol: rpc.protocol,
-            id: rpc.id,
-            chainID: rpc.chainId,
-            isDefault: false,
-            isPreferred: rpc.isPreferred,
-            rpcUrl: rpc.url,
-          } as NetworkForOperations)
-      ),
-    ];
   }
 
   private async _checkPermissionsForSession(

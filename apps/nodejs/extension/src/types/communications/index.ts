@@ -101,6 +101,71 @@ import {
   GetRecoveryPhraseIdReq,
   ImportHdWalletReq,
 } from "./hdWallet";
+import {
+  AnswerChangeParamReq,
+  AnswerDaoTransferReq,
+  AnswerStakeAppReq,
+  AnswerStakeNodeReq,
+  AnswerTransferAppReq,
+  AnswerUnjailNodeReq,
+  AnswerUnstakeAppReq,
+  AnswerUnstakeNodeReq,
+  AnswerUpgradeReq,
+  AnswerValidatePoktTxReq,
+  AppChangeParamReq,
+  AppDaoTransferReq,
+  AppStakeAppReq,
+  AppStakeNodeReq,
+  AppTransferAppReq,
+  AppUnjailNodeReq,
+  AppUnstakeAppReq,
+  AppUnstakeNodeReq,
+  AppUpgradeReq,
+  ExternalChangeParamReq,
+  ExternalDaoTransferReq,
+  ExternalStakeAppReq,
+  ExternalStakeNodeReq,
+  ExternalTransferAppReq,
+  ExternalUnjailNodeReq,
+  ExternalUnstakeAppReq,
+  ExternalUnstakeNodeReq,
+  ExternalUpgradeReq,
+  InternalChangeParamRes,
+  InternalDaoTransferRes,
+  InternalStakeAppRes,
+  InternalStakeNodeRes,
+  InternalTransferAppRes,
+  InternalUnjailNodeRes,
+  InternalUnstakeAppRes,
+  InternalUnstakeNodeRes,
+  InternalUpgradeRes,
+  ProxyChangeParamReq,
+  ProxyChangeParamRes,
+  ProxyDaoTransferReq,
+  ProxyDaoTransferRes,
+  ProxyStakeAppReq,
+  ProxyStakeAppRes,
+  ProxyStakeNodeReq,
+  ProxyStakeNodeRes,
+  ProxyTransferAppReq,
+  ProxyTransferAppRes,
+  ProxyUnjailNodeReq,
+  ProxyUnjailNodeRes,
+  ProxyUnstakeAppReq,
+  ProxyUnstakeAppRes,
+  ProxyUnstakeNodeReq,
+  ProxyUnstakeNodeRes,
+  ProxyUpgradeReq,
+  ProxyUpgradeRes,
+} from "./transactions";
+import {
+  AnswerPublicKeyReq,
+  AppPublicKeyReq,
+  ExternalPublicKeyReq,
+  InternalPublicKeyRes,
+  ProxyPublicKeyReq,
+  ProxyPublicKeyRes,
+} from "./publicKey";
 
 export type ProxyRequests =
   | ProxyConnectionReq
@@ -111,7 +176,17 @@ export type ProxyRequests =
   | ProxyGetPoktTxReq
   | ProxySwitchChainReq
   | ProxySignTypedDataReq
-  | ProxyPersonalSignReq;
+  | ProxyPersonalSignReq
+  | ProxyStakeNodeReq
+  | ProxyUnstakeNodeReq
+  | ProxyUnjailNodeReq
+  | ProxyStakeAppReq
+  | ProxyTransferAppReq
+  | ProxyUnstakeAppReq
+  | ProxyChangeParamReq
+  | ProxyDaoTransferReq
+  | ProxyPublicKeyReq
+  | ProxyUpgradeReq;
 export type ProxyResponses =
   | ProxyConnectionRes
   | ProxySelectedChainRes
@@ -122,7 +197,17 @@ export type ProxyResponses =
   | ProxySwitchChainRes
   | ProxySignedTypedDataRes
   | ProxyPersonalSignRes
-  | AppIsReadyMessageToProvider;
+  | AppIsReadyMessageToProvider
+  | ProxyPublicKeyRes
+  | ProxyStakeNodeRes
+  | ProxyUnjailNodeRes
+  | ProxyStakeAppRes
+  | ProxyTransferAppRes
+  | ProxyUnstakeAppRes
+  | ProxyChangeParamRes
+  | ProxyDaoTransferRes
+  | ProxyUpgradeRes
+  | ProxyUnstakeNodeRes;
 
 export type ExternalRequests =
   | ExternalConnectionReq
@@ -134,7 +219,17 @@ export type ExternalRequests =
   | ExternalSelectedChainReq
   | ExternalGetPoktTxReq
   | ExternalSignTypedDataReq
-  | ExternalPersonalSignReq;
+  | ExternalPersonalSignReq
+  | ExternalPublicKeyReq
+  | ExternalStakeNodeReq
+  | ExternalUnjailNodeReq
+  | ExternalStakeAppReq
+  | ExternalTransferAppReq
+  | ExternalUnstakeAppReq
+  | ExternalDaoTransferReq
+  | ExternalChangeParamReq
+  | ExternalUnstakeNodeReq
+  | ExternalUpgradeReq;
 export type ExternalResponses = ExternalConnectionRes;
 
 export type InternalRequests =
@@ -157,13 +252,24 @@ export type InternalRequests =
   | AnswerSwitchChainReq
   | AnswerSignedTypedDataReq
   | AnswerPersonalSignReq
+  | AnswerPublicKeyReq
   | ExportVaultReq
   | ShouldExportVaultReq
   | ImportVaultReq
   | SetRequirePasswordForOptsReq
   | UpdateRecoveryPhraseReq
   | RemoveRecoveryPhraseReq
-  | GetRecoveryPhraseIdReq;
+  | GetRecoveryPhraseIdReq
+  | AnswerUnstakeNodeReq
+  | AnswerStakeNodeReq
+  | AnswerUnjailNodeReq
+  | AnswerStakeAppReq
+  | AnswerTransferAppReq
+  | AnswerUnstakeAppReq
+  | AnswerChangeParamReq
+  | AnswerDaoTransferReq
+  | AnswerUpgradeReq
+  | AnswerValidatePoktTxReq;
 /**Responses that the Proxy can receive from Internal controller */
 export type InternalResponses =
   | InternalConnectionRes
@@ -173,7 +279,17 @@ export type InternalResponses =
   | InternalSignedTypedDataRes
   | InternalPersonalSignRes
   | ChainChangedMessageToProxy
-  | AccountsChangedToProxy;
+  | AccountsChangedToProxy
+  | InternalStakeNodeRes
+  | InternalUnstakeNodeRes
+  | InternalUnjailNodeRes
+  | InternalStakeAppRes
+  | InternalTransferAppRes
+  | InternalUnstakeAppRes
+  | InternalChangeParamRes
+  | InternalDaoTransferRes
+  | InternalUpgradeRes
+  | InternalPublicKeyRes;
 
 export type UiResponsesToProxy =
   | InternalConnectionRes
@@ -188,6 +304,16 @@ export type AppRequests = (
   | AppSwitchChainReq
   | AppSignTypedDataReq
   | AppPersonalSignReq
+  | AppPublicKeyReq
+  | AppStakeNodeReq
+  | AppUnstakeNodeReq
+  | AppUnjailNodeReq
+  | AppStakeAppReq
+  | AppTransferAppReq
+  | AppUnstakeAppReq
+  | AppChangeParamReq
+  | AppDaoTransferReq
+  | AppUpgradeReq
 ) & { requestedAt?: number };
 
 export type RequestExistsError<T> = T extends typeof TRANSFER_RESPONSE

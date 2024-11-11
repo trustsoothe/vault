@@ -1,6 +1,7 @@
 import type {
   AutocompleteRenderOptionState,
   FilterOptionsState,
+  TextFieldProps,
 } from "@mui/material";
 import type { AutocompleteInputChangeReason } from "@mui/base/useAutocomplete/useAutocomplete";
 import type { TransactionFormValues } from "./BaseTransaction";
@@ -8,12 +9,15 @@ import Stack from "@mui/material/Stack";
 import React, { useMemo, useState } from "react";
 import IconButton from "@mui/material/IconButton";
 import Autocomplete from "@mui/material/Autocomplete";
-import { AccountType } from "@poktscan/vault";
+import { AccountType, SupportedProtocols } from "@poktscan/vault";
 import AccountInfo, { AccountAvatar } from "../components/AccountInfo";
 import TextFieldWithPaste from "../components/TextFieldWithPaste";
 import { contactsSelector } from "../../redux/selectors/contact";
 import { accountsSelector } from "../../redux/selectors/account";
-import { isValidAddress } from "../../utils/networkOperations";
+import {
+  isValidAddress,
+  isValidPublicKey,
+} from "../../utils/networkOperations";
 import { Controller, useFormContext } from "react-hook-form";
 import CloseIcon from "../assets/img/rounded_close_icon.svg";
 import { useAppSelector } from "../hooks/redux";
@@ -38,7 +42,33 @@ const filterAccounts = (
   });
 };
 
-export default function RecipientAutocomplete() {
+interface RecipientAutocompleteProps {
+  marginTop?: number;
+  label?: string;
+  fieldName?: string;
+  required?: boolean;
+  canSelectContact?: boolean;
+  canSelectFrom?: boolean;
+  acceptPublicKey?: boolean;
+  textFieldProps?: Partial<Omit<TextFieldProps, "onPaste">>;
+  smallPasteButton?: boolean;
+  shouldBeDifferentFrom?: boolean;
+  customValidation?: (value: string) => true | string;
+}
+
+export default function RecipientAutocomplete({
+  marginTop = 0,
+  label = "Public Address",
+  canSelectContact = true,
+  acceptPublicKey = false,
+  canSelectFrom = false,
+  textFieldProps,
+  smallPasteButton = false,
+  fieldName = "recipientAddress",
+  customValidation,
+  required = true,
+  shouldBeDifferentFrom = true,
+}: RecipientAutocompleteProps) {
   const { control, watch } = useFormContext<TransactionFormValues>();
   const [txProtocol, fromAddress, recipientProtocol] = watch([
     "protocol",
@@ -52,8 +82,14 @@ export default function RecipientAutocomplete() {
   const accounts = useAppSelector(accountsSelector);
   const contacts = useAppSelector(contactsSelector);
 
+  const savedAddresses = useMemo(() => {
+    return [...accounts, ...contacts]
+      .filter((item) => item.protocol === protocol)
+      .map((item) => item.address);
+  }, [accounts, contacts]);
+
   const options = useMemo(() => {
-    return contacts
+    return (canSelectContact ? contacts : [])
       .filter((contact) => contact.protocol === protocol)
       .map((contact) => ({
         address: contact.address,
@@ -66,7 +102,7 @@ export default function RecipientAutocomplete() {
             (account) =>
               account.protocol === protocol &&
               account.accountType !== AccountType.HDSeed &&
-              account.address !== fromAddress
+              (account.address !== fromAddress || canSelectFrom)
           )
           .map((account) => ({
             address: account.address,
@@ -74,7 +110,14 @@ export default function RecipientAutocomplete() {
             type: "account",
           }))
       );
-  }, [accounts, contacts, protocol, fromAddress]);
+  }, [
+    accounts,
+    contacts,
+    protocol,
+    fromAddress,
+    canSelectContact,
+    canSelectFrom,
+  ]);
 
   const optionsMap = useMemo(
     () => options.reduce((acc, item) => ({ ...acc, [item.address]: item }), {}),
@@ -138,24 +181,39 @@ export default function RecipientAutocomplete() {
     return option?.name || address;
   };
 
+  const isValid = (value: string) => {
+    if (protocol === SupportedProtocols.Pocket && acceptPublicKey) {
+      return isValidPublicKey(value) || savedAddresses.includes(value);
+    }
+
+    return isValidAddress(value, protocol);
+  };
+
   return (
     <Controller
-      name={"recipientAddress"}
+      name={fieldName as any}
       control={control}
       rules={{
-        required: "Required",
+        required: required ? "Required" : undefined,
         validate: (value, formValues) => {
-          if (value && value === formValues.fromAddress) {
-            return "Should be different than From account";
+          if (!required && !value) {
+            return true;
           }
 
           if (
-            !isValidAddress(
-              value,
-              formValues.recipientProtocol || formValues.protocol
-            )
+            value &&
+            value === formValues.fromAddress &&
+            shouldBeDifferentFrom
           ) {
+            return "Should be different than From account";
+          }
+
+          if (!isValid(value)) {
             return "Invalid address";
+          }
+
+          if (customValidation) {
+            return customValidation(value);
           }
 
           return true;
@@ -165,7 +223,7 @@ export default function RecipientAutocomplete() {
         field: { onChange, value, ...otherProps },
         fieldState: { error },
       }) => {
-        const invalidValue = !!value && !isValidAddress(value, protocol);
+        const invalidValue = !!value && !isValid(value);
         const optionSelected = optionsMap[value];
 
         return (
@@ -175,7 +233,7 @@ export default function RecipientAutocomplete() {
             clearOnBlur={true}
             onInputChange={(event, value, reason) => {
               onChangeInputValue(event, value, reason);
-              if (isValidAddress(value, protocol) && reason === "input") {
+              if (isValid(value) && reason === "input") {
                 onChange(value);
                 otherProps.onBlur();
               }
@@ -210,12 +268,13 @@ export default function RecipientAutocomplete() {
             {...otherProps}
             inputValue={inputValue}
             onBlur={() => {
-              if (!isValidAddress(value, protocol)) {
+              if (!isValid(value)) {
                 onChange(inputValue);
               }
               otherProps.onBlur();
             }}
             sx={{
+              marginTop,
               "& .MuiAutocomplete-endAdornment": {
                 top: 1,
                 height: 30,
@@ -235,7 +294,10 @@ export default function RecipientAutocomplete() {
             // disabled={disabled}
             renderInput={(params) => (
               <TextFieldWithPaste
+                //@ts-ignore
+                variant={textFieldProps?.variant}
                 {...params}
+                smallButton={smallPasteButton}
                 InputProps={{
                   ...params.InputProps,
                   ...(!!inputValue &&
@@ -272,9 +334,9 @@ export default function RecipientAutocomplete() {
                     ) : undefined,
                 }}
                 overrideEndAdornment={!!value || !!inputValue}
-                placeholder={"Public Address"}
+                placeholder={label}
                 fullWidth
-                required
+                required={required}
                 onPaste={(address) => {
                   onChange(address);
                 }}
@@ -282,7 +344,9 @@ export default function RecipientAutocomplete() {
                 // disabled={disabled}
                 error={!!error || invalidValue}
                 helperText={
-                  error?.message || invalidValue ? "Invalid address" : undefined
+                  error?.message || invalidValue
+                    ? error?.message || "Invalid address"
+                    : undefined
                 }
                 sx={{
                   "& .MuiInputBase-root": {
@@ -295,7 +359,7 @@ export default function RecipientAutocomplete() {
                   "& .MuiButton-textPrimary": {
                     marginTop: -0.2,
                   },
-                  // ...textFieldSxProps,
+                  ...textFieldProps?.sx,
                 }}
               />
             )}

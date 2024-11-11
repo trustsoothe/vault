@@ -12,20 +12,32 @@ import { useAppSelector } from "../hooks/redux";
 import BackButton from "../Header/BackButton";
 import { WIDTH } from "../../constants/ui";
 import {
+  CHANGE_PARAM_REQUEST,
   CONNECTION_REQUEST_MESSAGE,
+  DAO_TRANSFER_REQUEST,
   PERSONAL_SIGN_REQUEST,
+  PUBLIC_KEY_REQUEST,
   SIGN_TYPED_DATA_REQUEST,
+  STAKE_APP_REQUEST,
+  STAKE_NODE_REQUEST,
   SWITCH_CHAIN_REQUEST,
+  TRANSFER_APP_REQUEST,
   TRANSFER_REQUEST,
+  UNJAIL_NODE_REQUEST,
+  UNSTAKE_APP_REQUEST,
+  UNSTAKE_NODE_REQUEST,
+  UPGRADE_REQUEST,
 } from "../../constants/communication";
 import RequestHeader from "./Header";
 import {
   CHANGE_SELECTED_CHAIN_PAGE,
   PERSONAL_SIGN_PAGE,
+  POKT_TRANSACTION_PAGE,
   REQUEST_CONNECTION_PAGE,
   SIGN_TYPED_DATA_PAGE,
   TRANSFER_PAGE,
 } from "../../constants/routes";
+import AppToBackground from "../../controllers/communication/AppToBackground";
 
 export default function Handler() {
   const navigate = useNavigate();
@@ -44,6 +56,14 @@ export default function Handler() {
         ];
 
       switch (currentRequest.type) {
+        case PUBLIC_KEY_REQUEST: {
+          AppToBackground.getPublicKey({
+            request: currentRequest,
+          }).finally(() => {
+            closeCurrentWindow().catch();
+          });
+          break;
+        }
         case CONNECTION_REQUEST_MESSAGE: {
           navigate(REQUEST_CONNECTION_PAGE, { state: currentRequest });
           break;
@@ -58,6 +78,18 @@ export default function Handler() {
         }
         case PERSONAL_SIGN_REQUEST: {
           navigate(PERSONAL_SIGN_PAGE, { state: currentRequest });
+          break;
+        }
+        case STAKE_NODE_REQUEST:
+        case UNSTAKE_NODE_REQUEST:
+        case UNJAIL_NODE_REQUEST:
+        case STAKE_APP_REQUEST:
+        case TRANSFER_APP_REQUEST:
+        case UNSTAKE_APP_REQUEST:
+        case CHANGE_PARAM_REQUEST:
+        case DAO_TRANSFER_REQUEST:
+        case UPGRADE_REQUEST: {
+          navigate(POKT_TRANSACTION_PAGE, { state: currentRequest });
           break;
         }
         case TRANSFER_REQUEST: {
@@ -141,11 +173,25 @@ export default function Handler() {
     return null;
   }
 
-  let address: string;
+  let address: string, chainId: string;
 
   switch (currentRequest.type) {
     case TRANSFER_REQUEST: {
       address = currentRequest.transferData.from;
+      chainId = currentRequest.transferData.chainId;
+      break;
+    }
+    case STAKE_NODE_REQUEST:
+    case UNSTAKE_NODE_REQUEST:
+    case UNJAIL_NODE_REQUEST:
+    case STAKE_APP_REQUEST:
+    case TRANSFER_APP_REQUEST:
+    case UNSTAKE_APP_REQUEST:
+    case CHANGE_PARAM_REQUEST:
+    case DAO_TRANSFER_REQUEST:
+    case UPGRADE_REQUEST: {
+      address = currentRequest.transactionData.address;
+      chainId = currentRequest.transactionData.chainId;
       break;
     }
     case PERSONAL_SIGN_REQUEST:
@@ -195,6 +241,7 @@ export default function Handler() {
       <RequestHeader
         accountAddress={address}
         protocol={currentRequest.protocol}
+        chainId={chainId}
       />
       <Outlet />
     </Stack>

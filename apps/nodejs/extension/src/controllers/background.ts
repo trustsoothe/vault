@@ -246,7 +246,7 @@ export default class BackgroundController {
   }
 
   private _makePriceRequestIfNeeded() {
-    const state = store.getState();
+    const state = store.getState() as RootState;
     const { assets, networks, assetsIdByAccount } = state.app;
 
     const idOfCoins: Array<string> = [];

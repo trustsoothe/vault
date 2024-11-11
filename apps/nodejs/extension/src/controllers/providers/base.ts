@@ -13,8 +13,12 @@ import { SupportedProtocols } from "@poktscan/vault";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,
+  CHANGE_PARAM_REQUEST,
+  CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
   CONNECTION_RESPONSE_MESSAGE,
+  DAO_TRANSFER_REQUEST,
+  DAO_TRANSFER_RESPONSE,
   EXTERNAL_ACCOUNT_BALANCE_REQUEST,
   EXTERNAL_ACCOUNT_BALANCE_RESPONSE,
   GET_POKT_TRANSACTION_REQUEST,
@@ -24,16 +28,28 @@ import {
   MINUTES_ALLOWED_FOR_REQ,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
+  PUBLIC_KEY_REQUEST,
+  PUBLIC_KEY_RESPONSE,
   SELECTED_ACCOUNT_CHANGED,
   SELECTED_CHAIN_CHANGED,
   SELECTED_CHAIN_REQUEST,
   SELECTED_CHAIN_RESPONSE,
   SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
+  STAKE_APP_REQUEST,
+  STAKE_APP_RESPONSE,
+  STAKE_NODE_REQUEST,
+  STAKE_NODE_RESPONSE,
   SWITCH_CHAIN_REQUEST,
   SWITCH_CHAIN_RESPONSE,
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
+  UNJAIL_NODE_REQUEST,
+  UNJAIL_NODE_RESPONSE,
+  UNSTAKE_NODE_REQUEST,
+  UNSTAKE_NODE_RESPONSE,
+  UPGRADE_REQUEST,
+  UPGRADE_RESPONSE,
 } from "../../constants/communication";
 import {
   ProviderNotReady,
@@ -51,6 +67,17 @@ export enum PocketNetworkMethod {
   SWITCH_CHAIN = "wallet_switchPocketChain",
   // HEIGHT = "pokt_height",
   // BLOCK = 'pokt_block',
+  PUBLIC_KEY = "pokt_publicKey",
+  SIGN_MESSAGE = "pokt_signMessage",
+  STAKE_NODE = "pokt_stakeNode",
+  UNSTAKE_NODE = "pokt_unstakeNode",
+  UNJAIL_NODE = "pokt_unjailNode",
+  STAKE_APP = "pokt_stakeApp",
+  TRANSFER_APP = "pokt_transferApp",
+  UNSTAKE_APP = "pokt_unstakeApp",
+  CHANGE_PARAM = "pokt_changeParam",
+  DAO_TRANSFER = "pokt_daoTransfer",
+  UPGRADE = "pokt_upgrade",
 }
 
 export enum EthereumMethod {
@@ -206,8 +233,41 @@ export default class BaseProvider extends EventEmitter {
         sootheRequestType = SIGN_TYPED_DATA_REQUEST;
         break;
       }
+      case PocketNetworkMethod.SIGN_MESSAGE:
       case EthereumMethod.PERSONAL_SIGN: {
         sootheRequestType = PERSONAL_SIGN_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.PUBLIC_KEY: {
+        sootheRequestType = PUBLIC_KEY_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.STAKE_NODE: {
+        sootheRequestType = STAKE_NODE_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.UNSTAKE_NODE: {
+        sootheRequestType = UNSTAKE_NODE_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.UNJAIL_NODE: {
+        sootheRequestType = UNJAIL_NODE_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.STAKE_APP: {
+        sootheRequestType = STAKE_APP_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.CHANGE_PARAM: {
+        sootheRequestType = CHANGE_PARAM_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.DAO_TRANSFER: {
+        sootheRequestType = DAO_TRANSFER_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.UPGRADE: {
+        sootheRequestType = UPGRADE_REQUEST;
         break;
       }
       default: {
@@ -273,10 +333,57 @@ export default class BaseProvider extends EventEmitter {
       }
       case PERSONAL_SIGN_REQUEST: {
         responseType = PERSONAL_SIGN_RESPONSE;
-        requestData = {
-          address: params?.[1],
-          challenge: params?.[0],
-        };
+        if (method === EthereumMethod.PERSONAL_SIGN) {
+          requestData = {
+            address: params?.[1],
+            challenge: params?.[0],
+          };
+        } else {
+          requestData = {
+            address: params?.[0]?.address,
+            challenge: params?.[0]?.message,
+          };
+        }
+        break;
+      }
+      case PUBLIC_KEY_REQUEST: {
+        responseType = PUBLIC_KEY_RESPONSE;
+        requestData = params?.[0];
+        break;
+      }
+      case STAKE_NODE_REQUEST: {
+        responseType = STAKE_NODE_RESPONSE;
+        requestData = params?.[0];
+        break;
+      }
+      case UNSTAKE_NODE_REQUEST: {
+        responseType = UNSTAKE_NODE_RESPONSE;
+        requestData = params?.[0];
+        break;
+      }
+      case UNJAIL_NODE_REQUEST: {
+        responseType = UNJAIL_NODE_RESPONSE;
+        requestData = params?.[0];
+        break;
+      }
+      case STAKE_APP_REQUEST: {
+        responseType = STAKE_APP_RESPONSE;
+        requestData = params?.[0];
+        break;
+      }
+      case CHANGE_PARAM_REQUEST: {
+        responseType = CHANGE_PARAM_RESPONSE;
+        requestData = params?.[0];
+        break;
+      }
+      case DAO_TRANSFER_REQUEST: {
+        responseType = DAO_TRANSFER_RESPONSE;
+        requestData = params?.[0];
+        break;
+      }
+      case UPGRADE_REQUEST: {
+        responseType = UPGRADE_RESPONSE;
+        requestData = params?.[0];
         break;
       }
     }
@@ -333,6 +440,13 @@ export default class BaseProvider extends EventEmitter {
               if (responseType === SELECTED_CHAIN_RESPONSE) {
                 // data is expected to be the chain selected for pocket
                 dataToResolve = { chain: data };
+              }
+
+              if (
+                responseType === PERSONAL_SIGN_RESPONSE &&
+                method === PocketNetworkMethod.SIGN_MESSAGE
+              ) {
+                dataToResolve = { signature: data };
               }
             }
 

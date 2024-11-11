@@ -1,5 +1,9 @@
 # Soothe Vault Extension
 
+## Envs
+
+Please create a .env file from the .env.template file and change the values to your needs.
+
 ## Build
 
 - To build the extension for Chromium based browsers run: `yarn build`

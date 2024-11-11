@@ -71,6 +71,52 @@ export const RequestPersonalSignExists = createError(
   "There is a pending personal sign request from this origin and protocol."
 );
 
+export const RequestStakeNodeExists = createError(
+  -32602,
+  "There is a pending stake node request from this origin and protocol."
+);
+
+export const RequestUnstakeNodeExists = createError(
+  -32602,
+  "There is a pending unstake node request from this origin and protocol."
+);
+
+export const RequestUnjailNodeExists = createError(
+  -32602,
+  "There is a pending unjail node request from this origin and protocol."
+);
+
+export const RequestStakeAppExists = createError(
+  -32602,
+  "There is a pending stake app request from this origin and protocol."
+);
+
+export const RequestTransferAppExists = createError(
+  -32602,
+  "There is a pending transfer app request from this origin and protocol."
+);
+
+export const RequestUnstakeAppExists = createError(
+  -32602,
+  "There is a pending unstake app request from this origin and protocol."
+);
+export const RequestChangeParamExists = createError(
+  -32602,
+  "There is a pending change param request from this origin and protocol."
+);
+export const RequestDaoTransferExists = createError(
+  -32602,
+  "There is a pending dao transfer request from this origin and protocol."
+);
+export const RequestUpgradeExists = createError(
+  -32602,
+  "There is a pending upgrade transaction request from this origin and protocol."
+);
+export const RequestPublicKeyExists = createError(
+  -32602,
+  "There is a pending public key request from this origin and protocol."
+);
+
 export const UnrecognizedChainId = createError(4092, "Unrecognized chain ID.");
 export const ChainIdIsNotActive = createError(
   -32603,

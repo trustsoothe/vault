@@ -143,7 +143,7 @@ export default function SendEth({ onCancel, isUnwrapping }: SendEthProps) {
       getFeeOptions={getFeeOptions}
       form={<SendFormEth isUnwrapping={isUnwrapping} />}
       summary={<Summary isSwapping={isUnwrapping} />}
-      success={<Submitted isSwapping={isUnwrapping} />}
+      success={<Submitted isSwapping={isUnwrapping} onCancel={onCancel} />}
       onCancel={onCancel}
       onDone={onCancel}
     />

@@ -11,6 +11,7 @@ import {
   NETWORKS_PAGE,
   NEW_SEEDS_PAGE,
   PERSONAL_SIGN_PAGE,
+  POKT_TRANSACTION_PAGE,
   PREFERENCES_PAGE,
   REQUEST_CONNECTION_PAGE,
   SEEDS_PAGE,
@@ -25,6 +26,7 @@ import ContactList from "./Contacts/List";
 import ImportSeed from "./Seeds/ImportSeed";
 import CreateNewSeed from "./Seeds/CreateNewSeed";
 import ManageAccounts from "./ManageAccounts/ManageAccounts";
+import PoktTransactionRequest from "./Request/PoktTransactionRequest";
 import SiteConnections from "./SiteConnections/SiteConnections";
 import TransactionRequest from "./Request/TransactionRequest";
 import ConnectionRequest from "./Request/ConnectionRequest";
@@ -113,6 +115,10 @@ export const requestRouter = createHashRouter([
       {
         path: TRANSFER_PAGE,
         element: <TransactionRequest />,
+      },
+      {
+        path: POKT_TRANSACTION_PAGE,
+        element: <PoktTransactionRequest />,
       },
     ],
   },

@@ -1,7 +1,15 @@
 import { z } from "zod";
 import browser from "webextension-polyfill";
-import { SupportedProtocols } from "@poktscan/vault";
-import { isValidAddress } from "../../utils/networkOperations";
+import {
+  DAOAction,
+  PocketNetworkTransactionTypes,
+  SupportedProtocols,
+} from "@poktscan/vault";
+import {
+  isValidAddress,
+  isValidPublicKey,
+} from "../../utils/networkOperations";
+import { getSchemaFromParamKey } from "../../ui/PoktTransaction/ChangeParam/schemas";
 
 export const BaseTransaction = z.object({
   hash: z.string(),
@@ -36,14 +44,124 @@ export const PoktTransaction = BaseTransaction.extend({
   protocol: z.literal(SupportedProtocols.Pocket),
   fee: z.number(),
   memo: z.string().optional(),
+  to: z.string().optional(),
+  type: z
+    .nativeEnum(PocketNetworkTransactionTypes)
+    .default(PocketNetworkTransactionTypes.Send),
+  transactionParams: z
+    .object({
+      // todo: add validation for this
+      to: z.string().optional(),
+      nodePublicKey: z
+        .string()
+        .optional()
+        .refine(
+          (value) => !value || isValidPublicKey(value),
+          "invalid node public key"
+        ),
+      outputAddress: z
+        .string()
+        .optional()
+        .refine(
+          (value) => !value || isValidAddress(value, SupportedProtocols.Pocket),
+          "invalid output address"
+        ),
+      memo: z.string().optional(),
+      appPublicKey: z
+        .string()
+        .optional()
+        .refine(
+          (value) => !value || isValidPublicKey(value),
+          "invalid app public key"
+        ),
+      chains: z.array(z.string()).optional(),
+      appAddress: z
+        .string()
+        .optional()
+        .refine(
+          (value) => !value || isValidAddress(value, SupportedProtocols.Pocket),
+          "invalid app address"
+        ),
+      serviceURL: z.string().url().optional(),
+      rewardDelegators: z.record(z.string(), z.number()).optional(),
+      daoAction: z.nativeEnum(DAOAction).optional(),
+      paramKey: z.string().optional(),
+      paramValue: z.string().optional(),
+      overrideGovParamsWhitelistValidation: z
+        .boolean()
+        .optional()
+        .default(false),
+      upgrade: z
+        .object({
+          height: z.number().int(),
+          oldUpgradeHeight: z.number().int().optional().default(0),
+          version: z.union([
+            z.string().regex(/^(\d+)\.(\d+)\.(\d+)(\.(\d+))?$/),
+            z.literal("FEATURE"),
+          ]),
+          features: z
+            .array(
+              z
+                .string()
+                .regex(
+                  /^[A-Za-z]+:\d+$/,
+                  "malformed feature, format should be: KEY:HEIGHT"
+                )
+            )
+            .optional()
+            .default([]),
+        })
+        .optional(),
+    })
+    .optional(),
 })
+  .refine((value) => isValidAddress(value.from, value.protocol), {
+    path: ["from"],
+    message: "invalid from address",
+  })
   .refine(
-    (value) => isValidAddress(value.from, value.protocol),
-    "invalid from address"
+    (value) =>
+      (!value.to && value.type !== PocketNetworkTransactionTypes.Send) ||
+      isValidAddress(value.to, value.protocol),
+    {
+      path: ["to"],
+      message: "invalid to address",
+    }
   )
   .refine(
-    (value) => isValidAddress(value.to, value.protocol),
-    "invalid to address"
+    (value) => {
+      if (value.type === PocketNetworkTransactionTypes.GovChangeParam) {
+        const { schema } = getSchemaFromParamKey(
+          value.transactionParams.paramKey,
+          value.transactionParams.paramValue
+        );
+
+        let valueParsed = value.transactionParams.paramValue;
+
+        const valueIsObject =
+          schema instanceof z.ZodObject || schema instanceof z.ZodArray;
+
+        if (valueIsObject) {
+          try {
+            valueParsed = JSON.parse(valueParsed);
+          } catch {
+            return false;
+          }
+        }
+
+        try {
+          schema.parse(valueParsed);
+        } catch {
+          return false;
+        }
+      }
+
+      return true;
+    },
+    {
+      path: ["transactionParams", "paramValue"],
+      message: "invalid param value",
+    }
   );
 
 export type PoktTransaction = z.infer<typeof PoktTransaction>;
