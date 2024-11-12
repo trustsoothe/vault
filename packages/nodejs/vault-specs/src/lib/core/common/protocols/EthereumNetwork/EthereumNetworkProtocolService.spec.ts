@@ -84,7 +84,10 @@ describe('EthereumNetworkProtocolService', () => {
 
     describe('Successful requests', () => {
       const mockServer = new MockServerFactory(network);
-      const server = mockServer.addSuccessfulQueryFeeHandler().buildServer();
+      const server = mockServer
+        .addQueryEstimateGasHandler()
+        .addSuccessfulQueryFeeHandler()
+        .buildServer();
 
       beforeAll(() => server.listen());
 
@@ -121,7 +124,7 @@ describe('EthereumNetworkProtocolService', () => {
           },
         };
 
-        expect(expectedFee).toStrictEqual(fee);
+        expect(fee).toStrictEqual(expectedFee);
       })
 
       describe('when a site provides gasLimit', () => {
@@ -196,12 +199,64 @@ describe('EthereumNetworkProtocolService', () => {
           }))
         });
       });
+    });
 
-    })
-
-    describe('Unsuccessful requests', () => {
+    describe('Gas Price fallback', () => {
       const mockServer = new MockServerFactory(network);
-      const server = mockServer.addFailedQueryFeeHandler().buildServer();
+      const server =
+        mockServer
+          .addQueryEstimateGasHandler()
+          .addFailedQueryFeeHandler()
+          .addQueryGasPriceHandler()
+          .buildServer();
+
+      beforeAll(() => server.listen());
+
+      afterEach(() => server.resetHandlers());
+
+      afterAll(() => server.close());
+
+      test('Queries the gas_price if the fee suggestion API fails', async () => {
+        const feeRequestOptions: EthereumNetworkFeeRequestOptions = {
+          protocol: SupportedProtocols.Ethereum,
+          to: '0x3F56d4881EB6Ae4b6a6580E7BaF842860A0D2465',
+        };
+
+        const fee = await protocolService.getFee(network, feeRequestOptions);
+
+        const expectedFee = {
+          protocol: SupportedProtocols.Ethereum,
+          estimatedGas: 21000,
+          baseFee: '0',
+          low: {
+            suggestedMaxFeePerGas: 25000000001,
+            suggestedMaxPriorityFeePerGas: 25000000001,
+            amount: '0.000525',
+          },
+          medium: {
+            suggestedMaxFeePerGas: 25000000001,
+            suggestedMaxPriorityFeePerGas: 25000000001,
+            amount: '0.000525',
+          },
+          high: {
+            suggestedMaxFeePerGas: 25000000001,
+            suggestedMaxPriorityFeePerGas: 25000000001,
+            amount: '0.000525',
+          },
+        };
+
+        expect(expectedFee).toStrictEqual(fee);
+      });
+    });
+
+    describe('Unsuccessful requests (Suggestion and gasPrice fails)', () => {
+      const mockServer = new MockServerFactory(network);
+      const server =
+        mockServer
+          .addFailedQueryFeeHandler()
+          .addQueryGasPriceFailureHandler()
+          .buildServer();
+
 
       beforeAll(() => server.listen());
 
@@ -216,8 +271,8 @@ describe('EthereumNetworkProtocolService', () => {
         };
 
         return expect(protocolService.getFee(network, feeRequestOptions)).rejects.toThrow(NetworkRequestError)
-      })
-    })
+      });
+    });
   })
 
   describe('getBalance - ERC20', () => {
@@ -492,6 +547,6 @@ describe('EthereumNetworkProtocolService', () => {
         const signature = await protocolService.signPersonalData(input);
 
         expect(expectedSignature).toEqual(signature);
-    })
-  })
+    });
+  });
 });

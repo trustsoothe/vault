@@ -1,27 +1,21 @@
 import {IAbstractProtocolFee} from "../ProtocolFee";
 import {SupportedProtocols} from "../../values";
 
+export interface FeeTier {
+  suggestedMaxFeePerGas: number;
+  suggestedMaxPriorityFeePerGas?: number;
+  amount: string;
+}
+
 export interface EthereumNetworkFee extends IAbstractProtocolFee<SupportedProtocols.Ethereum> {
-  low: {
-    suggestedMaxFeePerGas: number;
-    suggestedMaxPriorityFeePerGas: number;
-    amount: string;
-  };
-  medium: {
-    suggestedMaxFeePerGas: number;
-    suggestedMaxPriorityFeePerGas: number;
-    amount: string;
-  };
-  high: {
-    suggestedMaxFeePerGas: number;
-    suggestedMaxPriorityFeePerGas: number;
-    amount: string;
-  };
+  low: FeeTier;
+  medium: FeeTier;
+  high: FeeTier;
   site?: {
     suggestedMaxFeePerGas: number;
     suggestedMaxPriorityFeePerGas: number;
     amount: string;
   };
-  baseFee: string;
+  baseFee?: string;
   estimatedGas: number;
 }

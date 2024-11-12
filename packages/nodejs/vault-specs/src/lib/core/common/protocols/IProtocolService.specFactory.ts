@@ -139,6 +139,7 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
       const mockServer = new MockServerFactory(exampleNetwork);
       const server =
           mockServer
+            .addQueryEstimateGasHandler()
             .addSuccessfulQueryFeeHandler()
             .addSuccessfulQueryBalanceHandler()
             .addSendTransactionHandler()

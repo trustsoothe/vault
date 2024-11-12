@@ -17,6 +17,9 @@ import {
   queryFeeFailureHandlerFactory as ethereumQueryFeeFailureHandlerFactory,
   queryFeeHandlerFactory as ethereumQueryFeeHandlerFactory,
   sendTransactionHandlerFactory as ethereumSendTransactionHandlerFactory,
+  queryGasPriceHandler as ethereumQueryGasPriceHandler,
+  queryGasPriceFailureHandler as ethereumQueryGasPriceFailureHandler,
+  queryEstimateGasHandler as ethereumQueryEstimateGasHandler,
 } from './ethereum-network';
 
 import {
@@ -131,6 +134,38 @@ export class MockServerFactory  {
         case SupportedProtocols.Ethereum:
         default:
       }
+  }
+
+  addQueryGasPriceHandler() {
+    switch (this._network.protocol) {
+      case SupportedProtocols.Ethereum:
+        this._handlers.push(...ethereumQueryGasPriceHandler(this._network));
+        return this;
+      default:
+        throw new ProtocolNotSupported(this._network.protocol);
+    }
+  }
+
+  addQueryGasPriceFailureHandler() {
+    switch (this._network.protocol) {
+      case SupportedProtocols.Ethereum:
+        this._handlers.push(...ethereumQueryGasPriceFailureHandler(this._network));
+        return this;
+      default:
+        throw new ProtocolNotSupported(this._network.protocol);
+    }
+  }
+
+  addQueryEstimateGasHandler() {
+    switch (this._network.protocol) {
+      case SupportedProtocols.Ethereum:
+        this._handlers.push(...ethereumQueryEstimateGasHandler(this._network));
+        break;
+      default:
+        console.log(`Protocol not supported: Skipping adding query estimate gas handler for ${this._network.protocol}`);
+    }
+
+    return this;
   }
 
   buildServer() {

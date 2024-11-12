@@ -4,21 +4,6 @@ import {withMethod} from "../withMethod";
 import {INetwork, SUGGESTED_GAS_FEES_URL} from "@poktscan/vault";
 
 export const queryFeeHandlerFactory = (network: INetwork) => {
-  const url = new Url.URL(network.rpcUrl);
-  // @ts-ignore
-  const estimateGasResolver = async (req, res, ctx) => {
-    const {id} = req.body;
-
-    return res(
-      ctx.status(200),
-      ctx.json({
-        id,
-        jsonrpc: '2.0',
-        result: '0x5208',
-      }),
-    );
-  };
-
   const suggestedGasFeesUrl = SUGGESTED_GAS_FEES_URL.replace(':chainid', network.chainID);
 
   // @ts-ignore
@@ -56,25 +41,26 @@ export const queryFeeHandlerFactory = (network: INetwork) => {
   };
 
   return [
-    // @ts-ignore
-    rest.post(url.toString(), withMethod('eth_estimateGas', estimateGasResolver)),
     rest.get(suggestedGasFeesUrl, suggestedGasFeesResolver),
   ];
 }
 
 export const queryFeeFailureHandlerFactory = (network: INetwork) => {
-  const url = new Url.URL(network.rpcUrl);
+  const url = SUGGESTED_GAS_FEES_URL.replace(':chainid', network.chainID);
 
   // @ts-ignore
   const resolver = (req, res, ctx) => {
     return res(
-      ctx.status(500),
-      ctx.json({}),
+      ctx.status(400),
+      ctx.json({
+        "statusCode": 400,
+        "message":`${network.chainID} is not a supported chain id.`
+      }),
     );
   };
 
   return [
     // @ts-ignore
-    rest.post(url.toString(), resolver),
+    rest.get(url.toString(), resolver),
   ];
 }
