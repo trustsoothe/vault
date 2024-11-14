@@ -23,7 +23,7 @@ if (!globalThis.crypto) {
   globalThis.crypto = webcrypto;
 }
 
-export interface IProtocolServiceSpecFactoryOptions<T extends SupportedProtocols> {
+export interface IProtocolServiceSpecFactoryOptions {
   asset?: IAsset
   network: INetwork
   account: AccountReference
@@ -34,7 +34,7 @@ export interface IProtocolServiceSpecFactoryOptions<T extends SupportedProtocols
   }
 }
 
-export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IProtocolService<T>, options: IProtocolServiceSpecFactoryOptions<T>) => {
+export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IProtocolService<T>, options: IProtocolServiceSpecFactoryOptions) => {
   const {asset, network: exampleNetwork} = options
   let protocolService: IProtocolService<T>
   const passphrase = new Passphrase('passphrase')
