@@ -6,3 +6,15 @@ export const PocketShannonProtocolNetworkSchema = z.object({
   chainID: z.enum(['poktroll']),
   rpcUrl: z.string().url(),
 });
+
+export const PocketShannonRpcCanSendTransactionResponseSchema = z.object({
+  jsonrpc: z.literal('2.0'),
+  id: z.number(),
+  result: z.object({
+    code: z.number(),
+    data: z.string(),
+    log: z.string(),
+    codespace: z.string(),
+    hash: z.string(),
+  }),
+});

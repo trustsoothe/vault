@@ -13,7 +13,7 @@ describe('PocketNetworkShannonProtocolService', () => {
   const network : INetwork = {
     rpcUrl: "http://localhost:8080",
     protocol: SupportedProtocols.PocketShannon,
-    chainID: "testnet",
+    chainID: "poktroll",
   };
 
   const account =

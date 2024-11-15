@@ -20,13 +20,11 @@ import {ArgumentError, InvalidPrivateKeyError, NetworkRequestError, RecoveryPhra
 import {DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing";
 import {Bip39, EnglishMnemonic, Random, Slip10, Slip10Curve} from "@cosmjs/crypto";
 import {PocketNetworkShannonFee} from "./PocketNetworkShannonFee";
-import {PocketShannonProtocolNetworkSchema} from "./schemas";
+import {PocketShannonProtocolNetworkSchema, PocketShannonRpcCanSendTransactionResponseSchema} from "./schemas";
 import {StargateClient} from "@cosmjs/stargate";
 import { makeCosmoshubPath } from '@cosmjs/amino';
 import { validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english";
-import HDKey from "hdkey";
-import {Buffer} from "buffer";
 
 const ADDRESS_PREFIX = "pokt";
 
@@ -42,24 +40,6 @@ export class PocketNetworkShannonProtocolService
       ...options,
       privateKey: toHex(privateKey),
     });
-  }
-
-  isValidPrivateKey(privateKey: string): boolean {
-    const privateKeyAsUint = fromHex(privateKey);
-
-    if (privateKeyAsUint.length !== 32) {
-      console.error("Invalid private key length. Must be 32 bytes.");
-      return false;
-    }
-
-    const n = BigInt("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"); // Order of the Secp256k1 curve
-    const privateKeyValue = BigInt(`0x${toHex(privateKeyAsUint)}`);
-    if (privateKeyValue <= 0 || privateKeyValue >= n) {
-      console.error("Invalid private key value. Must be between 1 and n - 1.");
-      return false;
-    }
-
-    return true;
   }
 
   async createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
@@ -202,37 +182,120 @@ export class PocketNetworkShannonProtocolService
     };
   }
 
-  getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
-    // @ts-ignore
-    return Promise.resolve(undefined);
+  async getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
+    this.validateNetwork(network);
+    const updatedStatus = NetworkStatus.createFrom(status);
+
+    try {
+      await this.getBalance(new AccountReference({
+        id: "faucet",
+        name: "faucet",
+        publicKey: "N/A",
+        address: "pokt1v3mcrj0h2zfekyf2n8m369x4v9wfvdm34hecd9",
+        protocol: SupportedProtocols.PocketShannon,
+      }), network);
+      updatedStatus.updateBalanceStatus(true);
+    } catch (err) {
+      updatedStatus.updateBalanceStatus(false);
+    }
+
+    return updatedStatus;
   }
 
-  getNetworkFeeStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
-    // @ts-ignore
-    return Promise.resolve(undefined);
+  async getNetworkFeeStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
+    this.validateNetwork(network);
+    const updatedStatus = NetworkStatus.createFrom(status);
+
+    try {
+      await this.getFee(network);
+      updatedStatus.updateFeeStatus(true);
+    } catch (err) {
+      updatedStatus.updateFeeStatus(false);
+    }
+
+    return updatedStatus;
   }
 
-  getNetworkSendTransactionStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
-    // @ts-ignore
-    return Promise.resolve(undefined);
+  async getNetworkSendTransactionStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
+    this.validateNetwork(network);
+
+    const updatedStatus = NetworkStatus.createFrom(status);
+
+    const response = await globalThis.fetch(network.rpcUrl, {
+      method: "POST",
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: Math.floor(Math.random() * 1000000000),
+        method: 'broadcast_tx_sync',
+        params: {
+          path: '',
+          data: '',
+          prove: false
+        }
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      updatedStatus.updateSendTransactionStatus(false);
+      return updatedStatus;
+    }
+
+    const responseRawBody = await response.json();
+
+    try {
+      PocketShannonRpcCanSendTransactionResponseSchema.parse(responseRawBody);
+      updatedStatus.updateSendTransactionStatus(true);
+    } catch (e) {
+      updatedStatus.updateSendTransactionStatus(false);
+    }
+
+    return updatedStatus;
   }
 
-  getNetworkStatus(network: INetwork): Promise<NetworkStatus> {
-    // @ts-ignore
-    return Promise.resolve(undefined);
+  async getNetworkStatus(network: INetwork): Promise<NetworkStatus> {
+    const withFeeStatus = await this.getNetworkFeeStatus(network);
+    const withFeeAndBalanceStatus = await this.getNetworkBalanceStatus(
+      network,
+      withFeeStatus
+    );
+    return await this.getNetworkSendTransactionStatus(
+      network,
+      withFeeAndBalanceStatus
+    );
   }
 
-  sendTransaction(network: INetwork, transaction: PocketNetworkShannonProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.PocketShannon>> {
+  async sendTransaction(network: INetwork, transaction: PocketNetworkShannonProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.PocketShannon>> {
     // @ts-ignore
-    return Promise.resolve(undefined);
+    return;
   }
 
-  signPersonalData(request: SignPersonalDataRequest): Promise<string> {
-    return Promise.resolve("");
+  async signPersonalData(request: SignPersonalDataRequest): Promise<string> {
+    return '';
   }
 
   async validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.PocketShannon>, network: INetwork): Promise<ValidateTransactionResult> {
     return new ValidateTransactionResult([]);
+  }
+
+  isValidPrivateKey(privateKey: string): boolean {
+    const privateKeyAsUint = fromHex(privateKey);
+
+    if (privateKeyAsUint.length !== 32) {
+      console.error("Invalid private key length. Must be 32 bytes.");
+      return false;
+    }
+
+    const n = BigInt("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"); // Order of the Secp256k1 curve
+    const privateKeyValue = BigInt(`0x${toHex(privateKeyAsUint)}`);
+    if (privateKeyValue <= 0 || privateKeyValue >= n) {
+      console.error("Invalid private key value. Must be between 1 and n - 1.");
+      return false;
+    }
+
+    return true;
   }
 
   private validateNetwork(network: INetwork) {
