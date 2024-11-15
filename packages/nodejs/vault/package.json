@@ -31,6 +31,11 @@
     "vitest": "0.32.0"
   },
   "dependencies": {
+    "@cosmjs/amino": "^0.32.4",
+    "@cosmjs/crypto": "^0.32.4",
+    "@cosmjs/encoding": "^0.32.4",
+    "@cosmjs/proto-signing": "^0.32.4",
+    "@cosmjs/stargate": "^0.32.4",
     "@metamask/eth-sig-util": "7.0.1",
     "@noble/ed25519": "2.0.0",
     "@pokt-foundation/pocketjs-types": "2.1.3",

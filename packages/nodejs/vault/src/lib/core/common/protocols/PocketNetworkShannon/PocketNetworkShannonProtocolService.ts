@@ -3,55 +3,203 @@ import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
   ImportRecoveryPhraseOptions,
-  IProtocolService, SignPersonalDataRequest, ValidateTransactionResult
+  IProtocolService, SignPersonalDataRequest, TransactionValidationResultType, ValidateTransactionResult
 } from "../IProtocolService";
 import {AccountReference, SupportedProtocols} from "../../values";
 import {undefined} from "zod";
 import {INetwork} from "../INetwork";
 import {IAsset} from "../IAsset";
 import {IAbstractProtocolFeeRequestOptions} from "../ProtocolFeeRequestOptions";
-import {ProtocolFee} from "../ProtocolFee";
 import {NetworkStatus} from "../../values/NetworkStatus";
 import {IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
-import {Account} from "../../../vault";
+import {Account, AccountType} from "../../../vault";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
 import {PocketNetworkShannonProtocolTransaction} from "./PocketNetworkShannonProtocolTransaction";
+import {fromHex, toHex} from "@cosmjs/encoding";
+import {ArgumentError, InvalidPrivateKeyError, NetworkRequestError, RecoveryPhraseError} from "../../../../errors";
+import {DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing";
+import {Bip39, EnglishMnemonic, Random, Slip10, Slip10Curve} from "@cosmjs/crypto";
+import {PocketNetworkShannonFee} from "./PocketNetworkShannonFee";
+import {PocketShannonProtocolNetworkSchema} from "./schemas";
+import {StargateClient} from "@cosmjs/stargate";
+import { makeCosmoshubPath } from '@cosmjs/amino';
+import { validateMnemonic } from "@scure/bip39";
+import { wordlist } from "@scure/bip39/wordlists/english";
+import HDKey from "hdkey";
+import {Buffer} from "buffer";
+
+const ADDRESS_PREFIX = "pokt";
 
 export class PocketNetworkShannonProtocolService
   implements IProtocolService<SupportedProtocols.PocketShannon>
 {
   constructor(private encryptionService: IEncryptionService) {}
 
-  createAccount(options: CreateAccountOptions): Promise <Account> {
+  async createAccount(options: CreateAccountOptions): Promise<Account> {
+    const privateKey = Random.getBytes(32);
+
+    return this.createAccountFromPrivateKey({
+      ...options,
+      privateKey: toHex(privateKey),
+    });
+  }
+
+  isValidPrivateKey(privateKey: string): boolean {
+    const privateKeyAsUint = fromHex(privateKey);
+
+    if (privateKeyAsUint.length !== 32) {
+      console.error("Invalid private key length. Must be 32 bytes.");
+      return false;
+    }
+
+    const n = BigInt("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"); // Order of the Secp256k1 curve
+    const privateKeyValue = BigInt(`0x${toHex(privateKeyAsUint)}`);
+    if (privateKeyValue <= 0 || privateKeyValue >= n) {
+      console.error("Invalid private key value. Must be between 1 and n - 1.");
+      return false;
+    }
+
+    return true;
+  }
+
+  async createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
+    if (!options.protocol) {
+      throw new ArgumentError("options.protocol");
+    }
+
+    if (!options.passphrase && !options.skipEncryption) {
+      throw new ArgumentError("options.passphrase");
+    }
+
+    if (!options.privateKey) {
+      throw new ArgumentError("options.privateKey");
+    }
+
+    if (!this.isValidPrivateKey(options.privateKey)) {
+      throw new InvalidPrivateKeyError(options.privateKey);
+    }
+
+    let finalPrivateKey = options.privateKey;
+
+    if (options.passphrase) {
+      finalPrivateKey = await this.encryptionService.encrypt(
+        options.passphrase,
+        options.privateKey
+      );
+    }
+
+    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(options.privateKey), ADDRESS_PREFIX);
+    const [account] = await wallet.getAccounts();
+
+    return new Account({
+      name: options.name,
+      protocol: options.protocol,
+      address: account.address,
+      publicKey: toHex(account.pubkey),
+      privateKey: finalPrivateKey,
+      secure: !options.skipEncryption,
+    });
+  }
+
+  async createAccountsFromRecoveryPhrase(options: ImportRecoveryPhraseOptions): Promise<Account[]> {
+    const isValidMnemonic = validateMnemonic(options.recoveryPhrase, wordlist);
+
+    if (!isValidMnemonic) {
+      throw new RecoveryPhraseError("Invalid recovery phrase");
+    }
+
+    const seed = await Bip39.mnemonicToSeed(new EnglishMnemonic(options.recoveryPhrase));
+
+    const seedAccount =  new Account({
+        name: options.seedAccountName || "HD Account",
+        seedId: options.recoveryPhraseId,
+        accountType: AccountType.HDSeed,
+        protocol: SupportedProtocols.PocketShannon,
+        publicKey: 'N/A',
+        privateKey: toHex(seed),
+        address: "N/A",
+        secure: false,
+    });
+
+    const hdPath = makeCosmoshubPath(0);
+    const wallet: DirectSecp256k1HdWallet = await DirectSecp256k1HdWallet.fromMnemonic(options.recoveryPhrase, { prefix: ADDRESS_PREFIX, hdPaths: [hdPath]});
+    const [account] = await wallet.getAccounts();
+    const { privkey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, hdPath);
+
+    const childAccount = new Account({
+      publicKey: toHex(account.pubkey),
+      address: account.address,
+      name: `${seedAccount.name} 1`,
+      accountType: AccountType.HDChild,
+      protocol: SupportedProtocols.PocketShannon,
+      privateKey: toHex(privkey),
+      parentId: seedAccount.id,
+      hdwIndex: 0,
+      hdwAccountIndex: 0, // TODO: Parameterize this if we will allow users to use more than one account from the same seeds
+      secure: false, // TODO: Parameterize this if we will allow users to set a password per account
+    })
+
+    return [
+      seedAccount,
+      childAccount,
+    ];
+  }
+
+  async createHDWalletAccount(options: AddHDWalletAccountOptions): Promise<Account> {
+    const { seedAccount, index, name } = options;
+    const hdPath = makeCosmoshubPath(index);
+    const { privkey } = Slip10.derivePath(Slip10Curve.Secp256k1, fromHex(seedAccount.privateKey), hdPath);
+    const wallet = await DirectSecp256k1Wallet.fromKey(privkey, ADDRESS_PREFIX);
+    const [account] = await wallet.getAccounts();
+    return new Account({
+      publicKey: toHex(account.pubkey),
+      address: account.address,
+      name: name ? name : `${seedAccount.name} ${index + 1}`,
+      accountType: AccountType.HDChild,
+      protocol: SupportedProtocols.Ethereum,
+      privateKey: toHex(privkey),
+      parentId: seedAccount.id,
+      hdwIndex: index,
+      hdwAccountIndex: 0, // TODO: Parameterize this if we will allow users to use more than one account from the same seeds
+      secure: false, // TODO: Parameterize this if we will allow users to set a password per account
+    });
+  }
+
+  async getAddressFromPrivateKey(privateKey: string): Promise<string> {
+    if (!this.isValidPrivateKey(privateKey)) {
+      throw new InvalidPrivateKeyError(privateKey);
+    }
+
+    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), ADDRESS_PREFIX);
+    const [account] = await wallet.getAccounts();
+    return account.address;
+  }
+
+  async getBalance(account: AccountReference, network: INetwork, asset?: IAsset): Promise<number> {
+    this.validateNetwork(network);
+
+    try {
+      const client = await StargateClient.connect(network.rpcUrl);
+      const balances = await client.getAllBalances(account.address);
+      const upoktBalance = balances.find((balance) => balance.denom === "upokt");
+
+      if (!upoktBalance) {
+        return 0;
+      }
+
+      return parseInt(upoktBalance.amount);
+    } catch (err) {
+      console.error(err);
+      throw new NetworkRequestError("Failed to fetch balance");
+    }
+  }
+
+  async getFee(network: INetwork, options?: IAbstractProtocolFeeRequestOptions<SupportedProtocols.PocketShannon>): Promise<PocketNetworkShannonFee> {
     // @ts-ignore
-    return Promise.resolve(undefined);
-  }
-
-  createAccountFromPrivateKey(options: CreateAccountFromPrivateKeyOptions): Promise<Account> {
-    // @ts-ignore
-    return Promise.resolve(undefined);
-  }
-
-  createAccountsFromRecoveryPhrase(options: ImportRecoveryPhraseOptions): Promise<Account[]> {
-    return Promise.resolve([]);
-  }
-
-  createHDWalletAccount(options: AddHDWalletAccountOptions): Promise<Account> {
-    // @ts-ignore
-    return Promise.resolve(undefined);
-  }
-
-  getAddressFromPrivateKey(privateKey: string): Promise<string> {
-    return Promise.resolve("");
-  }
-
-  getBalance(account: AccountReference, network: INetwork, asset?: IAsset): Promise<number> {
-    return Promise.resolve(0);
-  }
-
-  getFee(network: INetwork, options?: IAbstractProtocolFeeRequestOptions<SupportedProtocols.PocketShannon>): Promise<ProtocolFee<SupportedProtocols.PocketShannon>> {
-    // @ts-ignore
-    return Promise.resolve(undefined);
+    return {
+      value: 0,
+      denom: 'upokt',
+    };
   }
 
   getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
@@ -74,10 +222,6 @@ export class PocketNetworkShannonProtocolService
     return Promise.resolve(undefined);
   }
 
-  isValidPrivateKey(privateKey: string): boolean {
-    return false;
-  }
-
   sendTransaction(network: INetwork, transaction: PocketNetworkShannonProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.PocketShannon>> {
     // @ts-ignore
     return Promise.resolve(undefined);
@@ -87,9 +231,15 @@ export class PocketNetworkShannonProtocolService
     return Promise.resolve("");
   }
 
-  validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.PocketShannon>, network: INetwork): Promise<ValidateTransactionResult> {
-    // @ts-ignore
-    return Promise.resolve(undefined);
+  async validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.PocketShannon>, network: INetwork): Promise<ValidateTransactionResult> {
+    return new ValidateTransactionResult([]);
   }
 
+  private validateNetwork(network: INetwork) {
+    try {
+      PocketShannonProtocolNetworkSchema.parse(network);
+    } catch {
+      throw new ArgumentError("network");
+    }
+  }
 }
