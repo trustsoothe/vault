@@ -20,7 +20,11 @@ import {ArgumentError, InvalidPrivateKeyError, NetworkRequestError, RecoveryPhra
 import {DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing";
 import {Bip39, EnglishMnemonic, Random, Slip10, Slip10Curve} from "@cosmjs/crypto";
 import {PocketNetworkShannonFee} from "./PocketNetworkShannonFee";
-import {PocketShannonProtocolNetworkSchema, PocketShannonRpcCanSendTransactionResponseSchema} from "./schemas";
+import {
+  PocketNetworkShannonProtocolTransactionSchema,
+  PocketShannonProtocolNetworkSchema,
+  PocketShannonRpcCanSendTransactionResponseSchema
+} from "./schemas";
 import {StargateClient} from "@cosmjs/stargate";
 import { makeCosmoshubPath } from '@cosmjs/amino';
 import { validateMnemonic } from "@scure/bip39";
@@ -268,6 +272,20 @@ export class PocketNetworkShannonProtocolService
   }
 
   async sendTransaction(network: INetwork, transaction: PocketNetworkShannonProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.PocketShannon>> {
+    if (!network) {
+      throw new ArgumentError("network");
+    }
+
+    if (!transaction) {
+      throw new ArgumentError("transaction");
+    }
+
+    const {success} = PocketNetworkShannonProtocolTransactionSchema.safeParse(transaction);
+
+     if (!success) {
+        throw new ArgumentError("transaction");
+     }
+
     // @ts-ignore
     return;
   }

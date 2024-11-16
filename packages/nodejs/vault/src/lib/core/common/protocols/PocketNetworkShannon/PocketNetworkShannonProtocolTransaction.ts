@@ -1,6 +1,7 @@
 import {IAbstractProtocolTransaction} from "../ProtocolTransaction";
 import {SupportedProtocols} from "../../values";
 import {PocketNetworkShannonTransactionTypes} from "./PocketNetworkShannonTransactionTypes";
+import {PocketNetworkShannonFee} from "./PocketNetworkShannonFee";
 
 export interface PocketNetworkShannonProtocolTransaction
   extends IAbstractProtocolTransaction<
@@ -9,4 +10,5 @@ export interface PocketNetworkShannonProtocolTransaction
   > {
   protocol: SupportedProtocols.PocketShannon;
   transactionType: PocketNetworkShannonTransactionTypes;
+  fee: PocketNetworkShannonFee;
 }

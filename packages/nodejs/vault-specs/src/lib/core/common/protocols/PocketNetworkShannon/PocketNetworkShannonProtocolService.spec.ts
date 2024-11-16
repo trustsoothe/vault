@@ -1,4 +1,4 @@
-import {describe} from "vitest";
+import {describe, test, expect} from "vitest";
 import {
   AccountReference,
   IEncryptionService,
@@ -39,4 +39,18 @@ describe('PocketNetworkShannonProtocolService', () => {
     () => protocolService,
     { network, account, accountImport }
   )
+
+  describe('sendTransaction', () => {
+    describe('validations', () => {
+      test('throws if Network object provided is invalid', () => {
+        // @ts-ignore
+        return expect(protocolService.sendTransaction({})).rejects.toThrow(ArgumentError);
+      })
+
+      // test('throws if provided transaction object is not valid', () => {
+      //   // @ts-ignore
+      //   return expect(protocolService.sendTransaction(network, {})).rejects.toThrow(ArgumentError);
+      // });
+    });
+  });
 });
