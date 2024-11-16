@@ -17,18 +17,20 @@ import {IEncryptionService} from "../../encryption/IEncryptionService";
 import {PocketNetworkShannonProtocolTransaction} from "./PocketNetworkShannonProtocolTransaction";
 import {fromHex, toHex} from "@cosmjs/encoding";
 import {ArgumentError, InvalidPrivateKeyError, NetworkRequestError, RecoveryPhraseError} from "../../../../errors";
-import {DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing";
-import {Bip39, EnglishMnemonic, Random, Slip10, Slip10Curve} from "@cosmjs/crypto";
+import {coins, DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing";
+import {Bip39, EnglishMnemonic, Random, sha256, Slip10, Slip10Curve} from "@cosmjs/crypto";
 import {PocketNetworkShannonFee} from "./PocketNetworkShannonFee";
 import {
   PocketNetworkShannonProtocolTransactionSchema,
   PocketShannonProtocolNetworkSchema,
   PocketShannonRpcCanSendTransactionResponseSchema
 } from "./schemas";
-import {StargateClient} from "@cosmjs/stargate";
+import {calculateFee, GasPrice, SigningStargateClient, StargateClient, TimeoutError} from "@cosmjs/stargate";
 import { makeCosmoshubPath } from '@cosmjs/amino';
 import { validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english";
+import { TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
+import { BroadcastMode } from "cosmjs-types/cosmos/tx/v1beta1/service";
 
 const ADDRESS_PREFIX = "pokt";
 
@@ -282,12 +284,59 @@ export class PocketNetworkShannonProtocolService
 
     const {success} = PocketNetworkShannonProtocolTransactionSchema.safeParse(transaction);
 
-     if (!success) {
-        throw new ArgumentError("transaction");
-     }
+    if (!success) {
+      throw new ArgumentError("transaction");
+    }
 
-    // @ts-ignore
-    return;
+    try {
+      const {privateKey, from, to, amount, fee: providedFee} = transaction;
+      const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), "pokt");
+      const [{ address: derivedAddress }] = await wallet.getAccounts();
+      if (derivedAddress !== from) {
+        throw new Error(`The provided fromAddress does not match the address derived from the private key. Derived: ${derivedAddress}, Provided: ${from}`);
+      }
+
+      const client = await SigningStargateClient.connectWithSigner(network.rpcUrl, wallet);
+
+      const amountFinal = coins(amount, 'upokt');
+
+      const gasPrice = GasPrice.fromString(`${providedFee.value}${providedFee.denom}`);
+      const fee = calculateFee(200000, gasPrice);
+
+      // Step 4: Create the transaction
+      const tx = {
+        msgs: [
+          {
+            typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+            value: {
+              from,
+              to,
+              amount: amountFinal,
+            },
+          },
+        ],
+        fee,
+        memo: "",
+      };
+
+      const txRaw = await client.sign(from, tx.msgs, tx.fee, tx.memo);
+      const txBytes = TxRaw.encode(txRaw).finish();
+      await client.broadcastTx(txBytes, BroadcastMode.BROADCAST_MODE_ASYNC);
+      const transactionHash = toHex(sha256(txBytes)).toUpperCase();
+      return {
+        protocol: SupportedProtocols.PocketShannon,
+        transactionHash,
+      };
+    } catch (err) {
+      if (err instanceof TimeoutError) {
+        return {
+          protocol: SupportedProtocols.PocketShannon,
+          transactionHash: err.txId
+        };
+      }
+
+      throw err;
+    }
   }
 
   async signPersonalData(request: SignPersonalDataRequest): Promise<string> {

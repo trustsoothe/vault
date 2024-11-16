@@ -35,7 +35,7 @@ export const PocketNetworkShannonProtocolTransactionSchema = z.object({
   transactionType: PocketNetworkShannonTransactionTypesEnum,
   from: z.string().min(1, 'From address cannot be empty'),
   to: z.string().min(1, 'To address cannot be empty'),
-  amount: z.string().min(1, 'Amount cannot be empty'),
+  amount: z.string().regex(/^\d+$/),
   privateKey: z.string().min(1, 'Private key cannot be empty'),
   skipValidation: z.boolean().optional(),
   fee: PocketNetworkShannonFeeSchema,

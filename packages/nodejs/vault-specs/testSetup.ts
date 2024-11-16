@@ -7,8 +7,9 @@ import fetch, {
 } from 'node-fetch'
 
 
-// @ts-ignore
-global.crypto = new Crypto()
+Object.defineProperty(global, "crypto", {
+  value: new Crypto(),
+});
 
 // @ts-ignore
 if (!globalThis.fetch) {
