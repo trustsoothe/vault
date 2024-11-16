@@ -14,6 +14,7 @@ export default function getStore() {
     (_) => (next) => (action) => {
       return next(JSON.parse(JSON.stringify(action)));
     },
+    // @ts-ignore
     wpoktApi.middleware,
     pricesApi.middleware,
     balanceApi.middleware,
