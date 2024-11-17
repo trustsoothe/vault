@@ -3,22 +3,21 @@ import {
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
   ImportRecoveryPhraseOptions,
-  IProtocolService, SignPersonalDataRequest, TransactionValidationResultType, ValidateTransactionResult
+  IProtocolService, SignPersonalDataRequest,
+  ValidateTransactionResult
 } from "../IProtocolService";
 import {AccountReference, SupportedProtocols} from "../../values";
-import {undefined} from "zod";
 import {INetwork} from "../INetwork";
 import {IAsset} from "../IAsset";
-import {IAbstractProtocolFeeRequestOptions} from "../ProtocolFeeRequestOptions";
 import {NetworkStatus} from "../../values/NetworkStatus";
 import {IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
 import {Account, AccountType} from "../../../vault";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
 import {PocketNetworkShannonProtocolTransaction} from "./PocketNetworkShannonProtocolTransaction";
-import {fromHex, toHex} from "@cosmjs/encoding";
+import {fromHex, toHex, toUtf8} from "@cosmjs/encoding";
 import {ArgumentError, InvalidPrivateKeyError, NetworkRequestError, RecoveryPhraseError} from "../../../../errors";
 import {coins, DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing";
-import {Bip39, EnglishMnemonic, Random, sha256, Slip10, Slip10Curve} from "@cosmjs/crypto";
+import {Bip39, EnglishMnemonic, Random, Secp256k1, sha256, Slip10, Slip10Curve} from "@cosmjs/crypto";
 import {PocketNetworkShannonFee} from "./PocketNetworkShannonFee";
 import {
   PocketNetworkShannonProtocolTransactionSchema,
@@ -340,7 +339,11 @@ export class PocketNetworkShannonProtocolService
   }
 
   async signPersonalData(request: SignPersonalDataRequest): Promise<string> {
-    return '';
+    const { privateKey, challenge } = request;
+    const privateKeyBytes = fromHex(privateKey);
+    const messageHash = sha256(toUtf8(challenge));
+    const signature = await Secp256k1.createSignature(messageHash, privateKeyBytes);
+    return toHex(signature.toFixedLength());
   }
 
   async validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.PocketShannon>, network: INetwork): Promise<ValidateTransactionResult> {
