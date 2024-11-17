@@ -29,12 +29,31 @@ const isPocketAddress = (address: string) => {
   return address.match(/^[0-9a-fA-F]+$/g) && new Blob([address]).size === 40;
 };
 
+const isShannonAddress = (address: string) => {
+  const regex = /^pokt[ac-hj-np-z0-9]{39}$/;
+
+  if (!regex.test(address)) {
+    return false;
+  }
+
+  return true;
+}
+
 export const isValidAddress = (
   address: string,
   protocol: SupportedProtocols
 ) => {
-  const fn =
-    protocol === SupportedProtocols.Pocket ? isPocketAddress : isEthAddress;
+  const fn = (() => {
+    switch (protocol) {
+      case SupportedProtocols.Pocket:
+        return isPocketAddress;
+      case SupportedProtocols.Ethereum:
+        return isEthAddress
+      case SupportedProtocols.PocketShannon:
+        return isShannonAddress;
+    }
+  })();
+
   return fn(address);
 };
 

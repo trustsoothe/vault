@@ -1318,6 +1318,7 @@ class InternalCommunicationController implements ICommunicationController {
   private async _answerTransferAccount(
     message: AnswerTransferReq
   ): Promise<AnswerTransferRes> {
+    console.log('debug: _answerTransferAccount -> message', message);
     try {
       const { rejected, request, transferData } = message?.data || {};
 

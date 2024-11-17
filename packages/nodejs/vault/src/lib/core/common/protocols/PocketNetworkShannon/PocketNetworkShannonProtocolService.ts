@@ -183,6 +183,7 @@ export class PocketNetworkShannonProtocolService
   async getFee(network: INetwork): Promise<PocketNetworkShannonFee> {
     // @ts-ignore
     return {
+      protocol: SupportedProtocols.PocketShannon,
       value: 0,
       denom: 'upokt',
     };
@@ -297,20 +298,19 @@ export class PocketNetworkShannonProtocolService
       }
 
       const client = await SigningStargateClient.connectWithSigner(network.rpcUrl, wallet);
+      const amountInUpokt = parseInt(amount) * 1e6;
+      const amountFinal = coins(amountInUpokt, 'upokt');
 
-      const amountFinal = coins(amount, 'upokt');
-
-      const gasPrice = GasPrice.fromString(`${providedFee.value}${providedFee.denom}`);
+      const gasPrice = GasPrice.fromString(`${providedFee?.value ?? 0}${providedFee?.denom ?? 'upokt'}`);
       const fee = calculateFee(200000, gasPrice);
 
-      // Step 4: Create the transaction
       const tx = {
         msgs: [
           {
             typeUrl: "/cosmos.bank.v1beta1.MsgSend",
             value: {
-              from,
-              to,
+              fromAddress: from,
+              toAddress: to,
               amount: amountFinal,
             },
           },

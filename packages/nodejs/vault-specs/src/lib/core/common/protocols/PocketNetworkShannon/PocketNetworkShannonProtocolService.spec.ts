@@ -12,7 +12,12 @@ import {
 import {WebEncryptionService} from "@poktscan/vault-encryption-web";
 import ProtocolServiceSpecFactory from "../IProtocolService.specFactory";
 import {setupServer} from "msw/node";
-import {sendTransactionHandlerFactory, queryStatusHandlerFactory} from "../../../../../mocks/pocket-network-shannon";
+import {
+  sendTransactionHandlerFactory,
+  queryStatusHandlerFactory,
+  queryAccountHandlerFactory, queryTransactionHandlerFactory
+} from "../../../../../mocks/pocket-network-shannon";
+import {queryAccountFailureHandlerFactory} from "../../../../../mocks/pocket-network-shannon/queryAccount.handler";
 
 describe('PocketNetworkShannonProtocolService', () => {
   const network : INetwork = {
@@ -23,11 +28,11 @@ describe('PocketNetworkShannonProtocolService', () => {
 
   const account =
     new AccountReference({
-      id: 'account-id',
+      id: '18e47989-2ef0-497a-9107-bac2bc08d993',
       name: 'test-account',
-      address: 'test-address',
+      address: 'pokt1gw5kpvs5stt899ulw3x3dp6vsjjx2t0wue8quk',
       protocol: SupportedProtocols.PocketShannon,
-      publicKey: 'test-public-key',
+      publicKey: '033878462bdb45290e6c0df06b7719976f257dda75d33a785d3139a98658f82300',
     });
 
   const encryptionService: IEncryptionService = new WebEncryptionService();
@@ -59,7 +64,11 @@ describe('PocketNetworkShannonProtocolService', () => {
     });
 
     describe('When executed', () => {
-      const mockServer = setupServer(...queryStatusHandlerFactory(network));
+      const mockServer = setupServer(
+        ...queryAccountHandlerFactory(network),
+        ...queryStatusHandlerFactory(network),
+        ...queryTransactionHandlerFactory(network),
+      );
 
         beforeAll(() => mockServer.listen());
         afterAll(() => mockServer.close());
@@ -67,7 +76,7 @@ describe('PocketNetworkShannonProtocolService', () => {
 
         test('returns transaction hash', async () => {
           mockServer.use(
-            ...sendTransactionHandlerFactory(network)
+            ...sendTransactionHandlerFactory(network),
           );
 
             const transaction: PocketNetworkShannonProtocolTransaction = {
@@ -76,10 +85,10 @@ describe('PocketNetworkShannonProtocolService', () => {
               from: accountImport.address,
               to: account.address,
               privateKey: accountImport.privateKey,
-              amount: '1000000000',
+              amount: '100',
               fee: {
                 protocol: SupportedProtocols.PocketShannon,
-                value: 10000,
+                value: 0,
                 denom: 'upokt',
               },
             };

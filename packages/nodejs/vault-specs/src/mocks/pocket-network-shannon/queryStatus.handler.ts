@@ -2,7 +2,7 @@ import {rest} from "msw";
 import Url from 'node:url';
 import urlJoin from "url-join";
 import {INetwork} from "@poktscan/vault";
-import {withMethod} from "../withMethod";
+import {withCosmosMethod} from "../withCosmosMethod";
 
 // @ts-ignore
 export const queryStatusResolver = async (req, res, ctx) => {
@@ -58,17 +58,20 @@ export const queryStatusHandlerFactory = (network: INetwork) => {
 
   return [
       // @ts-ignore
-      rest.post(url.toString(), withMethod('status', queryStatusResolver)),
+      rest.post(url.toString(), withCosmosMethod('status', queryStatusResolver)),
   ];
 }
 
 export const queryStatusFailureHandlerFactory = (network: INetwork) => {
-  const url = new Url.URL(urlJoin(network.rpcUrl, '/v1/query/balance'));
+  // @ts-ignore
+  const queryStatusFailedResolver = async (req, res, ctx) => {
+    return res(
+      ctx.status(500),
+    );
+  };
+
   return [
-    rest.post(url.toString(), async (req, res, ctx) => {
-      return res(
-        ctx.status(500),
-      );
-    }),
+    // @ts-ignore
+    rest.post(network.rpcUrl.toString(), withCosmosMethod('status', queryStatusFailedResolver)),
   ];
 }

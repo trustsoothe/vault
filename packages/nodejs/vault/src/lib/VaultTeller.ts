@@ -38,6 +38,9 @@ import {
   EthereumNetworkProtocolService,
   ImportRecoveryPhraseOptions,
   PocketNetworkProtocolService,
+  PocketNetworkShannonFee,
+  PocketNetworkShannonProtocolService,
+  PocketNetworkShannonTransactionTypes,
   ProtocolServiceFactory,
 } from "./core/common/protocols";
 import { v4, validate } from "uuid";
@@ -78,6 +81,7 @@ export interface TransferOptions {
     gasLimit?: number;
     data?: string;
     fee?: number;
+    shannonFee?: PocketNetworkShannonFee;
     memo?: string;
   };
   asset?: IAsset;
@@ -564,6 +568,19 @@ export class VaultTeller {
           },
           options.asset
         );
+      case SupportedProtocols.PocketShannon:
+        return await new PocketNetworkShannonProtocolService(
+          this.encryptionService
+        ).sendTransaction(options.network, {
+          protocol: SupportedProtocols.PocketShannon,
+          transactionType: PocketNetworkShannonTransactionTypes.Send,
+          from: account.address,
+          to: options.to.value,
+          amount: options.amount.toString(),
+          fee: options.transactionParams.shannonFee,
+          memo: options.transactionParams.memo ?? '',
+          privateKey,
+        });
       default:
         throw new Error(`Transfer origin "${options.from.type}" not supported`);
     }
@@ -607,6 +624,19 @@ export class VaultTeller {
           },
           options.asset
         );
+      case SupportedProtocols.PocketShannon:
+        return await new PocketNetworkShannonProtocolService(
+          this.encryptionService
+        ).sendTransaction(options.network, {
+          protocol: SupportedProtocols.PocketShannon,
+          transactionType: PocketNetworkShannonTransactionTypes.Send,
+          from: account.address,
+          to: options.to.value,
+          amount: options.amount.toString(),
+          fee: options.transactionParams.shannonFee,
+          memo: options.transactionParams.memo ?? '',
+          privateKey,
+        });
       default:
         throw new Error(`Protocol ${options.network.protocol} not supported`);
     }

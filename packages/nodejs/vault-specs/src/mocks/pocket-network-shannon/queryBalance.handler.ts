@@ -2,7 +2,7 @@ import {rest} from "msw";
 import Url from 'node:url';
 import urlJoin from "url-join";
 import {INetwork} from "@poktscan/vault";
-import {withMethod} from "../withMethod";
+import {withCosmosMethod} from "../withCosmosMethod";
 import {queryStatusResolver} from "./queryStatus.handler";
 
 export const queryBalanceHandlerFactory = (network: INetwork) => {
@@ -34,9 +34,9 @@ export const queryBalanceHandlerFactory = (network: INetwork) => {
 
   return [
       // @ts-ignore
-      rest.post(url.toString(), withMethod('status', queryStatusResolver)),
+      rest.post(url.toString(), withCosmosMethod('status', queryStatusResolver)),
       // @ts-ignore
-      rest.post(url.toString(), withMethod('abci_query', queryBalanceResolver)),
+      rest.post(url.toString(), withCosmosMethod('abci_query', queryBalanceResolver)),
   ];
 }
 

@@ -5,6 +5,7 @@ import { useAppSelector } from "../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
 import SendPokt from "./SendPokt";
 import SendEth from "./SendEth";
+import SendPoktShannon from "./SendPoktShannon";
 
 interface SendModalProps {
   open: boolean;
@@ -24,11 +25,15 @@ export default function SendCoinsModal({
       onClose={onClose}
       title={isSwapping ? "Swap" : "Send"}
     >
-      {selectedProtocol === SupportedProtocols.Ethereum ? (
+      {selectedProtocol === SupportedProtocols.Ethereum &&
         <SendEth onCancel={onClose} isUnwrapping={isSwapping} />
-      ) : (
-        <SendPokt onCancel={onClose} isWrapping={isSwapping} />
-      )}
+      }
+      {selectedProtocol === SupportedProtocols.Pocket &&
+          <SendPokt onCancel={onClose} isWrapping={isSwapping} />
+      }
+      {selectedProtocol === SupportedProtocols.PocketShannon &&
+          <SendPoktShannon onCancel={onClose} />
+      }
     </BaseDialog>
   );
 }

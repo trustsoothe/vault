@@ -10,5 +10,6 @@ export interface PocketNetworkShannonProtocolTransaction
   > {
   protocol: SupportedProtocols.PocketShannon;
   transactionType: PocketNetworkShannonTransactionTypes;
-  fee: PocketNetworkShannonFee;
+  fee?: PocketNetworkShannonFee;
+  memo?: string;
 }
