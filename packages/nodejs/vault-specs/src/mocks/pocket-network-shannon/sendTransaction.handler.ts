@@ -11,7 +11,6 @@ export const sendTransactionHandlerFactory = (network: INetwork) => {
   // @ts-ignore
   const sendTransactionResolver = async (req, res, ctx) => {
     const body = req.body;
-    console.log('sendTransactionResolver', body);
     return res(
       ctx.status(200),
       ctx.json({
