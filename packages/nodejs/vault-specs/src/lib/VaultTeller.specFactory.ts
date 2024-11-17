@@ -2013,7 +2013,7 @@ export default <
             // @ts-ignore
             const addHDWalletAccountOperation = vaultTeller.addHDWalletAccount(session.id, null, {
               recoveryPhraseId: newRecoveryPhrase.id,
-              protocol: SupportedProtocols.Pocket,
+              protocol,
             })
 
             await expect(addHDWalletAccountOperation).rejects.toThrow(VaultRestoreError)
@@ -2024,7 +2024,7 @@ export default <
 
             const addHDWalletAccountOperation = vaultTeller.addHDWalletAccount(session.id, passphrase, {
               recoveryPhraseId: 'fake',
-              protocol: SupportedProtocols.Pocket,
+              protocol,
             })
 
             await expect(addHDWalletAccountOperation).rejects.toThrow(RecoveryPhraseNotFoundError)
@@ -2041,11 +2041,29 @@ export default <
 
             const newHDChildAccount = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
               recoveryPhraseId: newRecoveryPhrase.id,
-              protocol: SupportedProtocols.Pocket,
+              protocol,
               name: testName,
             })
 
             expect(newHDChildAccount.name).toEqual(testName)
+          });
+
+          test('Sets the correct protocol on the new account', async () => {
+            const {vaultTeller, session, passphrase} = await createVault();
+            const newRecoveryPhrase = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
+              recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+              recoveryPhraseName: 'example-hd-wallet',
+            })
+
+            const testName =  'Test Name';
+
+            const newHDChildAccount = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
+              recoveryPhraseId: newRecoveryPhrase.id,
+              protocol,
+              name: testName,
+            })
+
+            expect(newHDChildAccount.protocol).toEqual(protocol)
           });
 
           test('resolves to the predictable list of new HDChild account references (address verification)', async () => {
@@ -2076,7 +2094,7 @@ export default <
 
             const secondChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
               recoveryPhraseId: newRecoveryPhrase.id,
-              protocol: SupportedProtocols.Pocket,
+              protocol,
             });
 
             const persistentAccounts = await vaultTeller.listAccounts(session.id);
@@ -2087,13 +2105,13 @@ export default <
           test('selects first available index for HDChild account when there is a gap', async () => {
             const {vaultTeller, session, passphrase} = await createVault();
             const newRecoveryPhrase = await vaultTeller.importRecoveryPhrase(session.id, passphrase, {
-              recoveryPhrase: vaultTeller.createRecoveryPhrase(),
+              recoveryPhrase,
               recoveryPhraseName: 'example-hd-wallet',
             });
 
             const options = {
               recoveryPhraseId: newRecoveryPhrase.id,
-              protocol: SupportedProtocols.Pocket,
+              protocol,
             }
 
             // First child was created as part of the seed import
@@ -2103,7 +2121,7 @@ export default <
 
             const newChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
               recoveryPhraseId: newRecoveryPhrase.id,
-              protocol: SupportedProtocols.Pocket,
+              protocol,
             });
 
             // The new child is expected to get have the index of the second child (1) which we removed

@@ -142,7 +142,7 @@ export class PocketNetworkShannonProtocolService
       address: account.address,
       name: name ? name : `${seedAccount.name} ${index + 1}`,
       accountType: AccountType.HDChild,
-      protocol: SupportedProtocols.Ethereum,
+      protocol: SupportedProtocols.PocketShannon,
       privateKey: toHex(privkey),
       parentId: seedAccount.id,
       hdwIndex: index,

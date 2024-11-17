@@ -85,11 +85,15 @@ export const createNewAccountFromHdSeed = createAsyncThunk(
     const vaultPassword = await getVaultPassword(vaultSession.id);
     const vaultPassphrase = new Passphrase(vaultPassword);
 
+    console.log("Creating account from seed", options);
+
     const account = await ExtensionVaultInstance.addHDWalletAccount(
       vaultSession.id,
       vaultPassphrase,
       { ...options }
     );
+
+    console.log("Account created", account);
 
     let seedAccount = accounts.find(
         (account) =>
