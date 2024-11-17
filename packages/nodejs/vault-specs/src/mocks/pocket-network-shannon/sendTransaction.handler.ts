@@ -1,6 +1,6 @@
 import {rest} from "msw";
 import Url from 'node:url';
-import urlJoin from "url-join";
+
 import {INetwork} from "@poktscan/vault";
 import {withMethod} from "../withMethod";
 import {queryStatusResolver} from "./queryStatus.handler";

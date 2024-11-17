@@ -1,14 +1,18 @@
-import {describe, test, expect} from "vitest";
+import {afterEach, describe, expect, test, beforeAll, afterAll} from "vitest";
 import {
   AccountReference,
   ArgumentError,
   IEncryptionService,
   INetwork,
   PocketNetworkShannonProtocolService,
+  PocketNetworkShannonProtocolTransaction,
+  PocketNetworkShannonTransactionTypes,
   SupportedProtocols
 } from "@poktscan/vault";
 import {WebEncryptionService} from "@poktscan/vault-encryption-web";
 import ProtocolServiceSpecFactory from "../IProtocolService.specFactory";
+import {setupServer} from "msw/node";
+import {sendTransactionHandlerFactory, queryStatusHandlerFactory} from "../../../../../mocks/pocket-network-shannon";
 
 describe('PocketNetworkShannonProtocolService', () => {
   const network : INetwork = {
@@ -52,6 +56,40 @@ describe('PocketNetworkShannonProtocolService', () => {
         // @ts-ignore
         return expect(protocolService.sendTransaction(network, {})).rejects.toThrow(ArgumentError);
       });
+    });
+
+    describe('When executed', () => {
+      const mockServer = setupServer(...queryStatusHandlerFactory(network));
+
+        beforeAll(() => mockServer.listen());
+        afterAll(() => mockServer.close());
+        afterEach(() => mockServer.resetHandlers());
+
+        test('returns transaction hash', async () => {
+          mockServer.use(
+            ...sendTransactionHandlerFactory(network)
+          );
+
+            const transaction: PocketNetworkShannonProtocolTransaction = {
+              protocol: SupportedProtocols.PocketShannon,
+              transactionType: PocketNetworkShannonTransactionTypes.Send,
+              from: accountImport.address,
+              to: account.address,
+              privateKey: accountImport.privateKey,
+              amount: '1000000000',
+              fee: {
+                protocol: SupportedProtocols.PocketShannon,
+                value: 10000,
+                denom: 'upokt',
+              },
+            };
+
+            const result = await protocolService.sendTransaction(network, transaction);
+
+            expect(result).toEqual(expect.objectContaining({
+                transactionHash: 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
+            }));
+        });
     });
   });
 });
