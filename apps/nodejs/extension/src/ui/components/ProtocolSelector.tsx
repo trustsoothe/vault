@@ -38,9 +38,7 @@ const ProtocolSelector: React.ForwardRefRenderFunction<
       {Object.values(SupportedProtocols).map((protocol) => {
         const iconUrl = networks.find(
           (network) =>
-            network.protocol === protocol &&
-            network.chainId ===
-              (protocol === SupportedProtocols.Ethereum ? "1" : "mainnet")
+            network.protocol === protocol
         )?.iconUrl;
 
         const isSelected = props.value === protocol;

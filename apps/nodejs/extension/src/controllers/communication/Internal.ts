@@ -1970,8 +1970,8 @@ class InternalCommunicationController implements ICommunicationController {
             network,
             protocol === SupportedProtocols.Ethereum
               ? {
-                  to: toAddress,
                   protocol,
+                  to: toAddress,
                   asset: asset
                     ? { ...asset, chainID: asset.chainId }
                     : undefined,

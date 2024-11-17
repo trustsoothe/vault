@@ -374,6 +374,296 @@
         "crypto": true
       }
     },
+    "@poktscan/vault>@cosmjs/amino": {
+      "packages": {
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/math": true,
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/utils": true,
+        "@poktscan/vault>@cosmjs/crypto": true,
+        "@poktscan/vault>@cosmjs/encoding": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/amino>@cosmjs/math": {
+      "packages": {
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/math>bn.js": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/amino>@cosmjs/math>bn.js": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/amino>@cosmjs/utils": {
+      "globals": {
+        "setTimeout": true
+      },
+      "packages": {
+        "browserify>buffer": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/crypto": {
+      "globals": {
+        "crypto.subtle": true,
+        "crypto.webcrypto.subtle": true
+      },
+      "packages": {
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/math": true,
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/utils": true,
+        "@poktscan/vault>@cosmjs/crypto>@noble/hashes": true,
+        "@poktscan/vault>@cosmjs/crypto>bn.js": true,
+        "@poktscan/vault>@cosmjs/crypto>elliptic": true,
+        "@poktscan/vault>@cosmjs/crypto>libsodium-wrappers-sumo": true,
+        "@poktscan/vault>@cosmjs/encoding": true,
+        "crypto-browserify": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/crypto>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/crypto>bn.js": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/crypto>elliptic": {
+      "packages": {
+        "@poktscan/vault>@cosmjs/crypto>elliptic>brorand": true,
+        "@poktscan/vault>@cosmjs/crypto>elliptic>hash.js": true,
+        "@poktscan/vault>@cosmjs/crypto>elliptic>hmac-drbg": true,
+        "@poktscan/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
+        "@poktscan/vault>@cosmjs/crypto>elliptic>minimalistic-crypto-utils": true,
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "glob>inherits": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/crypto>elliptic>brorand": {
+      "globals": {
+        "crypto": true,
+        "msCrypto": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/crypto>elliptic>hash.js": {
+      "packages": {
+        "@poktscan/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
+        "glob>inherits": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/crypto>elliptic>hmac-drbg": {
+      "packages": {
+        "@poktscan/vault>@cosmjs/crypto>elliptic>hash.js": true,
+        "@poktscan/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
+        "@poktscan/vault>@cosmjs/crypto>elliptic>minimalistic-crypto-utils": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/crypto>libsodium-wrappers-sumo": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true,
+        "define": true
+      },
+      "packages": {
+        "@poktscan/vault>@cosmjs/crypto>libsodium-wrappers-sumo>libsodium-sumo": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/crypto>libsodium-wrappers-sumo>libsodium-sumo": {
+      "globals": {
+        "TextDecoder": true,
+        "URL": true,
+        "WebAssembly.RuntimeError": true,
+        "WebAssembly.instantiate": true,
+        "XMLHttpRequest": true,
+        "atob": true,
+        "clearInterval": true,
+        "define": true,
+        "document": true,
+        "importScripts": true,
+        "location.href": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "browserify>browser-resolve": true,
+        "browserify>buffer": true,
+        "crypto-browserify": true,
+        "process": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/encoding": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true
+      },
+      "packages": {
+        "@poktscan/vault>@cosmjs/encoding>bech32": true,
+        "buffer>base64-js": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/proto-signing": {
+      "packages": {
+        "@poktscan/vault>@cosmjs/amino": true,
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/math": true,
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/utils": true,
+        "@poktscan/vault>@cosmjs/crypto": true,
+        "@poktscan/vault>@cosmjs/encoding": true,
+        "@poktscan/vault>@cosmjs/stargate>cosmjs-types": true,
+        "browserify>buffer": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate": {
+      "globals": {
+        "clearTimeout": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@poktscan/vault>@cosmjs/amino": true,
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/math": true,
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/utils": true,
+        "@poktscan/vault>@cosmjs/encoding": true,
+        "@poktscan/vault>@cosmjs/proto-signing": true,
+        "@poktscan/vault>@cosmjs/stargate>@confio/ics23": true,
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream": true,
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc": true,
+        "@poktscan/vault>@cosmjs/stargate>cosmjs-types": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@confio/ics23": {
+      "packages": {
+        "@poktscan/vault>@cosmjs/stargate>@confio/ics23>@noble/hashes": true,
+        "@poktscan/vault>@cosmjs/stargate>@confio/ics23>protobufjs": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@confio/ics23>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@confio/ics23>protobufjs": {
+      "globals": {
+        "setTimeout": true
+      },
+      "packages": {
+        "@poktscan/vault>protobufjs>@protobufjs/aspromise": true,
+        "@poktscan/vault>protobufjs>@protobufjs/base64": true,
+        "@poktscan/vault>protobufjs>@protobufjs/eventemitter": true,
+        "@poktscan/vault>protobufjs>@protobufjs/float": true,
+        "@poktscan/vault>protobufjs>@protobufjs/inquire": true,
+        "@poktscan/vault>protobufjs>@protobufjs/pool": true,
+        "@poktscan/vault>protobufjs>@protobufjs/utf8": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream": {
+      "globals": {
+        "setTimeout": true
+      },
+      "packages": {
+        "@poktscan/vault>@cosmjs/stargate>xstream": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc": {
+      "globals": {
+        "clearInterval": true,
+        "fetch": true,
+        "setInterval": true
+      },
+      "packages": {
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/math": true,
+        "@poktscan/vault>@cosmjs/amino>@cosmjs/utils": true,
+        "@poktscan/vault>@cosmjs/crypto": true,
+        "@poktscan/vault>@cosmjs/encoding": true,
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream": true,
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/json-rpc": true,
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket": true,
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>axios": true,
+        "@poktscan/vault>@cosmjs/stargate>xstream": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/json-rpc": {
+      "packages": {
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket": {
+      "globals": {
+        "clearTimeout": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream": true,
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket>isomorphic-ws": true,
+        "@poktscan/vault>@cosmjs/stargate>xstream": true,
+        "process": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket>isomorphic-ws": {
+      "globals": {
+        "MozWebSocket": true,
+        "WebSocket": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>axios": {
+      "globals": {
+        "AbortController": true,
+        "Blob": true,
+        "FormData": true,
+        "ReadableStream": true,
+        "Request": true,
+        "Response": true,
+        "TextEncoder": true,
+        "URLSearchParams": true,
+        "WorkerGlobalScope": true,
+        "XMLHttpRequest": true,
+        "btoa": true,
+        "clearTimeout": true,
+        "console.warn": true,
+        "document": true,
+        "fetch": true,
+        "importScripts": true,
+        "location.href": true,
+        "navigator": true,
+        "queueMicrotask": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "browserify>buffer": true,
+        "browserify>timers-browserify": true,
+        "process": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>cosmjs-types": {
+      "packages": {
+        "browserify>buffer": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>xstream": {
+      "globals": {
+        "clearInterval": true,
+        "clearTimeout": true,
+        "console.log": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@poktscan/vault>@cosmjs/stargate>xstream>globalthis": true,
+        "@poktscan/vault>@cosmjs/stargate>xstream>symbol-observable": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>xstream>globalthis": {
+      "packages": {
+        "assert>is-nan>define-properties": true,
+        "assert>util>which-typed-array>gopd": true
+      }
+    },
     "@poktscan/vault>@metamask/eth-sig-util": {
       "packages": {
         "@poktscan/vault>@metamask/eth-sig-util>@ethereumjs/util": true,
@@ -433,8 +723,8 @@
         "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils>pony-cause": true,
         "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": true,
         "browserify>buffer": true,
-        "ts-jest>@babel/core>debug": true,
-        "ts-jest>semver": true
+        "ts-jest>semver": true,
+        "vitest>debug": true
       }
     },
     "@poktscan/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": {
@@ -502,12 +792,6 @@
         "crypto-browserify>randombytes": true
       }
     },
-    "@poktscan/vault>ethereumjs-util>ethereum-cryptography>hash.js": {
-      "packages": {
-        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
-        "glob>inherits": true
-      }
-    },
     "@poktscan/vault>ethereumjs-util>ethereum-cryptography>keccak": {
       "packages": {
         "browserify>buffer": true,
@@ -571,7 +855,7 @@
     },
     "@poktscan/vault>hdkey>secp256k1": {
       "packages": {
-        "crypto-browserify>create-ecdh>elliptic": true
+        "@poktscan/vault>@cosmjs/crypto>elliptic": true
       }
     },
     "@poktscan/vault>protobufjs": {
@@ -758,15 +1042,24 @@
       },
       "packages": {
         "@reduxjs/toolkit>immer": true,
+        "@reduxjs/toolkit>redux": true,
         "@reduxjs/toolkit>redux-thunk": true,
         "@reduxjs/toolkit>reselect": true,
         "process": true,
         "react": true,
-        "react-redux": true,
-        "react-redux>redux": true
+        "react-redux": true
       }
     },
     "@reduxjs/toolkit>immer": {
+      "packages": {
+        "process": true
+      }
+    },
+    "@reduxjs/toolkit>redux": {
+      "globals": {
+        "console": true,
+        "_process": true
+      },
       "packages": {
         "process": true
       }
@@ -826,6 +1119,13 @@
         "assert>is-nan>define-properties>define-data-property": true,
         "assert>is-nan>define-properties>has-property-descriptors": true,
         "assert>util>which-typed-array>gopd": true
+      }
+    },
+    "assert>is-nan>define-properties": {
+      "packages": {
+        "assert>is-nan>define-properties>define-data-property": true,
+        "assert>is-nan>define-properties>has-property-descriptors": true,
+        "assert>object.assign>object-keys": true
       }
     },
     "assert>is-nan>define-properties>define-data-property": {
@@ -1027,7 +1327,7 @@
     },
     "crypto-browserify>browserify-cipher>browserify-des>des.js": {
       "packages": {
-        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
+        "@poktscan/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
         "glob>inherits": true
       }
     },
@@ -1039,9 +1339,9 @@
     },
     "crypto-browserify>browserify-sign": {
       "packages": {
+        "@poktscan/vault>@cosmjs/crypto>elliptic": true,
         "browserify>browser-pack>safe-buffer": true,
         "crypto-browserify>browserify-sign>bn.js": true,
-        "crypto-browserify>create-ecdh>elliptic": true,
         "crypto-browserify>create-hash": true,
         "crypto-browserify>create-hmac": true,
         "crypto-browserify>public-encrypt>browserify-rsa": true,
@@ -1060,9 +1360,9 @@
     },
     "crypto-browserify>create-ecdh": {
       "packages": {
+        "@poktscan/vault>@cosmjs/crypto>elliptic": true,
         "browserify>buffer": true,
-        "crypto-browserify>create-ecdh>bn.js": true,
-        "crypto-browserify>create-ecdh>elliptic": true
+        "crypto-browserify>create-ecdh>bn.js": true
       }
     },
     "crypto-browserify>create-ecdh>bn.js": {
@@ -1071,33 +1371,6 @@
       },
       "packages": {
         "browserify>browser-resolve": true
-      }
-    },
-    "crypto-browserify>create-ecdh>elliptic": {
-      "packages": {
-        "@poktscan/vault>ethereumjs-util>ethereum-cryptography>hash.js": true,
-        "crypto-browserify>create-ecdh>bn.js": true,
-        "crypto-browserify>create-ecdh>elliptic>brorand": true,
-        "crypto-browserify>create-ecdh>elliptic>hmac-drbg": true,
-        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
-        "crypto-browserify>create-ecdh>elliptic>minimalistic-crypto-utils": true,
-        "glob>inherits": true
-      }
-    },
-    "crypto-browserify>create-ecdh>elliptic>brorand": {
-      "globals": {
-        "crypto": true,
-        "msCrypto": true
-      },
-      "packages": {
-        "browserify>browser-resolve": true
-      }
-    },
-    "crypto-browserify>create-ecdh>elliptic>hmac-drbg": {
-      "packages": {
-        "@poktscan/vault>ethereumjs-util>ethereum-cryptography>hash.js": true,
-        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
-        "crypto-browserify>create-ecdh>elliptic>minimalistic-crypto-utils": true
       }
     },
     "crypto-browserify>create-hash": {
@@ -1144,8 +1417,8 @@
     },
     "crypto-browserify>diffie-hellman>miller-rabin": {
       "packages": {
-        "crypto-browserify>create-ecdh>bn.js": true,
-        "crypto-browserify>create-ecdh>elliptic>brorand": true
+        "@poktscan/vault>@cosmjs/crypto>elliptic>brorand": true,
+        "crypto-browserify>create-ecdh>bn.js": true
       }
     },
     "crypto-browserify>pbkdf2": {
@@ -1199,8 +1472,8 @@
     },
     "crypto-browserify>public-encrypt>parse-asn1>asn1.js": {
       "packages": {
+        "@poktscan/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
         "crypto-browserify>create-ecdh>bn.js": true,
-        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
         "encoding>iconv-lite>safer-buffer": true,
         "glob>inherits": true
       }
@@ -1296,10 +1569,16 @@
         "XMLHttpRequest": true,
         "atob": true,
         "btoa": true,
+        "console.error": true,
         "crypto": true,
         "fetch": true
       },
       "packages": {
+        "@poktscan/vault>@cosmjs/amino": true,
+        "@poktscan/vault>@cosmjs/crypto": true,
+        "@poktscan/vault>@cosmjs/encoding": true,
+        "@poktscan/vault>@cosmjs/proto-signing": true,
+        "@poktscan/vault>@cosmjs/stargate": true,
         "@poktscan/vault>@metamask/eth-sig-util": true,
         "@poktscan/vault>@pokt-foundation/pocketjs-types": true,
         "@poktscan/vault>ed25519-hd-key": true,
@@ -1547,14 +1826,6 @@
         "process": true
       }
     },
-    "react-redux>redux": {
-      "globals": {
-        "console": true
-      },
-      "packages": {
-        "process": true
-      }
-    },
     "react-redux>use-sync-external-store": {
       "globals": {
         "__REACT_DEVTOOLS_GLOBAL_HOOK__": true,
@@ -1651,19 +1922,6 @@
         "process": true
       }
     },
-    "ts-jest>@babel/core>debug": {
-      "globals": {
-        "console": true,
-        "document": true,
-        "localStorage": true,
-        "navigator": true,
-        "process": true
-      },
-      "packages": {
-        "process": true,
-        "ts-jest>@babel/core>debug>ms": true
-      }
-    },
     "ts-jest>semver": {
       "globals": {
         "console.error": true
@@ -1708,6 +1966,19 @@
     "uuid": {
       "globals": {
         "crypto": true
+      }
+    },
+    "vitest>debug": {
+      "globals": {
+        "console": true,
+        "document": true,
+        "localStorage": true,
+        "navigator": true,
+        "process": true
+      },
+      "packages": {
+        "process": true,
+        "vitest>debug>ms": true
       }
     },
     "web3-eth-accounts": {

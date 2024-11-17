@@ -180,7 +180,7 @@ export class PocketNetworkShannonProtocolService
     }
   }
 
-  async getFee(network: INetwork, options?: IAbstractProtocolFeeRequestOptions<SupportedProtocols.PocketShannon>): Promise<PocketNetworkShannonFee> {
+  async getFee(network: INetwork): Promise<PocketNetworkShannonFee> {
     // @ts-ignore
     return {
       value: 0,
