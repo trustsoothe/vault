@@ -71,6 +71,7 @@ export interface CustomRPC {
 export interface NetworkCanBeSelectedMap {
   [SupportedProtocols.Pocket]: string[];
   [SupportedProtocols.Ethereum]: string[];
+  [SupportedProtocols.PocketShannon]: string[];
 }
 
 export interface GeneralAppSlice {
@@ -581,16 +582,19 @@ const initialState: GeneralAppSlice = {
   selectedAccountByProtocol: {
     [SupportedProtocols.Pocket]: "",
     [SupportedProtocols.Ethereum]: "",
+    [SupportedProtocols.PocketShannon]: "",
   },
   selectedChainByProtocol: {
     [SupportedProtocols.Pocket]: "mainnet",
     [SupportedProtocols.Ethereum]: "1",
+    [SupportedProtocols.PocketShannon]: "poktroll",
   },
   selectedProtocol: SupportedProtocols.Pocket,
   errorsPreferredNetwork: {},
   networksCanBeSelected: {
     [SupportedProtocols.Ethereum]: [],
     [SupportedProtocols.Pocket]: [],
+    [SupportedProtocols.PocketShannon]: [],
   },
   assetsIdByAccount: {},
   customRpcs: [],

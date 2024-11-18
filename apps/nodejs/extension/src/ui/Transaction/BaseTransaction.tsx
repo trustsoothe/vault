@@ -8,6 +8,7 @@ import {
   EthereumNetworkFee,
   EthereumNetworkFeeRequestOptions,
   PocketNetworkFee,
+  PocketNetworkShannonFee,
   SupportedProtocols,
 } from "@poktscan/vault";
 import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../utils/ui";
@@ -27,7 +28,7 @@ export interface TransactionFormValues {
   protocol: SupportedProtocols;
   recipientProtocol?: SupportedProtocols;
   txSpeed?: "medium" | "low" | "high" | "site";
-  fee?: PocketNetworkFee | EthereumNetworkFee;
+  fee?: PocketNetworkFee | EthereumNetworkFee | PocketNetworkShannonFee;
   fetchingFee?: boolean;
 }
 

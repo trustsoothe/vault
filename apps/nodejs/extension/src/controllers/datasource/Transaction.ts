@@ -1,7 +1,7 @@
 import { z } from "zod";
 import browser from "webextension-polyfill";
 import {
-  DAOAction,
+  DAOAction, PocketNetworkShannonTransactionTypes,
   PocketNetworkTransactionTypes,
   SupportedProtocols,
 } from "@poktscan/vault";
@@ -39,6 +39,27 @@ export const BaseTransaction = z.object({
 export type BaseTransaction = z.infer<typeof BaseTransaction>;
 
 export type SwapTo = BaseTransaction["swapTo"];
+
+export const PoktShannonFee = z.object({
+  protocol: z.literal(SupportedProtocols.PocketShannon),
+  amount: z.string(),
+  denom: z.string(),
+});
+
+export const PoktShannonTransaction = BaseTransaction.extend({
+  protocol: z.literal(SupportedProtocols.PocketShannon),
+  fee: z.number(),
+  memo: z.string().optional(),
+  to: z.string().optional(),
+  type: z
+    .nativeEnum(PocketNetworkShannonTransactionTypes)
+    .default(PocketNetworkShannonTransactionTypes.Send),
+  transactionParams: z
+    .object({
+      shannonFee: PoktShannonFee,
+      memo: z.string().optional(),
+    }).optional(),
+});
 
 export const PoktTransaction = BaseTransaction.extend({
   protocol: z.literal(SupportedProtocols.Pocket),
@@ -188,7 +209,9 @@ export const EthTransaction = BaseTransaction.extend({
 
 export type EthTransaction = z.infer<typeof EthTransaction>;
 
-export type Transaction = PoktTransaction | EthTransaction;
+export type PoktShannonTransaction = z.infer<typeof PoktShannonTransaction>;
+
+export type Transaction = PoktTransaction | EthTransaction | PoktShannonTransaction;
 
 const TRANSACTIONS_BASE_STORAGE_KEY = "tx";
 
@@ -213,6 +236,9 @@ export default class TransactionDatasource {
         break;
       case "Ethereum":
         transaction = EthTransaction.parse(rawTransaction);
+        break;
+      case "PocketShannon":
+        transaction = PoktShannonTransaction.parse(rawTransaction);
         break;
       default:
         throw new Error("Unsupported protocol");

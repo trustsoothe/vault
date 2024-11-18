@@ -1,6 +1,6 @@
 import Url from "node:url";
 import {rest} from "msw";
-import {withMethod} from "./withMethod";
+import {withMethod} from "../withMethod";
 import {INetwork, SUGGESTED_GAS_FEES_URL} from "@poktscan/vault";
 
 export const queryFeeHandlerFactory = (network: INetwork) => {

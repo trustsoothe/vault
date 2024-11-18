@@ -1,6 +1,7 @@
 import {SupportedProtocols} from "../values";
-import {PocketNetworkProtocolTransaction} from "./PocketNetwork/PocketNetworkProtocolTransaction";
+import {PocketNetworkProtocolTransaction} from "./PocketNetwork";
 import {EthereumNetworkProtocolTransaction} from "./EthereumNetwork/EthereumNetworkProtocolTransaction";
+import {PocketNetworkShannonProtocolTransaction} from "./PocketNetworkShannon";
 
 
 type StandardEnum<T = string> = {
@@ -8,7 +9,7 @@ type StandardEnum<T = string> = {
   [nu: number]: string;
 }
 
-export interface IAbstractProtocolTransaction<T extends SupportedProtocols, TTransactionTypes extends StandardEnum<string>> {
+export interface IAbstractProtocolTransaction<T extends SupportedProtocols, TTransactionTypes extends StandardEnum> {
   protocol: T;
   transactionType: TTransactionTypes[keyof TTransactionTypes];
   from: string;
@@ -28,4 +29,6 @@ export interface IProtocolTransactionResult<T extends AllowedProtocols> {
 export type ProtocolTransaction<T extends SupportedProtocols> =
   T extends SupportedProtocols.Pocket
     ? PocketNetworkProtocolTransaction
-    : EthereumNetworkProtocolTransaction;
+    : T extends SupportedProtocols.Ethereum
+      ? EthereumNetworkProtocolTransaction
+      : PocketNetworkShannonProtocolTransaction;

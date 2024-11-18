@@ -75,7 +75,7 @@ export const balanceApi = createApi({
 
               return balance
                 ? balance /
-                    (protocol === SupportedProtocols.Pocket
+                    ([SupportedProtocols.Pocket, SupportedProtocols.PocketShannon].includes(protocol)
                       ? 1e6
                       : asset
                       ? 1

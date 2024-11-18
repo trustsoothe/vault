@@ -1,6 +1,6 @@
 import Url from "node:url";
 import {rest} from "msw";
-import {withMethod} from "./withMethod";
+import {withMethod} from "../withMethod";
 import {INetwork} from "@poktscan/vault";
 
 export const queryBalanceHandlerFactory = (network: INetwork) => {

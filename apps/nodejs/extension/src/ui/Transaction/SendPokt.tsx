@@ -40,6 +40,7 @@ export default function SendPokt({ onCancel, isWrapping }: SendPoktProps) {
       protocol={selectedProtocol}
       fromAddress={selectedAccountAddress}
       getTransaction={(data) => {
+        console.log('debug: getTransaction', data);
         const accountId = accounts.find(
           (item) =>
             item.address === data.fromAddress && item.protocol === data.protocol

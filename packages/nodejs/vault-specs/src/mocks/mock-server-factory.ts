@@ -19,6 +19,12 @@ import {
   sendTransactionHandlerFactory as ethereumSendTransactionHandlerFactory,
 } from './ethereum-network';
 
+import {
+  queryBalanceHandlerFactory as pocketShannonQueryBalanceHandlerFactory,
+  queryBalanceFailureHandlerFactory as pocketShannonQueryBalanceFailureHandlerFactory,
+  sendTransactionHandlerFactory as pocketShannonSendTransactionHandlerFactory,
+} from './pocket-network-shannon';
+
 export class MockServerFactory  {
   private readonly _network: INetwork;
   private _handlers: RestHandler<MockedRequest<DefaultBodyType>>[] = []
@@ -36,6 +42,8 @@ export class MockServerFactory  {
       case SupportedProtocols.Ethereum:
         this._handlers.push(...ethereumQueryFeeHandlerFactory(this._network));
         return this;
+      case SupportedProtocols.PocketShannon:
+        return this;
       default:
         throw new ProtocolNotSupported(this._network.protocol);
     }
@@ -48,6 +56,9 @@ export class MockServerFactory  {
         return this;
       case SupportedProtocols.Ethereum:
         this._handlers.push(...ethereumQueryBalanceHandlerFactory(this._network));
+        return this;
+      case SupportedProtocols.PocketShannon:
+        this._handlers.push(...pocketShannonQueryBalanceHandlerFactory(this._network));
         return this;
       default:
         throw new ProtocolNotSupported(this._network.protocol);
@@ -62,6 +73,8 @@ export class MockServerFactory  {
       case SupportedProtocols.Ethereum:
         this._handlers.push(...ethereumQueryFeeFailureHandlerFactory(this._network));
         return this;
+      case SupportedProtocols.PocketShannon:
+        return this;
       default:
         throw new ProtocolNotSupported(this._network.protocol);
     }
@@ -75,6 +88,9 @@ export class MockServerFactory  {
       case SupportedProtocols.Ethereum:
         this._handlers.push(...ethereumQueryBalanceFailureHandlerFactory(this._network));
         return this;
+      case SupportedProtocols.PocketShannon:
+        this._handlers.push(...pocketShannonQueryBalanceFailureHandlerFactory(this._network));
+        return this;
       default:
         throw new ProtocolNotSupported(this._network.protocol);
     }
@@ -87,6 +103,9 @@ export class MockServerFactory  {
         return this;
       case SupportedProtocols.Ethereum:
         this._handlers.push(...ethereumSendTransactionHandlerFactory(this._network));
+        return this;
+      case SupportedProtocols.PocketShannon:
+        this._handlers.push(...pocketShannonSendTransactionHandlerFactory(this._network));
         return this;
       default:
         throw new ProtocolNotSupported(this._network.protocol);

@@ -7,6 +7,12 @@
       "inputs": ["src/**"],
       "outputs": ["dist/**"]
     },
+    "build:autopolicy": {
+      "cache": false,
+      "dependsOn": ["^build:autopolicy"],
+      "inputs": ["src/**"],
+      "outputs": ["dist/**"]
+    },
     "release:chromium": {
       "cache": false,
       "inputs": ["src/**"],
