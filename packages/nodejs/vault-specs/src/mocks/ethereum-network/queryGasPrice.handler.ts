@@ -1,6 +1,6 @@
 import {INetwork} from "@poktscan/vault";
 import {rest} from "msw";
-import {withMethod} from "./withMethod";
+import {withMethod} from "../withMethod";
 import Url from "node:url";
 
 export const queryGasPriceHandler = (network: INetwork) => {
