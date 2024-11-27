@@ -17,6 +17,7 @@ import { roundAndSeparate } from "../../utils/ui";
 import AccountInfo from "./AccountInfo";
 import { themeColors } from "../theme";
 import Summary from "./Summary";
+import {getAccountPrefixByProtocol} from "../../utils/accounts";
 
 interface AccountCreatedProps {
   account: SerializedAccountReference;
@@ -75,6 +76,7 @@ export default function AccountFeedback({
             value: (
               <CopyAddressButton
                 address={account.address}
+                prefix={getAccountPrefixByProtocol(account.protocol)}
                 sxProps={{
                   fontWeight: 500,
                   boxShadow: "none",

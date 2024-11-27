@@ -15,6 +15,7 @@ import { enqueueErrorSnackbar } from "../../utils/ui";
 import { WIDTH } from "../../constants/ui";
 import RequestInfo from "./RequestInfo";
 import { themeColors } from "../theme";
+import {getAccountPrefixByProtocol} from "../../utils/accounts";
 
 interface RenderMessageProps {
   message: object | object[];

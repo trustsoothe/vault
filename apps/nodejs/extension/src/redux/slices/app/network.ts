@@ -19,7 +19,7 @@ export const loadNetworksFromStorage = createAsyncThunk(
     });
 
     return (result[NETWORKS_STORAGE_KEY] || []).filter((item) =>
-      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket].includes(
+      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.PocketShannon].includes(
         item.protocol
       )
     );

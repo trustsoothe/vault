@@ -8,11 +8,13 @@ import { themeColors } from "../theme";
 
 interface CopyAddressButtonProps {
   address: string;
+  prefix?: string;
   sxProps?: SxProps;
 }
 
 export default function CopyAddressButton({
   address,
+  prefix = "",
   sxProps,
 }: CopyAddressButtonProps) {
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
@@ -42,7 +44,7 @@ export default function CopyAddressButton({
           ...sxProps,
         }}
       >
-        {getTruncatedText(address, 5)} <CopyIcon />
+        {getTruncatedText(address.slice(prefix.length || 0), 5)} <CopyIcon />
       </Button>
     </Tooltip>
   );

@@ -44,6 +44,7 @@ import {
   readFile,
   wrongPasswordSnackbar,
 } from "../../utils/ui";
+import {getAccountPrefixByProtocol} from "../../utils/accounts";
 
 interface FormValues {
   vault_password?: string;
@@ -313,6 +314,7 @@ export default function RemoveAccountModal({
       value: (
         <CopyAddressButton
           address={accountOrRef?.address}
+          prefix={getAccountPrefixByProtocol(accountOrRef?.protocol)}
           sxProps={{
             fontWeight: 500,
             boxShadow: "none",
