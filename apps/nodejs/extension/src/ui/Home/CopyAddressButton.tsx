@@ -44,7 +44,7 @@ export default function CopyAddressButton({
           ...sxProps,
         }}
       >
-        {getTruncatedText(address.slice(prefix.length || 0), 5)} <CopyIcon />
+        {getTruncatedText(address?.slice(prefix.length || 0), 5)} <CopyIcon />
       </Button>
     </Tooltip>
   );
