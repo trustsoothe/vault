@@ -13,14 +13,14 @@ import {NetworkStatus} from "../../values/NetworkStatus";
 import {IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
 import {Account, AccountType} from "../../../vault";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
-import {PocketNetworkShannonProtocolTransaction} from "./PocketNetworkShannonProtocolTransaction";
+import {CosmosProtocolTransaction} from "./CosmosProtocolTransaction";
 import {fromHex, toHex, toUtf8} from "@cosmjs/encoding";
 import {ArgumentError, InvalidPrivateKeyError, NetworkRequestError, RecoveryPhraseError} from "../../../../errors";
 import {coins, DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing";
 import {Bip39, EnglishMnemonic, Random, Secp256k1, sha256, Slip10, Slip10Curve} from "@cosmjs/crypto";
-import {PocketNetworkShannonFee} from "./PocketNetworkShannonFee";
+import {CosmosFee} from "./CosmosFee";
 import {
-  PocketNetworkShannonProtocolTransactionSchema,
+  CosmosProtocolTransactionSchema,
   PocketShannonProtocolNetworkSchema,
   PocketShannonRpcCanSendTransactionResponseSchema
 } from "./schemas";
@@ -33,8 +33,8 @@ import { BroadcastMode } from "cosmjs-types/cosmos/tx/v1beta1/service";
 
 const ADDRESS_PREFIX = "pokt";
 
-export class PocketNetworkShannonProtocolService
-  implements IProtocolService<SupportedProtocols.PocketShannon>
+export class CosmosProtocolService
+  implements IProtocolService<SupportedProtocols.Cosmos>
 {
   constructor(private encryptionService: IEncryptionService) {}
 
@@ -99,7 +99,7 @@ export class PocketNetworkShannonProtocolService
         name: options.seedAccountName || "HD Account",
         seedId: options.recoveryPhraseId,
         accountType: AccountType.HDSeed,
-        protocol: SupportedProtocols.PocketShannon,
+        protocol: SupportedProtocols.Cosmos,
         publicKey: 'N/A',
         privateKey: toHex(seed),
         address: "N/A",
@@ -116,7 +116,7 @@ export class PocketNetworkShannonProtocolService
       address: account.address,
       name: `${seedAccount.name} 1`,
       accountType: AccountType.HDChild,
-      protocol: SupportedProtocols.PocketShannon,
+      protocol: SupportedProtocols.Cosmos,
       privateKey: toHex(privkey),
       parentId: seedAccount.id,
       hdwIndex: 0,
@@ -141,7 +141,7 @@ export class PocketNetworkShannonProtocolService
       address: account.address,
       name: name ? name : `${seedAccount.name} ${index + 1}`,
       accountType: AccountType.HDChild,
-      protocol: SupportedProtocols.PocketShannon,
+      protocol: SupportedProtocols.Cosmos,
       privateKey: toHex(privkey),
       parentId: seedAccount.id,
       hdwIndex: index,
@@ -179,10 +179,10 @@ export class PocketNetworkShannonProtocolService
     }
   }
 
-  async getFee(network: INetwork): Promise<PocketNetworkShannonFee> {
+  async getFee(network: INetwork): Promise<CosmosFee> {
     // @ts-ignore
     return {
-      protocol: SupportedProtocols.PocketShannon,
+      protocol: SupportedProtocols.Cosmos,
       value: 0,
       denom: 'upokt',
     };
@@ -198,7 +198,7 @@ export class PocketNetworkShannonProtocolService
         name: "faucet",
         publicKey: "N/A",
         address: "pokt1v3mcrj0h2zfekyf2n8m369x4v9wfvdm34hecd9",
-        protocol: SupportedProtocols.PocketShannon,
+        protocol: SupportedProtocols.Cosmos,
       }), network);
       updatedStatus.updateBalanceStatus(true);
     } catch (err) {
@@ -273,7 +273,7 @@ export class PocketNetworkShannonProtocolService
     );
   }
 
-  async sendTransaction(network: INetwork, transaction: PocketNetworkShannonProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.PocketShannon>> {
+  async sendTransaction(network: INetwork, transaction: CosmosProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.Cosmos>> {
     if (!network) {
       throw new ArgumentError("network");
     }
@@ -282,7 +282,7 @@ export class PocketNetworkShannonProtocolService
       throw new ArgumentError("transaction");
     }
 
-    const {success} = PocketNetworkShannonProtocolTransactionSchema.safeParse(transaction);
+    const {success} = CosmosProtocolTransactionSchema.safeParse(transaction);
 
     if (!success) {
       throw new ArgumentError("transaction");
@@ -323,13 +323,13 @@ export class PocketNetworkShannonProtocolService
       await client.broadcastTx(txBytes, BroadcastMode.BROADCAST_MODE_ASYNC);
       const transactionHash = toHex(sha256(txBytes)).toUpperCase();
       return {
-        protocol: SupportedProtocols.PocketShannon,
+        protocol: SupportedProtocols.Cosmos,
         transactionHash,
       };
     } catch (err) {
       if (err instanceof TimeoutError) {
         return {
-          protocol: SupportedProtocols.PocketShannon,
+          protocol: SupportedProtocols.Cosmos,
           transactionHash: err.txId
         };
       }
@@ -346,7 +346,7 @@ export class PocketNetworkShannonProtocolService
     return toHex(signature.toFixedLength());
   }
 
-  async validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.PocketShannon>, network: INetwork): Promise<ValidateTransactionResult> {
+  async validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.Cosmos>, network: INetwork): Promise<ValidateTransactionResult> {
     return new ValidateTransactionResult([]);
   }
 

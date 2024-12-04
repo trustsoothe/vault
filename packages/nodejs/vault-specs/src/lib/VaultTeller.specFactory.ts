@@ -1592,7 +1592,7 @@ export default <
       'pokt1gkrz37zt0kepp5y83d7amgxemvex505mq6qtxz',
     ]
 
-    const protocol: SupportedProtocols.PocketShannon = SupportedProtocols.PocketShannon
+    const protocol: SupportedProtocols.Cosmos = SupportedProtocols.Cosmos
 
     const pocketAsset = new Asset({
       name: 'Example Asset',

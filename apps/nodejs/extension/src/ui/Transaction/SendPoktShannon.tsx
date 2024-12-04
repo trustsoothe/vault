@@ -2,7 +2,7 @@ import React from 'react';
 import {
   SupportedTransferDestinations,
   SupportedTransferOrigins,
-  PocketNetworkShannonFee,
+  CosmosFee,
 } from "@poktscan/vault";
 import Summary from "./Summary";
 import Submitted from "./Submitted";
@@ -55,7 +55,7 @@ export default function SendPoktShannon({ onCancel }: SendPoktProps) {
           },
           amount: Number(data.amount),
           transactionParams: {
-            shannonFee: data.fee as PocketNetworkShannonFee,
+            shannonFee: data.fee as CosmosFee,
             memo: data.memo || undefined,
           }
         };

@@ -31,7 +31,7 @@ export default function SendCoinsModal({
       {selectedProtocol === SupportedProtocols.Pocket &&
           <SendPokt onCancel={onClose} isWrapping={isSwapping} />
       }
-      {selectedProtocol === SupportedProtocols.PocketShannon &&
+      {selectedProtocol === SupportedProtocols.Cosmos &&
           <SendPoktShannon onCancel={onClose} />
       }
     </BaseDialog>

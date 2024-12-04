@@ -19,7 +19,7 @@ export const loadNetworksFromStorage = createAsyncThunk(
     });
 
     return (result[NETWORKS_STORAGE_KEY] || []).filter((item) =>
-      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.PocketShannon].includes(
+      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(
         item.protocol
       )
     );
@@ -32,7 +32,7 @@ export const loadNetworksFromCdn = createAsyncThunk(
     const result = await fetch(NETWORKS_CDN_URL).then((res) => res.json());
 
     const resultProcessed = result.filter((item) =>
-      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.PocketShannon].includes(
+      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(
         item.protocol
       )
     );
@@ -53,7 +53,7 @@ export const loadAssetsFromStorage = createAsyncThunk(
     });
 
     return (result[ASSETS_STORAGE_KEY] || []).filter((item) =>
-      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.PocketShannon].includes(
+      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(
         item.protocol
       )
     );
@@ -66,7 +66,7 @@ export const loadAssetsFromCdn = createAsyncThunk(
     const result = await fetch(ASSETS_CDN_URL).then((res) => res.json());
 
     const resultProcessed = result.filter((item) =>
-      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.PocketShannon].includes(
+      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(
         item.protocol
       )
     );

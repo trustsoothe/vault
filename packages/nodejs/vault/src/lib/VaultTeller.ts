@@ -38,9 +38,9 @@ import {
   EthereumNetworkProtocolService,
   ImportRecoveryPhraseOptions,
   PocketNetworkProtocolService,
-  PocketNetworkShannonFee,
-  PocketNetworkShannonProtocolService,
-  PocketNetworkShannonTransactionTypes,
+  CosmosFee,
+  CosmosProtocolService,
+  CosmosTransactionTypes,
   ProtocolServiceFactory,
 } from "./core/common/protocols";
 import { v4, validate } from "uuid";
@@ -81,7 +81,7 @@ export interface TransferOptions {
     gasLimit?: number;
     data?: string;
     fee?: number;
-    shannonFee?: PocketNetworkShannonFee;
+    shannonFee?: CosmosFee;
     memo?: string;
   };
   asset?: IAsset;
@@ -568,12 +568,12 @@ export class VaultTeller {
           },
           options.asset
         );
-      case SupportedProtocols.PocketShannon:
-        return await new PocketNetworkShannonProtocolService(
+      case SupportedProtocols.Cosmos:
+        return await new CosmosProtocolService(
           this.encryptionService
         ).sendTransaction(options.network, {
-          protocol: SupportedProtocols.PocketShannon,
-          transactionType: PocketNetworkShannonTransactionTypes.Send,
+          protocol: SupportedProtocols.Cosmos,
+          transactionType: CosmosTransactionTypes.Send,
           from: account.address,
           to: options.to.value,
           amount: options.amount.toString(),
@@ -624,12 +624,12 @@ export class VaultTeller {
           },
           options.asset
         );
-      case SupportedProtocols.PocketShannon:
-        return await new PocketNetworkShannonProtocolService(
+      case SupportedProtocols.Cosmos:
+        return await new CosmosProtocolService(
           this.encryptionService
         ).sendTransaction(options.network, {
-          protocol: SupportedProtocols.PocketShannon,
-          transactionType: PocketNetworkShannonTransactionTypes.Send,
+          protocol: SupportedProtocols.Cosmos,
+          transactionType: CosmosTransactionTypes.Send,
           from: account.address,
           to: options.to.value,
           amount: options.amount.toString(),

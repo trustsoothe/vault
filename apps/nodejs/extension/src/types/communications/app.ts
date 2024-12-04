@@ -2,7 +2,7 @@ import type {
   EthereumNetworkFee,
   PocketNetworkFee,
   SupportedProtocols,
-  PocketNetworkShannonFee,
+  CosmosFee,
 } from "@poktscan/vault";
 import type { IAsset } from "../../redux/slices/app";
 import type { BaseResponse, UnknownErrorType } from "./common";
@@ -32,7 +32,7 @@ export interface NetworkFeeRes {
   type: typeof NETWORK_FEE_RESPONSE;
   data: {
     answered: true;
-    networkFee: PocketNetworkFee | EthereumNetworkFee | PocketNetworkShannonFee;
+    networkFee: PocketNetworkFee | EthereumNetworkFee | CosmosFee;
   } | null;
   error: UnknownErrorType | null;
 }

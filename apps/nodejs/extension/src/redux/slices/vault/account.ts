@@ -16,7 +16,7 @@ import {
   Passphrase,
   PocketNetworkProtocolService,
   PocketNetworkProtocolTransaction,
-  PocketNetworkShannonFee,
+  CosmosFee,
   PocketNetworkTransactionTypes,
   PrivateKeyRestoreErrorName,
   SerializedAccountReference,
@@ -284,7 +284,7 @@ export interface SendTransactionParams
     maxPriorityFeePerGas?: number;
     data?: string;
     fee?: number;
-    shannonFee?: PocketNetworkShannonFee;
+    shannonFee?: CosmosFee;
     memo?: string;
     gasLimit?: number;
   };
@@ -406,10 +406,10 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
         fee: transferOptions.transactionParams.fee,
         memo: transferOptions.transactionParams.memo,
       };
-    } else if (transferOptions.network.protocol === SupportedProtocols.PocketShannon) {
+    } else if (transferOptions.network.protocol === SupportedProtocols.Cosmos) {
       tx = {
         ...baseTx,
-        protocol: SupportedProtocols.PocketShannon,
+        protocol: SupportedProtocols.Cosmos,
         fee: transferOptions.transactionParams.shannonFee.value,
         memo: transferOptions.transactionParams.memo,
       };

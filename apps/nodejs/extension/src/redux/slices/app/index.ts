@@ -43,6 +43,7 @@ export interface Network {
   explorerTransactionUrl: string;
   transferMinValue: string;
   assetPlatformId?: string;
+  addressPrefix?: string;
 }
 
 export interface IAsset {
@@ -71,7 +72,7 @@ export interface CustomRPC {
 export interface NetworkCanBeSelectedMap {
   [SupportedProtocols.Pocket]: string[];
   [SupportedProtocols.Ethereum]: string[];
-  [SupportedProtocols.PocketShannon]: string[];
+  [SupportedProtocols.Cosmos]: string[];
 }
 
 export interface GeneralAppSlice {
@@ -582,19 +583,19 @@ const initialState: GeneralAppSlice = {
   selectedAccountByProtocol: {
     [SupportedProtocols.Pocket]: "",
     [SupportedProtocols.Ethereum]: "",
-    [SupportedProtocols.PocketShannon]: "",
+    [SupportedProtocols.Cosmos]: "",
   },
   selectedChainByProtocol: {
     [SupportedProtocols.Pocket]: "mainnet",
     [SupportedProtocols.Ethereum]: "1",
-    [SupportedProtocols.PocketShannon]: "poktroll",
+    [SupportedProtocols.Cosmos]: "poktroll",
   },
   selectedProtocol: SupportedProtocols.Pocket,
   errorsPreferredNetwork: {},
   networksCanBeSelected: {
     [SupportedProtocols.Ethereum]: [],
     [SupportedProtocols.Pocket]: [],
-    [SupportedProtocols.PocketShannon]: [],
+    [SupportedProtocols.Cosmos]: [],
   },
   assetsIdByAccount: {},
   customRpcs: [],

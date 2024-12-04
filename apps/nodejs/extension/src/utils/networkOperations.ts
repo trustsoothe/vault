@@ -49,7 +49,7 @@ export const isValidAddress = (
         return isPocketAddress;
       case SupportedProtocols.Ethereum:
         return isEthAddress
-      case SupportedProtocols.PocketShannon:
+      case SupportedProtocols.Cosmos:
         return isShannonAddress;
     }
   })();

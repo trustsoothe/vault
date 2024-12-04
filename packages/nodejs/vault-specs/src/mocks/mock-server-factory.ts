@@ -26,7 +26,7 @@ import {
   queryBalanceHandlerFactory as pocketShannonQueryBalanceHandlerFactory,
   queryBalanceFailureHandlerFactory as pocketShannonQueryBalanceFailureHandlerFactory,
   sendTransactionHandlerFactory as pocketShannonSendTransactionHandlerFactory,
-} from './pocket-network-shannon';
+} from './cosmos';
 
 export class MockServerFactory  {
   private readonly _network: INetwork;
@@ -45,7 +45,7 @@ export class MockServerFactory  {
       case SupportedProtocols.Ethereum:
         this._handlers.push(...ethereumQueryFeeHandlerFactory(this._network));
         return this;
-      case SupportedProtocols.PocketShannon:
+      case SupportedProtocols.Cosmos:
         return this;
       default:
         throw new ProtocolNotSupported(this._network.protocol);
@@ -60,7 +60,7 @@ export class MockServerFactory  {
       case SupportedProtocols.Ethereum:
         this._handlers.push(...ethereumQueryBalanceHandlerFactory(this._network));
         return this;
-      case SupportedProtocols.PocketShannon:
+      case SupportedProtocols.Cosmos:
         this._handlers.push(...pocketShannonQueryBalanceHandlerFactory(this._network));
         return this;
       default:
@@ -76,7 +76,7 @@ export class MockServerFactory  {
       case SupportedProtocols.Ethereum:
         this._handlers.push(...ethereumQueryFeeFailureHandlerFactory(this._network));
         return this;
-      case SupportedProtocols.PocketShannon:
+      case SupportedProtocols.Cosmos:
         return this;
       default:
         throw new ProtocolNotSupported(this._network.protocol);
@@ -91,7 +91,7 @@ export class MockServerFactory  {
       case SupportedProtocols.Ethereum:
         this._handlers.push(...ethereumQueryBalanceFailureHandlerFactory(this._network));
         return this;
-      case SupportedProtocols.PocketShannon:
+      case SupportedProtocols.Cosmos:
         this._handlers.push(...pocketShannonQueryBalanceFailureHandlerFactory(this._network));
         return this;
       default:
@@ -107,7 +107,7 @@ export class MockServerFactory  {
       case SupportedProtocols.Ethereum:
         this._handlers.push(...ethereumSendTransactionHandlerFactory(this._network));
         return this;
-      case SupportedProtocols.PocketShannon:
+      case SupportedProtocols.Cosmos:
         this._handlers.push(...pocketShannonSendTransactionHandlerFactory(this._network));
         return this;
       default:

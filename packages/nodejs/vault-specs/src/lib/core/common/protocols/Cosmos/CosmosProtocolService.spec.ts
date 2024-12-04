@@ -4,9 +4,9 @@ import {
   ArgumentError,
   IEncryptionService,
   INetwork,
-  PocketNetworkShannonProtocolService,
-  PocketNetworkShannonProtocolTransaction,
-  PocketNetworkShannonTransactionTypes, SignPersonalDataRequest,
+  CosmosProtocolService,
+  CosmosProtocolTransaction,
+  CosmosTransactionTypes, SignPersonalDataRequest,
   SupportedProtocols
 } from "@poktscan/vault";
 import {WebEncryptionService} from "@poktscan/vault-encryption-web";
@@ -15,14 +15,14 @@ import {setupServer} from "msw/node";
 import {
   sendTransactionHandlerFactory,
   queryStatusHandlerFactory,
-  queryAccountHandlerFactory, queryTransactionHandlerFactory
-} from "../../../../../mocks/pocket-network-shannon";
-import {queryAccountFailureHandlerFactory} from "../../../../../mocks/pocket-network-shannon/queryAccount.handler";
+  queryAccountHandlerFactory,
+  queryTransactionHandlerFactory
+} from "../../../../../mocks/cosmos";
 
-describe('PocketNetworkShannonProtocolService', () => {
+describe('CosmosProtocolService', () => {
   const network : INetwork = {
     rpcUrl: "http://localhost:8080",
-    protocol: SupportedProtocols.PocketShannon,
+    protocol: SupportedProtocols.Cosmos,
     chainID: "poktroll",
   };
 
@@ -31,12 +31,12 @@ describe('PocketNetworkShannonProtocolService', () => {
       id: '18e47989-2ef0-497a-9107-bac2bc08d993',
       name: 'test-account',
       address: 'pokt1gw5kpvs5stt899ulw3x3dp6vsjjx2t0wue8quk',
-      protocol: SupportedProtocols.PocketShannon,
+      protocol: SupportedProtocols.Cosmos,
       publicKey: '033878462bdb45290e6c0df06b7719976f257dda75d33a785d3139a98658f82300',
     });
 
   const encryptionService: IEncryptionService = new WebEncryptionService();
-  const protocolService = new PocketNetworkShannonProtocolService(encryptionService);
+  const protocolService = new CosmosProtocolService(encryptionService);
 
 
   const accountImport = {
@@ -45,7 +45,7 @@ describe('PocketNetworkShannonProtocolService', () => {
     address: 'pokt1x32rwm2skj490m4kx0yj63qzl6sdreul4u2ysj',
   }
 
-  ProtocolServiceSpecFactory<SupportedProtocols.PocketShannon>(
+  ProtocolServiceSpecFactory<SupportedProtocols.Cosmos>(
     () => protocolService,
     { network, account, accountImport }
   )
@@ -79,15 +79,15 @@ describe('PocketNetworkShannonProtocolService', () => {
             ...sendTransactionHandlerFactory(network),
           );
 
-            const transaction: PocketNetworkShannonProtocolTransaction = {
-              protocol: SupportedProtocols.PocketShannon,
-              transactionType: PocketNetworkShannonTransactionTypes.Send,
+            const transaction: CosmosProtocolTransaction = {
+              protocol: SupportedProtocols.Cosmos,
+              transactionType: CosmosTransactionTypes.Send,
               from: accountImport.address,
               to: account.address,
               privateKey: accountImport.privateKey,
               amount: '100',
               fee: {
-                protocol: SupportedProtocols.PocketShannon,
+                protocol: SupportedProtocols.Cosmos,
                 value: 0,
                 denom: 'upokt',
               },
