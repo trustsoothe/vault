@@ -6,7 +6,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { Controller, useFormContext } from "react-hook-form";
 import { ImportAccountFormValues } from "./ImportAccountModal";
-import { selectedProtocolSelector } from "../../redux/selectors/network";
+import {networksSelector, selectedProtocolSelector} from "../../redux/selectors/network";
 import { isValidPPK, isValidPrivateKey } from "../../utils/networkOperations";
 import PasswordInput from "../components/PasswordInput";
 import SelectFile from "../components/SelectFile";
@@ -28,6 +28,7 @@ export default function ImportForm({
   infoText,
 }: ImportFormProps) {
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
+  const networks = useAppSelector(networksSelector);
   const { control, setValue, clearErrors, register, watch } =
     useFormContext<ImportAccountFormValues>();
   const [type] = watch(["import_type"]);
@@ -100,6 +101,8 @@ export default function ImportForm({
           name={"private_key"}
           rules={{
             validate: async (value, formValues) => {
+              const selectedNetwork =  formValues.protocol && networks.find((n) => n.id === formValues.protocol);
+
               if (formValues.import_type === "private_key") {
                 if (!value) {
                   return "Required";
@@ -108,7 +111,7 @@ export default function ImportForm({
                 if (
                   !isValidPrivateKey(
                     value,
-                    formValues.protocol || selectedProtocol
+                    selectedNetwork.protocol || selectedProtocol
                   )
                 ) {
                   return "Invalid Private Key";
@@ -155,6 +158,7 @@ export default function ImportForm({
             name={"json_file"}
             rules={{
               validate: async (value, formValues) => {
+                const selectedNetwork =  formValues.protocol && networks.find((n) => n.id === formValues.protocol);
                 if (formValues.import_type === "json_file") {
                   if (!value) {
                     return "Required";
@@ -165,7 +169,7 @@ export default function ImportForm({
                   if (
                     !isValidPPK(
                       content,
-                      formValues.protocol || selectedProtocol
+                      selectedNetwork.protocol || selectedProtocol
                     )
                   ) {
                     return INVALID_PPK_MESSAGE;

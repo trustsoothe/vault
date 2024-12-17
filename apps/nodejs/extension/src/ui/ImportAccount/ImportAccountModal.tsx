@@ -1,6 +1,5 @@
 import type {
   SerializedAccountReference,
-  SupportedProtocols,
 } from "@poktscan/vault";
 import { shallowEqual } from "react-redux";
 import browser from "webextension-polyfill";
@@ -17,6 +16,8 @@ import {
   changeSelectedNetwork,
 } from "../../redux/slices/app";
 import {
+  defaultSelectableProtocolSelector,
+  networksSelector,
   selectedChainByProtocolSelector,
   selectedProtocolSelector,
 } from "../../redux/selectors/network";
@@ -47,7 +48,7 @@ export interface ImportAccountFormValues {
   json_file?: File | null;
   file_password?: string;
   account_name: string;
-  protocol?: SupportedProtocols;
+  protocol?: string;
 }
 
 type FormStatus = "normal" | "loading" | "account_exists" | "success";
@@ -77,6 +78,9 @@ export default function ImportAccountModal({
   const [wrongFilePassword, setWrongFilePassword] = useState(false);
   const [accountAlreadyExists, setAccountAlreadyExists] =
     useState<SerializedAccountReference>(null);
+  const networks = useAppSelector(networksSelector);
+  const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector());
+  const selectableProtocolId = selectableNetwork?.id;
 
   const methods = useForm<ImportAccountFormValues>({
     defaultValues: {
@@ -85,7 +89,7 @@ export default function ImportAccountModal({
       json_file: null,
       file_password: "",
       account_name: "",
-      protocol: selectedProtocol,
+      protocol: selectableProtocolId,
     },
   });
   const {
@@ -105,9 +109,9 @@ export default function ImportAccountModal({
     setValue("json_file", null);
     setValue("file_password", "");
     clearErrors(["private_key", "json_file"]);
-    setValue("protocol", selectedProtocol);
+    setValue("protocol", selectableProtocolId);
     setWrongFilePassword(false);
-  }, [type, selectedProtocol]);
+  }, [type, selectableProtocolId]);
 
   useDidMountEffect(() => {
     if (isPopup && type === "json_file") {
@@ -158,7 +162,7 @@ export default function ImportAccountModal({
         json_file: null,
         file_password: "",
         account_name: "",
-        protocol: selectedProtocol,
+        protocol: selectableProtocolId,
       });
       setStatus("normal");
     }, 150);
@@ -171,10 +175,11 @@ export default function ImportAccountModal({
   }, [open]);
   const onSubmit = async (data: ImportAccountFormValues) => {
     setStatus("loading");
+    const selectedNetwork = networks.find((n) => n.id === data.protocol);
 
     let privateKey: string;
     try {
-      privateKey = await getPrivateKey(data, data.protocol);
+      privateKey = await getPrivateKey(data, selectedNetwork.protocol);
     } catch (e) {
       if (e?.name === INVALID_FILE_PASSWORD.name) {
         setWrongFilePassword(true);
@@ -189,8 +194,9 @@ export default function ImportAccountModal({
     }
 
     AppToBackground.importAccount({
-      protocol: data.protocol,
+      protocol: selectedNetwork.protocol,
       name: data.account_name,
+      addressPrefix: selectedNetwork.addressPrefix,
       privateKey,
     }).then(async (response) => {
       if (response.error) {
@@ -201,7 +207,7 @@ export default function ImportAccountModal({
       } else {
         const address = await getAddressFromPrivateKey(
           privateKey,
-          data.protocol
+          selectedNetwork.protocol
         );
         if (response.data.accountAlreadyExists) {
           const account = accounts.find(
@@ -214,11 +220,11 @@ export default function ImportAccountModal({
           }
         } else {
           Promise.all([
-            ...(selectedProtocol !== data.protocol
+            ...(selectedProtocol !== selectedNetwork.protocol
               ? [
                   dispatch(
                     changeSelectedNetwork({
-                      network: data.protocol,
+                      network: selectedNetwork.protocol,
                       chainId: selectedChainByProtocol[data.protocol],
                     })
                   ),
@@ -226,7 +232,7 @@ export default function ImportAccountModal({
               : []),
             dispatch(
               changeSelectedAccountOfNetwork({
-                protocol: data.protocol,
+                protocol: selectedNetwork.protocol,
                 address: address,
               })
             ).unwrap(),

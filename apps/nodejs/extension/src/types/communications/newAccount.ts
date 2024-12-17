@@ -12,6 +12,7 @@ export interface AnswerNewAccountReq {
     accountData: {
       name: string;
       protocol: SupportedProtocols;
+      addressPrefix?: string;
     } | null;
   };
 }

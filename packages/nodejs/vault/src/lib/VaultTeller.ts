@@ -96,6 +96,7 @@ export interface AddHDWalletAccountExternalRequest {
   protocol: SupportedProtocols;
   isSendNodes?: boolean;
   name?: string;
+  addressPrefix?: string;
 }
 
 export interface ImportRecoveryPhraseRequest {

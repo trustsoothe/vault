@@ -146,6 +146,7 @@ export const addNewAccount = createAsyncThunk<
     sessionId?: string;
     name: string;
     protocol: SupportedProtocols;
+    addressPrefix?: string;
   }
 >("vault/addNewAccount", async (args, context) => {
   const state = context.getState() as RootState;
@@ -161,6 +162,7 @@ export const addNewAccount = createAsyncThunk<
     {
       name: args.name.trim(),
       protocol: args.protocol,
+      addressPrefix: args.addressPrefix,
     }
   );
 
@@ -176,6 +178,7 @@ export interface ImportAccountParam {
   protocol: SupportedProtocols;
   name: string;
   privateKey: string;
+  addressPrefix?: string;
 }
 
 export const importAccount = createAsyncThunk(

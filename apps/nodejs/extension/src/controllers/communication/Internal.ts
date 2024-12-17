@@ -1277,6 +1277,7 @@ class InternalCommunicationController implements ICommunicationController {
             addNewAccount({
               protocol: accountData.protocol,
               name: accountData.name,
+              addressPrefix: accountData.addressPrefix,
             })
           )
           .unwrap();

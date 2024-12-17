@@ -44,6 +44,7 @@ export interface Network {
   transferMinValue: string;
   assetPlatformId?: string;
   addressPrefix?: string;
+  isProtocolDefault?: boolean;
 }
 
 export interface IAsset {

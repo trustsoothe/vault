@@ -1,19 +1,43 @@
-import type { TextFieldProps } from "@mui/material";
+import type {TextFieldProps} from "@mui/material";
 import React from "react";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
-import { SupportedProtocols } from "@poktscan/vault";
-import { networksSelector } from "../../redux/selectors/network";
-import { labelByProtocolMap } from "../../constants/protocols";
+import {SupportedProtocols} from "@poktscan/vault";
+import {networksSelector} from "../../redux/selectors/network";
 import SelectedIcon from "../assets/img/check_icon.svg";
-import { useAppSelector } from "../hooks/redux";
-import { themeColors } from "../theme";
+import {useAppSelector} from "../hooks/redux";
+import {themeColors} from "../theme";
+import {labelByProtocolMap} from "../../constants/protocols";
+
+export interface ProtocolSelectorValue {
+  id: string;
+  protocol: SupportedProtocols;
+  chainId: string;
+  iconUrl: string;
+  label: string;
+  addressPrefix?: string;
+}
 
 const ProtocolSelector: React.ForwardRefRenderFunction<
   HTMLInputElement,
   Partial<TextFieldProps>
 > = (props, ref) => {
   const networks = useAppSelector(networksSelector);
+  const valueOptions: ProtocolSelectorValue[] = networks.filter((n) => {
+    return (n.protocol !== SupportedProtocols.Cosmos && n.isProtocolDefault)
+      || n.protocol === SupportedProtocols.Cosmos;
+  }).map((n) => ({
+    id: n.id,
+    protocol: n.protocol,
+    chainId: n.chainId,
+    addressPrefix: n.addressPrefix,
+    iconUrl: n.iconUrl,
+    label: n.protocol === SupportedProtocols.Cosmos ? n.label : labelByProtocolMap[n.protocol],
+  })).sort((a, b) => {
+    if (a.label < b.label) {
+      return -1;
+    }
+  });
 
   return (
     <TextField
@@ -35,18 +59,13 @@ const ProtocolSelector: React.ForwardRefRenderFunction<
         ...props.sx,
       }}
     >
-      {Object.values(SupportedProtocols).map((protocol) => {
-        const iconUrl = networks.find(
-          (network) =>
-            network.protocol === protocol
-        )?.iconUrl;
-
-        const isSelected = props.value === protocol;
+      {valueOptions.map(({id, protocol, iconUrl, label}) => {
+        const isSelected = props.value === id;
 
         return (
           <MenuItem
-            key={protocol}
-            value={protocol}
+            key={id}
+            value={id}
             sx={{
               display: "flex",
               alignItems: "center",
@@ -72,7 +91,7 @@ const ProtocolSelector: React.ForwardRefRenderFunction<
               width={15}
               height={15}
             />
-            {labelByProtocolMap[protocol]}
+            {label}
             {isSelected && <SelectedIcon />}
           </MenuItem>
         );

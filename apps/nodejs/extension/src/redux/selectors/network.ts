@@ -17,6 +17,14 @@ export const selectedChainSelector = (state: RootState) => {
   return state.app.selectedChainByProtocol[selectedProtocol];
 };
 
+export const defaultSelectableProtocolSelector = (protocol?: SupportedProtocols) => (state: RootState) => {
+  const candidateProtocol = protocol ?? state.app.selectedProtocol;
+  const networks = networksSelector(state);
+
+  // TODO: This is needs to be revised when we integrate more cosmos based chains in order to support app connections for them.
+  return networks.find((n) => n.protocol === candidateProtocol && n.isProtocolDefault);
+}
+
 export const networkSymbolSelector = (state: RootState) => {
   const selectedProtocol = state.app.selectedProtocol;
   const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];

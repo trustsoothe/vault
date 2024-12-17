@@ -10,6 +10,8 @@ import DialogActions from "@mui/material/DialogActions";
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+  defaultSelectableProtocolSelector,
+  networksSelector,
   selectedChainByProtocolSelector,
   selectedProtocolSelector,
 } from "../../redux/selectors/network";
@@ -37,7 +39,7 @@ import { themeColors } from "../theme";
 interface FormValues {
   type: "standalone" | string;
   account_name: string;
-  protocol: SupportedProtocols;
+  protocol: string;
 }
 
 type FormStatus = "normal" | "loading" | "success";
@@ -75,6 +77,7 @@ export default function NewAccountModal({
   const navigateToAccountsPage =
     location.pathname === "/accounts" ||
     location.pathname === REQUEST_CONNECTION_PAGE;
+  const networks = useAppSelector(networksSelector);
 
   const seeds = useAppSelector(seedsSelector);
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
@@ -82,20 +85,23 @@ export default function NewAccountModal({
   const selectedChainByProtocol = useAppSelector(
     selectedChainByProtocolSelector
   );
+
   const [status, setStatus] = useState<FormStatus>("normal");
+
+  const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector(protocolFromProps));
+  const selectedProtocol = selectableNetwork?.id;
 
   const { reset, control, handleSubmit, setValue } = useForm<FormValues>({
     defaultValues: {
       account_name: "",
-      protocol: protocolFromProps || protocol,
+      protocol: selectedProtocol,
       type: "",
     },
   });
 
   useDidMountEffect(() => {
-    if (protocolFromProps) return;
-    setValue("protocol", protocol);
-  }, [protocol]);
+    setValue("protocol", selectedProtocol);
+  }, [selectedProtocol]);
 
   const closeSnackbars = () => {
     if (errorSnackbarKey.current) {
@@ -108,7 +114,7 @@ export default function NewAccountModal({
     const timeout = setTimeout(() => {
       reset({
         account_name: "",
-        protocol: protocolFromProps || protocol,
+        protocol: selectedProtocol,
         type: "",
       });
       setStatus("normal");
@@ -123,22 +129,23 @@ export default function NewAccountModal({
 
   const onSubmit = async (data: FormValues) => {
     setStatus("loading");
+    const selectedNetwork = networks.find((n) => n.id === data.protocol);
 
     const updateSelection = (address: string) => {
       return Promise.all([
-        ...(protocol !== data.protocol
+        ...(protocol !== selectedNetwork.protocol
           ? [
               dispatch(
                 changeSelectedNetwork({
-                  network: data.protocol,
-                  chainId: selectedChainByProtocol[data.protocol],
+                  network: selectedNetwork.protocol,
+                  chainId: selectedChainByProtocol[selectedNetwork.protocol],
                 })
               ).unwrap(),
             ]
           : []),
         dispatch(
           changeSelectedAccountOfNetwork({
-            protocol: data.protocol,
+            protocol: selectedNetwork.protocol,
             address,
           })
         ).unwrap(),
@@ -153,7 +160,8 @@ export default function NewAccountModal({
         rejected: false,
         accountData: {
           name: data.account_name,
-          protocol: data.protocol,
+          protocol: selectedNetwork.protocol,
+          addressPrefix: selectedNetwork.addressPrefix,
         },
       });
 
@@ -169,8 +177,9 @@ export default function NewAccountModal({
     } else {
       const result = await AppToBackground.createAccountFromHdSeed({
         recoveryPhraseId: data.type,
-        protocol: data.protocol,
+        protocol: selectedNetwork.protocol,
         name: data.account_name,
+        addressPrefix: selectedNetwork.addressPrefix,
       });
 
       if (result.error) {

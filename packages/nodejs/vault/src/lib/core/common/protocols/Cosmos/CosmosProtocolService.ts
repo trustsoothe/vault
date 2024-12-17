@@ -31,7 +31,7 @@ import { wordlist } from "@scure/bip39/wordlists/english";
 import { TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { BroadcastMode } from "cosmjs-types/cosmos/tx/v1beta1/service";
 
-const ADDRESS_PREFIX = "pokt";
+// const ADDRESS_PREFIX = "pokt";
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos>
@@ -64,6 +64,10 @@ export class CosmosProtocolService
       throw new InvalidPrivateKeyError(options.privateKey);
     }
 
+    if (!options.addressPrefix) {
+      throw new ArgumentError("options.addressPrefix");
+    }
+
     let finalPrivateKey = options.privateKey;
 
     if (options.passphrase) {
@@ -73,7 +77,7 @@ export class CosmosProtocolService
       );
     }
 
-    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(options.privateKey), ADDRESS_PREFIX);
+    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(options.privateKey), options.addressPrefix);
     const [account] = await wallet.getAccounts();
 
     return new Account({
@@ -107,7 +111,7 @@ export class CosmosProtocolService
     });
 
     const hdPath = makeCosmoshubPath(0);
-    const wallet: DirectSecp256k1HdWallet = await DirectSecp256k1HdWallet.fromMnemonic(options.recoveryPhrase, { prefix: ADDRESS_PREFIX, hdPaths: [hdPath]});
+    const wallet: DirectSecp256k1HdWallet = await DirectSecp256k1HdWallet.fromMnemonic(options.recoveryPhrase, { prefix: options.addressPrefix, hdPaths: [hdPath]});
     const [account] = await wallet.getAccounts();
     const { privkey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, hdPath);
 
@@ -134,7 +138,7 @@ export class CosmosProtocolService
     const { seedAccount, index, name } = options;
     const hdPath = makeCosmoshubPath(index);
     const { privkey } = Slip10.derivePath(Slip10Curve.Secp256k1, fromHex(seedAccount.privateKey), hdPath);
-    const wallet = await DirectSecp256k1Wallet.fromKey(privkey, ADDRESS_PREFIX);
+    const wallet = await DirectSecp256k1Wallet.fromKey(privkey, options.addressPrefix);
     const [account] = await wallet.getAccounts();
     return new Account({
       publicKey: toHex(account.pubkey),

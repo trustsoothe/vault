@@ -12,6 +12,7 @@ export interface CreateAccountOptions {
   protocol: SupportedProtocols;
   passphrase?: Passphrase;
   skipEncryption?: boolean;
+  addressPrefix?: string;
 }
 
 export interface CreateAccountFromPrivateKeyOptions
@@ -26,12 +27,14 @@ export interface ImportRecoveryPhraseOptions {
   seedAccountName?: string;
   passphrase?: string;
   isSendNodes?: boolean;
+  addressPrefix?: string;
 }
 
 export interface AddHDWalletAccountOptions {
   seedAccount: Account;
   index: number;
   name?: string;
+  addressPrefix?: string;
 }
 
 export interface SignPersonalDataRequest {
