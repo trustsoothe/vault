@@ -33,6 +33,7 @@ describe('CosmosProtocolService', () => {
       address: 'pokt1gw5kpvs5stt899ulw3x3dp6vsjjx2t0wue8quk',
       protocol: SupportedProtocols.Cosmos,
       publicKey: '033878462bdb45290e6c0df06b7719976f257dda75d33a785d3139a98658f82300',
+      prefix: 'pokt',
     });
 
   const encryptionService: IEncryptionService = new WebEncryptionService();

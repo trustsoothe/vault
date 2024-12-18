@@ -20,7 +20,7 @@ import {
   getPrivateKeyFromPPK,
 } from "../../utils/networkOperations";
 import Summary, { SummaryRowItem } from "../components/Summary";
-import { labelByProtocolMap } from "../../constants/protocols";
+import {labelByAddressPrefixMap, labelByProtocolMap} from "../../constants/protocols";
 import useDidMountEffect from "../hooks/useDidMountEffect";
 import { MANAGE_ACCOUNTS_PAGE } from "../../constants/routes";
 import { INVALID_FILE_PASSWORD } from "../../errors/account";
@@ -44,7 +44,7 @@ import {
   readFile,
   wrongPasswordSnackbar,
 } from "../../utils/ui";
-import {getAccountPrefixByProtocol} from "../../utils/accounts";
+import {networkByAccountSelector} from "../../redux/selectors/network";
 
 interface FormValues {
   vault_password?: string;
@@ -52,7 +52,7 @@ interface FormValues {
   private_key?: string;
   json_file?: File | null;
   file_password?: string;
-  protocol?: SupportedProtocols;
+  protocol?: string | SupportedProtocols;
 }
 
 const getPrivateKey = async (
@@ -123,11 +123,12 @@ export default function RemoveAccountModal({
     requirePasswordForSensitiveOptsSelector
   );
   const accountsImported = useAppSelector(accountsImportedSelector);
+  const networkByAccount = useAppSelector(networkByAccountSelector(account));
 
   const methods = useForm<FormValues>({
     defaultValues: {
       ...defaultValues,
-      protocol: account?.protocol,
+      protocol: networkByAccount?.id,
     },
   });
 
@@ -235,9 +236,9 @@ export default function RemoveAccountModal({
     setValue("json_file", null);
     setValue("file_password", "");
     clearErrors(["private_key", "json_file"]);
-    setValue("protocol", account?.protocol);
+    setValue("protocol", networkByAccount?.id);
     setWrongFilePassword(false);
-  }, [importType]);
+  }, [importType, account]);
 
   const removeAccount = async (data: FormValues) => {
     setStatus("loading");
@@ -261,7 +262,8 @@ export default function RemoveAccountModal({
 
       const addressOfPk = await getAddressFromPrivateKey(
         privateKey,
-        account.protocol
+        account.protocol,
+        account.prefix
       );
 
       if (addressOfPk !== account.address) {
@@ -314,7 +316,7 @@ export default function RemoveAccountModal({
       value: (
         <CopyAddressButton
           address={accountOrRef?.address}
-          prefix={getAccountPrefixByProtocol(accountOrRef?.protocol)}
+          prefix={accountOrRef?.prefix}
           sxProps={{
             fontWeight: 500,
             boxShadow: "none",
@@ -328,7 +330,7 @@ export default function RemoveAccountModal({
     {
       type: "row",
       label: "Protocol",
-      value: labelByProtocolMap[accountOrRef?.protocol],
+      value: labelByProtocolMap[accountOrRef?.protocol] || labelByAddressPrefixMap[accountOrRef?.prefix],
     },
   ];
 

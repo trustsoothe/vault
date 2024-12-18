@@ -207,11 +207,13 @@ export default function ImportAccountModal({
       } else {
         const address = await getAddressFromPrivateKey(
           privateKey,
-          selectedNetwork.protocol
+          selectedNetwork.protocol,
+          selectedNetwork.addressPrefix
         );
+
         if (response.data.accountAlreadyExists) {
           const account = accounts.find(
-            (a) => a.address === address && a.protocol === data.protocol
+            (a) => a.address === address && a.protocol === selectedNetwork.protocol
           );
 
           if (account) {

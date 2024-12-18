@@ -1,7 +1,7 @@
 import {
   AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
-  CreateAccountOptions,
+  CreateAccountOptions, DeriveAddressOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService,
   SignPersonalDataRequest, ValidateTransactionResult,
@@ -197,8 +197,8 @@ export class EthereumNetworkProtocolService
     });
   }
 
-  async getAddressFromPrivateKey(privateKey: string): Promise<string> {
-    return privateKeyToAddress(this.parsePrivateKey(privateKey));
+  async getAddressFromPrivateKey(options: DeriveAddressOptions): Promise<string> {
+    return privateKeyToAddress(this.parsePrivateKey(options.privateKey));
   }
 
   async getBalance(

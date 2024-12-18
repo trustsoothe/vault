@@ -9,7 +9,6 @@ import { labelByProtocolMap } from "../../constants/protocols";
 import CopyAddressButton from "../Home/CopyAddressButton";
 import Summary from "../components/Summary";
 import { themeColors } from "../theme";
-import {getAccountPrefixByProtocol} from "../../utils/accounts";
 
 interface ContactFeedbackProps {
   contact: Contact;
@@ -63,7 +62,6 @@ export default function ContactFeedback({
             value: (
               <CopyAddressButton
                 address={contact.address}
-                prefix={getAccountPrefixByProtocol(contact.protocol)}
                 sxProps={{
                   fontWeight: 500,
                   boxShadow: "none",

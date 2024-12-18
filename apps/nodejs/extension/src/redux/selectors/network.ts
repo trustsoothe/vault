@@ -1,6 +1,6 @@
 import type { RootState } from "../store";
 import type { CustomRPC, Network } from "../slices/app";
-import { SupportedProtocols } from "@poktscan/vault";
+import {AccountReference, SerializedAccountReference, SupportedProtocols} from "@poktscan/vault";
 
 export const networksSelector = (state: RootState) => state.app.networks;
 export const showTestNetworkSelector = (state: RootState) =>
@@ -127,3 +127,15 @@ export const chainIdLabelSelector = (rpc: CustomRPC) => (state: RootState) =>
   )?.chainIdLabel;
 
 export const customRpcsSelector = (state: RootState) => state.app.customRpcs;
+
+export const networkByAccountSelector = (account: SerializedAccountReference) => (
+  state: RootState
+) => {
+  const networkByPrefix = state.app.networks.find(
+    (network) => network.addressPrefix === account?.prefix
+  );
+
+  return networkByPrefix || state.app.networks.find(
+    (network) => network.protocol === account?.protocol && network.isProtocolDefault
+  );
+}

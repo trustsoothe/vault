@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+ import type { SupportedProtocols } from "@poktscan/vault";
 import { shallowEqual } from "react-redux";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
@@ -129,7 +129,7 @@ export default function NewAccountModal({
 
   const onSubmit = async (data: FormValues) => {
     setStatus("loading");
-    const selectedNetwork = networks.find((n) => n.id === data.protocol);
+      const selectedNetwork = networks.find((n) => n.id === data.protocol);
 
     const updateSelection = (address: string) => {
       return Promise.all([

@@ -1,7 +1,7 @@
 import {
   AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
-  CreateAccountOptions,
+  CreateAccountOptions, DeriveAddressOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService, SignPersonalDataRequest,
   ValidateTransactionResult
@@ -87,6 +87,7 @@ export class CosmosProtocolService
       publicKey: toHex(account.pubkey),
       privateKey: finalPrivateKey,
       secure: !options.skipEncryption,
+      addressPrefix: options.addressPrefix,
     });
   }
 
@@ -108,6 +109,7 @@ export class CosmosProtocolService
         privateKey: toHex(seed),
         address: "N/A",
         secure: false,
+        addressPrefix: options.addressPrefix,
     });
 
     const hdPath = makeCosmoshubPath(0);
@@ -126,6 +128,7 @@ export class CosmosProtocolService
       hdwIndex: 0,
       hdwAccountIndex: 0, // TODO: Parameterize this if we will allow users to use more than one account from the same seeds
       secure: false, // TODO: Parameterize this if we will allow users to set a password per account
+      addressPrefix: options.addressPrefix,
     })
 
     return [
@@ -151,15 +154,20 @@ export class CosmosProtocolService
       hdwIndex: index,
       hdwAccountIndex: 0, // TODO: Parameterize this if we will allow users to use more than one account from the same seeds
       secure: false, // TODO: Parameterize this if we will allow users to set a password per account
+      addressPrefix: options.addressPrefix,
     });
   }
 
-  async getAddressFromPrivateKey(privateKey: string): Promise<string> {
-    if (!this.isValidPrivateKey(privateKey)) {
-      throw new InvalidPrivateKeyError(privateKey);
+  async getAddressFromPrivateKey(options: DeriveAddressOptions): Promise<string> {
+    if (!this.isValidPrivateKey(options.privateKey)) {
+      throw new InvalidPrivateKeyError(options.privateKey);
     }
 
-    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), ADDRESS_PREFIX);
+    if (!options.addressPrefix) {
+      throw new ArgumentError("options.addressPrefix");
+    }
+
+    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(options.privateKey), options.addressPrefix);
     const [account] = await wallet.getAccounts();
     return account.address;
   }

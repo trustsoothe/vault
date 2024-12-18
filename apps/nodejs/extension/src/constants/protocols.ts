@@ -5,3 +5,7 @@ export const labelByProtocolMap: Record<SupportedProtocols, string> = {
   [SupportedProtocols.Ethereum]: "EVM",
   [SupportedProtocols.Cosmos]: "",
 };
+
+export const labelByAddressPrefixMap: Record<string, string> = {
+  "pokt": "Pocket Network (Shannon)",
+}

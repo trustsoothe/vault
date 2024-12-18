@@ -109,14 +109,18 @@ export const isTransferHealthyForNetwork = async (network: INetwork) => {
 
 export const getAddressFromPrivateKey = async (
   privateKey: string,
-  protocol: SupportedProtocols
+  protocol: SupportedProtocols,
+  addressPrefix?: string
 ) => {
   const ProtocolService = ProtocolServiceFactory.getProtocolService(
     protocol,
     new WebEncryptionService()
   );
 
-  return ProtocolService.getAddressFromPrivateKey(privateKey);
+  return ProtocolService.getAddressFromPrivateKey({
+    privateKey,
+    addressPrefix,
+  });
 };
 
 export const isValidPPK = (

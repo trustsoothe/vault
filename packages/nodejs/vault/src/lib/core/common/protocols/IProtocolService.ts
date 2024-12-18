@@ -74,6 +74,11 @@ export interface TransactionValidationResult {
   key?: string;
 }
 
+export interface DeriveAddressOptions {
+  privateKey: string;
+  addressPrefix?: string;
+}
+
 export interface IProtocolService<T extends SupportedProtocols> {
   createAccount(options: CreateAccountOptions): Promise<Account>;
 
@@ -117,7 +122,7 @@ export interface IProtocolService<T extends SupportedProtocols> {
     asset?: IAsset
   ): Promise<number>;
 
-  getAddressFromPrivateKey(privateKey: string): Promise<string>;
+  getAddressFromPrivateKey(options: DeriveAddressOptions): Promise<string>;
 
   createAccountsFromRecoveryPhrase(
     options: ImportRecoveryPhraseOptions

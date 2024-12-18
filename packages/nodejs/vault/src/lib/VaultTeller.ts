@@ -986,6 +986,7 @@ export class VaultTeller {
       seedAccount,
       index: missingIndexes.at(0)!,
       name: options.name,
+      addressPrefix: options.addressPrefix,
     });
 
     await this.addVaultAccount(account, vaultPassphrase);

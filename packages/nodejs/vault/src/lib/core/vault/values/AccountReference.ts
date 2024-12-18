@@ -12,6 +12,7 @@ export interface SerializedAccountReference {
   parentId: string;
   hdwIndex?: number;
   seedId?: string;
+  prefix?: string;
 }
 
 export interface AccountReferenceOptions {
@@ -24,6 +25,7 @@ export interface AccountReferenceOptions {
   seedId?: string;
   parentId?: string;
   hdwIndex?: number;
+  prefix?: string;
 }
 
 export class AccountReference {
@@ -36,6 +38,7 @@ export class AccountReference {
   private readonly _seedId?: string;
   private readonly _parentId: string = "";
   private readonly _hdwIndex?: number;
+  private readonly _prefix: string = '';
 
   constructor(options: AccountReferenceOptions) {
     this._id = options.id;
@@ -47,6 +50,7 @@ export class AccountReference {
     this._parentId = options.parentId || "";
     this._hdwIndex = isNumber(options.hdwIndex) ? options.hdwIndex : undefined;
     this._publicKey = options.publicKey;
+    this._prefix = options.prefix || '';
   }
 
   get id(): string {
@@ -85,6 +89,10 @@ export class AccountReference {
     return this._publicKey;
   }
 
+  get prefix(): string {
+    return this._prefix;
+  }
+
   serialize(): SerializedAccountReference {
     return {
       id: this.id,
@@ -96,6 +104,7 @@ export class AccountReference {
       hdwIndex: this.hdwIndex,
       seedId: this.seedId,
       publicKey: this.publicKey,
+      prefix: this.prefix,
     };
   }
 
@@ -110,6 +119,7 @@ export class AccountReference {
       hdwIndex: data.hdwIndex,
       seedId: data.seedId,
       publicKey: data.publicKey,
+      prefix: data.prefix,
     });
   }
 }

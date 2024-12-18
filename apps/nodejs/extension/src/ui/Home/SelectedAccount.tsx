@@ -22,7 +22,6 @@ import { ACTIVITY_PAGE } from "../../constants/routes";
 import SendCoinsModal from "../Transaction/SendCoinsModal";
 import useDidMountEffect from "../hooks/useDidMountEffect";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
-import {getAccountPrefixByProtocol} from "../../utils/accounts";
 
 export default function SelectedAccount() {
   const navigate = useNavigate();
@@ -91,6 +90,10 @@ export default function SelectedAccount() {
     setShowSendModal(false);
   }, [selectedAccount.address]);
 
+  useEffect(() => {
+    console.log("SelectedAccount", selectedAccount);
+  }, [selectedAccount]);
+
   return (
     <>
       <SendCoinsModal
@@ -150,7 +153,7 @@ export default function SelectedAccount() {
 
         <CopyAddressButton
           address={selectedAccount?.address}
-          prefix={getAccountPrefixByProtocol(selectedAccount?.protocol)}
+          prefix={selectedAccount?.prefix}
         />
         <Stack
           width={1}
