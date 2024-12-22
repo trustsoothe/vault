@@ -17,6 +17,16 @@ export const selectedChainSelector = (state: RootState) => {
   return state.app.selectedChainByProtocol[selectedProtocol];
 };
 
+export const selectedNetworkSelector = (state: RootState) => {
+  const selectedProtocol = state.app.selectedProtocol;
+  const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];
+
+  return state.app.networks.find(
+    (network) =>
+      network.protocol === selectedProtocol && network.chainId === selectedChain
+  );
+}
+
 export const defaultSelectableProtocolSelector = (protocol?: SupportedProtocols) => (state: RootState) => {
   const candidateProtocol = protocol ?? state.app.selectedProtocol;
   const networks = networksSelector(state);

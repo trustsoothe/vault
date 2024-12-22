@@ -15,6 +15,7 @@ import PoktscanLogo from "../assets/img/poktscan_small_icon.svg";
 import {
   explorerAccountUrlSelector,
   selectedChainSelector,
+  selectedNetworkSelector,
 } from "../../redux/selectors/network";
 import { selectedAccountSelector } from "../../redux/selectors/account";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
@@ -146,6 +147,7 @@ function AssetItem({ asset, onSelectAsset }: AssetItemProps) {
 export default function AccountActions() {
   const [showManageAssetsModal, setShowManageAssetsModal] = useState(false);
   const selectedChain = useAppSelector(selectedChainSelector);
+  const selectedNetwork = useAppSelector(selectedNetworkSelector);
   const [_, setURLSearchParams] = useSearchParams();
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const selectedAsset = useSelectedAsset();
@@ -226,6 +228,38 @@ export default function AccountActions() {
               onSelectAsset={onSelectAsset}
             />
           ))}
+
+        {selectedNetwork?.tags?.length > 0 &&
+          selectedNetwork.tags.map((tag) => (
+            <Button
+              fullWidth
+              target={"_blank"}
+              href={"#"}
+              sx={{
+                height: 55,
+                paddingY: 1,
+                paddingLeft: 1.5,
+                paddingRight: 1.8,
+                borderRadius: "8px",
+                textDecoration: "none",
+                boxSizing: "border-box",
+                backgroundColor: themeColors.bgLightGray,
+                "&:hover": {
+                  backgroundColor: themeColors.bgLightGray,
+                },
+              }}
+            >
+              <Stack width={1} direction={"row"}>
+                <Stack flexGrow={1}>
+                  <Typography variant={"subtitle2"} color={themeColors.black}>
+                    {tag.descriptionTitle}
+                  </Typography>
+                  <Typography fontSize={11}>{tag.descriptionContent}</Typography>
+                </Stack>
+              </Stack>
+            </Button>
+          ))
+        }
 
         <Button
           fullWidth
