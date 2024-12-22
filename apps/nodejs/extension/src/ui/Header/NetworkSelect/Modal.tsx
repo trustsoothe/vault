@@ -1,5 +1,5 @@
 import orderBy from "lodash/orderBy";
-import React, { useMemo } from "react";
+import React, {useMemo, useState} from "react";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
@@ -21,9 +21,12 @@ import {
 import {
   changeSelectedNetwork,
   toggleShowTestNetworks,
+  NetworkTag as NetworkTagType,
 } from "../../../redux/slices/app";
 import { themeColors } from "../../theme";
 import NetworkTag from "./NetworkTag";
+import {enqueueSnackbar} from "../../../utils/ui";
+import {closeSnackbar} from "notistack";
 
 interface NetworkSelectModalProps {
   open: boolean;
@@ -36,6 +39,7 @@ export default function NetworkSelectModal({
 }: NetworkSelectModalProps) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const [currentSnackbarKey, setCurrentSnackbarKey] = useState(null);
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedChain = useAppSelector(selectedChainSelector);
   const networks = useAppSelector((state) => state.app.networks);
@@ -60,6 +64,23 @@ export default function NetworkSelectModal({
     );
     onClose();
   };
+
+  const showNetworkTagSnackbar = (tag: NetworkTagType) => {
+    if (currentSnackbarKey) {
+      closeSnackbar(currentSnackbarKey); // Close the current snackbar
+    }
+
+    const newKey = enqueueSnackbar({
+      key: tag.name,
+      variant: "info",
+      message: {
+        title: tag.descriptionTitle,
+        content: tag.descriptionContent,
+      }
+    });
+
+    setCurrentSnackbarKey(newKey);
+  }
 
   const optionsToShow: typeof networks = useMemo(() => {
     const networkFiltered = [];
@@ -162,7 +183,11 @@ export default function NetworkSelectModal({
                   </Stack>
                   {
                     (option.tags || []).map((tag) => (
-                      <NetworkTag tag={tag} key={tag.name} />
+                      <NetworkTag
+                        key={tag.name}
+                        tag={tag}
+                        onClick={showNetworkTagSnackbar}
+                      />
                     ))
                   }
                 </Stack>
