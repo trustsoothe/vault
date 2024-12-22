@@ -23,6 +23,7 @@ import {
   toggleShowTestNetworks,
 } from "../../../redux/slices/app";
 import { themeColors } from "../../theme";
+import NetworkTag from "./NetworkTag";
 
 interface NetworkSelectModalProps {
   open: boolean;
@@ -103,6 +104,8 @@ export default function NetworkSelectModal({
             selectedProtocol === option.protocol &&
             selectedChain === option.chainId;
 
+          const labelMaxLength = option.tags?.length > 0 ? 150 : 180;
+
           return (
             <Button
               key={option.protocol + option.chainId}
@@ -133,9 +136,37 @@ export default function NetworkSelectModal({
                   src={option.iconUrl}
                   alt={`${option.protocol}-${option.chainId}-img`}
                 />
-                <Typography variant={"subtitle2"}>{option.label}</Typography>
+                <Stack direction="row" justifyContent="space-between" spacing={4} alignItems="center">
+                  <Stack
+                    alignItems="flex-start"
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        maxWidth: `${labelMaxLength}px`,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {option.label}
+                    </Typography>
+                    <Typography
+                      variant={"body2"}
+                      sx={{
+                        color: themeColors.textSecondary,
+                      }}
+                      >
+                      {option.wipMessage}
+                    </Typography>
+                  </Stack>
+                  {
+                    (option.tags || []).map((tag) => (
+                      <NetworkTag tag={tag} key={tag.name} />
+                    ))
+                  }
+                </Stack>
               </Stack>
-
               {isSelected && <SelectedIcon />}
             </Button>
           );

@@ -90,10 +90,6 @@ export default function SelectedAccount() {
     setShowSendModal(false);
   }, [selectedAccount.address]);
 
-  useEffect(() => {
-    console.log("SelectedAccount", selectedAccount);
-  }, [selectedAccount]);
-
   return (
     <>
       <SendCoinsModal
