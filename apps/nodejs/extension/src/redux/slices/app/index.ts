@@ -25,11 +25,15 @@ import { ChainChangedMessageToProxy } from "../../../types/communications/chainC
 
 export type ErrorsByNetwork = Record<string, number>;
 
-export interface NetworkTag {
+export interface NetworkNotice {
   name: string;
   color?: string;
   descriptionTitle: string;
   descriptionContent: string;
+  references?: {
+    title: string;
+    url: string;
+  }[];
 }
 
 export interface Network {
@@ -52,8 +56,8 @@ export interface Network {
   assetPlatformId?: string;
   addressPrefix?: string;
   isProtocolDefault?: boolean;
-  wipMessage?: string;
-  tags: NetworkTag[];
+  wip?: NetworkNotice;
+  notices?: NetworkNotice[];
 }
 
 export interface IAsset {

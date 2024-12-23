@@ -21,10 +21,10 @@ import {
 import {
   changeSelectedNetwork,
   toggleShowTestNetworks,
-  NetworkTag as NetworkTagType,
+  NetworkNotice as NetworkTagType,
 } from "../../../redux/slices/app";
 import { themeColors } from "../../theme";
-import NetworkTag from "./NetworkTag";
+import NetworkNoticeTag from "./NetworkNoticeTag";
 import {enqueueSnackbar} from "../../../utils/ui";
 import {closeSnackbar} from "notistack";
 
@@ -125,7 +125,7 @@ export default function NetworkSelectModal({
             selectedProtocol === option.protocol &&
             selectedChain === option.chainId;
 
-          const labelMaxLength = option.tags?.length > 0 ? 150 : 180;
+          const labelMaxLength = option.notices?.length > 0 ? 150 : 180;
 
           return (
             <Button
@@ -178,21 +178,27 @@ export default function NetworkSelectModal({
                         color: themeColors.textSecondary,
                       }}
                       >
-                      {option.wipMessage}
+                      {option.wip?.descriptionTitle ?? ''}
                     </Typography>
                   </Stack>
-                  {
-                    (option.tags || []).map((tag) => (
-                      <NetworkTag
-                        key={tag.name}
-                        tag={tag}
-                        onClick={showNetworkTagSnackbar}
-                      />
-                    ))
-                  }
                 </Stack>
               </Stack>
-              {isSelected && <SelectedIcon />}
+              <Stack direction={"row"} alignItems={"center"} justifyContent={'flex-end'} spacing={1.2}>
+                {
+                  (option.notices || []).slice(0,1).map((notice) => (
+                    <NetworkNoticeTag
+                      key={notice.name}
+                      tag={notice}
+                      onClick={showNetworkTagSnackbar}
+                    />
+                  ))
+                }
+                <div style={{
+                  minWidth: 10,
+                }}>
+                  {isSelected && <SelectedIcon />}
+                </div>
+              </Stack>
             </Button>
           );
         })}

@@ -68,10 +68,10 @@ export const getNetworkRow = (network: Network): SummaryRowItem => ({
       <img
         width={15}
         height={15}
-        src={network.iconUrl}
-        alt={`${network.protocol}-${network.chainId}-img`}
+        src={network?.iconUrl}
+        alt={`${network?.protocol}-${network?.chainId}-img`}
       />
-      <Typography variant={"subtitle2"}>{network.label}</Typography>
+      <Typography variant={"subtitle2"}>{network?.label}</Typography>
     </Stack>
   ),
 });

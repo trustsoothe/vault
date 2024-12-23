@@ -229,8 +229,38 @@ export default function AccountActions() {
             />
           ))}
 
-        {selectedNetwork?.tags?.length > 0 &&
-          selectedNetwork.tags.map((tag) => (
+        {selectedNetwork?.wip && (
+          <Button
+            fullWidth
+            target={"_blank"}
+            href={"#"}
+            sx={{
+              height: 55,
+              paddingY: 1,
+              paddingLeft: 1.5,
+              paddingRight: 1.8,
+              borderRadius: "8px",
+              textDecoration: "none",
+              boxSizing: "border-box",
+              backgroundColor: selectedNetwork?.wip.color || themeColors.bgLightGray,
+              "&:hover": {
+                backgroundColor: selectedNetwork?.wip.color || themeColors.bgLightGray,
+              },
+            }}
+          >
+            <Stack width={1} direction={"row"}>
+              <Stack flexGrow={1}>
+                <Typography variant={"subtitle2"} color={themeColors.black}>
+                  {selectedNetwork?.wip.descriptionTitle}
+                </Typography>
+                <Typography fontSize={11}>{selectedNetwork?.wip.descriptionContent}</Typography>
+              </Stack>
+            </Stack>
+          </Button>
+        )}
+
+        {selectedNetwork?.notices?.length > 0 &&
+          selectedNetwork.notices.map((tag) => (
             <Button
               fullWidth
               target={"_blank"}
@@ -243,9 +273,9 @@ export default function AccountActions() {
                 borderRadius: "8px",
                 textDecoration: "none",
                 boxSizing: "border-box",
-                backgroundColor: themeColors.bgLightGray,
+                backgroundColor: tag.color || themeColors.bgLightGray,
                 "&:hover": {
-                  backgroundColor: themeColors.bgLightGray,
+                  backgroundColor: tag.color || themeColors.bgLightGray,
                 },
               }}
             >
