@@ -8,12 +8,12 @@ import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import React, { useEffect, useRef, useState } from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   changeSelectedAccountOfNetwork,
-  changeSelectedNetwork,
+  changeSelectedNetwork, NetworkFeature,
 } from "../../redux/slices/app";
 import {
   defaultSelectableProtocolSelector,
@@ -41,6 +41,7 @@ import {
 import { getAddressFromPrivateKey } from "../../utils/networkOperations";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { enqueueErrorSnackbar, enqueueSnackbar } from "../../utils/ui";
+import NetworkNotice from "../components/NetworkNotice";
 
 export interface ImportAccountFormValues {
   import_type: "private_key" | "json_file";
@@ -173,6 +174,17 @@ export default function ImportAccountModal({
       clearTimeout(timeout);
     };
   }, [open]);
+
+  const isCreateAccountDisabled = useMemo(() => {
+    const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
+    return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+  }, [watch("protocol"), networks]);
+
+  const createAccountDisablingNotice = useMemo(() => {
+    const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
+    return selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+  }, [isCreateAccountDisabled]);
+
   const onSubmit = async (data: ImportAccountFormValues) => {
     setStatus("loading");
     const selectedNetwork = networks.find((n) => n.id === data.protocol);
@@ -270,50 +282,68 @@ export default function ImportAccountModal({
                 <ProtocolSelector disabled={isLoading} {...field} />
               )}
             />
-            <Typography
-              variant={"body2"}
-              marginTop={0.8}
-              marginBottom={2}
-              color={themeColors.textSecondary}
-            >
-              You’ll be able to use this account for every network of the
-              protocol selected.
-            </Typography>
-            <Controller
-              control={control}
-              name={"account_name"}
-              rules={nameRules}
-              render={({ field, fieldState: { error } }) => (
-                <TextField
-                  autoFocus
-                  autoComplete={"off"}
-                  disabled={isLoading}
-                  placeholder={"Account Name"}
-                  {...field}
-                  error={!!error}
-                  helperText={error?.message}
-                  sx={{
-                    marginBottom: error ? 3 : 1.6,
-                  }}
+            {!isCreateAccountDisabled && (
+              <Typography
+                variant={"body2"}
+                marginTop={0.8}
+                marginBottom={2}
+                color={themeColors.textSecondary}
+              >
+                You’ll be able to use this account for every network of the
+                protocol selected.
+              </Typography>
+            )}
+            {isCreateAccountDisabled && (
+              <Typography
+                variant={"body2"}
+                marginTop={0.8}
+                marginBottom={2}
+                color={themeColors.textSecondary}>
+                Account creation is disabled for this network.
+              </Typography>
+            )}
+            {!isCreateAccountDisabled && (
+              <>
+                <Controller
+                  control={control}
+                  name={"account_name"}
+                  rules={nameRules}
+                  render={({ field, fieldState: { error } }) => (
+                    <TextField
+                      autoFocus
+                      autoComplete={"off"}
+                      disabled={isLoading}
+                      placeholder={"Account Name"}
+                      {...field}
+                      error={!!error}
+                      helperText={error?.message}
+                      sx={{
+                        marginBottom: error ? 3 : 1.6,
+                      }}
+                    />
+                  )}
                 />
-              )}
-            />
-            <FormProvider {...methods}>
-              <ImportForm
-                disableInputs={isLoading}
-                wrongFilePassword={wrongFilePassword}
-                infoText={
-                  "Import your account using your private key or your portable wallet (file)."
-                }
-              />
-            </FormProvider>
+                <FormProvider {...methods}>
+                  <ImportForm
+                    disableInputs={isLoading}
+                    wrongFilePassword={wrongFilePassword}
+                    infoText={
+                      "Import your account using your private key or your portable wallet (file)."
+                    }
+                  />
+                </FormProvider>
+              </>
+            )}
+            {isCreateAccountDisabled && createAccountDisablingNotice && (
+              <NetworkNotice notice={createAccountDisablingNotice} />
+            )}
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Import",
                 type: "submit",
-                disabled: isValidating,
+                disabled: isValidating || isCreateAccountDisabled,
                 isLoading,
               }}
               secondaryButtonProps={{
