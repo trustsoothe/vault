@@ -13,7 +13,7 @@ import {
 } from "@poktscan/vault";
 import PoktscanLogo from "../assets/img/poktscan_small_icon.svg";
 import {
-  explorerAccountUrlSelector,
+  explorerAccountUrlSelector, isAssetsDisabledSelector, isPoktTransactionActionsDisabledSelector,
   selectedChainSelector,
   selectedNetworkSelector,
 } from "../../redux/selectors/network";
@@ -165,16 +165,18 @@ export default function AccountActions() {
     shallowEqual
   );
   const assets = useAppSelector(assetsSelector);
+  const isPoktTransactionActionsDisabled = useAppSelector(isPoktTransactionActionsDisabledSelector);
+  const isAssetsDisabled = useAppSelector(isAssetsDisabledSelector);
 
   const assetsOfAccount = useMemo(
     () =>
-      assets.filter(
+      isAssetsDisabled ? [] : assets.filter(
         (asset) =>
           (assetsIdOfAccount || []).includes(asset.id) &&
           asset.protocol === protocol &&
           asset.chainId === selectedChain
       ),
-    [protocol, selectedChain, selectedAccount?.address, assetsIdOfAccount]
+    [protocol, selectedChain, selectedAccount?.address, assetsIdOfAccount, isAssetsDisabled]
   );
 
   let explorerAccountLink: string, domain: string;
@@ -273,8 +275,8 @@ export default function AccountActions() {
             )}
           </Stack>
         </Button>
-        {protocol === SupportedProtocols.Pocket && <PoktTransactionActions />}
-        {protocol === SupportedProtocols.Ethereum &&
+        {protocol === SupportedProtocols.Pocket && !isPoktTransactionActionsDisabled && <PoktTransactionActions />}
+        {protocol === SupportedProtocols.Ethereum && !isAssetsDisabled &&
           existsAssetsForSelectedNetwork &&
           !selectedAsset && (
             <Button sx={{ padding: 0 }} onClick={openManageAssetsModal}>

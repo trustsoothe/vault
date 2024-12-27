@@ -7,7 +7,7 @@ import { useForm, Controller } from "react-hook-form";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import React, { useEffect, useRef, useState } from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   defaultSelectableProtocolSelector,
@@ -17,7 +17,7 @@ import {
 } from "../../redux/selectors/network";
 import {
   changeSelectedAccountOfNetwork,
-  changeSelectedNetwork,
+  changeSelectedNetwork, NetworkFeature,
 } from "../../redux/slices/app";
 import { ACCOUNTS_PAGE, REQUEST_CONNECTION_PAGE } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
@@ -35,6 +35,7 @@ import MenuDivider from "../components/MenuDivider";
 import AccountInfo from "../components/AccountInfo";
 import BaseDialog from "../components/BaseDialog";
 import { themeColors } from "../theme";
+ import NetworkNotice from "../components/NetworkNotice";
 
 interface FormValues {
   type: "standalone" | string;
@@ -91,7 +92,7 @@ export default function NewAccountModal({
   const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector(protocolFromProps));
   const selectedProtocol = selectableNetwork?.id;
 
-  const { reset, control, handleSubmit, setValue } = useForm<FormValues>({
+  const { reset, control, handleSubmit, setValue, watch } = useForm<FormValues>({
     defaultValues: {
       account_name: "",
       protocol: selectedProtocol,
@@ -126,6 +127,16 @@ export default function NewAccountModal({
       clearTimeout(timeout);
     };
   }, [open]);
+
+  const isCreateAccountDisabled = useMemo(() => {
+    const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
+    return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+  }, [watch("protocol"), networks]);
+
+  const createAccountDisablingNotice = useMemo(() => {
+    const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
+    return selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+  }, [isCreateAccountDisabled]);
 
   const onSubmit = async (data: FormValues) => {
     setStatus("loading");
@@ -269,38 +280,58 @@ export default function NewAccountModal({
                     <ProtocolSelector disabled={isLoading} {...field} />
                   )}
                 />
-                <Typography
-                  variant={"body2"}
-                  marginTop={0.8}
-                  marginBottom={2}
-                  color={themeColors.textSecondary}
-                >
-                  You’ll be able to use this account for every network of the
-                  protocol selected.
-                </Typography>
+                {!isCreateAccountDisabled && (
+                  <Typography
+                    variant={"body2"}
+                    marginTop={0.8}
+                    marginBottom={2}
+                    color={themeColors.textSecondary}
+                  >
+                    You’ll be able to use this account for every network of the
+                    protocol selected.
+                  </Typography>
+                  )
+                }
+                {isCreateAccountDisabled && (
+                  <Typography
+                    variant={"body2"}
+                    marginTop={0.8}
+                    marginBottom={2}
+                    color={themeColors.textSecondary}>
+                    Account creation is disabled for this network.
+                  </Typography>
+                  )
+                }
               </>
             )}
-            <Controller
-              control={control}
-              name={"account_name"}
-              rules={nameRules}
-              render={({ field, fieldState: { error } }) => (
-                <TextField
-                  disabled={isLoading}
-                  autoComplete={"off"}
-                  placeholder={"Account Name"}
-                  {...field}
-                  error={!!error}
-                  helperText={error?.message}
-                />
-              )}
-            />
+            {!isCreateAccountDisabled && (
+              <Controller
+                control={control}
+                name={"account_name"}
+                rules={nameRules}
+                render={({ field, fieldState: { error } }) => (
+                  <TextField
+                    disabled={isLoading}
+                    autoComplete={"off"}
+                    placeholder={"Account Name"}
+                    {...field}
+                    error={!!error}
+                    helperText={error?.message}
+                  />
+                )}
+              />
+              )
+            }
+            {isCreateAccountDisabled && createAccountDisablingNotice && (
+              <NetworkNotice notice={createAccountDisablingNotice} />
+            )}
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Create",
                 type: "submit",
+                disabled: isCreateAccountDisabled,
                 isLoading,
               }}
               secondaryButtonProps={{

@@ -30,6 +30,8 @@ export enum NetworkFeature {
   Send = 'Send',
   Balance = 'Balance',
   CreateAccount = 'CreateAccount',
+  PoktTransactionActions = 'PoktTransactionActions',
+  Assets = 'Assets',
 }
 
 export interface NetworkNoticeReference {

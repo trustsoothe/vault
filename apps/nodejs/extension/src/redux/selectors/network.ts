@@ -165,7 +165,12 @@ export const isBalanceDisabledSelector = (state: RootState) => {
   return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Balance));
 }
 
-export const isCreateAccountDisabledSelector = (state: RootState) => {
+export const isPoktTransactionActionsDisabledSelector = (state: RootState) => {
   const selectedNetwork = selectedNetworkSelector(state);
-  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.PoktTransactionActions));
+}
+
+export const isAssetsDisabledSelector = (state: RootState) => {
+  const selectedNetwork = selectedNetworkSelector(state);
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Assets));
 }
