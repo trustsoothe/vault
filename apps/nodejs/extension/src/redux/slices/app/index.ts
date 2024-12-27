@@ -25,15 +25,21 @@ import { ChainChangedMessageToProxy } from "../../../types/communications/chainC
 
 export type ErrorsByNetwork = Record<string, number>;
 
+export type NetworkFeature = "WPOKT";
+
+export interface NetworkNoticeReference {
+  title: string;
+  url: string;
+}
+
 export interface NetworkNotice {
   name: string;
+  showAsTag?: boolean;
   color?: string;
   descriptionTitle: string;
   descriptionContent: string;
-  references?: {
-    title: string;
-    url: string;
-  }[];
+  references?: NetworkNoticeReference[];
+  disables?: NetworkFeature[];
 }
 
 export interface Network {

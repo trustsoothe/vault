@@ -32,6 +32,7 @@ import {
 } from "../../redux/selectors/asset";
 import PoktTransactionModal from "../PoktTransaction/PoktTransactionModal";
 import { getTransactionTypeLabel } from "../Request/PoktTransactionRequest";
+import NetworkNotice from "../components/NetworkNotice";
 
 interface AssetItemProps {
   asset: IAsset;
@@ -230,64 +231,12 @@ export default function AccountActions() {
           ))}
 
         {selectedNetwork?.wip && (
-          <Button
-            fullWidth
-            target={"_blank"}
-            href={"#"}
-            sx={{
-              height: 55,
-              paddingY: 1,
-              paddingLeft: 1.5,
-              paddingRight: 1.8,
-              borderRadius: "8px",
-              textDecoration: "none",
-              boxSizing: "border-box",
-              backgroundColor: selectedNetwork?.wip.color || themeColors.bgLightGray,
-              "&:hover": {
-                backgroundColor: selectedNetwork?.wip.color || themeColors.bgLightGray,
-              },
-            }}
-          >
-            <Stack width={1} direction={"row"}>
-              <Stack flexGrow={1}>
-                <Typography variant={"subtitle2"} color={themeColors.black}>
-                  {selectedNetwork?.wip.descriptionTitle}
-                </Typography>
-                <Typography fontSize={11}>{selectedNetwork?.wip.descriptionContent}</Typography>
-              </Stack>
-            </Stack>
-          </Button>
+          <NetworkNotice notice={selectedNetwork?.wip} />
         )}
 
         {selectedNetwork?.notices?.length > 0 &&
-          selectedNetwork.notices.map((tag) => (
-            <Button
-              fullWidth
-              target={"_blank"}
-              href={"#"}
-              sx={{
-                height: 55,
-                paddingY: 1,
-                paddingLeft: 1.5,
-                paddingRight: 1.8,
-                borderRadius: "8px",
-                textDecoration: "none",
-                boxSizing: "border-box",
-                backgroundColor: tag.color || themeColors.bgLightGray,
-                "&:hover": {
-                  backgroundColor: tag.color || themeColors.bgLightGray,
-                },
-              }}
-            >
-              <Stack width={1} direction={"row"}>
-                <Stack flexGrow={1}>
-                  <Typography variant={"subtitle2"} color={themeColors.black}>
-                    {tag.descriptionTitle}
-                  </Typography>
-                  <Typography fontSize={11}>{tag.descriptionContent}</Typography>
-                </Stack>
-              </Stack>
-            </Button>
+          selectedNetwork.notices.map((notice) => (
+            <NetworkNotice key={notice.name} notice={notice} />
           ))
         }
 

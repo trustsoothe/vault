@@ -185,10 +185,10 @@ export default function NetworkSelectModal({
               </Stack>
               <Stack direction={"row"} alignItems={"center"} justifyContent={'flex-end'} spacing={1.2}>
                 {
-                  (option.notices || []).slice(0,1).map((notice) => (
+                  (option.notices || []).map((notice) => (
                     <NetworkNoticeTag
                       key={notice.name}
-                      tag={notice}
+                      notice={notice}
                       onClick={showNetworkTagSnackbar}
                     />
                   ))
