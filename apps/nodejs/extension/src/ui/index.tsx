@@ -168,7 +168,18 @@ export default function App() {
           body: {
             width: isPopup ? WIDTH : undefined,
             height: isPopup ? HEIGHT : undefined,
-            margin: "0!important",
+            margin: "0!important"
+          },
+          "::-webkit-scrollbar": {
+            width: "10px",
+          },
+          "::-webkit-scrollbar-thumb": {
+            backgroundColor: themeColors.gray,
+            borderRadius: "5px",
+          },
+          "::-webkit-scrollbar-thumb:hover": {
+            backgroundColor: themeColors.gray,
+            borderRadius: "5px",
           },
         }}
       />
