@@ -4,6 +4,8 @@ import { closeSnackbar, SnackbarKey } from "notistack";
 import useDidMountEffect from "./useDidMountEffect";
 import { enqueueErrorSnackbar } from "../../utils/ui";
 import { useGetBalanceQuery } from "../../redux/slices/balance";
+import {useAppSelector} from "./redux";
+import {isBalanceDisabledSelector} from "../../redux/selectors/network";
 
 export interface UseGetBalance {
   address: string;
@@ -24,6 +26,7 @@ export default function useGetBalance({
 }: UseGetBalance) {
   const canShowLoading = useRef(true);
   const lastSnackbarKeyRef = useRef<SnackbarKey>(null);
+  const isBalanceDisabled = useAppSelector(isBalanceDisabledSelector);
 
   const {
     isLoading,
@@ -42,6 +45,7 @@ export default function useGetBalance({
     },
     {
       pollingInterval: interval,
+      skip: isBalanceDisabled,
       selectFromResult: (args) => ({
         ...args,
         balance: args.currentData || 0,
@@ -91,9 +95,10 @@ export default function useGetBalance({
   return {
     error: isError,
     balance,
-    isLoading:
+    isLoading: isBalanceDisabled ? false : (
       isUninitialized ||
       isLoading ||
-      (isFetching && canShowLoading.current && !balance),
+      (isFetching && canShowLoading.current && !balance)
+    ),
   };
 }

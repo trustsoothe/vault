@@ -1,5 +1,5 @@
 import type { RootState } from "../store";
-import type { CustomRPC, Network } from "../slices/app";
+import {CustomRPC, Network, NetworkFeature} from "../slices/app";
 import {AccountReference, SerializedAccountReference, SupportedProtocols} from "@poktscan/vault";
 
 export const networksSelector = (state: RootState) => state.app.networks;
@@ -148,4 +148,24 @@ export const networkByAccountSelector = (account: SerializedAccountReference) =>
   return networkByPrefix || state.app.networks.find(
     (network) => network.protocol === account?.protocol && network.isProtocolDefault
   );
+}
+
+export const isSwapDisabledSelector = (state: RootState) => {
+  const selectedNetwork = selectedNetworkSelector(state);
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Swap));
+}
+
+export const isSendDisabledSelector = (state: RootState) => {
+  const selectedNetwork = selectedNetworkSelector(state);
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Send));
+}
+
+export const isBalanceDisabledSelector = (state: RootState) => {
+  const selectedNetwork = selectedNetworkSelector(state);
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Balance));
+}
+
+export const isCreateAccountDisabledSelector = (state: RootState) => {
+  const selectedNetwork = selectedNetworkSelector(state);
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
 }

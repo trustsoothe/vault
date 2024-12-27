@@ -25,7 +25,12 @@ import { ChainChangedMessageToProxy } from "../../../types/communications/chainC
 
 export type ErrorsByNetwork = Record<string, number>;
 
-export type NetworkFeature = "WPOKT";
+export enum NetworkFeature {
+  Swap = 'Swap',
+  Send = 'Send',
+  Balance = 'Balance',
+  CreateAccount = 'CreateAccount',
+}
 
 export interface NetworkNoticeReference {
   title: string;

@@ -206,10 +206,14 @@ const theme = createTheme({
           textTransform: "none",
           borderRadius: "8px",
           "&.Mui-disabled": {
-            color: "#a2a9b6",
-            "&.MuiButton-contained": {
-              backgroundColor: "#eff1f4",
+            boxShadow: "none",
+            "& span": {
+              color: themeColors.gray,
             },
+            backgroundColor: themeColors.borderLightGray,
+            "& path": {
+              fill: themeColors.gray,
+            }
           },
         },
         contained: {

@@ -15,7 +15,13 @@ import { roundAndSeparate } from "../../utils/ui";
 import { themeColors } from "../theme";
 import { selectedAccountSelector } from "../../redux/selectors/account";
 import { TxStatus, useLazyGetActiveMintsQuery } from "../../redux/slices/wpokt";
-import { selectedChainSelector } from "../../redux/selectors/network";
+import {
+  isBalanceDisabledSelector,
+  isSendDisabledSelector,
+  isSwapDisabledSelector,
+  selectedChainSelector,
+  selectedNetworkSelector
+} from "../../redux/selectors/network";
 import useSelectedAsset from "./hooks/useSelectedAsset";
 import GrayContainer from "../components/GrayContainer";
 import { ACTIVITY_PAGE } from "../../constants/routes";
@@ -51,6 +57,10 @@ export default function SelectedAccount() {
         .length,
     }),
   });
+
+  const isSwapDisabled = useAppSelector(isSwapDisabledSelector);
+  const isSendDisabled = useAppSelector(isSendDisabledSelector);
+  const isBalanceDisabled = useAppSelector(isBalanceDisabledSelector);
 
   const mustShowMintTransactions = selectedAsset?.symbol === "WPOKT";
 
@@ -175,13 +185,20 @@ export default function SelectedAccount() {
             },
           }}
         >
-          <Button className={"send-btn"} onClick={openSendModal}>
+          <Button
+            disabled={isSendDisabled}
+            className={"send-btn"}
+            onClick={openSendModal}
+          >
             <span>Send</span>
             <SendIcon />
           </Button>
           {(selectedAccount?.protocol === SupportedProtocols.Pocket ||
             selectedAsset?.symbol === "WPOKT") && (
-            <Button onClick={initSwap}>
+            <Button
+              disabled={isSwapDisabled}
+              onClick={initSwap}
+            >
               <span>Swap</span>
               <SwapIcon />
             </Button>
