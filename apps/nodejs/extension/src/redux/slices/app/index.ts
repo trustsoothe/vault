@@ -96,10 +96,8 @@ export interface CustomRPC {
   isPreferred?: boolean;
 }
 
-export interface NetworkCanBeSelectedMap {
-  [SupportedProtocols.Pocket]: string[];
-  [SupportedProtocols.Ethereum]: string[];
-  [SupportedProtocols.Cosmos]: string[];
+export type NetworkCanBeSelectedMap = {
+  [K in SupportedProtocols]: string[];
 }
 
 export interface GeneralAppSlice {
@@ -175,9 +173,10 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
     };
     const assetsIdByAccount = response[ASSETS_SELECTED_BY_ACCOUNTS_KEY] || {};
     const showTestNetworks = response[SHOW_TEST_NETWORKS_KEY] || false;
-    const networksCanBeSelected =
-      response[NETWORKS_CAN_BE_SELECTED_KEY] ||
-      initialState.networksCanBeSelected;
+    const networksCanBeSelected = {
+      ...initialState.networksCanBeSelected,
+      ...(response[NETWORKS_CAN_BE_SELECTED_KEY] ?? {}),
+    };
     const customRpcs = response[CUSTOM_RPCS_KEY] || [];
     const contacts = response[CONTACTS_KEY] || [];
 
@@ -615,15 +614,17 @@ const initialState: GeneralAppSlice = {
   selectedChainByProtocol: {
     [SupportedProtocols.Pocket]: "mainnet",
     [SupportedProtocols.Ethereum]: "1",
-    [SupportedProtocols.Cosmos]: "poktroll",
+    [SupportedProtocols.Cosmos]: "",
   },
   selectedProtocol: SupportedProtocols.Pocket,
   errorsPreferredNetwork: {},
-  networksCanBeSelected: {
-    [SupportedProtocols.Ethereum]: [],
-    [SupportedProtocols.Pocket]: [],
-    [SupportedProtocols.Cosmos]: [],
-  },
+  networksCanBeSelected: Object.values(SupportedProtocols).reduce<NetworkCanBeSelectedMap>(
+    (acc, protocol) => {
+      acc[protocol] = [];
+      return acc;
+    },
+    {} as NetworkCanBeSelectedMap
+  ),
   assetsIdByAccount: {},
   customRpcs: [],
   contacts: [],

@@ -127,8 +127,9 @@ export const explorerAccountUrlForWpoktSelector = (state: RootState) => {
   )?.explorerAccountUrl;
 };
 
-export const canNetworkBeSelected = (network: Network) => (state: RootState) =>
-  state.app.networksCanBeSelected[network.protocol].includes(network.chainId);
+export const canNetworkBeSelected = (network: Network) => (state: RootState) => {
+  return state.app.networksCanBeSelected[network.protocol].includes(network.chainId);
+}
 
 export const chainIdLabelSelector = (rpc: CustomRPC) => (state: RootState) =>
   state.app.networks.find(
