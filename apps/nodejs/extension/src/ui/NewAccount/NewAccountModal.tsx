@@ -92,7 +92,7 @@ export default function NewAccountModal({
   const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector(protocolFromProps));
   const selectedProtocol = selectableNetwork?.id;
 
-  const { reset, control, handleSubmit, setValue, watch } = useForm<FormValues>({
+  const { reset, control, handleSubmit, setValue, getValues } = useForm<FormValues>({
     defaultValues: {
       account_name: "",
       protocol: selectedProtocol,
@@ -129,12 +129,12 @@ export default function NewAccountModal({
   }, [open]);
 
   const isCreateAccountDisabled = useMemo(() => {
-    const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
+    const selectedNetwork = networks.find((n) => n.id === getValues("protocol"));
     return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
-  }, [watch("protocol"), networks]);
+  }, [getValues("protocol"), networks]);
 
   const createAccountDisablingNotice = useMemo(() => {
-    const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
+    const selectedNetwork = networks.find((n) => n.id === getValues("protocol"));
     return selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
   }, [isCreateAccountDisabled]);
 
@@ -280,28 +280,14 @@ export default function NewAccountModal({
                     <ProtocolSelector disabled={isLoading} {...field} />
                   )}
                 />
-                {!isCreateAccountDisabled && (
-                  <Typography
-                    variant={"body2"}
-                    marginTop={0.8}
-                    marginBottom={2}
-                    color={themeColors.textSecondary}
-                  >
-                    You’ll be able to use this account for every network of the
-                    protocol selected.
-                  </Typography>
-                  )
-                }
-                {isCreateAccountDisabled && (
-                  <Typography
-                    variant={"body2"}
-                    marginTop={0.8}
-                    marginBottom={2}
-                    color={themeColors.textSecondary}>
-                    Account creation is disabled for this network.
-                  </Typography>
-                  )
-                }
+                <Typography
+                  variant={"body2"}
+                  marginTop={0.8}
+                  marginBottom={2}
+                  color={themeColors.textSecondary}
+                >
+                  {isCreateAccountDisabled ? 'Account creation is disabled for this network.' : 'You’ll be able to use this account for every network of the protocol selected.'}
+                </Typography>
               </>
             )}
             {!isCreateAccountDisabled && (

@@ -33,6 +33,7 @@ import {
   ACCOUNT_ALREADY_EXISTS,
   CONTACT_ALREADY_EXISTS,
 } from "../../errors/contact";
+import {shallowEqual} from "react-redux";
 
 interface CreateContactFormValues {
   name: string;
@@ -57,14 +58,15 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
   const dispatch = useAppDispatch();
   const contacts = useAppSelector(contactsSelector);
   const accounts = useAppSelector(accountsSelector);
-  // const protocol = useAppSelector(selectedProtocolSelector);
   const [status, setStatus] = useState<FormStatus>("normal");
   const [contactSaved, setContactSaved] = useState<Contact>(null);
   const [accountAlreadyExists, setAccountAlreadyExists] =
     useState<SerializedAccountReference>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamsProtocol = searchParams.get("protocol") as SupportedProtocols;
-  const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector(searchParamsProtocol));
+  const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector(searchParamsProtocol), {
+    equalityFn: shallowEqual,
+  });
   const selectableNetworkId = selectableNetwork?.id;
   const networks = useAppSelector(networksSelector);
 

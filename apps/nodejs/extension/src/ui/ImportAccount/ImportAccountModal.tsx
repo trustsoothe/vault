@@ -282,26 +282,14 @@ export default function ImportAccountModal({
                 <ProtocolSelector disabled={isLoading} {...field} />
               )}
             />
-            {!isCreateAccountDisabled && (
-              <Typography
-                variant={"body2"}
-                marginTop={0.8}
-                marginBottom={2}
-                color={themeColors.textSecondary}
-              >
-                You’ll be able to use this account for every network of the
-                protocol selected.
-              </Typography>
-            )}
-            {isCreateAccountDisabled && (
-              <Typography
-                variant={"body2"}
-                marginTop={0.8}
-                marginBottom={2}
-                color={themeColors.textSecondary}>
-                Account creation is disabled for this network.
-              </Typography>
-            )}
+            <Typography
+              variant={"body2"}
+              marginTop={0.8}
+              marginBottom={2}
+              color={themeColors.textSecondary}
+            >
+              {isCreateAccountDisabled ? 'Account creation is disabled for this network.' : 'You’ll be able to use this account for every network of the protocol selected.'}
+            </Typography>
             {!isCreateAccountDisabled && (
               <>
                 <Controller

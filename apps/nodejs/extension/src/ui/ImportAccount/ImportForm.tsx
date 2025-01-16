@@ -158,7 +158,6 @@ export default function ImportForm({
             name={"json_file"}
             rules={{
               validate: async (value, formValues) => {
-                console.log('json file: formValues', formValues);
                 const selectedNetwork =  formValues.protocol && networks.find((n) => n.id === formValues.protocol);
                 if (formValues.import_type === "json_file") {
                   if (!value) {

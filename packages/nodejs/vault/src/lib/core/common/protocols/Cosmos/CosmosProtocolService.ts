@@ -31,8 +31,6 @@ import { wordlist } from "@scure/bip39/wordlists/english";
 import { TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { BroadcastMode } from "cosmjs-types/cosmos/tx/v1beta1/service";
 
-// const ADDRESS_PREFIX = "pokt";
-
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos>
 {
