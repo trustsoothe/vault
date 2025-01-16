@@ -11,16 +11,14 @@ import CopyAddressButton from "./CopyAddressButton";
 import SendIcon from "../assets/img/send_icon.svg";
 import SwapIcon from "../assets/img/swap_icon.svg";
 import { useAppSelector } from "../hooks/redux";
-import { roundAndSeparate } from "../../utils/ui";
+import {roundAndSeparate} from "../../utils/ui";
 import { themeColors } from "../theme";
 import { selectedAccountSelector } from "../../redux/selectors/account";
 import { TxStatus, useLazyGetActiveMintsQuery } from "../../redux/slices/wpokt";
 import {
-  isBalanceDisabledSelector,
   isSendDisabledSelector,
   isSwapDisabledSelector,
   selectedChainSelector,
-  selectedNetworkSelector
 } from "../../redux/selectors/network";
 import useSelectedAsset from "./hooks/useSelectedAsset";
 import GrayContainer from "../components/GrayContainer";
@@ -60,7 +58,6 @@ export default function SelectedAccount() {
 
   const isSwapDisabled = useAppSelector(isSwapDisabledSelector);
   const isSendDisabled = useAppSelector(isSendDisabledSelector);
-  const isBalanceDisabled = useAppSelector(isBalanceDisabledSelector);
 
   const mustShowMintTransactions = selectedAsset?.symbol === "WPOKT";
 

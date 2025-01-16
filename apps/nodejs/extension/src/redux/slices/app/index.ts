@@ -132,6 +132,7 @@ export interface GeneralAppSlice {
   requirePasswordForSensitiveOpts: boolean;
   accountsImported: string[];
   transactions: Array<Transaction>;
+  isDevMode?: boolean;
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -618,6 +619,7 @@ const initialState: GeneralAppSlice = {
   },
   selectedProtocol: SupportedProtocols.Pocket,
   errorsPreferredNetwork: {},
+  isDevMode: false,
   networksCanBeSelected: Object.values(SupportedProtocols).reduce<NetworkCanBeSelectedMap>(
     (acc, protocol) => {
       acc[protocol] = [];
@@ -710,6 +712,9 @@ const generalAppSlice = createSlice({
         }
       }
     },
+    activateDevMode: (state, _: PayloadAction) => {
+      state.isDevMode = true;
+    }
   },
   extraReducers: (builder) => {
     addNetworksExtraReducers(builder);
@@ -857,6 +862,7 @@ export const {
   addMintIdSent,
   addTransaction,
   setNetworksWithErrors,
+  activateDevMode,
 } = generalAppSlice.actions;
 
 export default generalAppSlice.reducer;

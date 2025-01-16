@@ -167,6 +167,7 @@ export default function AccountActions() {
   const assets = useAppSelector(assetsSelector);
   const isPoktTransactionActionsDisabled = useAppSelector(isPoktTransactionActionsDisabledSelector);
   const isAssetsDisabled = useAppSelector(isAssetsDisabledSelector);
+  const isDevMode = useAppSelector((state) => state.app.isDevMode);
 
   const assetsOfAccount = useMemo(
     () =>
@@ -232,16 +233,6 @@ export default function AccountActions() {
             />
           ))}
 
-        {selectedNetwork?.wip && (
-          <NetworkNotice notice={selectedNetwork?.wip} />
-        )}
-
-        {selectedNetwork?.notices?.length > 0 &&
-          selectedNetwork.notices.map((notice) => (
-            <NetworkNotice key={notice.name} notice={notice} />
-          ))
-        }
-
         <Button
           fullWidth
           component={"a"}
@@ -275,7 +266,18 @@ export default function AccountActions() {
             )}
           </Stack>
         </Button>
-        {protocol === SupportedProtocols.Pocket && !isPoktTransactionActionsDisabled && <PoktTransactionActions />}
+
+        {selectedNetwork?.wip && (
+          <NetworkNotice notice={selectedNetwork?.wip} />
+        )}
+
+        {selectedNetwork?.notices?.length > 0 &&
+          selectedNetwork.notices.map((notice) => (
+            <NetworkNotice key={notice.name} notice={notice} />
+          ))
+        }
+
+        {protocol === SupportedProtocols.Pocket && !isPoktTransactionActionsDisabled && isDevMode && <PoktTransactionActions />}
         {protocol === SupportedProtocols.Ethereum && !isAssetsDisabled &&
           existsAssetsForSelectedNetwork &&
           !selectedAsset && (
