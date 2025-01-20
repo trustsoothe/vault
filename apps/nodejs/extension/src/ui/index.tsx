@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -118,7 +118,7 @@ export default function App() {
     browser.runtime.sendMessage({ type: APP_IS_READY_REQUEST }).catch();
   };
 
-  useCtrlAltShiftKeyCombination('d',() => {
+  const activateDevModeCallback = useCallback(() => {
     if (!isDevMode) {
       dispatch(activateDevMode());
 
@@ -128,7 +128,9 @@ export default function App() {
         message: 'Dev mode activated',
       });
     }
-  });
+  }, [isDevMode, dispatch]);
+
+  useCtrlAltShiftKeyCombination('d',activateDevModeCallback);
 
   const content = useMemo(() => {
     if (
