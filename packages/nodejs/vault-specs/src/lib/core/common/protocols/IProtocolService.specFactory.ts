@@ -27,6 +27,7 @@ export interface IProtocolServiceSpecFactoryOptions {
   asset?: IAsset
   network: INetwork
   account: AccountReference
+  addressPrefix?: string
   accountImport: {
     privateKey: string
     publicKey: string
@@ -35,7 +36,7 @@ export interface IProtocolServiceSpecFactoryOptions {
 }
 
 export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IProtocolService<T>, options: IProtocolServiceSpecFactoryOptions) => {
-  const {asset, network: exampleNetwork} = options
+  const {asset, network: exampleNetwork, addressPrefix } = options
   let protocolService: IProtocolService<T>
   const passphrase = new Passphrase('passphrase')
 
@@ -46,18 +47,18 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
   describe('createAccount', () => {
     test('throws if an asset instance is not provided', async () => {
       // @ts-ignore
-      await expect(protocolService.createAccount({ asset: undefined, passphrase })).rejects.toThrow(ArgumentError)
+      await expect(protocolService.createAccount({ asset: undefined, passphrase, addressPrefix })).rejects.toThrow(ArgumentError)
     })
 
     test('throws if a passphrase is not provided', async () => {
       // @ts-ignore
-      await expect(protocolService.createAccount({ asset, passphrase: undefined })).rejects.toThrow(ArgumentError)
+      await expect(protocolService.createAccount({ asset, passphrase: undefined, addressPrefix })).rejects.toThrow(ArgumentError)
     })
 
     describe('new random accounts generations', () => {
       test('creates a new random account using the asset.', async () => {
         const {protocol} = exampleNetwork;
-        const account = await protocolService.createAccount({ protocol, passphrase })
+        const account = await protocolService.createAccount({ protocol, passphrase, addressPrefix })
         expect(account).toBeDefined()
         expect(account.address).toBeDefined()
         expect(account.publicKey).toBeDefined()
@@ -178,33 +179,33 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
     const {accountImport} = options
     test('throws if an asset instance is not provided', async () => {
       // @ts-ignore
-      await expect(protocolService.createAccountFromPrivateKey({ asset: undefined, passphrase })).rejects.toThrow(ArgumentError)
+      await expect(protocolService.createAccountFromPrivateKey({ asset: undefined, passphrase, addressPrefix })).rejects.toThrow(ArgumentError)
     })
 
     test('throws if a passphrase is not provided', async () => {
       // @ts-ignore
-      await expect(protocolService.createAccountFromPrivateKey({ asset, passphrase: undefined })).rejects.toThrow(ArgumentError)
+      await expect(protocolService.createAccountFromPrivateKey({ asset, passphrase: undefined, addressPrefix })).rejects.toThrow(ArgumentError)
     })
 
     test('throws if a private key is not provided', async () => {
       // @ts-ignore
-      await expect(protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: undefined })).rejects.toThrow(ArgumentError)
+      await expect(protocolService.createAccountFromPrivateKey({ asset, passphrase, privateKey: undefined, addressPrefix })).rejects.toThrow(ArgumentError)
     })
 
     test('derives the correct public key for the account', async () => {
-      const account = await protocolService.createAccountFromPrivateKey({ protocol: exampleNetwork.protocol, passphrase, privateKey: accountImport.privateKey })
+      const account = await protocolService.createAccountFromPrivateKey({ protocol: exampleNetwork.protocol, passphrase, privateKey: accountImport.privateKey, addressPrefix })
       expect(account).toBeDefined()
       expect(account.publicKey).toBe(accountImport.publicKey)
     })
 
     test('derives the correct address for the account', async () => {
-      const account = await protocolService.createAccountFromPrivateKey({ protocol: exampleNetwork.protocol, passphrase, privateKey: accountImport.privateKey })
+      const account = await protocolService.createAccountFromPrivateKey({ protocol: exampleNetwork.protocol, passphrase, privateKey: accountImport.privateKey, addressPrefix })
       expect(account).toBeDefined()
       expect(account.address).toBe(accountImport.address)
     })
 
     test('encrypts the private key with the passphrase', async () => {
-      const account = await protocolService.createAccountFromPrivateKey({ protocol: exampleNetwork.protocol, passphrase, privateKey: accountImport.privateKey })
+      const account = await protocolService.createAccountFromPrivateKey({ protocol: exampleNetwork.protocol, passphrase, privateKey: accountImport.privateKey, addressPrefix })
       expect(account).toBeDefined()
       expect(account.privateKey).not.toBe(accountImport.privateKey)
     })

@@ -48,7 +48,7 @@ describe('CosmosProtocolService', () => {
 
   ProtocolServiceSpecFactory<SupportedProtocols.Cosmos>(
     () => protocolService,
-    { network, account, accountImport }
+    { network, account, accountImport, addressPrefix: 'pokt' }
   )
 
   describe('sendTransaction', () => {
