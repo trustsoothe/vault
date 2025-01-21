@@ -25,6 +25,30 @@ import { ChainChangedMessageToProxy } from "../../../types/communications/chainC
 
 export type ErrorsByNetwork = Record<string, number>;
 
+export enum NetworkFeature {
+  Swap = 'Swap',
+  Send = 'Send',
+  Balance = 'Balance',
+  CreateAccount = 'CreateAccount',
+  PoktTransactionActions = 'PoktTransactionActions',
+  Assets = 'Assets',
+}
+
+export interface NetworkNoticeReference {
+  title: string;
+  url: string;
+}
+
+export interface NetworkNotice {
+  name: string;
+  showAsTag?: boolean;
+  color?: string;
+  descriptionTitle: string;
+  descriptionContent: string;
+  references?: NetworkNoticeReference[];
+  disables?: NetworkFeature[];
+}
+
 export interface Network {
   id: string;
   label: string;
@@ -43,6 +67,10 @@ export interface Network {
   explorerTransactionUrl: string;
   transferMinValue: string;
   assetPlatformId?: string;
+  addressPrefix?: string;
+  isProtocolDefault?: boolean;
+  wip?: NetworkNotice;
+  notices?: NetworkNotice[];
 }
 
 export interface IAsset {
@@ -68,10 +96,8 @@ export interface CustomRPC {
   isPreferred?: boolean;
 }
 
-export interface NetworkCanBeSelectedMap {
-  [SupportedProtocols.Pocket]: string[];
-  [SupportedProtocols.Ethereum]: string[];
-  [SupportedProtocols.PocketShannon]: string[];
+export type NetworkCanBeSelectedMap = {
+  [K in SupportedProtocols]: string[];
 }
 
 export interface GeneralAppSlice {
@@ -106,6 +132,7 @@ export interface GeneralAppSlice {
   requirePasswordForSensitiveOpts: boolean;
   accountsImported: string[];
   transactions: Array<Transaction>;
+  isDevMode?: boolean;
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -147,9 +174,10 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
     };
     const assetsIdByAccount = response[ASSETS_SELECTED_BY_ACCOUNTS_KEY] || {};
     const showTestNetworks = response[SHOW_TEST_NETWORKS_KEY] || false;
-    const networksCanBeSelected =
-      response[NETWORKS_CAN_BE_SELECTED_KEY] ||
-      initialState.networksCanBeSelected;
+    const networksCanBeSelected = {
+      ...initialState.networksCanBeSelected,
+      ...(response[NETWORKS_CAN_BE_SELECTED_KEY] ?? {}),
+    };
     const customRpcs = response[CUSTOM_RPCS_KEY] || [];
     const contacts = response[CONTACTS_KEY] || [];
 
@@ -582,20 +610,23 @@ const initialState: GeneralAppSlice = {
   selectedAccountByProtocol: {
     [SupportedProtocols.Pocket]: "",
     [SupportedProtocols.Ethereum]: "",
-    [SupportedProtocols.PocketShannon]: "",
+    [SupportedProtocols.Cosmos]: "",
   },
   selectedChainByProtocol: {
     [SupportedProtocols.Pocket]: "mainnet",
     [SupportedProtocols.Ethereum]: "1",
-    [SupportedProtocols.PocketShannon]: "poktroll",
+    [SupportedProtocols.Cosmos]: "",
   },
   selectedProtocol: SupportedProtocols.Pocket,
   errorsPreferredNetwork: {},
-  networksCanBeSelected: {
-    [SupportedProtocols.Ethereum]: [],
-    [SupportedProtocols.Pocket]: [],
-    [SupportedProtocols.PocketShannon]: [],
-  },
+  isDevMode: false,
+  networksCanBeSelected: Object.values(SupportedProtocols).reduce<NetworkCanBeSelectedMap>(
+    (acc, protocol) => {
+      acc[protocol] = [];
+      return acc;
+    },
+    {} as NetworkCanBeSelectedMap
+  ),
   assetsIdByAccount: {},
   customRpcs: [],
   contacts: [],
@@ -681,6 +712,9 @@ const generalAppSlice = createSlice({
         }
       }
     },
+    activateDevMode: (state, _: PayloadAction) => {
+      state.isDevMode = true;
+    }
   },
   extraReducers: (builder) => {
     addNetworksExtraReducers(builder);
@@ -828,6 +862,7 @@ export const {
   addMintIdSent,
   addTransaction,
   setNetworksWithErrors,
+  activateDevMode,
 } = generalAppSlice.actions;
 
 export default generalAppSlice.reducer;

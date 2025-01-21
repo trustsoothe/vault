@@ -1,7 +1,7 @@
 import {SupportedProtocols} from "../values";
 import {PocketNetworkProtocolTransaction} from "./PocketNetwork";
 import {EthereumNetworkProtocolTransaction} from "./EthereumNetwork/EthereumNetworkProtocolTransaction";
-import {PocketNetworkShannonProtocolTransaction} from "./PocketNetworkShannon";
+import {CosmosProtocolTransaction} from "./Cosmos";
 
 
 type StandardEnum<T = string> = {
@@ -31,4 +31,4 @@ export type ProtocolTransaction<T extends SupportedProtocols> =
     ? PocketNetworkProtocolTransaction
     : T extends SupportedProtocols.Ethereum
       ? EthereumNetworkProtocolTransaction
-      : PocketNetworkShannonProtocolTransaction;
+      : CosmosProtocolTransaction;

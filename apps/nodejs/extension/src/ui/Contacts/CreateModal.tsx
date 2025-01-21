@@ -10,7 +10,10 @@ import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import React, { useEffect, useRef, useState } from "react";
-import { selectedProtocolSelector } from "../../redux/selectors/network";
+import {
+  defaultSelectableProtocolSelector,
+  networksSelector,
+} from "../../redux/selectors/network";
 import { Contact, saveContact } from "../../redux/slices/app/contact";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import TextFieldWithPaste from "../components/TextFieldWithPaste";
@@ -30,11 +33,12 @@ import {
   ACCOUNT_ALREADY_EXISTS,
   CONTACT_ALREADY_EXISTS,
 } from "../../errors/contact";
+import {shallowEqual} from "react-redux";
 
 interface CreateContactFormValues {
   name: string;
   address: string;
-  protocol: SupportedProtocols;
+  protocol: string;
 }
 
 type FormStatus =
@@ -54,19 +58,23 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
   const dispatch = useAppDispatch();
   const contacts = useAppSelector(contactsSelector);
   const accounts = useAppSelector(accountsSelector);
-  const protocol = useAppSelector(selectedProtocolSelector);
   const [status, setStatus] = useState<FormStatus>("normal");
   const [contactSaved, setContactSaved] = useState<Contact>(null);
   const [accountAlreadyExists, setAccountAlreadyExists] =
     useState<SerializedAccountReference>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParamsProtocol = searchParams.get("protocol") as SupportedProtocols;
+  const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector(searchParamsProtocol), {
+    equalityFn: shallowEqual,
+  });
+  const selectableNetworkId = selectableNetwork?.id;
+  const networks = useAppSelector(networksSelector);
 
   const { reset, control, watch, handleSubmit, setValue, clearErrors } =
     useForm<CreateContactFormValues>({
       defaultValues: {
         name: "",
-        protocol:
-          (searchParams.get("protocol") as SupportedProtocols) || protocol,
+        protocol: selectableNetworkId,
         address: searchParams.get("address") || "",
       },
     });
@@ -76,9 +84,9 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
   useDidMountEffect(() => {
     setValue(
       "protocol",
-      (searchParams.get("protocol") as SupportedProtocols) || protocol
+      selectableNetworkId,
     );
-  }, [protocol]);
+  }, [selectableNetworkId]);
 
   const closeSnackbars = () => {
     if (errorSnackbarKey.current) {
@@ -91,8 +99,7 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
     const timeout = setTimeout(() => {
       reset({
         name: "",
-        protocol:
-          (searchParams.get("protocol") as SupportedProtocols) || protocol,
+        protocol: selectableNetworkId,
         address: searchParams.get("address") || "",
       });
       setStatus("normal");
@@ -108,13 +115,13 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
 
   const onSubmit = async (data: Contact) => {
     setStatus("loading");
-
+    const selectedNetworkOnForm = networks.find((n) => n.id === data.protocol);
     dispatch(
       saveContact({
         contact: {
           name: data.name,
           address: data.address,
-          protocol: data.protocol,
+          protocol: selectedNetworkOnForm.protocol,
         },
       })
     )
@@ -131,7 +138,7 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
       .catch((error) => {
         if (error.name === CONTACT_ALREADY_EXISTS.name) {
           const contact = contacts.find(
-            (c) => c.protocol === data.protocol && c.address === data.address
+            (c) => c.protocol === selectedNetworkOnForm.protocol && c.address === data.address
           );
 
           if (!contact) {
@@ -146,7 +153,7 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
           setStatus("contact_already_exists");
         } else if (error.name === ACCOUNT_ALREADY_EXISTS.name) {
           const account = accounts.find(
-            (a) => a.protocol === data.protocol && a.address === data.address
+            (a) => a.protocol === selectedNetworkOnForm.protocol && a.address === data.address
           );
 
           if (!account) {
@@ -224,7 +231,8 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
               rules={{
                 required: "Required",
                 validate: (value, formValues) => {
-                  if (!isValidAddress(value, formValues.protocol)) {
+                  const selectedNetworkOnForm = networks.find((n) => n.id === formValues.protocol);
+                  if (!isValidAddress(value, selectedNetworkOnForm.protocol)) {
                     return "Invalid address";
                   }
                   return true;

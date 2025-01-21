@@ -2,7 +2,7 @@ import {SupportedProtocols} from "../values";
 import {PocketNetworkProtocolService} from "./PocketNetwork";
 import {IEncryptionService} from "../encryption/IEncryptionService";
 import {EthereumNetworkProtocolService} from "./EthereumNetwork";
-import {PocketNetworkShannonProtocolService} from "./PocketNetworkShannon";
+import {CosmosProtocolService} from "./Cosmos";
 
 export class ProtocolServiceFactory {
   static getProtocolService<T extends SupportedProtocols>(protocol: T, encryptionService: IEncryptionService) {
@@ -11,8 +11,8 @@ export class ProtocolServiceFactory {
         return new PocketNetworkProtocolService(encryptionService)
       case SupportedProtocols.Ethereum:
         return new EthereumNetworkProtocolService(encryptionService)
-      case SupportedProtocols.PocketShannon:
-        return new PocketNetworkShannonProtocolService(encryptionService)
+      case SupportedProtocols.Cosmos:
+        return new CosmosProtocolService(encryptionService)
       default:
         throw new Error(`Protocol ${protocol} not supported`)
     }

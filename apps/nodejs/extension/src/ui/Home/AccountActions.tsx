@@ -13,8 +13,9 @@ import {
 } from "@poktscan/vault";
 import PoktscanLogo from "../assets/img/poktscan_small_icon.svg";
 import {
-  explorerAccountUrlSelector,
+  explorerAccountUrlSelector, isAssetsDisabledSelector, isPoktTransactionActionsDisabledSelector,
   selectedChainSelector,
+  selectedNetworkSelector,
 } from "../../redux/selectors/network";
 import { selectedAccountSelector } from "../../redux/selectors/account";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
@@ -31,6 +32,7 @@ import {
 } from "../../redux/selectors/asset";
 import PoktTransactionModal from "../PoktTransaction/PoktTransactionModal";
 import { getTransactionTypeLabel } from "../Request/PoktTransactionRequest";
+import NetworkNotice from "../components/NetworkNotice";
 
 interface AssetItemProps {
   asset: IAsset;
@@ -146,6 +148,7 @@ function AssetItem({ asset, onSelectAsset }: AssetItemProps) {
 export default function AccountActions() {
   const [showManageAssetsModal, setShowManageAssetsModal] = useState(false);
   const selectedChain = useAppSelector(selectedChainSelector);
+  const selectedNetwork = useAppSelector(selectedNetworkSelector);
   const [_, setURLSearchParams] = useSearchParams();
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
   const selectedAsset = useSelectedAsset();
@@ -162,16 +165,19 @@ export default function AccountActions() {
     shallowEqual
   );
   const assets = useAppSelector(assetsSelector);
+  const isPoktTransactionActionsDisabled = useAppSelector(isPoktTransactionActionsDisabledSelector);
+  const isAssetsDisabled = useAppSelector(isAssetsDisabledSelector);
+  const isDevMode = useAppSelector((state) => state.app.isDevMode);
 
   const assetsOfAccount = useMemo(
     () =>
-      assets.filter(
+      isAssetsDisabled ? [] : assets.filter(
         (asset) =>
           (assetsIdOfAccount || []).includes(asset.id) &&
           asset.protocol === protocol &&
           asset.chainId === selectedChain
       ),
-    [protocol, selectedChain, selectedAccount?.address, assetsIdOfAccount]
+    [protocol, selectedChain, selectedAccount?.address, assetsIdOfAccount, isAssetsDisabled]
   );
 
   let explorerAccountLink: string, domain: string;
@@ -260,8 +266,19 @@ export default function AccountActions() {
             )}
           </Stack>
         </Button>
-        {protocol === SupportedProtocols.Pocket && <PoktTransactionActions />}
-        {protocol === SupportedProtocols.Ethereum &&
+
+        {selectedNetwork?.wip && (
+          <NetworkNotice notice={selectedNetwork?.wip} />
+        )}
+
+        {selectedNetwork?.notices?.length > 0 &&
+          selectedNetwork.notices.map((notice) => (
+            <NetworkNotice key={notice.name} notice={notice} />
+          ))
+        }
+
+        {protocol === SupportedProtocols.Pocket && !isPoktTransactionActionsDisabled && isDevMode && <PoktTransactionActions />}
+        {protocol === SupportedProtocols.Ethereum && !isAssetsDisabled &&
           existsAssetsForSelectedNetwork &&
           !selectedAsset && (
             <Button sx={{ padding: 0 }} onClick={openManageAssetsModal}>

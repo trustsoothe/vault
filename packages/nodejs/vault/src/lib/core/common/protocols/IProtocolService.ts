@@ -12,6 +12,7 @@ export interface CreateAccountOptions {
   protocol: SupportedProtocols;
   passphrase?: Passphrase;
   skipEncryption?: boolean;
+  addressPrefix?: string;
 }
 
 export interface CreateAccountFromPrivateKeyOptions
@@ -26,12 +27,14 @@ export interface ImportRecoveryPhraseOptions {
   seedAccountName?: string;
   passphrase?: string;
   isSendNodes?: boolean;
+  addressPrefix?: string;
 }
 
 export interface AddHDWalletAccountOptions {
   seedAccount: Account;
   index: number;
   name?: string;
+  addressPrefix?: string;
 }
 
 export interface SignPersonalDataRequest {
@@ -69,6 +72,11 @@ export interface TransactionValidationResult {
   type: TransactionValidationResultType;
   message: string;
   key?: string;
+}
+
+export interface DeriveAddressOptions {
+  privateKey: string;
+  addressPrefix?: string;
 }
 
 export interface IProtocolService<T extends SupportedProtocols> {
@@ -114,7 +122,7 @@ export interface IProtocolService<T extends SupportedProtocols> {
     asset?: IAsset
   ): Promise<number>;
 
-  getAddressFromPrivateKey(privateKey: string): Promise<string>;
+  getAddressFromPrivateKey(options: DeriveAddressOptions): Promise<string>;
 
   createAccountsFromRecoveryPhrase(
     options: ImportRecoveryPhraseOptions

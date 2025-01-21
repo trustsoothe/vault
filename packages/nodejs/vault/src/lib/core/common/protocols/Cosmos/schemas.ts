@@ -1,10 +1,10 @@
 import {z} from "zod";
-import {POCKET_NETWORK_SHANNON_PROTOCOL} from "../../values";
-import { PocketNetworkShannonTransactionTypes } from './PocketNetworkShannonTransactionTypes';
+import {COSMOS_PROTOCOL} from "../../values";
+import { CosmosTransactionTypes } from './CosmosTransactionTypes';
 import { SupportedProtocols } from '../../values';
 
 export const PocketShannonProtocolNetworkSchema = z.object({
-  protocol: z.literal(POCKET_NETWORK_SHANNON_PROTOCOL),
+  protocol: z.literal(COSMOS_PROTOCOL),
   chainID: z.enum(['poktroll']),
   rpcUrl: z.string().url(),
 });
@@ -21,23 +21,23 @@ export const PocketShannonRpcCanSendTransactionResponseSchema = z.object({
   }),
 });
 
-const SupportedProtocolsEnum = z.enum([SupportedProtocols.PocketShannon]);
+const SupportedProtocolsEnum = z.enum([SupportedProtocols.Cosmos]);
 
-const PocketNetworkShannonTransactionTypesEnum = z.nativeEnum(PocketNetworkShannonTransactionTypes);
+const CosmosTransactionTypesEnum = z.nativeEnum(CosmosTransactionTypes);
 
-const PocketNetworkShannonFeeSchema = z.object({
+const CosmosFeeSchema = z.object({
   value: z.number(),
   denom: z.string().min(1, 'Denomination cannot be empty'),
 });
 
-export const PocketNetworkShannonProtocolTransactionSchema = z.object({
+export const CosmosProtocolTransactionSchema = z.object({
   protocol: SupportedProtocolsEnum,
-  transactionType: PocketNetworkShannonTransactionTypesEnum,
+  transactionType: CosmosTransactionTypesEnum,
   from: z.string().min(1, 'From address cannot be empty'),
   to: z.string().min(1, 'To address cannot be empty'),
   amount: z.string().regex(/^\d+$/),
   privateKey: z.string().min(1, 'Private key cannot be empty'),
   skipValidation: z.boolean().optional(),
-  fee: PocketNetworkShannonFeeSchema,
+  fee: CosmosFeeSchema,
 });
 

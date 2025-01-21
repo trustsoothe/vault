@@ -1,7 +1,7 @@
 import {
   AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
-  CreateAccountOptions,
+  CreateAccountOptions, DeriveAddressOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService,
   SignPersonalDataRequest, ValidateTransactionResult,
@@ -20,7 +20,7 @@ import {
 } from "web3-eth-accounts";
 import {Contract} from "web3-eth-contract";
 import {HttpProvider} from "web3-providers-http";
-import {fromWei, toHex, toWei} from "web3-utils";
+import {fromWei, toWei} from "web3-utils";
 import {ArgumentError, NetworkRequestError, ProtocolTransactionError, RecoveryPhraseError,} from "../../../../errors";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
 import {ProtocolFee} from "../ProtocolFee";
@@ -45,6 +45,19 @@ import {ecsign} from "ethereumjs-util";
 import {mnemonicToSeed, validateMnemonic} from "@scure/bip39";
 import {wordlist} from "@scure/bip39/wordlists/english";
 import HDKey from "hdkey";
+import {omit} from "lodash";
+
+interface TxParams {
+  gasLimit: bigint;
+  chainId: number;
+  from: string;
+  to: string;
+  maxPriorityFeePerGas?: string;
+  maxFeePerGas?: string;
+  value: string;
+  nonce: bigint;
+}
+
 
 interface SuggestedFeeSpeed {
   suggestedMaxPriorityFeePerGas: string;
@@ -184,8 +197,8 @@ export class EthereumNetworkProtocolService
     });
   }
 
-  async getAddressFromPrivateKey(privateKey: string): Promise<string> {
-    return privateKeyToAddress(this.parsePrivateKey(privateKey));
+  async getAddressFromPrivateKey(options: DeriveAddressOptions): Promise<string> {
+    return privateKeyToAddress(this.parsePrivateKey(options.privateKey));
   }
 
   async getBalance(
@@ -206,42 +219,7 @@ export class EthereumNetworkProtocolService
     return await this.getAssetBalance(network, account, asset);
   }
 
-  async getFee(
-    network: INetwork,
-    options: EthereumNetworkFeeRequestOptions
-  ): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
-    this.validateNetwork(network);
-    this.validateFeeRequestOptions(options);
-
-    const url = SUGGESTED_GAS_FEES_URL.replace(":chainid", network.chainID);
-
-    const ethClient = this.getEthClient(network);
-
-    if (options.asset) {
-      const ethContract = this.getEthContractClient(network, options.asset);
-      options.data = ethContract.methods
-        .transfer(options.to, options.value || "0x0")
-        .encodeABI();
-    }
-
-    let estimatedGas = options.gasLimit;
-    let suggestions: SuggestedFees;
-
-    if (!estimatedGas) {
-      try {
-        estimatedGas = Number(await ethClient.estimateGas(options)) * 1.5;
-      } catch (e) {
-        throw new NetworkRequestError("Failed while estimating gas");
-      }
-    }
-
-    try {
-      const suggestionsResponse = await globalThis.fetch(url);
-      suggestions = await suggestionsResponse.json();
-    } catch (e) {
-      throw new NetworkRequestError("Failed while fetching suggested fees");
-    }
-
+  private calculateWithSuggestedFees(options: EthereumNetworkFeeRequestOptions, suggestions: SuggestedFees, estimatedGas: number): EthereumNetworkFee {
     const calculateAmountForSpeed = (
       baseFee: string,
       estimatedGas: number,
@@ -321,7 +299,7 @@ export class EthereumNetworkProtocolService
           suggestedMaxPriorityFeePerGas: Number(
             toWei(
               options.maxPriorityFeePerGas ||
-                suggestions.medium.suggestedMaxPriorityFeePerGas,
+              suggestions.medium.suggestedMaxPriorityFeePerGas,
               "gwei"
             )
           ),
@@ -340,6 +318,95 @@ export class EthereumNetworkProtocolService
     }
 
     return estimatedFee;
+  };
+
+  private calculateWithGasPrice(options: EthereumNetworkFeeRequestOptions, gasPrice: string, estimatedGas: number): EthereumNetworkFee {
+    const calculateAmount = (gasPrice: string, estimatedGas: number) => {
+      const feeInWei = Number((Number(gasPrice) * estimatedGas));
+      return Number(fromWei(feeInWei.toString(), 'ether')).toFixed(6);
+    };
+
+    const estimatedFee: EthereumNetworkFee = {
+      protocol: SupportedProtocols.Ethereum,
+      estimatedGas: Number(estimatedGas),
+      baseFee: "0",
+      low: {
+        suggestedMaxFeePerGas: Number(gasPrice),
+        suggestedMaxPriorityFeePerGas: Number(gasPrice),
+        amount: calculateAmount(gasPrice, estimatedGas),
+      },
+      medium: {
+        suggestedMaxFeePerGas: Number(gasPrice),
+        suggestedMaxPriorityFeePerGas: Number(gasPrice),
+        amount: calculateAmount(gasPrice, estimatedGas),
+      },
+      high: {
+        suggestedMaxFeePerGas: Number(gasPrice),
+        suggestedMaxPriorityFeePerGas: Number(gasPrice),
+        amount: calculateAmount(gasPrice, estimatedGas),
+      },
+    };
+
+    if (
+      options.maxFeePerGas
+    ) {
+      return {
+        ...estimatedFee,
+        site: {
+          suggestedMaxFeePerGas: Number(options.maxFeePerGas || gasPrice),
+          suggestedMaxPriorityFeePerGas: Number(options.maxFeePerGas || gasPrice),
+          amount: calculateAmount(
+            options.maxFeePerGas || gasPrice,
+            estimatedGas
+          ),
+        },
+      };
+    }
+
+    return estimatedFee;
+  }
+
+  async getFee(
+    network: INetwork,
+    options: EthereumNetworkFeeRequestOptions
+  ): Promise<ProtocolFee<SupportedProtocols.Ethereum>> {
+    this.validateNetwork(network);
+    this.validateFeeRequestOptions(options);
+
+    const url = SUGGESTED_GAS_FEES_URL.replace(":chainid", network.chainID);
+
+    const ethClient = this.getEthClient(network);
+
+    if (options.asset) {
+      const ethContract = this.getEthContractClient(network, options.asset);
+      options.data = ethContract.methods
+        .transfer(options.to, options.value || "0x0")
+        .encodeABI();
+    }
+
+    let estimatedGas = options.gasLimit;
+    let suggestions: SuggestedFees;
+
+    if (!estimatedGas) {
+      try {
+        estimatedGas = Number(await ethClient.estimateGas(options));
+      } catch (e) {
+        throw new NetworkRequestError("Failed while estimating gas");
+      }
+    }
+
+    try {
+      const suggestionsResponse = await globalThis.fetch(url);
+      if (suggestionsResponse.ok) {
+        suggestions = await suggestionsResponse.json();
+        return this.calculateWithSuggestedFees(options, suggestions, options.gasLimit ?? estimatedGas * 1.5);
+      } else {
+        const gasPrice = await ethClient.getGasPrice();
+        return this.calculateWithGasPrice(options, gasPrice.toString(), estimatedGas);
+      }
+    } catch (e) {
+      throw new NetworkRequestError("Failed while fetching suggested fees");
+    }
   }
 
   isValidPrivateKey(privateKey: string): boolean {
@@ -619,40 +686,7 @@ export class EthereumNetworkProtocolService
   }
 
   private async signAndSendTransaction(
-    txParams: {
-      gasLimit: bigint;
-      chainId: number;
-      maxPriorityFeePerGas:
-        | string
-        | "address"
-        | "bool"
-        | "string"
-        | "int256"
-        | "uint256"
-        | "bytes"
-        | "bigint";
-      from: string;
-      to: string;
-      maxFeePerGas:
-        | string
-        | "address"
-        | "bool"
-        | "string"
-        | "int256"
-        | "uint256"
-        | "bytes"
-        | "bigint";
-      value:
-        | string
-        | "address"
-        | "bool"
-        | "string"
-        | "int256"
-        | "uint256"
-        | "bytes"
-        | "bigint";
-      nonce: bigint;
-    },
+    txParams: TxParams,
     transactionParams: EthereumNetworkProtocolTransaction,
     network: INetwork
   ): Promise<IProtocolTransactionResult<SupportedProtocols.Ethereum>> {
@@ -729,16 +763,16 @@ export class EthereumNetworkProtocolService
 
     const nonce = await ethClient.getTransactionCount(transactionParams.from);
 
-    const txParams = {
+    const txParams: TxParams = {
       from: transactionParams.from,
       to: transactionParams.to,
       value:
         "0x" + BigInt(toWei(transactionParams.amount, "ether")).toString(16),
-      gasLimit: BigInt(21000),
+      gasLimit: BigInt(Math.round(transactionParams.gasLimit || 21000)),
       chainId: Number(network.chainID),
+      maxFeePerGas: `0x${(transactionParams.maxFeePerGas ?? 0).toString(16)}`,
+      maxPriorityFeePerGas: `0x${(transactionParams.maxPriorityFeePerGas ?? 0).toString(16)}`,
       nonce,
-      maxFeePerGas: toHex(transactionParams.maxFeePerGas),
-      maxPriorityFeePerGas: toHex(transactionParams.maxPriorityFeePerGas),
     };
 
     return this.signAndSendTransaction(txParams, transactionParams, network);
@@ -781,8 +815,8 @@ export class EthereumNetworkProtocolService
       gasLimit,
       chainId: Number(network.chainID),
       nonce,
-      maxFeePerGas: toHex(transactionParams.maxFeePerGas),
-      maxPriorityFeePerGas: toHex(transactionParams.maxPriorityFeePerGas),
+      maxFeePerGas: `0x${(transactionParams.maxFeePerGas ?? 0).toString(16)}`,
+      maxPriorityFeePerGas: `0x${(transactionParams.maxPriorityFeePerGas ?? 0).toString(16)}`,
       data,
     };
 
@@ -807,8 +841,8 @@ export class EthereumNetworkProtocolService
       gasLimit: BigInt(Math.round(transactionParams.gasLimit || 21000)),
       chainId: Number(network.chainID),
       nonce,
-      maxFeePerGas: toHex(transactionParams.maxFeePerGas),
-      maxPriorityFeePerGas: toHex(transactionParams.maxPriorityFeePerGas),
+      maxFeePerGas: `0x${(transactionParams.maxFeePerGas ?? 0).toString(16)}`,
+      maxPriorityFeePerGas: `0x${(transactionParams.maxPriorityFeePerGas ?? 0).toString(16)}`,
       data: transactionParams.data,
     };
 

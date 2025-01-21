@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -25,12 +25,14 @@ import {
 import SuccessIcon from "./assets/img/success_icon.svg";
 import WarningIcon from "./assets/img/rounded_close_icon.svg";
 import RequestOriginsPermission from "./RequestOriginPermission/RequestOriginPermission";
-import { closeCurrentWindow, removeRequestWithRes } from "../utils/ui";
+import {closeCurrentWindow, enqueueSnackbar, removeRequestWithRes} from "../utils/ui";
 import CircularLoading from "./components/CircularLoading";
 import { RequestTimeout } from "../errors/communication";
 import AppInitError from "./AppInitError/AppInitError";
 import { RouterProvider } from "react-router-dom";
 import { requestRouter, router } from "./router";
+import useCtrlAltShiftKeyCombination from "./hooks/useCtrlAltShiftKeyCombination";
+import {activateDevMode} from "../redux/slices/app";
 
 export default function App() {
   const isPopup = useIsPopup();
@@ -79,6 +81,7 @@ export default function App() {
   const initializeStatus = useAppSelector(initializeStatusSelector);
   const vaultSessionExists = useAppSelector(vaultSessionExistsSelector);
   const appStatus = useAppSelector((state) => state.app.isReadyStatus);
+  const isDevMode = useAppSelector((state) => state.app.isDevMode);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -114,6 +117,20 @@ export default function App() {
   const retryInitExtension = () => {
     browser.runtime.sendMessage({ type: APP_IS_READY_REQUEST }).catch();
   };
+
+  const activateDevModeCallback = useCallback(() => {
+    if (!isDevMode) {
+      dispatch(activateDevMode());
+
+      enqueueSnackbar({
+        key: 'dev-mode',
+        variant: "info",
+        message: 'Dev mode activated',
+      });
+    }
+  }, [isDevMode, dispatch]);
+
+  useCtrlAltShiftKeyCombination('d',activateDevModeCallback);
 
   const content = useMemo(() => {
     if (
@@ -168,7 +185,18 @@ export default function App() {
           body: {
             width: isPopup ? WIDTH : undefined,
             height: isPopup ? HEIGHT : undefined,
-            margin: "0!important",
+            margin: "0!important"
+          },
+          "::-webkit-scrollbar": {
+            width: "10px",
+          },
+          "::-webkit-scrollbar-thumb": {
+            backgroundColor: themeColors.gray,
+            borderRadius: "5px",
+          },
+          "::-webkit-scrollbar-thumb:hover": {
+            backgroundColor: themeColors.gray,
+            borderRadius: "5px",
           },
         }}
       />

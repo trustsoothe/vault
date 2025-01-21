@@ -16,7 +16,7 @@ import {
   Passphrase,
   PocketNetworkProtocolService,
   PocketNetworkProtocolTransaction,
-  PocketNetworkShannonFee,
+  CosmosFee,
   PocketNetworkTransactionTypes,
   PrivateKeyRestoreErrorName,
   SerializedAccountReference,
@@ -85,15 +85,11 @@ export const createNewAccountFromHdSeed = createAsyncThunk(
     const vaultPassword = await getVaultPassword(vaultSession.id);
     const vaultPassphrase = new Passphrase(vaultPassword);
 
-    console.log("Creating account from seed", options);
-
     const account = await ExtensionVaultInstance.addHDWalletAccount(
       vaultSession.id,
       vaultPassphrase,
       { ...options }
     );
-
-    console.log("Account created", account);
 
     let seedAccount = accounts.find(
         (account) =>
@@ -146,6 +142,7 @@ export const addNewAccount = createAsyncThunk<
     sessionId?: string;
     name: string;
     protocol: SupportedProtocols;
+    addressPrefix?: string;
   }
 >("vault/addNewAccount", async (args, context) => {
   const state = context.getState() as RootState;
@@ -161,6 +158,7 @@ export const addNewAccount = createAsyncThunk<
     {
       name: args.name.trim(),
       protocol: args.protocol,
+      addressPrefix: args.addressPrefix,
     }
   );
 
@@ -176,6 +174,7 @@ export interface ImportAccountParam {
   protocol: SupportedProtocols;
   name: string;
   privateKey: string;
+  addressPrefix?: string;
 }
 
 export const importAccount = createAsyncThunk(
@@ -278,13 +277,14 @@ export interface SendTransactionParams
   network: {
     protocol: SupportedProtocols;
     chainID: string;
+    addressPrefix?: string;
   };
   transactionParams: {
     maxFeePerGas?: number;
     maxPriorityFeePerGas?: number;
     data?: string;
     fee?: number;
-    shannonFee?: PocketNetworkShannonFee;
+    shannonFee?: CosmosFee;
     memo?: string;
     gasLimit?: number;
   };
@@ -358,7 +358,8 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
     } else {
       fromAddress = await getAddressFromPrivateKey(
         transferOptions.from.value,
-        transferOptions.network.protocol
+        transferOptions.network.protocol,
+        transferOptions.network.addressPrefix,
       );
     }
 
@@ -406,10 +407,10 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
         fee: transferOptions.transactionParams.fee,
         memo: transferOptions.transactionParams.memo,
       };
-    } else if (transferOptions.network.protocol === SupportedProtocols.PocketShannon) {
+    } else if (transferOptions.network.protocol === SupportedProtocols.Cosmos) {
       tx = {
         ...baseTx,
-        protocol: SupportedProtocols.PocketShannon,
+        protocol: SupportedProtocols.Cosmos,
         fee: transferOptions.transactionParams.shannonFee.value,
         memo: transferOptions.transactionParams.memo,
       };

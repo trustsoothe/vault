@@ -1,7 +1,7 @@
 import { z } from "zod";
 import browser from "webextension-polyfill";
 import {
-  DAOAction, PocketNetworkShannonTransactionTypes,
+  DAOAction, CosmosTransactionTypes,
   PocketNetworkTransactionTypes,
   SupportedProtocols,
 } from "@poktscan/vault";
@@ -41,19 +41,19 @@ export type BaseTransaction = z.infer<typeof BaseTransaction>;
 export type SwapTo = BaseTransaction["swapTo"];
 
 export const PoktShannonFee = z.object({
-  protocol: z.literal(SupportedProtocols.PocketShannon),
+  protocol: z.literal(SupportedProtocols.Cosmos),
   amount: z.string(),
   denom: z.string(),
 });
 
 export const PoktShannonTransaction = BaseTransaction.extend({
-  protocol: z.literal(SupportedProtocols.PocketShannon),
+  protocol: z.literal(SupportedProtocols.Cosmos),
   fee: z.number(),
   memo: z.string().optional(),
   to: z.string().optional(),
   type: z
-    .nativeEnum(PocketNetworkShannonTransactionTypes)
-    .default(PocketNetworkShannonTransactionTypes.Send),
+    .nativeEnum(CosmosTransactionTypes)
+    .default(CosmosTransactionTypes.Send),
   transactionParams: z
     .object({
       shannonFee: PoktShannonFee,
@@ -237,7 +237,7 @@ export default class TransactionDatasource {
       case "Ethereum":
         transaction = EthTransaction.parse(rawTransaction);
         break;
-      case "PocketShannon":
+      case "Cosmos":
         transaction = PoktShannonTransaction.parse(rawTransaction);
         break;
       default:

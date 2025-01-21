@@ -1,5 +1,5 @@
 import orderBy from "lodash/orderBy";
-import React, { useMemo } from "react";
+import React, {useMemo, useState} from "react";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
@@ -21,8 +21,12 @@ import {
 import {
   changeSelectedNetwork,
   toggleShowTestNetworks,
+  NetworkNotice as NetworkTagType,
 } from "../../../redux/slices/app";
 import { themeColors } from "../../theme";
+import NetworkNoticeTag from "./NetworkNoticeTag";
+import {enqueueSnackbar} from "../../../utils/ui";
+import {closeSnackbar} from "notistack";
 
 interface NetworkSelectModalProps {
   open: boolean;
@@ -35,6 +39,7 @@ export default function NetworkSelectModal({
 }: NetworkSelectModalProps) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const [currentSnackbarKey, setCurrentSnackbarKey] = useState(null);
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedChain = useAppSelector(selectedChainSelector);
   const networks = useAppSelector((state) => state.app.networks);
@@ -59,6 +64,23 @@ export default function NetworkSelectModal({
     );
     onClose();
   };
+
+  const showNetworkTagSnackbar = (tag: NetworkTagType) => {
+    if (currentSnackbarKey) {
+      closeSnackbar(currentSnackbarKey); // Close the current snackbar
+    }
+
+    const newKey = enqueueSnackbar({
+      key: tag.name,
+      variant: "info",
+      message: {
+        title: tag.descriptionTitle,
+        content: tag.descriptionContent,
+      }
+    });
+
+    setCurrentSnackbarKey(newKey);
+  }
 
   const optionsToShow: typeof networks = useMemo(() => {
     const networkFiltered = [];
@@ -103,6 +125,8 @@ export default function NetworkSelectModal({
             selectedProtocol === option.protocol &&
             selectedChain === option.chainId;
 
+          const labelMaxLength = option.notices?.length > 0 ? 150 : 180;
+
           return (
             <Button
               key={option.protocol + option.chainId}
@@ -133,10 +157,48 @@ export default function NetworkSelectModal({
                   src={option.iconUrl}
                   alt={`${option.protocol}-${option.chainId}-img`}
                 />
-                <Typography variant={"subtitle2"}>{option.label}</Typography>
+                <Stack direction="row" justifyContent="space-between" spacing={4} alignItems="center">
+                  <Stack
+                    alignItems="flex-start"
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        maxWidth: `${labelMaxLength}px`,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {option.label}
+                    </Typography>
+                    <Typography
+                      variant={"body2"}
+                      sx={{
+                        color: themeColors.textSecondary,
+                      }}
+                      >
+                      {option.wip?.descriptionTitle ?? ''}
+                    </Typography>
+                  </Stack>
+                </Stack>
               </Stack>
-
-              {isSelected && <SelectedIcon />}
+              <Stack direction={"row"} alignItems={"center"} justifyContent={'flex-end'} spacing={1.2}>
+                {
+                  (option.notices || []).map((notice) => (
+                    <NetworkNoticeTag
+                      key={notice.name}
+                      notice={notice}
+                      onClick={showNetworkTagSnackbar}
+                    />
+                  ))
+                }
+                <div style={{
+                  minWidth: 10,
+                }}>
+                  {isSelected && <SelectedIcon />}
+                </div>
+              </Stack>
             </Button>
           );
         })}

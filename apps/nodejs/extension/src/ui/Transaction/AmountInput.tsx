@@ -6,7 +6,7 @@ import TextField from "@mui/material/TextField";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   EthereumNetworkFee,
-  PocketNetworkFee, PocketNetworkShannonFee,
+  PocketNetworkFee, CosmosFee,
   SupportedProtocols,
 } from "@poktscan/vault";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
@@ -105,8 +105,8 @@ export default function AmountInput({
           if (!formValues.fee || (isLoadingBalance && !balance)) return "";
 
           const fee = Number(
-            [SupportedProtocols.Pocket, SupportedProtocols.PocketShannon].includes(formValues.protocol)
-              ? (formValues.fee as PocketNetworkFee | PocketNetworkShannonFee).value
+            [SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(formValues.protocol)
+              ? (formValues.fee as PocketNetworkFee | CosmosFee).value
               : formValues.fee[formValues.txSpeed].amount
           );
 

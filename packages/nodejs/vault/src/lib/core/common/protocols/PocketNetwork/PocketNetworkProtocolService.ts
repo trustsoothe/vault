@@ -4,7 +4,7 @@ import { fromUint8Array } from "hex-lite";
 import {
   AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
-  CreateAccountOptions,
+  CreateAccountOptions, DeriveAddressOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService,
   SignPersonalDataRequest,
@@ -431,8 +431,8 @@ export class PocketNetworkProtocolService
     return Buffer.from(txBytes).toString("hex");
   }
 
-  async getAddressFromPrivateKey(privateKey: string): Promise<string> {
-    const publicKey = this.getPublicKeyFromPrivateKey(privateKey);
+  async getAddressFromPrivateKey(options: DeriveAddressOptions): Promise<string> {
+    const publicKey = this.getPublicKeyFromPrivateKey(options.privateKey);
 
     return this.getAddressFromPublicKey(publicKey);
   }

@@ -1,7 +1,7 @@
 import {
   AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
-  CreateAccountOptions,
+  CreateAccountOptions, DeriveAddressOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService, SignPersonalDataRequest,
   ValidateTransactionResult
@@ -13,14 +13,14 @@ import {NetworkStatus} from "../../values/NetworkStatus";
 import {IProtocolTransactionResult, ProtocolTransaction} from "../ProtocolTransaction";
 import {Account, AccountType} from "../../../vault";
 import {IEncryptionService} from "../../encryption/IEncryptionService";
-import {PocketNetworkShannonProtocolTransaction} from "./PocketNetworkShannonProtocolTransaction";
+import {CosmosProtocolTransaction} from "./CosmosProtocolTransaction";
 import {fromHex, toHex, toUtf8} from "@cosmjs/encoding";
 import {ArgumentError, InvalidPrivateKeyError, NetworkRequestError, RecoveryPhraseError} from "../../../../errors";
 import {coins, DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing";
 import {Bip39, EnglishMnemonic, Random, Secp256k1, sha256, Slip10, Slip10Curve} from "@cosmjs/crypto";
-import {PocketNetworkShannonFee} from "./PocketNetworkShannonFee";
+import {CosmosFee} from "./CosmosFee";
 import {
-  PocketNetworkShannonProtocolTransactionSchema,
+  CosmosProtocolTransactionSchema,
   PocketShannonProtocolNetworkSchema,
   PocketShannonRpcCanSendTransactionResponseSchema
 } from "./schemas";
@@ -31,10 +31,8 @@ import { wordlist } from "@scure/bip39/wordlists/english";
 import { TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { BroadcastMode } from "cosmjs-types/cosmos/tx/v1beta1/service";
 
-const ADDRESS_PREFIX = "pokt";
-
-export class PocketNetworkShannonProtocolService
-  implements IProtocolService<SupportedProtocols.PocketShannon>
+export class CosmosProtocolService
+  implements IProtocolService<SupportedProtocols.Cosmos>
 {
   constructor(private encryptionService: IEncryptionService) {}
 
@@ -64,6 +62,10 @@ export class PocketNetworkShannonProtocolService
       throw new InvalidPrivateKeyError(options.privateKey);
     }
 
+    if (!options.addressPrefix) {
+      throw new ArgumentError("options.addressPrefix");
+    }
+
     let finalPrivateKey = options.privateKey;
 
     if (options.passphrase) {
@@ -73,7 +75,7 @@ export class PocketNetworkShannonProtocolService
       );
     }
 
-    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(options.privateKey), ADDRESS_PREFIX);
+    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(options.privateKey), options.addressPrefix);
     const [account] = await wallet.getAccounts();
 
     return new Account({
@@ -83,6 +85,7 @@ export class PocketNetworkShannonProtocolService
       publicKey: toHex(account.pubkey),
       privateKey: finalPrivateKey,
       secure: !options.skipEncryption,
+      addressPrefix: options.addressPrefix,
     });
   }
 
@@ -99,15 +102,16 @@ export class PocketNetworkShannonProtocolService
         name: options.seedAccountName || "HD Account",
         seedId: options.recoveryPhraseId,
         accountType: AccountType.HDSeed,
-        protocol: SupportedProtocols.PocketShannon,
+        protocol: SupportedProtocols.Cosmos,
         publicKey: 'N/A',
         privateKey: toHex(seed),
         address: "N/A",
         secure: false,
+        addressPrefix: options.addressPrefix,
     });
 
     const hdPath = makeCosmoshubPath(0);
-    const wallet: DirectSecp256k1HdWallet = await DirectSecp256k1HdWallet.fromMnemonic(options.recoveryPhrase, { prefix: ADDRESS_PREFIX, hdPaths: [hdPath]});
+    const wallet: DirectSecp256k1HdWallet = await DirectSecp256k1HdWallet.fromMnemonic(options.recoveryPhrase, { prefix: options.addressPrefix, hdPaths: [hdPath]});
     const [account] = await wallet.getAccounts();
     const { privkey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, hdPath);
 
@@ -116,12 +120,13 @@ export class PocketNetworkShannonProtocolService
       address: account.address,
       name: `${seedAccount.name} 1`,
       accountType: AccountType.HDChild,
-      protocol: SupportedProtocols.PocketShannon,
+      protocol: SupportedProtocols.Cosmos,
       privateKey: toHex(privkey),
       parentId: seedAccount.id,
       hdwIndex: 0,
       hdwAccountIndex: 0, // TODO: Parameterize this if we will allow users to use more than one account from the same seeds
       secure: false, // TODO: Parameterize this if we will allow users to set a password per account
+      addressPrefix: options.addressPrefix,
     })
 
     return [
@@ -134,28 +139,33 @@ export class PocketNetworkShannonProtocolService
     const { seedAccount, index, name } = options;
     const hdPath = makeCosmoshubPath(index);
     const { privkey } = Slip10.derivePath(Slip10Curve.Secp256k1, fromHex(seedAccount.privateKey), hdPath);
-    const wallet = await DirectSecp256k1Wallet.fromKey(privkey, ADDRESS_PREFIX);
+    const wallet = await DirectSecp256k1Wallet.fromKey(privkey, options.addressPrefix);
     const [account] = await wallet.getAccounts();
     return new Account({
       publicKey: toHex(account.pubkey),
       address: account.address,
       name: name ? name : `${seedAccount.name} ${index + 1}`,
       accountType: AccountType.HDChild,
-      protocol: SupportedProtocols.PocketShannon,
+      protocol: SupportedProtocols.Cosmos,
       privateKey: toHex(privkey),
       parentId: seedAccount.id,
       hdwIndex: index,
       hdwAccountIndex: 0, // TODO: Parameterize this if we will allow users to use more than one account from the same seeds
       secure: false, // TODO: Parameterize this if we will allow users to set a password per account
+      addressPrefix: options.addressPrefix,
     });
   }
 
-  async getAddressFromPrivateKey(privateKey: string): Promise<string> {
-    if (!this.isValidPrivateKey(privateKey)) {
-      throw new InvalidPrivateKeyError(privateKey);
+  async getAddressFromPrivateKey(options: DeriveAddressOptions): Promise<string> {
+    if (!this.isValidPrivateKey(options.privateKey)) {
+      throw new InvalidPrivateKeyError(options.privateKey);
     }
 
-    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), ADDRESS_PREFIX);
+    if (!options.addressPrefix) {
+      throw new ArgumentError("options.addressPrefix");
+    }
+
+    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(options.privateKey), options.addressPrefix);
     const [account] = await wallet.getAccounts();
     return account.address;
   }
@@ -179,10 +189,10 @@ export class PocketNetworkShannonProtocolService
     }
   }
 
-  async getFee(network: INetwork): Promise<PocketNetworkShannonFee> {
+  async getFee(network: INetwork): Promise<CosmosFee> {
     // @ts-ignore
     return {
-      protocol: SupportedProtocols.PocketShannon,
+      protocol: SupportedProtocols.Cosmos,
       value: 0,
       denom: 'upokt',
     };
@@ -198,7 +208,7 @@ export class PocketNetworkShannonProtocolService
         name: "faucet",
         publicKey: "N/A",
         address: "pokt1v3mcrj0h2zfekyf2n8m369x4v9wfvdm34hecd9",
-        protocol: SupportedProtocols.PocketShannon,
+        protocol: SupportedProtocols.Cosmos,
       }), network);
       updatedStatus.updateBalanceStatus(true);
     } catch (err) {
@@ -273,7 +283,7 @@ export class PocketNetworkShannonProtocolService
     );
   }
 
-  async sendTransaction(network: INetwork, transaction: PocketNetworkShannonProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.PocketShannon>> {
+  async sendTransaction(network: INetwork, transaction: CosmosProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.Cosmos>> {
     if (!network) {
       throw new ArgumentError("network");
     }
@@ -282,7 +292,7 @@ export class PocketNetworkShannonProtocolService
       throw new ArgumentError("transaction");
     }
 
-    const {success} = PocketNetworkShannonProtocolTransactionSchema.safeParse(transaction);
+    const {success} = CosmosProtocolTransactionSchema.safeParse(transaction);
 
     if (!success) {
       throw new ArgumentError("transaction");
@@ -323,13 +333,13 @@ export class PocketNetworkShannonProtocolService
       await client.broadcastTx(txBytes, BroadcastMode.BROADCAST_MODE_ASYNC);
       const transactionHash = toHex(sha256(txBytes)).toUpperCase();
       return {
-        protocol: SupportedProtocols.PocketShannon,
+        protocol: SupportedProtocols.Cosmos,
         transactionHash,
       };
     } catch (err) {
       if (err instanceof TimeoutError) {
         return {
-          protocol: SupportedProtocols.PocketShannon,
+          protocol: SupportedProtocols.Cosmos,
           transactionHash: err.txId
         };
       }
@@ -346,7 +356,7 @@ export class PocketNetworkShannonProtocolService
     return toHex(signature.toFixedLength());
   }
 
-  async validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.PocketShannon>, network: INetwork): Promise<ValidateTransactionResult> {
+  async validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.Cosmos>, network: INetwork): Promise<ValidateTransactionResult> {
     return new ValidateTransactionResult([]);
   }
 

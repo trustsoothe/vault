@@ -1571,6 +1571,7 @@ export default <
     const examplePrivateKey = '11efd4cbe76f72db4b22d7197d482df76972c27116d66b33e1968b3e1464ad4f'
     const examplePublicKey = '02c48dbd7180c1aa0e6b9a47596d5df2143b42efbc51724c23362dc631ec8ba973';
     const expectedAddress = 'pokt1pf4sq2cfz76kxrzg0afj0g3x76zqy9jzx7wmn0';
+    const addressPrefix = 'pokt';
 
     async function createVaultAndImportAccountFromPK(skipEncryption: boolean = false) {
       const {vaultTeller, session: ownerSession, passphrase} = await createVault();
@@ -1579,6 +1580,7 @@ export default <
         protocol: pocketAsset.protocol,
         passphrase: skipEncryption ? undefined : passphrase,
         privateKey: examplePrivateKey,
+        addressPrefix,
       })
       return {passphrase, vaultTeller, ownerSession, account};
     }
@@ -1592,7 +1594,7 @@ export default <
       'pokt1gkrz37zt0kepp5y83d7amgxemvex505mq6qtxz',
     ]
 
-    const protocol: SupportedProtocols.PocketShannon = SupportedProtocols.PocketShannon
+    const protocol: SupportedProtocols.Cosmos = SupportedProtocols.Cosmos
 
     const pocketAsset = new Asset({
       name: 'Example Asset',
@@ -1644,6 +1646,7 @@ export default <
             name: 'example-account',
             protocol: pocketAsset.protocol,
             passphrase,
+            addressPrefix,
           });
           const accounts = await vaultTeller.listAccounts(session.id)
           expect(accounts).toEqual([account])
@@ -1705,6 +1708,7 @@ export default <
             protocol: pocketAsset.protocol,
             passphrase,
             privateKey: examplePrivateKey,
+            addressPrefix,
           });
 
           await expect(createAccountOperation).rejects.toThrow(VaultRestoreError)
@@ -1731,6 +1735,7 @@ export default <
             protocol: pocketAsset.protocol,
             passphrase,
             privateKey: examplePrivateKey,
+            addressPrefix,
           })
 
           await expect(createAccountOperation).rejects.toThrow(AccountExistError)
@@ -1744,6 +1749,7 @@ export default <
             protocol: pocketAsset.protocol,
             passphrase,
             privateKey: examplePrivateKey,
+            addressPrefix,
           }, true)
 
           expect(accountWithSameName.name).toEqual(account.name)
@@ -1778,6 +1784,7 @@ export default <
             name: 'example-account',
             protocol: pocketAsset.protocol,
             passphrase: new Passphrase('passphrase'),
+            addressPrefix,
           })
 
           await expect(createAccountOperation).rejects.toThrow(VaultRestoreError)
@@ -1818,6 +1825,7 @@ export default <
             name: 'example-account',
             protocol: pocketAsset.protocol,
             passphrase,
+            addressPrefix,
           })
 
           expect(account.name).toBe('example-account')
@@ -1833,6 +1841,7 @@ export default <
             name: 'example-account',
             protocol: pocketAsset.protocol,
             passphrase,
+            addressPrefix,
           })
 
           const accounts = await vaultTeller.listAccounts(session.id)
@@ -1851,6 +1860,7 @@ export default <
             name: 'example-account',
             protocol: pocketAsset.protocol,
             privateKey: examplePrivateKey,
+            addressPrefix,
           })
 
           expect(account.name).toEqual('example-account')
@@ -1868,6 +1878,7 @@ export default <
             name: 'example-account',
             protocol: pocketAsset.protocol,
             privateKey: examplePrivateKey,
+            addressPrefix,
           })
 
           expect(account.isSecure).toEqual(false);
@@ -1920,6 +1931,7 @@ export default <
             protocol: pocketAsset.protocol,
             passphrase,
             privateKey: examplePrivateKey,
+            addressPrefix,
           }
 
           const account = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, newAccountOptions)
@@ -2076,6 +2088,7 @@ export default <
             const options: AddHDWalletAccountExternalRequest = {
               protocol,
               recoveryPhraseId: newRecoveryPhrase.id,
+              addressPrefix,
             }
 
             const hdChildren = await createManyChildren(vaultTeller, session, passphrase, options, 4)
@@ -2112,6 +2125,7 @@ export default <
             const options = {
               recoveryPhraseId: newRecoveryPhrase.id,
               protocol,
+              addressPrefix,
             }
 
             // First child was created as part of the seed import
@@ -2122,6 +2136,7 @@ export default <
             const newChild = await vaultTeller.addHDWalletAccount(session.id, passphrase, {
               recoveryPhraseId: newRecoveryPhrase.id,
               protocol,
+              addressPrefix,
             });
 
             // The new child is expected to get have the index of the second child (1) which we removed
@@ -2156,11 +2171,12 @@ export default <
     describe('get public key', () => {
       test('returns the public key of the account', async () => {
         const {vaultTeller, session: ownerSession, passphrase} = await createVault();
-        const account = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase, {
+        const account = await vaultTeller.createAccountFromPrivateKey(ownerSession.id, passphrase,  {
           name: 'example-account',
           protocol,
           skipEncryption: true,
           privateKey: examplePrivateKey,
+          addressPrefix,
         })
 
         const publicKey = await vaultTeller.getPublicKey(ownerSession.id, expectedAddress)

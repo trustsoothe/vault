@@ -8,7 +8,7 @@ import {
 } from "@poktscan/vault";
 import { selectedChainByProtocolSelector } from "../../redux/selectors/network";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
-import { labelByProtocolMap } from "../../constants/protocols";
+import {labelByAddressPrefixMap, labelByProtocolMap} from "../../constants/protocols";
 import CopyAddressButton from "../Home/CopyAddressButton";
 import WarningActionBanner from "./WarningActionBanner";
 import SuccessActionBanner from "./SuccessActionBanner";
@@ -75,6 +75,7 @@ export default function AccountFeedback({
             value: (
               <CopyAddressButton
                 address={account.address}
+                prefix={account.prefix}
                 sxProps={{
                   fontWeight: 500,
                   boxShadow: "none",
@@ -88,7 +89,7 @@ export default function AccountFeedback({
           {
             type: "row",
             label: "Protocol",
-            value: labelByProtocolMap[account.protocol],
+            value: labelByProtocolMap[account.protocol] || labelByAddressPrefixMap[account.prefix],
           },
         ]}
       />

@@ -1,6 +1,6 @@
 import type { RootState } from "../store";
-import type { CustomRPC, Network } from "../slices/app";
-import { SupportedProtocols } from "@poktscan/vault";
+import {CustomRPC, Network, NetworkFeature} from "../slices/app";
+import {AccountReference, SerializedAccountReference, SupportedProtocols} from "@poktscan/vault";
 
 export const networksSelector = (state: RootState) => state.app.networks;
 export const showTestNetworkSelector = (state: RootState) =>
@@ -16,6 +16,24 @@ export const selectedChainSelector = (state: RootState) => {
   const selectedProtocol = state.app.selectedProtocol;
   return state.app.selectedChainByProtocol[selectedProtocol];
 };
+
+export const selectedNetworkSelector = (state: RootState) => {
+  const selectedProtocol = state.app.selectedProtocol;
+  const selectedChain = state.app.selectedChainByProtocol[selectedProtocol];
+
+  return state.app.networks.find(
+    (network) =>
+      network.protocol === selectedProtocol && network.chainId === selectedChain
+  );
+}
+
+export const defaultSelectableProtocolSelector = (protocol?: SupportedProtocols) => (state: RootState) => {
+  const candidateProtocol = protocol ?? state.app.selectedProtocol;
+  const networks = networksSelector(state);
+
+  // TODO: This is needs to be revised when we integrate more cosmos based chains in order to support app connections for them.
+  return networks.find((n) => n.protocol === candidateProtocol && n.isProtocolDefault);
+}
 
 export const networkSymbolSelector = (state: RootState) => {
   const selectedProtocol = state.app.selectedProtocol;
@@ -109,8 +127,9 @@ export const explorerAccountUrlForWpoktSelector = (state: RootState) => {
   )?.explorerAccountUrl;
 };
 
-export const canNetworkBeSelected = (network: Network) => (state: RootState) =>
-  state.app.networksCanBeSelected[network.protocol].includes(network.chainId);
+export const canNetworkBeSelected = (network: Network) => (state: RootState) => {
+  return state.app.networksCanBeSelected[network.protocol].includes(network.chainId);
+}
 
 export const chainIdLabelSelector = (rpc: CustomRPC) => (state: RootState) =>
   state.app.networks.find(
@@ -119,3 +138,40 @@ export const chainIdLabelSelector = (rpc: CustomRPC) => (state: RootState) =>
   )?.chainIdLabel;
 
 export const customRpcsSelector = (state: RootState) => state.app.customRpcs;
+
+export const networkByAccountSelector = (account: SerializedAccountReference) => (
+  state: RootState
+) => {
+  const networkByPrefix = state.app.networks.find(
+    (network) => network.addressPrefix === account?.prefix
+  );
+
+  return networkByPrefix || state.app.networks.find(
+    (network) => network.protocol === account?.protocol && network.isProtocolDefault
+  );
+}
+
+export const isSwapDisabledSelector = (state: RootState) => {
+  const selectedNetwork = selectedNetworkSelector(state);
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Swap));
+}
+
+export const isSendDisabledSelector = (state: RootState) => {
+  const selectedNetwork = selectedNetworkSelector(state);
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Send));
+}
+
+export const isBalanceDisabledSelector = (state: RootState) => {
+  const selectedNetwork = selectedNetworkSelector(state);
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Balance));
+}
+
+export const isPoktTransactionActionsDisabledSelector = (state: RootState) => {
+  const selectedNetwork = selectedNetworkSelector(state);
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.PoktTransactionActions));
+}
+
+export const isAssetsDisabledSelector = (state: RootState) => {
+  const selectedNetwork = selectedNetworkSelector(state);
+  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Assets));
+}

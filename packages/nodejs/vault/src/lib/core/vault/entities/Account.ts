@@ -20,6 +20,7 @@ export interface SerializedAccount extends IEntity {
   hdwAccountIndex?: number
   createdAt: number
   updatedAt: number
+  addressPrefix?: string
 }
 
 export interface AccountOptions {
@@ -34,6 +35,7 @@ export interface AccountOptions {
   parentId?: string
   hdwIndex?: number
   hdwAccountIndex?: number
+  addressPrefix?: string
 }
 
 export interface AccountUpdateOptions {
@@ -54,6 +56,7 @@ export class Account implements IEntity {
   private readonly _parentId?: string
   private readonly _hdwIndex?: number
   private readonly _hdwAccountIndex?: number
+  private readonly _addressPrefix: string = ''
   private _createdAt: number
   private _updatedAt: number
 
@@ -112,6 +115,7 @@ export class Account implements IEntity {
     this._hdwAccountIndex = isNumber(options.hdwAccountIndex) ? options.hdwAccountIndex : undefined
     this._createdAt = Date.now()
     this._updatedAt = Date.now()
+    this._addressPrefix = options.addressPrefix || ''
   }
 
   get id(): string {
@@ -175,6 +179,10 @@ export class Account implements IEntity {
     return this._seedId
   }
 
+  get addressPrefix(): string {
+    return this._addressPrefix
+  }
+
   serialize(): SerializedAccount {
     return {
       id: this.id,
@@ -191,6 +199,7 @@ export class Account implements IEntity {
       parentId: this.parentId,
       hdwIndex: this.hdwIndex,
       hdwAccountIndex: this.hdwAccountIndex,
+      addressPrefix: this.addressPrefix
     }
   }
 
@@ -206,7 +215,8 @@ export class Account implements IEntity {
       seedId: serializedAccount.seedId,
       parentId: serializedAccount.parentId,
       hdwIndex: serializedAccount.hdwIndex,
-      hdwAccountIndex: serializedAccount.hdwAccountIndex
+      hdwAccountIndex: serializedAccount.hdwAccountIndex,
+      addressPrefix: serializedAccount.addressPrefix
     }
 
     const deserializedAccount =  new Account(options, serializedAccount.id)
@@ -228,6 +238,7 @@ export class Account implements IEntity {
         hdwIndex: this.hdwIndex,
         seedId: this.seedId,
         publicKey: this.publicKey,
+        prefix: this.addressPrefix
       });
   }
 }

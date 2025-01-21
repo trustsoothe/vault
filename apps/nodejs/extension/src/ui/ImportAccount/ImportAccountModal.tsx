@@ -1,6 +1,5 @@
 import type {
   SerializedAccountReference,
-  SupportedProtocols,
 } from "@poktscan/vault";
 import { shallowEqual } from "react-redux";
 import browser from "webextension-polyfill";
@@ -9,14 +8,16 @@ import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import React, { useEffect, useRef, useState } from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   changeSelectedAccountOfNetwork,
-  changeSelectedNetwork,
+  changeSelectedNetwork, NetworkFeature,
 } from "../../redux/slices/app";
 import {
+  defaultSelectableProtocolSelector,
+  networksSelector,
   selectedChainByProtocolSelector,
   selectedProtocolSelector,
 } from "../../redux/selectors/network";
@@ -40,6 +41,7 @@ import {
 import { getAddressFromPrivateKey } from "../../utils/networkOperations";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { enqueueErrorSnackbar, enqueueSnackbar } from "../../utils/ui";
+import NetworkNotice from "../components/NetworkNotice";
 
 export interface ImportAccountFormValues {
   import_type: "private_key" | "json_file";
@@ -47,7 +49,7 @@ export interface ImportAccountFormValues {
   json_file?: File | null;
   file_password?: string;
   account_name: string;
-  protocol?: SupportedProtocols;
+  protocol?: string;
 }
 
 type FormStatus = "normal" | "loading" | "account_exists" | "success";
@@ -77,6 +79,9 @@ export default function ImportAccountModal({
   const [wrongFilePassword, setWrongFilePassword] = useState(false);
   const [accountAlreadyExists, setAccountAlreadyExists] =
     useState<SerializedAccountReference>(null);
+  const networks = useAppSelector(networksSelector);
+  const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector());
+  const selectableProtocolId = selectableNetwork?.id;
 
   const methods = useForm<ImportAccountFormValues>({
     defaultValues: {
@@ -85,7 +90,7 @@ export default function ImportAccountModal({
       json_file: null,
       file_password: "",
       account_name: "",
-      protocol: selectedProtocol,
+      protocol: selectableProtocolId,
     },
   });
   const {
@@ -105,9 +110,9 @@ export default function ImportAccountModal({
     setValue("json_file", null);
     setValue("file_password", "");
     clearErrors(["private_key", "json_file"]);
-    setValue("protocol", selectedProtocol);
+    setValue("protocol", selectableProtocolId);
     setWrongFilePassword(false);
-  }, [type, selectedProtocol]);
+  }, [type, selectableProtocolId]);
 
   useDidMountEffect(() => {
     if (isPopup && type === "json_file") {
@@ -158,7 +163,7 @@ export default function ImportAccountModal({
         json_file: null,
         file_password: "",
         account_name: "",
-        protocol: selectedProtocol,
+        protocol: selectableProtocolId,
       });
       setStatus("normal");
     }, 150);
@@ -169,12 +174,24 @@ export default function ImportAccountModal({
       clearTimeout(timeout);
     };
   }, [open]);
+
+  const isCreateAccountDisabled = useMemo(() => {
+    const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
+    return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+  }, [watch("protocol"), networks]);
+
+  const createAccountDisablingNotice = useMemo(() => {
+    const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
+    return selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+  }, [isCreateAccountDisabled]);
+
   const onSubmit = async (data: ImportAccountFormValues) => {
     setStatus("loading");
+    const selectedNetwork = networks.find((n) => n.id === data.protocol);
 
     let privateKey: string;
     try {
-      privateKey = await getPrivateKey(data, data.protocol);
+      privateKey = await getPrivateKey(data, selectedNetwork.protocol);
     } catch (e) {
       if (e?.name === INVALID_FILE_PASSWORD.name) {
         setWrongFilePassword(true);
@@ -189,8 +206,9 @@ export default function ImportAccountModal({
     }
 
     AppToBackground.importAccount({
-      protocol: data.protocol,
+      protocol: selectedNetwork.protocol,
       name: data.account_name,
+      addressPrefix: selectedNetwork.addressPrefix,
       privateKey,
     }).then(async (response) => {
       if (response.error) {
@@ -201,11 +219,13 @@ export default function ImportAccountModal({
       } else {
         const address = await getAddressFromPrivateKey(
           privateKey,
-          data.protocol
+          selectedNetwork.protocol,
+          selectedNetwork.addressPrefix
         );
+
         if (response.data.accountAlreadyExists) {
           const account = accounts.find(
-            (a) => a.address === address && a.protocol === data.protocol
+            (a) => a.address === address && a.protocol === selectedNetwork.protocol
           );
 
           if (account) {
@@ -214,11 +234,11 @@ export default function ImportAccountModal({
           }
         } else {
           Promise.all([
-            ...(selectedProtocol !== data.protocol
+            ...(selectedProtocol !== selectedNetwork.protocol
               ? [
                   dispatch(
                     changeSelectedNetwork({
-                      network: data.protocol,
+                      network: selectedNetwork.protocol,
                       chainId: selectedChainByProtocol[data.protocol],
                     })
                   ),
@@ -226,7 +246,7 @@ export default function ImportAccountModal({
               : []),
             dispatch(
               changeSelectedAccountOfNetwork({
-                protocol: data.protocol,
+                protocol: selectedNetwork.protocol,
                 address: address,
               })
             ).unwrap(),
@@ -268,44 +288,50 @@ export default function ImportAccountModal({
               marginBottom={2}
               color={themeColors.textSecondary}
             >
-              You’ll be able to use this account for every network of the
-              protocol selected.
+              {isCreateAccountDisabled ? 'Account creation is disabled for this network.' : 'You’ll be able to use this account for every network of the protocol selected.'}
             </Typography>
-            <Controller
-              control={control}
-              name={"account_name"}
-              rules={nameRules}
-              render={({ field, fieldState: { error } }) => (
-                <TextField
-                  autoFocus
-                  autoComplete={"off"}
-                  disabled={isLoading}
-                  placeholder={"Account Name"}
-                  {...field}
-                  error={!!error}
-                  helperText={error?.message}
-                  sx={{
-                    marginBottom: error ? 3 : 1.6,
-                  }}
+            {!isCreateAccountDisabled && (
+              <>
+                <Controller
+                  control={control}
+                  name={"account_name"}
+                  rules={nameRules}
+                  render={({ field, fieldState: { error } }) => (
+                    <TextField
+                      autoFocus
+                      autoComplete={"off"}
+                      disabled={isLoading}
+                      placeholder={"Account Name"}
+                      {...field}
+                      error={!!error}
+                      helperText={error?.message}
+                      sx={{
+                        marginBottom: error ? 3 : 1.6,
+                      }}
+                    />
+                  )}
                 />
-              )}
-            />
-            <FormProvider {...methods}>
-              <ImportForm
-                disableInputs={isLoading}
-                wrongFilePassword={wrongFilePassword}
-                infoText={
-                  "Import your account using your private key or your portable wallet (file)."
-                }
-              />
-            </FormProvider>
+                <FormProvider {...methods}>
+                  <ImportForm
+                    disableInputs={isLoading}
+                    wrongFilePassword={wrongFilePassword}
+                    infoText={
+                      "Import your account using your private key or your portable wallet (file)."
+                    }
+                  />
+                </FormProvider>
+              </>
+            )}
+            {isCreateAccountDisabled && createAccountDisablingNotice && (
+              <NetworkNotice notice={createAccountDisablingNotice} />
+            )}
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Import",
                 type: "submit",
-                disabled: isValidating,
+                disabled: isValidating || isCreateAccountDisabled,
                 isLoading,
               }}
               secondaryButtonProps={{

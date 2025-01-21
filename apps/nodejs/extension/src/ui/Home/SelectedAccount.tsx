@@ -11,11 +11,15 @@ import CopyAddressButton from "./CopyAddressButton";
 import SendIcon from "../assets/img/send_icon.svg";
 import SwapIcon from "../assets/img/swap_icon.svg";
 import { useAppSelector } from "../hooks/redux";
-import { roundAndSeparate } from "../../utils/ui";
+import {roundAndSeparate} from "../../utils/ui";
 import { themeColors } from "../theme";
 import { selectedAccountSelector } from "../../redux/selectors/account";
 import { TxStatus, useLazyGetActiveMintsQuery } from "../../redux/slices/wpokt";
-import { selectedChainSelector } from "../../redux/selectors/network";
+import {
+  isSendDisabledSelector,
+  isSwapDisabledSelector,
+  selectedChainSelector,
+} from "../../redux/selectors/network";
 import useSelectedAsset from "./hooks/useSelectedAsset";
 import GrayContainer from "../components/GrayContainer";
 import { ACTIVITY_PAGE } from "../../constants/routes";
@@ -51,6 +55,9 @@ export default function SelectedAccount() {
         .length,
     }),
   });
+
+  const isSwapDisabled = useAppSelector(isSwapDisabledSelector);
+  const isSendDisabled = useAppSelector(isSendDisabledSelector);
 
   const mustShowMintTransactions = selectedAsset?.symbol === "WPOKT";
 
@@ -147,7 +154,10 @@ export default function SelectedAccount() {
           </Typography>
         )}
 
-        <CopyAddressButton address={selectedAccount?.address} />
+        <CopyAddressButton
+          address={selectedAccount?.address}
+          prefix={selectedAccount?.prefix}
+        />
         <Stack
           width={1}
           spacing={1.3}
@@ -172,13 +182,20 @@ export default function SelectedAccount() {
             },
           }}
         >
-          <Button className={"send-btn"} onClick={openSendModal}>
+          <Button
+            disabled={isSendDisabled}
+            className={"send-btn"}
+            onClick={openSendModal}
+          >
             <span>Send</span>
             <SendIcon />
           </Button>
           {(selectedAccount?.protocol === SupportedProtocols.Pocket ||
             selectedAsset?.symbol === "WPOKT") && (
-            <Button onClick={initSwap}>
+            <Button
+              disabled={isSwapDisabled}
+              onClick={initSwap}
+            >
               <span>Swap</span>
               <SwapIcon />
             </Button>

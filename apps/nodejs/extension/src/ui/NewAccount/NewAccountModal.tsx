@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+ import type { SupportedProtocols } from "@poktscan/vault";
 import { shallowEqual } from "react-redux";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
@@ -7,15 +7,17 @@ import { useForm, Controller } from "react-hook-form";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import React, { useEffect, useRef, useState } from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+  defaultSelectableProtocolSelector,
+  networksSelector,
   selectedChainByProtocolSelector,
   selectedProtocolSelector,
 } from "../../redux/selectors/network";
 import {
   changeSelectedAccountOfNetwork,
-  changeSelectedNetwork,
+  changeSelectedNetwork, NetworkFeature,
 } from "../../redux/slices/app";
 import { ACCOUNTS_PAGE, REQUEST_CONNECTION_PAGE } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
@@ -33,11 +35,12 @@ import MenuDivider from "../components/MenuDivider";
 import AccountInfo from "../components/AccountInfo";
 import BaseDialog from "../components/BaseDialog";
 import { themeColors } from "../theme";
+ import NetworkNotice from "../components/NetworkNotice";
 
 interface FormValues {
   type: "standalone" | string;
   account_name: string;
-  protocol: SupportedProtocols;
+  protocol: string;
 }
 
 type FormStatus = "normal" | "loading" | "success";
@@ -75,6 +78,7 @@ export default function NewAccountModal({
   const navigateToAccountsPage =
     location.pathname === "/accounts" ||
     location.pathname === REQUEST_CONNECTION_PAGE;
+  const networks = useAppSelector(networksSelector);
 
   const seeds = useAppSelector(seedsSelector);
   const selectedAccount = useAppSelector(selectedAccountSelector, shallowEqual);
@@ -82,20 +86,23 @@ export default function NewAccountModal({
   const selectedChainByProtocol = useAppSelector(
     selectedChainByProtocolSelector
   );
+
   const [status, setStatus] = useState<FormStatus>("normal");
 
-  const { reset, control, handleSubmit, setValue } = useForm<FormValues>({
+  const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector(protocolFromProps));
+  const selectedProtocol = selectableNetwork?.id;
+
+  const { reset, control, handleSubmit, setValue, getValues } = useForm<FormValues>({
     defaultValues: {
       account_name: "",
-      protocol: protocolFromProps || protocol,
+      protocol: selectedProtocol,
       type: "",
     },
   });
 
   useDidMountEffect(() => {
-    if (protocolFromProps) return;
-    setValue("protocol", protocol);
-  }, [protocol]);
+    setValue("protocol", selectedProtocol);
+  }, [selectedProtocol]);
 
   const closeSnackbars = () => {
     if (errorSnackbarKey.current) {
@@ -108,7 +115,7 @@ export default function NewAccountModal({
     const timeout = setTimeout(() => {
       reset({
         account_name: "",
-        protocol: protocolFromProps || protocol,
+        protocol: selectedProtocol,
         type: "",
       });
       setStatus("normal");
@@ -121,24 +128,35 @@ export default function NewAccountModal({
     };
   }, [open]);
 
+  const isCreateAccountDisabled = useMemo(() => {
+    const selectedNetwork = networks.find((n) => n.id === getValues("protocol"));
+    return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+  }, [getValues("protocol"), networks]);
+
+  const createAccountDisablingNotice = useMemo(() => {
+    const selectedNetwork = networks.find((n) => n.id === getValues("protocol"));
+    return selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+  }, [isCreateAccountDisabled]);
+
   const onSubmit = async (data: FormValues) => {
     setStatus("loading");
+      const selectedNetwork = networks.find((n) => n.id === data.protocol);
 
     const updateSelection = (address: string) => {
       return Promise.all([
-        ...(protocol !== data.protocol
+        ...(protocol !== selectedNetwork.protocol
           ? [
               dispatch(
                 changeSelectedNetwork({
-                  network: data.protocol,
-                  chainId: selectedChainByProtocol[data.protocol],
+                  network: selectedNetwork.protocol,
+                  chainId: selectedChainByProtocol[selectedNetwork.protocol],
                 })
               ).unwrap(),
             ]
           : []),
         dispatch(
           changeSelectedAccountOfNetwork({
-            protocol: data.protocol,
+            protocol: selectedNetwork.protocol,
             address,
           })
         ).unwrap(),
@@ -153,7 +171,8 @@ export default function NewAccountModal({
         rejected: false,
         accountData: {
           name: data.account_name,
-          protocol: data.protocol,
+          protocol: selectedNetwork.protocol,
+          addressPrefix: selectedNetwork.addressPrefix,
         },
       });
 
@@ -169,8 +188,9 @@ export default function NewAccountModal({
     } else {
       const result = await AppToBackground.createAccountFromHdSeed({
         recoveryPhraseId: data.type,
-        protocol: data.protocol,
+        protocol: selectedNetwork.protocol,
         name: data.account_name,
+        addressPrefix: selectedNetwork.addressPrefix,
       });
 
       if (result.error) {
@@ -266,32 +286,38 @@ export default function NewAccountModal({
                   marginBottom={2}
                   color={themeColors.textSecondary}
                 >
-                  You’ll be able to use this account for every network of the
-                  protocol selected.
+                  {isCreateAccountDisabled ? 'Account creation is disabled for this network.' : 'You’ll be able to use this account for every network of the protocol selected.'}
                 </Typography>
               </>
             )}
-            <Controller
-              control={control}
-              name={"account_name"}
-              rules={nameRules}
-              render={({ field, fieldState: { error } }) => (
-                <TextField
-                  disabled={isLoading}
-                  autoComplete={"off"}
-                  placeholder={"Account Name"}
-                  {...field}
-                  error={!!error}
-                  helperText={error?.message}
-                />
-              )}
-            />
+            {!isCreateAccountDisabled && (
+              <Controller
+                control={control}
+                name={"account_name"}
+                rules={nameRules}
+                render={({ field, fieldState: { error } }) => (
+                  <TextField
+                    disabled={isLoading}
+                    autoComplete={"off"}
+                    placeholder={"Account Name"}
+                    {...field}
+                    error={!!error}
+                    helperText={error?.message}
+                  />
+                )}
+              />
+              )
+            }
+            {isCreateAccountDisabled && createAccountDisablingNotice && (
+              <NetworkNotice notice={createAccountDisablingNotice} />
+            )}
           </DialogContent>
           <DialogActions sx={{ padding: 0, height: 85 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Create",
                 type: "submit",
+                disabled: isCreateAccountDisabled,
                 isLoading,
               }}
               secondaryButtonProps={{
