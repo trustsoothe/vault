@@ -1,5 +1,11 @@
 # @poktscan/extension
 
+## 0.1.1
+
+### Patch Changes
+
+- 49e4adc: Updates the github_token permissions on the release workflow so that it can write contents
+
 ## 0.1.0
 
 ### Minor Changes
