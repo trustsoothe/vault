@@ -1,6 +1,6 @@
 {
   "name": "@poktscan/vault",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Universal Crypto Wallet Manager",
   "repository": "git@github.com/pokt-scan/soothe-vault.git",
   "author": "Julio Henriquez <julio@poktscan.com>",
