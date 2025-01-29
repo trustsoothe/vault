@@ -168,36 +168,8 @@
         "@poktscan/vault>@cosmjs/amino>@cosmjs/utils": true,
         "@poktscan/vault>@cosmjs/encoding": true,
         "@poktscan/vault>@cosmjs/proto-signing": true,
-        "@poktscan/vault>@cosmjs/stargate>@confio/ics23": true,
-        "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream": true,
         "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc": true,
         "@poktscan/vault>@cosmjs/stargate>cosmjs-types": true
-      }
-    },
-    "@poktscan/vault>@cosmjs/stargate>@confio/ics23": {
-      "packages": {
-        "@poktscan/vault>@cosmjs/stargate>@confio/ics23>@noble/hashes": true,
-        "@poktscan/vault>@cosmjs/stargate>@confio/ics23>protobufjs": true
-      }
-    },
-    "@poktscan/vault>@cosmjs/stargate>@confio/ics23>@noble/hashes": {
-      "globals": {
-        "TextEncoder": true,
-        "crypto": true
-      }
-    },
-    "@poktscan/vault>@cosmjs/stargate>@confio/ics23>protobufjs": {
-      "globals": {
-        "setTimeout": true
-      },
-      "packages": {
-        "@poktscan/vault>protobufjs>@protobufjs/aspromise": true,
-        "@poktscan/vault>protobufjs>@protobufjs/base64": true,
-        "@poktscan/vault>protobufjs>@protobufjs/eventemitter": true,
-        "@poktscan/vault>protobufjs>@protobufjs/float": true,
-        "@poktscan/vault>protobufjs>@protobufjs/inquire": true,
-        "@poktscan/vault>protobufjs>@protobufjs/pool": true,
-        "@poktscan/vault>protobufjs>@protobufjs/utf8": true
       }
     },
     "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream": {
@@ -205,7 +177,32 @@
         "setTimeout": true
       },
       "packages": {
-        "@poktscan/vault>@cosmjs/stargate>xstream": true
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream>xstream": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream>xstream": {
+      "globals": {
+        "clearInterval": true,
+        "clearTimeout": true,
+        "console.log": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream>xstream>globalthis": true,
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream>xstream>symbol-observable": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream>xstream>symbol-observable": {
+      "globals": {},
+      "packages": {
+        "symbol-observable": true
+      }
+    },
+    "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream>xstream>globalthis": {
+      "packages": {
+        "assert>is-nan>define-properties": true,
+        "assert>util>which-typed-array>gopd": true
       }
     },
     "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc": {
@@ -220,10 +217,10 @@
         "@poktscan/vault>@cosmjs/crypto": true,
         "@poktscan/vault>@cosmjs/encoding": true,
         "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream": true,
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream>xstream": true,
         "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/json-rpc": true,
         "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket": true,
-        "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>axios": true,
-        "@poktscan/vault>@cosmjs/stargate>xstream": true
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>axios": true
       }
     },
     "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/json-rpc": {
@@ -238,8 +235,8 @@
       },
       "packages": {
         "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream": true,
+        "@poktscan/vault>@cosmjs/stargate>@cosmjs/stream>xstream": true,
         "@poktscan/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket>isomorphic-ws": true,
-        "@poktscan/vault>@cosmjs/stargate>xstream": true,
         "process": true
       }
     },
@@ -281,25 +278,6 @@
     "@poktscan/vault>@cosmjs/stargate>cosmjs-types": {
       "packages": {
         "browserify>buffer": true
-      }
-    },
-    "@poktscan/vault>@cosmjs/stargate>xstream": {
-      "globals": {
-        "clearInterval": true,
-        "clearTimeout": true,
-        "console.log": true,
-        "setInterval": true,
-        "setTimeout": true
-      },
-      "packages": {
-        "@poktscan/vault>@cosmjs/stargate>xstream>globalthis": true,
-        "@poktscan/vault>@cosmjs/stargate>xstream>symbol-observable": true
-      }
-    },
-    "@poktscan/vault>@cosmjs/stargate>xstream>globalthis": {
-      "packages": {
-        "assert>is-nan>define-properties": true,
-        "assert>util>which-typed-array>gopd": true
       }
     },
     "@poktscan/vault>@metamask/eth-sig-util": {
