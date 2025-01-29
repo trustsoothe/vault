@@ -159,7 +159,7 @@ export const exportVault = createAsyncThunk(
 
     const vaultToExport: VaultBackupSchema = {
       vault: encryptedVault,
-      version: "0.0.6",
+      version: "0.1.2",
       settings: {
         contacts: currentAppState.contacts,
         customRpcs: currentAppState.customRpcs,
