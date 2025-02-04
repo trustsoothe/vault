@@ -82,7 +82,7 @@ export default function PasswordStrengthBar(props: PasswordStrengthBarProps) {
           borderRadius: "2.5px",
           flexDirection: "row-reverse",
           alignItems: "center",
-          "& div:first-child": {
+          "& div:first-of-type": {
             "& div": {
               width: "8px!important",
               height: "8px!important",
