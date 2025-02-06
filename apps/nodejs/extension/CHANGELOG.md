@@ -1,5 +1,12 @@
 # @poktscan/extension
 
+## 0.1.2
+
+### Patch Changes
+
+- f2fa398: Updates lavamaout policies to support comojs upgraded.
+- 01c4fb4: Removes warnings on the extensions management view. Reduces bundle size.
+
 ## 0.1.1
 
 ### Patch Changes
