@@ -28,8 +28,6 @@ import {calculateFee, GasPrice, SigningStargateClient, StargateClient, TimeoutEr
 import { makeCosmoshubPath } from '@cosmjs/amino';
 import { validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english";
-import { TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx";
-import { BroadcastMode } from "cosmjs-types/cosmos/tx/v1beta1/service";
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos>
@@ -328,10 +326,8 @@ export class CosmosProtocolService
         memo: "",
       };
 
-      const txRaw = await client.sign(from, tx.msgs, tx.fee, tx.memo);
-      const txBytes = TxRaw.encode(txRaw).finish();
-      await client.broadcastTx(txBytes, BroadcastMode.BROADCAST_MODE_ASYNC);
-      const transactionHash = toHex(sha256(txBytes)).toUpperCase();
+      const transactionHash = await client.signAndBroadcastSync(from, tx.msgs, tx.fee, tx.memo);
+
       return {
         protocol: SupportedProtocols.Cosmos,
         transactionHash,

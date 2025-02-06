@@ -2,6 +2,7 @@ const { nodeExternalsPlugin } = require('esbuild-node-externals')
 const getPackages = require('get-monorepo-packages')
 const esbuild = require('esbuild')
 const packages = getPackages('../../../')
+const fs = require('fs')
 
 const watch = process.argv[2]
 
@@ -59,7 +60,10 @@ module.exports = {
     } else {
       esbuild
         .build(buildOptions)
-        .then(() => {
+        .then((result) => {
+          if (result.metafile) {
+            fs.writeFileSync('dist/meta.json', JSON.stringify(result.metafile, null, 2))
+          }
           console.log('Build Finished')
           process.exit(0)
         })

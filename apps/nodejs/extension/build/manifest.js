@@ -37,8 +37,8 @@ const baseChromiumManifest = {
     service_worker: "js/background.js",
   },
   externally_connectable: {
-    ids: [],
-    matches: [],
+    ids: ['*'],
+    matches: ['http://*/*', 'https://*/*'],
   },
   permissions: [...basePermissions, "activeTab", "tabs"],
 };

@@ -10,7 +10,6 @@ export const sendTransactionHandlerFactory = (network: INetwork) => {
 
   // @ts-ignore
   const sendTransactionResolver = async (req, res, ctx) => {
-    const body = req.body;
     return res(
       ctx.status(200),
       ctx.json({
@@ -28,8 +27,6 @@ export const sendTransactionHandlerFactory = (network: INetwork) => {
   };
 
   return [
-    // @ts-ignore
-    rest.post(url.toString(), withCosmosMethod('status', queryStatusResolver)),
     // @ts-ignore
     rest.post(url.toString(), withCosmosMethod('broadcast_tx_sync', sendTransactionResolver)),
   ];
