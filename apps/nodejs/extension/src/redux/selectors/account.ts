@@ -1,5 +1,5 @@
 import type { RootState } from "../store";
-import { AccountType } from "@poktscan/vault";
+import { AccountType } from "@soothe/vault";
 
 export const selectedAccountAddressSelector = (state: RootState) => {
   const selectedProtocol = state.app.selectedProtocol;

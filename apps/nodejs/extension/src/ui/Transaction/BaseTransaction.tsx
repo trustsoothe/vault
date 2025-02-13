@@ -10,7 +10,7 @@ import {
   PocketNetworkFee,
   CosmosFee,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../utils/ui";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { isValidAddress } from "../../utils/networkOperations";

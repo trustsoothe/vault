@@ -1,4 +1,4 @@
-import type { SerializedAccountReference } from "@poktscan/vault";
+import type { SerializedAccountReference } from "@soothe/vault";
 import { saveAs } from "file-saver";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";

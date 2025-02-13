@@ -1,6 +1,6 @@
-import {AssetStorage} from '@poktscan/vault'
-import type {IStorage, SerializedAsset} from '@poktscan/vault'
-import {GenericExtensionStorage} from './GenericExtensionStorage'
+import { AssetStorage } from '@soothe/vault'
+import type { IStorage, SerializedAsset } from '@soothe/vault'
+import { GenericExtensionStorage } from './GenericExtensionStorage'
 
 export class ExtensionAssetStorage extends AssetStorage {
   private readonly assetStorage: IStorage<SerializedAsset> = new GenericExtensionStorage<SerializedAsset>('assets_set')
@@ -29,7 +29,7 @@ export class ExtensionAssetStorage extends AssetStorage {
     const result = await this.assetStorage.list()
     return [
       ...this._defaults,
-      ...result
+      ...result,
     ]
   }
 }

@@ -1,7 +1,7 @@
 import Stack from "@mui/material/Stack";
 import React, { useEffect } from "react";
 import { shallowEqual } from "react-redux";
-import { AccountType } from "@poktscan/vault";
+import { AccountType } from "@soothe/vault";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 import { selectedProtocolSelector } from "../../redux/selectors/network";

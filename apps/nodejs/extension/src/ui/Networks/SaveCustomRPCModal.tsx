@@ -9,7 +9,7 @@ import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import React, { useMemo, useRef, useState } from "react";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import { enqueueErrorSnackbar, enqueueSnackbar } from "../../utils/ui";
 import { isNetworkUrlHealthy } from "../../utils/networkOperations";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";

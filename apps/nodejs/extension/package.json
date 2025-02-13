@@ -1,5 +1,5 @@
 {
-  "name": "@poktscan/extension",
+  "name": "@soothe/extension",
   "version": "0.1.2",
   "description": "Soothe Vault: browser web extension app for Firefox and Chromium based browsers to manage EVM, Cosmos and Pocket based wallets",
   "main": "build/lavamoat/build.js",
@@ -17,8 +17,12 @@
     "release:chromium": "yarn clean:dist && yarn build:chromium && mkdir -p releases && cd dist && zip -r ../releases/soothe-vault-chromium-$(jq .version ../package.json -r).zip *",
     "release:firefox": "yarn clean:dist && yarn build:firefox && mkdir -p releases && cd dist && zip -r ../releases/soothe-vault-firefox-$(jq .version ../package.json -r).zip *"
   },
-  "repository": "git@github.com:pokt-scan/soothe-vault.git",
-  "author": "Alan Rojas <alan@poktscan.com>",
+  "repository": "git@github.com:trustsoothe/vault.git",
+  "homepage": "https://trustsoothe.io",
+  "bugs": {
+    "url": "https://github.com/trustsoothe/vault/issues",
+    "email": "support@trustsoothe.io"
+  },
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
@@ -73,9 +77,9 @@
     "@browserify/uglifyify": "6.0.0",
     "@lavamoat/allow-scripts": "3.0.0",
     "@lavamoat/snow": "2.0.1",
-    "@poktscan/vault": "*",
-    "@poktscan/vault-encryption-web": "*",
-    "@poktscan/vault-storage-extension": "*",
+    "@soothe/vault": "*",
+    "@soothe/vault-encryption-web": "*",
+    "@soothe/vault-storage-extension": "*",
     "@svgr/webpack": "8.1.0",
     "@types/chrome": "0.0.237",
     "@types/events": "3.0.3",
@@ -128,14 +132,14 @@
   },
   "lavamoat": {
     "allowScripts": {
-      "@poktscan/vault>protobufjs": false,
-      "@poktscan/vault>vitest>jsdom>ws>bufferutil": false,
-      "@poktscan/vault>vitest>jsdom>ws>utf-8-validate": false,
-      "@poktscan/vault>vitest>vite>esbuild": false,
+      "@soothe/vault>protobufjs": false,
+      "@soothe/vault>vitest>jsdom>ws>bufferutil": false,
+      "@soothe/vault>vitest>jsdom>ws>utf-8-validate": false,
+      "@soothe/vault>vitest>vite>esbuild": false,
       "net-browserify>express-ws>ws": false,
-      "@poktscan/vault>ethereumjs-util>ethereum-cryptography>keccak": false,
-      "@poktscan/vault>ethereumjs-util>ethereum-cryptography>secp256k1": false,
-      "@poktscan/vault>hdkey>secp256k1": false
+      "@soothe/vault>ethereumjs-util>ethereum-cryptography>keccak": false,
+      "@soothe/vault>ethereumjs-util>ethereum-cryptography>secp256k1": false,
+      "@soothe/vault>hdkey>secp256k1": false
     }
   }
 }

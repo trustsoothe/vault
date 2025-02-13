@@ -1,7 +1,7 @@
 import React from "react";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import AvatarByString from "./AvatarByString";
 import { useAppSelector } from "../hooks/redux";
 import { getTruncatedText } from "../../utils/ui";

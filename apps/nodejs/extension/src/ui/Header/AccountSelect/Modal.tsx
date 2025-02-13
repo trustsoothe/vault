@@ -5,7 +5,7 @@ import {
   Account,
   AccountType,
   SerializedAccountReference,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import BaseDialog from "../../components/BaseDialog";
 import {
   accountsSelector,

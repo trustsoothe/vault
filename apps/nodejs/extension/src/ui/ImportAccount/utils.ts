@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import { getPrivateKeyFromPPK } from "../../utils/networkOperations";
 import { ImportAccountFormValues } from "./ImportAccountModal";
 import { INVALID_FILE_PASSWORD } from "../../errors/account";

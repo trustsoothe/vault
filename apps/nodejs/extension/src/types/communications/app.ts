@@ -3,7 +3,7 @@ import type {
   PocketNetworkFee,
   SupportedProtocols,
   CosmosFee,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import type { IAsset } from "../../redux/slices/app";
 import type { BaseResponse, UnknownErrorType } from "./common";
 import {

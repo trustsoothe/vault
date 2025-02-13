@@ -34,7 +34,7 @@ jobs:
       - name: Install Dependencies
         run: yarn
       - name: Build Extension Dependencies
-        run: yarn turbo run build --filter=\!@poktscan/extension
+        run: yarn turbo run build --filter=\!@soothe/extension
       - name: Prepare Chromium Release Asset
         run: yarn release:chromium
       - name: Prepare Firefox Release Asset

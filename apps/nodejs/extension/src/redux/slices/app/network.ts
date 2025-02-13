@@ -2,7 +2,7 @@ import type { AppSliceBuilder } from "../../../types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { v4 } from "uuid";
 import browser from "webextension-polyfill";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import { CUSTOM_RPCS_KEY, CustomRPC, resetErrorOfNetwork } from "./index";
 import { RPC_ALREADY_EXISTS } from "../../../errors/rpc";
 
@@ -19,9 +19,11 @@ export const loadNetworksFromStorage = createAsyncThunk(
     });
 
     return (result[NETWORKS_STORAGE_KEY] || []).filter((item) =>
-      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(
-        item.protocol
-      )
+      [
+        SupportedProtocols.Ethereum,
+        SupportedProtocols.Pocket,
+        SupportedProtocols.Cosmos,
+      ].includes(item.protocol)
     );
   }
 );
@@ -32,9 +34,11 @@ export const loadNetworksFromCdn = createAsyncThunk(
     const result = await fetch(NETWORKS_CDN_URL).then((res) => res.json());
 
     const resultProcessed = result.filter((item) =>
-      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(
-        item.protocol
-      )
+      [
+        SupportedProtocols.Ethereum,
+        SupportedProtocols.Pocket,
+        SupportedProtocols.Cosmos,
+      ].includes(item.protocol)
     );
 
     await browser.storage.local.set({
@@ -53,9 +57,11 @@ export const loadAssetsFromStorage = createAsyncThunk(
     });
 
     return (result[ASSETS_STORAGE_KEY] || []).filter((item) =>
-      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(
-        item.protocol
-      )
+      [
+        SupportedProtocols.Ethereum,
+        SupportedProtocols.Pocket,
+        SupportedProtocols.Cosmos,
+      ].includes(item.protocol)
     );
   }
 );
@@ -66,9 +72,11 @@ export const loadAssetsFromCdn = createAsyncThunk(
     const result = await fetch(ASSETS_CDN_URL).then((res) => res.json());
 
     const resultProcessed = result.filter((item) =>
-      [SupportedProtocols.Ethereum, SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(
-        item.protocol
-      )
+      [
+        SupportedProtocols.Ethereum,
+        SupportedProtocols.Pocket,
+        SupportedProtocols.Cosmos,
+      ].includes(item.protocol)
     );
 
     await browser.storage.local.set({

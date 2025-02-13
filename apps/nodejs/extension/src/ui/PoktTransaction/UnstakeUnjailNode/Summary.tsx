@@ -1,7 +1,7 @@
 import React from "react";
 import Stack from "@mui/material/Stack";
 import { useFormContext } from "react-hook-form";
-import { PocketNetworkFee, SupportedProtocols } from "@poktscan/vault";
+import { PocketNetworkFee, SupportedProtocols } from "@soothe/vault";
 import { AccountInfoFromAddress } from "../../components/AccountInfo";
 import VaultPasswordInput from "../../Transaction/VaultPasswordInput";
 import SummaryValidator from "../SummaryValidator";

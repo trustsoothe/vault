@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import type { TransactionFormValues } from "./BaseTransaction";
 import React, { useState } from "react";
 import Stack from "@mui/material/Stack";

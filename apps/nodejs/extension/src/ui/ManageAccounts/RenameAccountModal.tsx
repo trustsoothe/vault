@@ -1,4 +1,4 @@
-import type { SerializedAccountReference } from "@poktscan/vault";
+import type { SerializedAccountReference } from "@soothe/vault";
 import React from "react";
 import TextField from "@mui/material/TextField";
 import { useEffect, useRef, useState } from "react";

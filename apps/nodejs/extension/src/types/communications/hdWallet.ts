@@ -1,7 +1,7 @@
 import type {
   SerializedAccountReference,
   SerializedRecoveryPhraseReference,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import type { CreateNewAccountFromHdSeedArg } from "../../redux/slices/vault/account";
 import {
   CREATE_ACCOUNT_FROM_HD_SEED_REQUEST,

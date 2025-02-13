@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, test, beforeAll, afterAll} from "vitest";
+import { afterEach, describe, expect, test, beforeAll, afterAll } from 'vitest'
 import {
   AccountReference,
   ArgumentError,
@@ -7,24 +7,24 @@ import {
   CosmosProtocolService,
   CosmosProtocolTransaction,
   CosmosTransactionTypes, SignPersonalDataRequest,
-  SupportedProtocols
-} from "@poktscan/vault";
-import {WebEncryptionService} from "@poktscan/vault-encryption-web";
-import ProtocolServiceSpecFactory from "../IProtocolService.specFactory";
-import {setupServer} from "msw/node";
+  SupportedProtocols,
+} from '@soothe/vault'
+import { WebEncryptionService } from '@soothe/vault-encryption-web'
+import ProtocolServiceSpecFactory from '../IProtocolService.specFactory'
+import { setupServer } from 'msw/node'
 import {
   sendTransactionHandlerFactory,
   queryStatusHandlerFactory,
   queryAccountHandlerFactory,
-  queryTransactionHandlerFactory
-} from "../../../../../mocks/cosmos";
+  queryTransactionHandlerFactory,
+} from '../../../../../mocks/cosmos'
 
 describe('CosmosProtocolService', () => {
-  const network : INetwork = {
-    rpcUrl: "http://localhost:8080",
+  const network: INetwork = {
+    rpcUrl: 'http://localhost:8080',
     protocol: SupportedProtocols.Cosmos,
-    chainID: "poktroll",
-  };
+    chainID: 'poktroll',
+  }
 
   const account =
     new AccountReference({
@@ -34,10 +34,10 @@ describe('CosmosProtocolService', () => {
       protocol: SupportedProtocols.Cosmos,
       publicKey: '033878462bdb45290e6c0df06b7719976f257dda75d33a785d3139a98658f82300',
       prefix: 'pokt',
-    });
+    })
 
-  const encryptionService: IEncryptionService = new WebEncryptionService();
-  const protocolService = new CosmosProtocolService(encryptionService);
+  const encryptionService: IEncryptionService = new WebEncryptionService()
+  const protocolService = new CosmosProtocolService(encryptionService)
 
 
   const accountImport = {
@@ -48,63 +48,63 @@ describe('CosmosProtocolService', () => {
 
   ProtocolServiceSpecFactory<SupportedProtocols.Cosmos>(
     () => protocolService,
-    { network, account, accountImport, addressPrefix: 'pokt' }
+    { network, account, accountImport, addressPrefix: 'pokt' },
   )
 
   describe('sendTransaction', () => {
     describe('validations', () => {
       test('throws if Network object provided is invalid', () => {
         // @ts-ignore
-        return expect(() => protocolService.sendTransaction({})).rejects.toThrow(ArgumentError);
+        return expect(() => protocolService.sendTransaction({})).rejects.toThrow(ArgumentError)
       })
 
       test('throws if provided transaction object is not valid', () => {
         // @ts-ignore
-        return expect(protocolService.sendTransaction(network, {})).rejects.toThrow(ArgumentError);
-      });
-    });
+        return expect(protocolService.sendTransaction(network, {})).rejects.toThrow(ArgumentError)
+      })
+    })
 
     describe('When executed', () => {
       const mockServer = setupServer(
         ...queryAccountHandlerFactory(network),
         ...queryStatusHandlerFactory(network),
         ...queryTransactionHandlerFactory(network),
-      );
+      )
 
-        beforeAll(() => mockServer.listen());
-        afterAll(() => mockServer.close());
-        afterEach(() => mockServer.resetHandlers());
+      beforeAll(() => mockServer.listen())
+      afterAll(() => mockServer.close())
+      afterEach(() => mockServer.resetHandlers())
 
-        test('returns transaction hash', async () => {
-          mockServer.use(
-            ...sendTransactionHandlerFactory(network),
-          );
+      test('returns transaction hash', async () => {
+        mockServer.use(
+          ...sendTransactionHandlerFactory(network),
+        )
 
-            const transaction: CosmosProtocolTransaction = {
-              protocol: SupportedProtocols.Cosmos,
-              transactionType: CosmosTransactionTypes.Send,
-              from: accountImport.address,
-              to: account.address,
-              privateKey: accountImport.privateKey,
-              amount: '100',
-              fee: {
-                protocol: SupportedProtocols.Cosmos,
-                value: 0,
-                denom: 'upokt',
-              },
-            };
+        const transaction: CosmosProtocolTransaction = {
+          protocol: SupportedProtocols.Cosmos,
+          transactionType: CosmosTransactionTypes.Send,
+          from: accountImport.address,
+          to: account.address,
+          privateKey: accountImport.privateKey,
+          amount: '100',
+          fee: {
+            protocol: SupportedProtocols.Cosmos,
+            value: 0,
+            denom: 'upokt',
+          },
+        }
 
-            const result = await protocolService.sendTransaction(network, transaction);
+        const result = await protocolService.sendTransaction(network, transaction)
 
-            expect(result).toEqual(expect.objectContaining({
-                transactionHash: 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
-            }));
-        });
-    });
-  });
+        expect(result).toEqual(expect.objectContaining({
+          transactionHash: 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
+        }))
+      })
+    })
+  })
 
   describe('signPersonalData', () => {
-    const pk =  accountImport.privateKey;
+    const pk = accountImport.privateKey
 
     const testCaseExpectations: [string, string, string][] = [
       ['hello world', '75959ecb1cde2eb8f89bee57da0fb8d2b70b80f525e708a07fe0ddc4dce6dcaa724d2bd29d240578c977cd1d2d5fc61c9e774f6fde210a9e2dad1510bac2540801', pk],
@@ -130,9 +130,9 @@ Expiration Time: 2024-08-14T16:25:38.796Z`,
         privateKey,
       }
 
-      const signature = await protocolService.signPersonalData(input);
+      const signature = await protocolService.signPersonalData(input)
 
-      expect(expectedSignature).toEqual(signature);
+      expect(expectedSignature).toEqual(signature)
     })
   })
-});
+})

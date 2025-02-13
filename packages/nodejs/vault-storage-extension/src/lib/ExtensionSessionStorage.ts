@@ -1,8 +1,8 @@
-import type { SerializedSession } from "@poktscan/vault";
-import { GenericExtensionStorage } from "./GenericExtensionStorage";
+import type { SerializedSession } from '@soothe/vault'
+import { GenericExtensionStorage } from './GenericExtensionStorage'
 
 export class ExtensionSessionStorage extends GenericExtensionStorage<SerializedSession> {
   constructor() {
-    super("sessions_set");
+    super('sessions_set')
   }
 }

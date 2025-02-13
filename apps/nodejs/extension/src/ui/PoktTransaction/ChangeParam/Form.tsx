@@ -10,7 +10,7 @@ import Autocomplete from "@mui/material/Autocomplete";
 import ExpandIcon from "@mui/icons-material/OpenInFull";
 import { Controller, useFormContext } from "react-hook-form";
 import CollapseIcon from "@mui/icons-material/CloseFullscreen";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import { selectedChainByProtocolSelector } from "../../../redux/selectors/network";
 import { RenderMessage } from "../../Request/SignTypedData";
 import CopyIcon from "../../assets/img/copy_icon.svg";

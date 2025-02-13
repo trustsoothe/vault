@@ -9,7 +9,7 @@ import Stack from "@mui/material/Stack";
 import React, { useMemo, useState } from "react";
 import IconButton from "@mui/material/IconButton";
 import Autocomplete from "@mui/material/Autocomplete";
-import { AccountType, SupportedProtocols } from "@poktscan/vault";
+import { AccountType, SupportedProtocols } from "@soothe/vault";
 import AccountInfo, { AccountAvatar } from "../components/AccountInfo";
 import TextFieldWithPaste from "../components/TextFieldWithPaste";
 import { contactsSelector } from "../../redux/selectors/contact";

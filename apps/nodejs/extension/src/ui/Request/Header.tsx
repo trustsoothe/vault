@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import React from "react";
 import { styled } from "@mui/material";
 import Typography from "@mui/material/Typography";

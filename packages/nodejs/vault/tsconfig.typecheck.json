@@ -1,9 +1,18 @@
 {
-  "extends": "@poktscan/tsconfig/tsconfig.base.json",
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "coverage"],
+  "extends": "@soothe/tsconfig/tsconfig.base.json",
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage"
+  ],
   "compilerOptions": {
-    "lib": ["es2021", "dom"],
-    "outDir": "dist",
+    "lib": [
+      "es2021",
+      "dom"
+    ],
+    "outDir": "dist"
   }
 }

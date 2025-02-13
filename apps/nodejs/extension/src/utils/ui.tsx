@@ -1,5 +1,5 @@
 import type { AppRequests, UiResponsesToProxy } from "../types/communications";
-import type { SupportedProtocols } from "@poktscan/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import React from "react";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";

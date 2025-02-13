@@ -1,5 +1,5 @@
-import type { SerializedNetwork } from '@poktscan/vault'
-import { NetworkStorage } from '@poktscan/vault'
+import type { SerializedNetwork } from '@soothe/vault'
+import { NetworkStorage } from '@soothe/vault'
 import { GenericExtensionStorage } from './GenericExtensionStorage'
 
 export class ExtensionNetworkStorage extends NetworkStorage {
@@ -8,17 +8,13 @@ export class ExtensionNetworkStorage extends NetworkStorage {
   getById(id: string): Promise<SerializedNetwork | null>
   getById(id: string): Promise<SerializedNetwork | null>
   getById(id: string): Promise<SerializedNetwork | null> {
-    return this.networkStorage.getById(id);
+    return this.networkStorage.getById(id)
   }
 
   list(): Promise<ReadonlyArray<SerializedNetwork>>;
   list(): Promise<ReadonlyArray<SerializedNetwork>>;
   async list(): Promise<ReadonlyArray<SerializedNetwork>> {
-    const result = await this.networkStorage.list()
-    return [
-      ...this._defaults,
-      ...result
-    ];
+    return await this.networkStorage.list()
   }
 
   remove(id: string): Promise<void> {
@@ -34,5 +30,4 @@ export class ExtensionNetworkStorage extends NetworkStorage {
   save(entity: SerializedNetwork): Promise<void> {
     return this.networkStorage.save(entity)
   }
-
 }

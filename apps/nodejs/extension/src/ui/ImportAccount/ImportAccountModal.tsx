@@ -1,6 +1,4 @@
-import type {
-  SerializedAccountReference,
-} from "@poktscan/vault";
+import type { SerializedAccountReference } from "@soothe/vault";
 import { shallowEqual } from "react-redux";
 import browser from "webextension-polyfill";
 import TextField from "@mui/material/TextField";
@@ -8,12 +6,13 @@ import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import React, {useEffect, useMemo, useRef, useState} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   changeSelectedAccountOfNetwork,
-  changeSelectedNetwork, NetworkFeature,
+  changeSelectedNetwork,
+  NetworkFeature,
 } from "../../redux/slices/app";
 import {
   defaultSelectableProtocolSelector,
@@ -177,12 +176,16 @@ export default function ImportAccountModal({
 
   const isCreateAccountDisabled = useMemo(() => {
     const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
-    return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+    return !!selectedNetwork?.notices?.find((notice) =>
+      notice.disables?.includes(NetworkFeature.CreateAccount)
+    );
   }, [watch("protocol"), networks]);
 
   const createAccountDisablingNotice = useMemo(() => {
     const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
-    return selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+    return selectedNetwork?.notices?.find((notice) =>
+      notice.disables?.includes(NetworkFeature.CreateAccount)
+    );
   }, [isCreateAccountDisabled]);
 
   const onSubmit = async (data: ImportAccountFormValues) => {
@@ -225,7 +228,8 @@ export default function ImportAccountModal({
 
         if (response.data.accountAlreadyExists) {
           const account = accounts.find(
-            (a) => a.address === address && a.protocol === selectedNetwork.protocol
+            (a) =>
+              a.address === address && a.protocol === selectedNetwork.protocol
           );
 
           if (account) {
@@ -288,7 +292,9 @@ export default function ImportAccountModal({
               marginBottom={2}
               color={themeColors.textSecondary}
             >
-              {isCreateAccountDisabled ? 'Account creation is disabled for this network.' : 'You’ll be able to use this account for every network of the protocol selected.'}
+              {isCreateAccountDisabled
+                ? "Account creation is disabled for this network."
+                : "You’ll be able to use this account for every network of the protocol selected."}
             </Typography>
             {!isCreateAccountDisabled && (
               <>

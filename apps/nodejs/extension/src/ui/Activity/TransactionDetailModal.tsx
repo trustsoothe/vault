@@ -12,7 +12,7 @@ import {
   PocketNetworkTransactionTypes,
   SerializedAccountReference,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import { AmountWithUsd, getNetworkRow } from "../Transaction/BaseSummary";
 import SuccessActionBanner from "../components/SuccessActionBanner";
 import { contactsSelector } from "../../redux/selectors/contact";

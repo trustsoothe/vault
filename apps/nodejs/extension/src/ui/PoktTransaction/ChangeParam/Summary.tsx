@@ -1,4 +1,4 @@
-import { PocketNetworkFee, SupportedProtocols } from "@poktscan/vault";
+import { PocketNetworkFee, SupportedProtocols } from "@soothe/vault";
 import { z } from "zod";
 import React from "react";
 import Stack from "@mui/material/Stack";

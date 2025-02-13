@@ -13,7 +13,7 @@ import {
   PocketNetworkFee,
   PocketNetworkTransactionTypes,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../utils/ui";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { getTransactionTypeLabel } from "../Request/PoktTransactionRequest";

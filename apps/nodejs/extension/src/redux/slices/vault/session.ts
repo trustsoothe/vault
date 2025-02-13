@@ -7,7 +7,7 @@ import {
   SerializedSession,
   Session,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import browser from "webextension-polyfill";
 import { DISCONNECT_RESPONSE } from "../../../constants/communication";
 import { getVault } from "../../../utils";

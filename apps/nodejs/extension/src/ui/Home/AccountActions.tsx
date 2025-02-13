@@ -10,10 +10,12 @@ import { useSearchParams } from "react-router-dom";
 import {
   PocketNetworkTransactionTypes,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import PoktscanLogo from "../assets/img/poktscan_small_icon.svg";
 import {
-  explorerAccountUrlSelector, isAssetsDisabledSelector, isPoktTransactionActionsDisabledSelector,
+  explorerAccountUrlSelector,
+  isAssetsDisabledSelector,
+  isPoktTransactionActionsDisabledSelector,
   selectedChainSelector,
   selectedNetworkSelector,
 } from "../../redux/selectors/network";
@@ -165,19 +167,29 @@ export default function AccountActions() {
     shallowEqual
   );
   const assets = useAppSelector(assetsSelector);
-  const isPoktTransactionActionsDisabled = useAppSelector(isPoktTransactionActionsDisabledSelector);
+  const isPoktTransactionActionsDisabled = useAppSelector(
+    isPoktTransactionActionsDisabledSelector
+  );
   const isAssetsDisabled = useAppSelector(isAssetsDisabledSelector);
   const isDevMode = useAppSelector((state) => state.app.isDevMode);
 
   const assetsOfAccount = useMemo(
     () =>
-      isAssetsDisabled ? [] : assets.filter(
-        (asset) =>
-          (assetsIdOfAccount || []).includes(asset.id) &&
-          asset.protocol === protocol &&
-          asset.chainId === selectedChain
-      ),
-    [protocol, selectedChain, selectedAccount?.address, assetsIdOfAccount, isAssetsDisabled]
+      isAssetsDisabled
+        ? []
+        : assets.filter(
+            (asset) =>
+              (assetsIdOfAccount || []).includes(asset.id) &&
+              asset.protocol === protocol &&
+              asset.chainId === selectedChain
+          ),
+    [
+      protocol,
+      selectedChain,
+      selectedAccount?.address,
+      assetsIdOfAccount,
+      isAssetsDisabled,
+    ]
   );
 
   let explorerAccountLink: string, domain: string;
@@ -274,11 +286,13 @@ export default function AccountActions() {
         {selectedNetwork?.notices?.length > 0 &&
           selectedNetwork.notices.map((notice) => (
             <NetworkNotice key={notice.name} notice={notice} />
-          ))
-        }
+          ))}
 
-        {protocol === SupportedProtocols.Pocket && !isPoktTransactionActionsDisabled && isDevMode && <PoktTransactionActions />}
-        {protocol === SupportedProtocols.Ethereum && !isAssetsDisabled &&
+        {protocol === SupportedProtocols.Pocket &&
+          !isPoktTransactionActionsDisabled &&
+          isDevMode && <PoktTransactionActions />}
+        {protocol === SupportedProtocols.Ethereum &&
+          !isAssetsDisabled &&
           existsAssetsForSelectedNetwork &&
           !selectedAsset && (
             <Button sx={{ padding: 0 }} onClick={openManageAssetsModal}>

@@ -1,5 +1,5 @@
-import {afterAll, afterEach, beforeAll, describe, expect, test} from "vitest";
-import ProtocolServiceSpecFactory from '../IProtocolService.specFactory';
+import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest'
+import ProtocolServiceSpecFactory from '../IProtocolService.specFactory'
 import {
   AccountReference,
   ArgumentError,
@@ -12,30 +12,30 @@ import {
   SupportedProtocols,
   PocketNetworkTransactionValidationResults,
   PocketNetworkProtocolTransaction, TransactionValidationResultType,
-} from "@poktscan/vault";
+} from '@soothe/vault'
 
 // @ts-ignore
-import {WebEncryptionService} from '@poktscan/vault-encryption-web'
-import {MockServerFactory} from "../../../../../mocks/mock-server-factory";
+import { WebEncryptionService } from '@soothe/vault-encryption-web'
+import { MockServerFactory } from '../../../../../mocks/mock-server-factory'
 
 describe('PocketNetworkProtocolService', () => {
-  const network : INetwork = {
-    rpcUrl: "http://localhost:8080",
+  const network: INetwork = {
+    rpcUrl: 'http://localhost:8080',
     protocol: SupportedProtocols.Pocket,
-    chainID: "testnet",
-  };
+    chainID: 'testnet',
+  }
 
   const account =
-      new AccountReference({
-        id: 'account-id',
-        name: 'test-account',
-        address: 'test-address',
-        protocol: SupportedProtocols.Pocket,
-        publicKey: 'test-public-key',
-      });
+    new AccountReference({
+      id: 'account-id',
+      name: 'test-account',
+      address: 'test-address',
+      protocol: SupportedProtocols.Pocket,
+      publicKey: 'test-public-key',
+    })
 
-  const encryptionService: IEncryptionService = new WebEncryptionService();
-  const protocolService = new PocketNetworkProtocolService(encryptionService);
+  const encryptionService: IEncryptionService = new WebEncryptionService()
+  const protocolService = new PocketNetworkProtocolService(encryptionService)
 
 
   const accountImport = {
@@ -46,36 +46,36 @@ describe('PocketNetworkProtocolService', () => {
 
   ProtocolServiceSpecFactory<SupportedProtocols.Pocket>(
     () => protocolService,
-    { network, account, accountImport }
+    { network, account, accountImport },
   )
 
   describe('getFee', () => {
     describe('validations', () => {
       test('throws if undefined is provided as the network', () => {
         // @ts-ignore
-        return expect(protocolService.getFee(undefined)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.getFee(undefined)).rejects.toThrow(ArgumentError)
       })
 
       test('throws if null is provided as the network', () => {
         // @ts-ignore
-        return expect(protocolService.getFee(null)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.getFee(null)).rejects.toThrow(ArgumentError)
       })
 
       test('throws if non Network object is provided as the network', () => {
         // @ts-ignore
-        return expect(protocolService.getFee({})).rejects.toThrow(ArgumentError);
+        return expect(protocolService.getFee({})).rejects.toThrow(ArgumentError)
       })
     })
 
     describe('Successful requests', () => {
-      const mockServer = new MockServerFactory(network);
-      const server = mockServer.addSuccessfulQueryFeeHandler().buildServer();
+      const mockServer = new MockServerFactory(network)
+      const server = mockServer.addSuccessfulQueryFeeHandler().buildServer()
 
-      beforeAll(() => server.listen());
+      beforeAll(() => server.listen())
 
-      afterEach(() => server.resetHandlers());
+      afterEach(() => server.resetHandlers())
 
-      afterAll(() => server.close());
+      afterAll(() => server.close())
 
       test('returns the fee of the network', async () => {
         const fee = await protocolService.getFee(network)
@@ -87,14 +87,14 @@ describe('PocketNetworkProtocolService', () => {
     })
 
     describe('Unsuccessful requests', () => {
-      const mockServer = new MockServerFactory(network);
-      const server = mockServer.addFailedQueryFeeHandler().buildServer();
+      const mockServer = new MockServerFactory(network)
+      const server = mockServer.addFailedQueryFeeHandler().buildServer()
 
-      beforeAll(() => server.listen());
+      beforeAll(() => server.listen())
 
-      afterEach(() => server.resetHandlers());
+      afterEach(() => server.resetHandlers())
 
-      afterAll(() => server.close());
+      afterAll(() => server.close())
 
       test('throws a request error if request fails', () => {
         return expect(protocolService.getFee(network)).rejects.toThrow(NetworkRequestError)
@@ -103,7 +103,7 @@ describe('PocketNetworkProtocolService', () => {
   })
 
   describe('signPersonalData', () => {
-    const pk = 'c24a7a6f99347bd3ccc0183d3e65f7707f207e0292722625777860b5229c4ea561e495540c744b084a24d32c8b4d7337e670b80d745a640d4c759654b48e10bf';
+    const pk = 'c24a7a6f99347bd3ccc0183d3e65f7707f207e0292722625777860b5229c4ea561e495540c744b084a24d32c8b4d7337e670b80d745a640d4c759654b48e10bf'
 
     const testCaseExpectations: [string, string, string][] = [
       ['hello world', '4f59b1a623035c1a01056e0f3443b257380d742bc3fe8156b45a643bfd9a740dc649674403c40bd166182083a41580b4154f7d90018e600796b8146e08c7500a', pk],
@@ -120,7 +120,7 @@ Chain ID:  mainnet
 Nonce: p0b3n182
 Issued At: 2024-08-12T16:25:38.799Z
 Expiration Time: 2024-08-14T16:25:38.796Z`,
-      '913a5c780be8748914d7dd70f23b47cb49a8814dddc4b17f35d676480c6cb02370e817ad0a1ff8d677594952e4a8b38a435e74a7a11551da6b2a4a6681089f0d', pk],
+        '913a5c780be8748914d7dd70f23b47cb49a8814dddc4b17f35d676480c6cb02370e817ad0a1ff8d677594952e4a8b38a435e74a7a11551da6b2a4a6681089f0d', pk],
     ]
 
     test.each(testCaseExpectations)('For: %s it resolves to: %s', async (challenge, expectedSignature, privateKey) => {
@@ -129,57 +129,57 @@ Expiration Time: 2024-08-14T16:25:38.796Z`,
         privateKey,
       }
 
-      const signature = await protocolService.signPersonalData(input);
+      const signature = await protocolService.signPersonalData(input)
 
-      expect(expectedSignature).toEqual(signature);
+      expect(expectedSignature).toEqual(signature)
     })
   })
 
   describe('validateTransaction', () => {
     describe(`${PocketNetworkTransactionTypes.NodeStake}`, () => {
-      const mockServer = new MockServerFactory(network);
-      const server = mockServer.addSuccessfulQueryNodeHandler().buildServer();
+      const mockServer = new MockServerFactory(network)
+      const server = mockServer.addSuccessfulQueryNodeHandler().buildServer()
 
-      beforeAll(() => server.listen());
+      beforeAll(() => server.listen())
 
-      afterEach(() => server.resetHandlers());
+      afterEach(() => server.resetHandlers())
 
-      afterAll(() => server.close());
+      afterAll(() => server.close())
 
       test('throws if undefined is provided', () => {
         // @ts-ignore
-        return expect(protocolService.validateTransaction(undefined, network)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.validateTransaction(undefined, network)).rejects.toThrow(ArgumentError)
       })
 
       test('throws if null is provided', () => {
         // @ts-ignore
-        return expect(protocolService.validateTransaction(null, network)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.validateTransaction(null, network)).rejects.toThrow(ArgumentError)
       })
 
       test('throws if network is not provided', () => {
         // @ts-ignore
-        return expect(protocolService.validateTransaction({} as any, null)).rejects.toThrow(ArgumentError);
+        return expect(protocolService.validateTransaction({} as any, null)).rejects.toThrow(ArgumentError)
       })
 
       test(`returns "${PocketNetworkTransactionValidationResults.InvalidSigner}"`, async () => {
         const transaction: PocketNetworkProtocolTransaction = {
           protocol: SupportedProtocols.Pocket,
           transactionType: PocketNetworkTransactionTypes.NodeStake,
-            from: 'a931db71f2d88e479b259dad6ea02dae9f83b70c',
+          from: 'a931db71f2d88e479b259dad6ea02dae9f83b70c',
           to: '',
           nodePublicKey: 'af6c2cacd7070eda73ed7b142f88b5d9581b08210aaf609abe336ba36489c5b9',
           amount: '100',
           privateKey: accountImport.privateKey,
         }
 
-        const validationResult =  await protocolService.validateTransaction(transaction, network);
+        const validationResult = await protocolService.validateTransaction(transaction, network)
 
         expect(validationResult.results).toContainEqual({
           type: TransactionValidationResultType.Error,
           message: PocketNetworkTransactionValidationResults.InvalidSigner,
           key: 'privateKey',
-        });
-      });
+        })
+      })
 
       test(`returns "${PocketNetworkTransactionValidationResults.OutputAddressChanged}"`, async () => {
         const transaction: PocketNetworkProtocolTransaction = {
@@ -193,14 +193,14 @@ Expiration Time: 2024-08-14T16:25:38.796Z`,
           outputAddress: 'output-address',
         }
 
-        const validationResult =  await protocolService.validateTransaction(transaction, network);
+        const validationResult = await protocolService.validateTransaction(transaction, network)
 
         expect(validationResult.results).toContainEqual({
           type: TransactionValidationResultType.Info,
           message: PocketNetworkTransactionValidationResults.OutputAddressChanged,
           key: 'outputAddress',
-        });
-      });
-    });
-  });
+        })
+      })
+    })
+  })
 })

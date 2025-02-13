@@ -25,8 +25,8 @@ import {
   SupportedTransferOrigins,
   TransferOptions,
   VaultRestoreErrorName,
-} from "@poktscan/vault";
-import { WebEncryptionService } from "@poktscan/vault-encryption-web";
+} from "@soothe/vault";
+import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import { getVaultPassword, VaultSlice } from "./index";
 import { getVault } from "../../../utils";
 import {
@@ -359,7 +359,7 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
       fromAddress = await getAddressFromPrivateKey(
         transferOptions.from.value,
         transferOptions.network.protocol,
-        transferOptions.network.addressPrefix,
+        transferOptions.network.addressPrefix
       );
     }
 
@@ -400,7 +400,7 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
           ? metadata.amountToSave || transferOptions.amount
           : transferOptions.amount,
       };
-    } else if(transferOptions.network.protocol === SupportedProtocols.Pocket) {
+    } else if (transferOptions.network.protocol === SupportedProtocols.Pocket) {
       tx = {
         ...baseTx,
         protocol: SupportedProtocols.Pocket,

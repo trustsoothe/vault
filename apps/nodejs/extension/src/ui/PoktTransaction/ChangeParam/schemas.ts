@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import { isValidAddress } from "../../../utils/networkOperations";
 
 export const stringSchema = z.string().nonempty();

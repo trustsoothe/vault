@@ -1,4 +1,4 @@
-import type { SerializedRecoveryPhraseReference } from "@poktscan/vault";
+import type { SerializedRecoveryPhraseReference } from "@soothe/vault";
 import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
