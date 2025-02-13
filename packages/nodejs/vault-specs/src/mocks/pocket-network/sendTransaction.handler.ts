@@ -1,10 +1,10 @@
-import {rest} from "msw";
-import Url from 'node:url';
-import urlJoin from "url-join";
-import {INetwork} from "@poktscan/vault";
+import { rest } from 'msw'
+import Url from 'node:url'
+import urlJoin from 'url-join'
+import { INetwork } from '@soothe/vault'
 
 export const sendTransactionHandlerFactory = (network: INetwork) => {
-  const url = new Url.URL(urlJoin(network.rpcUrl, '/v1/client/rawtx'));
+  const url = new Url.URL(urlJoin(network.rpcUrl, '/v1/client/rawtx'))
   return [
     rest.post(url.toString(), async (req, res, ctx) => {
       return res(
@@ -16,10 +16,10 @@ export const sendTransactionHandlerFactory = (network: INetwork) => {
           raw_log: JSON.stringify({
             codespace: 'sdk',
             code: 2,
-            message: 'ERROR:\nCodespace: sdk\nCode: 2\nMessage: "txBytes are empty"\n'
+            message: 'ERROR:\nCodespace: sdk\nCode: 2\nMessage: "txBytes are empty"\n',
           }),
         }),
-      );
+      )
     }),
-  ];
+  ]
 }

@@ -1,9 +1,9 @@
-import React from 'react';
+import React from "react";
 import {
   SupportedTransferDestinations,
   SupportedTransferOrigins,
   CosmosFee,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import Summary from "./Summary";
 import Submitted from "./Submitted";
 import {
@@ -57,7 +57,7 @@ export default function SendPoktShannon({ onCancel }: SendPoktProps) {
           transactionParams: {
             shannonFee: data.fee as CosmosFee,
             memo: data.memo || undefined,
-          }
+          },
         };
       }}
       defaultFormValue={{

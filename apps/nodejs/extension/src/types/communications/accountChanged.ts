@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import { SELECTED_ACCOUNT_CHANGED } from "../../constants/communication";
 
 export interface AccountsChangedToProxy {

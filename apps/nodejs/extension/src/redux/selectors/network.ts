@@ -1,6 +1,10 @@
 import type { RootState } from "../store";
-import {CustomRPC, Network, NetworkFeature} from "../slices/app";
-import {AccountReference, SerializedAccountReference, SupportedProtocols} from "@poktscan/vault";
+import { CustomRPC, Network, NetworkFeature } from "../slices/app";
+import {
+  AccountReference,
+  SerializedAccountReference,
+  SupportedProtocols,
+} from "@soothe/vault";
 
 export const networksSelector = (state: RootState) => state.app.networks;
 export const showTestNetworkSelector = (state: RootState) =>
@@ -25,15 +29,18 @@ export const selectedNetworkSelector = (state: RootState) => {
     (network) =>
       network.protocol === selectedProtocol && network.chainId === selectedChain
   );
-}
+};
 
-export const defaultSelectableProtocolSelector = (protocol?: SupportedProtocols) => (state: RootState) => {
-  const candidateProtocol = protocol ?? state.app.selectedProtocol;
-  const networks = networksSelector(state);
+export const defaultSelectableProtocolSelector =
+  (protocol?: SupportedProtocols) => (state: RootState) => {
+    const candidateProtocol = protocol ?? state.app.selectedProtocol;
+    const networks = networksSelector(state);
 
-  // TODO: This is needs to be revised when we integrate more cosmos based chains in order to support app connections for them.
-  return networks.find((n) => n.protocol === candidateProtocol && n.isProtocolDefault);
-}
+    // TODO: This is needs to be revised when we integrate more cosmos based chains in order to support app connections for them.
+    return networks.find(
+      (n) => n.protocol === candidateProtocol && n.isProtocolDefault
+    );
+  };
 
 export const networkSymbolSelector = (state: RootState) => {
   const selectedProtocol = state.app.selectedProtocol;
@@ -127,9 +134,12 @@ export const explorerAccountUrlForWpoktSelector = (state: RootState) => {
   )?.explorerAccountUrl;
 };
 
-export const canNetworkBeSelected = (network: Network) => (state: RootState) => {
-  return state.app.networksCanBeSelected[network.protocol].includes(network.chainId);
-}
+export const canNetworkBeSelected =
+  (network: Network) => (state: RootState) => {
+    return state.app.networksCanBeSelected[network.protocol].includes(
+      network.chainId
+    );
+  };
 
 export const chainIdLabelSelector = (rpc: CustomRPC) => (state: RootState) =>
   state.app.networks.find(
@@ -139,39 +149,52 @@ export const chainIdLabelSelector = (rpc: CustomRPC) => (state: RootState) =>
 
 export const customRpcsSelector = (state: RootState) => state.app.customRpcs;
 
-export const networkByAccountSelector = (account: SerializedAccountReference) => (
-  state: RootState
-) => {
-  const networkByPrefix = state.app.networks.find(
-    (network) => network.addressPrefix === account?.prefix
-  );
+export const networkByAccountSelector =
+  (account: SerializedAccountReference) => (state: RootState) => {
+    const networkByPrefix = state.app.networks.find(
+      (network) => network.addressPrefix === account?.prefix
+    );
 
-  return networkByPrefix || state.app.networks.find(
-    (network) => network.protocol === account?.protocol && network.isProtocolDefault
-  );
-}
+    return (
+      networkByPrefix ||
+      state.app.networks.find(
+        (network) =>
+          network.protocol === account?.protocol && network.isProtocolDefault
+      )
+    );
+  };
 
 export const isSwapDisabledSelector = (state: RootState) => {
   const selectedNetwork = selectedNetworkSelector(state);
-  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Swap));
-}
+  return !!selectedNetwork?.notices?.find((notice) =>
+    notice.disables?.includes(NetworkFeature.Swap)
+  );
+};
 
 export const isSendDisabledSelector = (state: RootState) => {
   const selectedNetwork = selectedNetworkSelector(state);
-  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Send));
-}
+  return !!selectedNetwork?.notices?.find((notice) =>
+    notice.disables?.includes(NetworkFeature.Send)
+  );
+};
 
 export const isBalanceDisabledSelector = (state: RootState) => {
   const selectedNetwork = selectedNetworkSelector(state);
-  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Balance));
-}
+  return !!selectedNetwork?.notices?.find((notice) =>
+    notice.disables?.includes(NetworkFeature.Balance)
+  );
+};
 
 export const isPoktTransactionActionsDisabledSelector = (state: RootState) => {
   const selectedNetwork = selectedNetworkSelector(state);
-  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.PoktTransactionActions));
-}
+  return !!selectedNetwork?.notices?.find((notice) =>
+    notice.disables?.includes(NetworkFeature.PoktTransactionActions)
+  );
+};
 
 export const isAssetsDisabledSelector = (state: RootState) => {
   const selectedNetwork = selectedNetworkSelector(state);
-  return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.Assets));
-}
+  return !!selectedNetwork?.notices?.find((notice) =>
+    notice.disables?.includes(NetworkFeature.Assets)
+  );
+};

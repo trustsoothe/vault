@@ -77,7 +77,7 @@ import {
   UnauthorizedErrorSessionInvalid,
   UnknownError,
 } from "../../errors/communication";
-import { SupportedProtocols, ValidateTransactionResult } from "@poktscan/vault";
+import { SupportedProtocols, ValidateTransactionResult } from "@soothe/vault";
 
 export type ExternalBasePoktTxErrors =
   | BaseErrors

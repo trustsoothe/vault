@@ -1,4 +1,4 @@
-import { EthereumNetworkFee, SupportedProtocols } from "@poktscan/vault";
+import { EthereumNetworkFee, SupportedProtocols } from "@soothe/vault";
 import type { TransactionFormValues } from "./BaseTransaction";
 import React from "react";
 import Stack from "@mui/material/Stack";

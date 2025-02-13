@@ -1,10 +1,10 @@
-import {describe} from 'vitest'
+import { describe } from 'vitest'
 import VaultTellerSpecFactory from './VaultTeller.specFactory'
 // @ts-ignore
-import {FileSystemVaultStorage, FileSystemSessionStorage} from '@poktscan/vault-storage-filesystem'
+import { FileSystemVaultStorage, FileSystemSessionStorage } from '@soothe/vault-storage-filesystem'
 // @ts-ignore
-import {WebEncryptionService} from '@poktscan/vault-encryption-web'
-import {IStorage, IVaultStore, SerializedSession} from "@poktscan/vault"
+import { WebEncryptionService } from '@soothe/vault-encryption-web'
+import { IStorage, IVaultStore, SerializedSession } from '@soothe/vault'
 
 describe('VaultTeller with FileSystemStorage and WebEncryption', () => {
   const vaultStorageFactory = (): IVaultStore => new FileSystemVaultStorage(`/tmp/test-vault-${Date.now()}.json`)

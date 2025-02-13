@@ -2,13 +2,13 @@ import type {
   SerializedAccountReference,
   SerializedSession,
   SerializedRecoveryPhraseReference,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import type { RootState } from "../../store";
 import { v4 } from "uuid";
 import browser from "webextension-polyfill";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { Passphrase, VaultRestoreErrorName } from "@poktscan/vault";
-import { WebEncryptionService } from "@poktscan/vault-encryption-web";
+import { Passphrase, VaultRestoreErrorName } from "@soothe/vault";
+import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import { AssetStorage, getVault, NetworkStorage } from "../../../utils";
 import { addSessionThunksToBuilder } from "./session";
 import { addAccountThunksToBuilder } from "./account";

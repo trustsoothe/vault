@@ -1,4 +1,5 @@
-import {SerializedNetwork} from "@poktscan/vault";
-import {GenericFileSystemStorage} from "./GenericFileSystemStorage";
+import { SerializedNetwork } from '@soothe/vault'
+import { GenericFileSystemStorage } from './GenericFileSystemStorage'
 
-export class FileSystemNetworkStorage extends GenericFileSystemStorage<SerializedNetwork> { }
+export class FileSystemNetworkStorage extends GenericFileSystemStorage<SerializedNetwork> {
+}

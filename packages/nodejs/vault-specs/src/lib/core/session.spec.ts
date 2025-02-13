@@ -1,5 +1,5 @@
 import sinon from 'sinon'
-import {afterEach, beforeEach, describe, expect, test} from 'vitest'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import {
   AccountReference,
   Asset,
@@ -7,11 +7,11 @@ import {
   InvalidSessionError,
   PermissionsBuilder,
   Session,
-  SupportedProtocols
-} from "@poktscan/vault";
+  SupportedProtocols,
+} from '@soothe/vault'
 
 describe('session', () => {
-  let  clock: sinon.SinonFakeTimers
+  let clock: sinon.SinonFakeTimers
 
   beforeEach(() => {
     clock = sinon.useFakeTimers()
@@ -19,11 +19,11 @@ describe('session', () => {
 
   afterEach(() => {
     clock.restore()
-  });
+  })
 
   describe('#constructor', () => {
     test('sets the session to expire in 1 hour by default', () => {
-      const session = new Session({ permissions: []})
+      const session = new Session({ permissions: [] })
       expect(session.maxAge).toBe(3600)
     })
 
@@ -39,14 +39,14 @@ describe('session', () => {
 
   describe('invalidate', () => {
     test('marks the session as invalidated', () => {
-      const session = new Session({ permissions: []})
+      const session = new Session({ permissions: [] })
       expect(session.isValid()).toBe(true)
       session.invalidate()
       expect(session.isValid()).toBe(false)
     })
 
     test('sets the invalidatedAt timestamp', () => {
-      const session = new Session({ permissions: []})
+      const session = new Session({ permissions: [] })
       expect(session.invalidatedAt).toBe(0)
       clock.tick(2000) // Simulate 2 seconds has passed
       session.invalidate()
@@ -55,7 +55,7 @@ describe('session', () => {
     })
 
     test('does not change the invalidatedAt timestamp if the session is already invalidated', () => {
-      const session = new Session({ permissions: []})
+      const session = new Session({ permissions: [] })
       session.invalidate()
       const invalidatedAt = session.invalidatedAt
       clock.tick(2000) // Simulate 2 seconds has passed
@@ -66,7 +66,7 @@ describe('session', () => {
 
   describe('isValid', () => {
     test('returns true if the session has not expired', () => {
-      const session = new Session({ permissions: []}); // Create a session that expires in 1 hour
+      const session = new Session({ permissions: [] }) // Create a session that expires in 1 hour
       expect(session.isValid()).toBe(true)
     })
 
@@ -77,7 +77,7 @@ describe('session', () => {
     })
 
     test('returns false if the session has been invalidated', () => {
-      const session = new Session({ permissions: []})
+      const session = new Session({ permissions: [] })
       expect(session.isValid()).toBe(true)
       session.invalidate()
       expect(session.isValid()).toBe(false)
@@ -87,19 +87,19 @@ describe('session', () => {
       const session = new Session({ permissions: [], maxAge: 0 })
       clock.tick(2000) // Simulate 2 seconds has passed
       expect(session.isValid()).toBe(true)
-    });
+    })
   })
 
   describe('lastActivity', () => {
     test('defaults to the time of creation', () => {
-      const session = new Session({ permissions: []})
+      const session = new Session({ permissions: [] })
       expect(session.lastActivity).closeTo(Date.now(), 100)
     })
   })
 
   describe('updateLastActivity', () => {
     test('updates the lastActivity timestamp', () => {
-      const session = new Session({ permissions: []})
+      const session = new Session({ permissions: [] })
       const lastActivity = session.lastActivity
       clock.tick(2000) // Simulate 2 seconds has passed
       session.updateLastActivity()
@@ -108,7 +108,7 @@ describe('session', () => {
     })
 
     test('throws an error timestamp if the session is invalidated', () => {
-      const session = new Session({ permissions: []})
+      const session = new Session({ permissions: [] })
       session.invalidate()
       expect(() => session.updateLastActivity()).toThrow(new InvalidSessionError())
     })
@@ -119,32 +119,32 @@ describe('session', () => {
       name: 'Test Asset',
       symbol: 'TST',
       isNative: true,
-      protocol: SupportedProtocols.Pocket
-    });
+      protocol: SupportedProtocols.Pocket,
+    })
 
     const exampleAccountReference: AccountReference
-          = new AccountReference({
-            id: '123',
-            name: 'Testnet Account',
-            address: '0x32344',
-            protocol: asset.protocol,
-            publicKey: '0x1234'
-          });
+      = new AccountReference({
+      id: '123',
+      name: 'Testnet Account',
+      address: '0x32344',
+      protocol: asset.protocol,
+      publicKey: '0x1234',
+    })
 
     const permissions =
       new PermissionsBuilder()
         .forResource('account')
         .allowEverything()
-        .andBuild();
+        .andBuild()
 
     test('throws unauthorized error if the session is invalidated', () => {
-      const session = new Session({ permissions: []})
+      const session = new Session({ permissions: [] })
       session.invalidate()
       expect(() => session.addAccount(exampleAccountReference)).toThrow(new InvalidSessionError())
     })
 
     test('throws unauthorized error if the session does not have account:create permissions', () => {
-      const session = new Session({ permissions: []})
+      const session = new Session({ permissions: [] })
       expect(() => session.addAccount(exampleAccountReference)).toThrow(new ForbiddenSessionError())
     })
 
@@ -160,7 +160,7 @@ describe('session', () => {
           .forResource('account')
           .allowEverything()
           .on(exampleAccountReference.id)
-          .build();
+          .build()
 
       expect(permissionsWithAccount).toEqual(session.permissions)
     })

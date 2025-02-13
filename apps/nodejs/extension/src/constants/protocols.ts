@@ -1,4 +1,4 @@
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 
 export const labelByProtocolMap: Record<SupportedProtocols, string> = {
   [SupportedProtocols.Pocket]: "Pocket Network (Morse)",
@@ -7,5 +7,5 @@ export const labelByProtocolMap: Record<SupportedProtocols, string> = {
 };
 
 export const labelByAddressPrefixMap: Record<string, string> = {
-  "pokt": "Pocket Network (Shannon)",
-}
+  pokt: "Pocket Network (Shannon)",
+};

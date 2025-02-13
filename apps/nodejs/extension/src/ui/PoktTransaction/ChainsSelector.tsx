@@ -4,7 +4,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Controller, useFormContext } from "react-hook-form";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import { ChainsMap, useGetChainsMapQuery } from "../../redux/slices/pokt";
 import { themeColors } from "../theme";
 import { useAppSelector } from "../hooks/redux";

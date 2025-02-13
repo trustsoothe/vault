@@ -15,7 +15,7 @@ import {
   SupportedTransferDestinations,
   SupportedTransferOrigins,
   WPOKTBridge,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import BaseTransaction, { type TransactionFormValues } from "./BaseTransaction";
 import SuccessActionBanner from "../components/SuccessActionBanner";
 import WarningActionBanner from "../components/WarningActionBanner";

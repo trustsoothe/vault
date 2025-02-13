@@ -50,13 +50,13 @@ import type {
 import type { ICommunicationController } from "../../types";
 import { toWei } from "web3-utils";
 import browser, { type Runtime } from "webextension-polyfill";
-import { WebEncryptionService } from "@poktscan/vault-encryption-web";
+import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import {
   INetwork,
   PocketNetworkProtocolService,
   SupportedProtocols,
   VaultIsLockedErrorName,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import {
   propertyIsRequired,
   RequestChangeParamExists,

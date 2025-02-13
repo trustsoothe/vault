@@ -5,7 +5,7 @@ import capitalize from "lodash/capitalize";
 import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import React, { useEffect, useRef, useState } from "react";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import Summary, { SummaryRowItem } from "../components/Summary";
 import { isValidAddress } from "../../utils/networkOperations";

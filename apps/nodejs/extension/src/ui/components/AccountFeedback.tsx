@@ -2,13 +2,13 @@ import React from "react";
 import Stack from "@mui/material/Stack";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
-import {
-  SerializedAccountReference,
-  SupportedProtocols,
-} from "@poktscan/vault";
+import { SerializedAccountReference, SupportedProtocols } from "@soothe/vault";
 import { selectedChainByProtocolSelector } from "../../redux/selectors/network";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
-import {labelByAddressPrefixMap, labelByProtocolMap} from "../../constants/protocols";
+import {
+  labelByAddressPrefixMap,
+  labelByProtocolMap,
+} from "../../constants/protocols";
 import CopyAddressButton from "../Home/CopyAddressButton";
 import WarningActionBanner from "./WarningActionBanner";
 import SuccessActionBanner from "./SuccessActionBanner";
@@ -89,7 +89,9 @@ export default function AccountFeedback({
           {
             type: "row",
             label: "Protocol",
-            value: labelByProtocolMap[account.protocol] || labelByAddressPrefixMap[account.prefix],
+            value:
+              labelByProtocolMap[account.protocol] ||
+              labelByAddressPrefixMap[account.prefix],
           },
         ]}
       />

@@ -1,4 +1,5 @@
-import {SerializedSession} from "@poktscan/vault";
-import {GenericFileSystemStorage} from "./GenericFileSystemStorage";
+import { SerializedSession } from '@soothe/vault'
+import { GenericFileSystemStorage } from './GenericFileSystemStorage'
 
-export class FileSystemSessionStorage extends GenericFileSystemStorage<SerializedSession> { }
+export class FileSystemSessionStorage extends GenericFileSystemStorage<SerializedSession> {
+}

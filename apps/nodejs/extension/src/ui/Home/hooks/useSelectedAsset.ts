@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { shallowEqual } from "react-redux";
 import { useLocation, useSearchParams } from "react-router-dom";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import { ACCOUNTS_PAGE, ACTIVITY_PAGE } from "../../../constants/routes";
 import { useAppSelector } from "../../hooks/redux";
 import {

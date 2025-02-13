@@ -1,4 +1,4 @@
-import type { SerializedRecoveryPhraseReference } from "@poktscan/vault";
+import type { SerializedRecoveryPhraseReference } from "@soothe/vault";
 import TextField from "@mui/material/TextField";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";

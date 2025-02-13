@@ -2,7 +2,7 @@ import React from "react";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 import { Controller, useFormContext } from "react-hook-form";
-import { PocketNetworkFee, SupportedProtocols } from "@poktscan/vault";
+import { PocketNetworkFee, SupportedProtocols } from "@soothe/vault";
 import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 import useDidMountEffect from "../hooks/useDidMountEffect";
 import useGetBalance from "../hooks/useGetBalance";

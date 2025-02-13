@@ -16,8 +16,8 @@ import {
   PocketNetworkProtocolService,
   ProtocolServiceFactory,
   SupportedProtocols,
-} from "@poktscan/vault";
-import { WebEncryptionService } from "@poktscan/vault-encryption-web";
+} from "@soothe/vault";
+import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import {
   propertyIsNotValid,
   propertyIsRequired,
@@ -37,7 +37,7 @@ const isShannonAddress = (address: string) => {
   }
 
   return true;
-}
+};
 
 export const isValidAddress = (
   address: string,
@@ -48,7 +48,7 @@ export const isValidAddress = (
       case SupportedProtocols.Pocket:
         return isPocketAddress;
       case SupportedProtocols.Ethereum:
-        return isEthAddress
+        return isEthAddress;
       case SupportedProtocols.Cosmos:
         return isShannonAddress;
     }

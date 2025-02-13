@@ -4,7 +4,7 @@ import Stack from "@mui/material/Stack";
 import Skeleton from "@mui/material/Skeleton";
 import { useFormContext } from "react-hook-form";
 import Typography from "@mui/material/Typography";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
 import { roundAndSeparate } from "../../utils/ui";

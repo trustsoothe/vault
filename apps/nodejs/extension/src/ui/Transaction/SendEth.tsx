@@ -5,7 +5,7 @@ import {
   SupportedTransferDestinations,
   SupportedTransferOrigins,
   WPOKTBridge,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import Summary from "./Summary";
 import Submitted from "./Submitted";
 import {

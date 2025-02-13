@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { PocketNetworkTransactionTypes } from "@poktscan/vault";
+import { PocketNetworkTransactionTypes } from "@soothe/vault";
 import { UnstakeUnjailNodeSummaryFromForm } from "./UnstakeUnjailNode/Summary";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import StakeNodeForm, { RewardDelegatorsForm } from "./StakeNode/Form";

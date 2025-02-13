@@ -1,10 +1,11 @@
 import { z } from "zod";
 import browser from "webextension-polyfill";
 import {
-  DAOAction, CosmosTransactionTypes,
+  DAOAction,
+  CosmosTransactionTypes,
   PocketNetworkTransactionTypes,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import {
   isValidAddress,
   isValidPublicKey,
@@ -58,7 +59,8 @@ export const PoktShannonTransaction = BaseTransaction.extend({
     .object({
       shannonFee: PoktShannonFee,
       memo: z.string().optional(),
-    }).optional(),
+    })
+    .optional(),
 });
 
 export const PoktTransaction = BaseTransaction.extend({
@@ -211,7 +213,10 @@ export type EthTransaction = z.infer<typeof EthTransaction>;
 
 export type PoktShannonTransaction = z.infer<typeof PoktShannonTransaction>;
 
-export type Transaction = PoktTransaction | EthTransaction | PoktShannonTransaction;
+export type Transaction =
+  | PoktTransaction
+  | EthTransaction
+  | PoktShannonTransaction;
 
 const TRANSACTIONS_BASE_STORAGE_KEY = "tx";
 

@@ -1,4 +1,4 @@
-const esbuildBase = require('@poktscan/tsconfig/esbuild.base')
+const esbuildBase = require('@soothe/tsconfig/esbuild.base')
 esbuildBase.run({
-    metafile: true,
+  metafile: true,
 })

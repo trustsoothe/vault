@@ -10,7 +10,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   PocketNetworkTransactionTypes,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import { transactionsSelector } from "../../redux/slices/app/transactions";
 import { enqueueErrorSnackbar, roundAndSeparate } from "../../utils/ui";
 import {

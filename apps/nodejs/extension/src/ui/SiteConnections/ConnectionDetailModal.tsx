@@ -8,7 +8,7 @@ import {
   SerializedAccountReference,
   Session,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import {
   accountsSelector,
   selectedAccountByProtocolSelector,

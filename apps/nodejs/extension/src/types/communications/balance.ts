@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import type { BaseErrors, BaseProxyRequest, BaseProxyResponse } from "./common";
 import {
   EXTERNAL_ACCOUNT_BALANCE_REQUEST,

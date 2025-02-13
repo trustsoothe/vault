@@ -10,7 +10,7 @@ import {
   AccountType,
   SerializedAccountReference,
   SerializedRecoveryPhraseReference,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import { accountsSelector, seedsSelector } from "../../redux/selectors/account";
 import SmallGrayContainer from "../components/SmallGrayContainer";
 import { MANAGE_ACCOUNTS_PAGE } from "../../constants/routes";

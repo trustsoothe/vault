@@ -3,10 +3,7 @@ import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
-import {
-  SerializedAccountReference,
-  SupportedProtocols,
-} from "@poktscan/vault";
+import { SerializedAccountReference, SupportedProtocols } from "@soothe/vault";
 import { selectedChainByProtocolSelector } from "../../redux/selectors/network";
 import { getTruncatedText, roundAndSeparate } from "../../utils/ui";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";

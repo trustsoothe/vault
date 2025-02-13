@@ -29,7 +29,7 @@ jobs:
       - name: Version Packages
         run: yarn changeset version
       - name: Build Extension Dependencies
-        run: yarn turbo run build --filter=\!@poktscan/extension
+        run: yarn turbo run build --filter=\!@soothe/extension
       - name: Prepare Chromium Release Asset
         run: yarn release:chromium
       - name: Prepare Firefox Release Asset
@@ -58,5 +58,5 @@ jobs:
           fail_on_unmatched_files: false
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-              apps/nodejs/extension/releases/soothe-vault-chromium-${{ steps.version.outputs.value }}.zip
-              apps/nodejs/extension/releases/soothe-vault-firefox-${{ steps.version.outputs.value }}.zip
+            apps/nodejs/extension/releases/soothe-vault-chromium-${{ steps.version.outputs.value }}.zip
+            apps/nodejs/extension/releases/soothe-vault-firefox-${{ steps.version.outputs.value }}.zip
