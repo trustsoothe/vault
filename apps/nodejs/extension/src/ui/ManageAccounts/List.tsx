@@ -5,7 +5,7 @@ import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AccountType, SerializedAccountReference } from "@poktscan/vault";
+import { AccountType, SerializedAccountReference } from "@soothe/vault";
 import { accountsSelector, seedsSelector } from "../../redux/selectors/account";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import SmallGrayContainer from "../components/SmallGrayContainer";

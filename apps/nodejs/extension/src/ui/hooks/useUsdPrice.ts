@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import { useEffect, useMemo, useRef } from "react";
 import { shallowEqual } from "react-redux";
 import { closeSnackbar, SnackbarKey } from "notistack";

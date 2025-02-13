@@ -1,4 +1,4 @@
- import type { SupportedProtocols } from "@poktscan/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import { shallowEqual } from "react-redux";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
@@ -7,7 +7,7 @@ import { useForm, Controller } from "react-hook-form";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import React, {useEffect, useMemo, useRef, useState} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   defaultSelectableProtocolSelector,
@@ -17,7 +17,8 @@ import {
 } from "../../redux/selectors/network";
 import {
   changeSelectedAccountOfNetwork,
-  changeSelectedNetwork, NetworkFeature,
+  changeSelectedNetwork,
+  NetworkFeature,
 } from "../../redux/slices/app";
 import { ACCOUNTS_PAGE, REQUEST_CONNECTION_PAGE } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
@@ -35,7 +36,7 @@ import MenuDivider from "../components/MenuDivider";
 import AccountInfo from "../components/AccountInfo";
 import BaseDialog from "../components/BaseDialog";
 import { themeColors } from "../theme";
- import NetworkNotice from "../components/NetworkNotice";
+import NetworkNotice from "../components/NetworkNotice";
 
 interface FormValues {
   type: "standalone" | string;
@@ -89,16 +90,19 @@ export default function NewAccountModal({
 
   const [status, setStatus] = useState<FormStatus>("normal");
 
-  const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector(protocolFromProps));
+  const selectableNetwork = useAppSelector(
+    defaultSelectableProtocolSelector(protocolFromProps)
+  );
   const selectedProtocol = selectableNetwork?.id;
 
-  const { reset, control, handleSubmit, setValue, getValues } = useForm<FormValues>({
-    defaultValues: {
-      account_name: "",
-      protocol: selectedProtocol,
-      type: "",
-    },
-  });
+  const { reset, control, handleSubmit, setValue, getValues } =
+    useForm<FormValues>({
+      defaultValues: {
+        account_name: "",
+        protocol: selectedProtocol,
+        type: "",
+      },
+    });
 
   useDidMountEffect(() => {
     setValue("protocol", selectedProtocol);
@@ -129,18 +133,26 @@ export default function NewAccountModal({
   }, [open]);
 
   const isCreateAccountDisabled = useMemo(() => {
-    const selectedNetwork = networks.find((n) => n.id === getValues("protocol"));
-    return !!selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+    const selectedNetwork = networks.find(
+      (n) => n.id === getValues("protocol")
+    );
+    return !!selectedNetwork?.notices?.find((notice) =>
+      notice.disables?.includes(NetworkFeature.CreateAccount)
+    );
   }, [getValues("protocol"), networks]);
 
   const createAccountDisablingNotice = useMemo(() => {
-    const selectedNetwork = networks.find((n) => n.id === getValues("protocol"));
-    return selectedNetwork?.notices?.find((notice) => notice.disables?.includes(NetworkFeature.CreateAccount));
+    const selectedNetwork = networks.find(
+      (n) => n.id === getValues("protocol")
+    );
+    return selectedNetwork?.notices?.find((notice) =>
+      notice.disables?.includes(NetworkFeature.CreateAccount)
+    );
   }, [isCreateAccountDisabled]);
 
   const onSubmit = async (data: FormValues) => {
     setStatus("loading");
-      const selectedNetwork = networks.find((n) => n.id === data.protocol);
+    const selectedNetwork = networks.find((n) => n.id === data.protocol);
 
     const updateSelection = (address: string) => {
       return Promise.all([
@@ -286,7 +298,9 @@ export default function NewAccountModal({
                   marginBottom={2}
                   color={themeColors.textSecondary}
                 >
-                  {isCreateAccountDisabled ? 'Account creation is disabled for this network.' : 'You’ll be able to use this account for every network of the protocol selected.'}
+                  {isCreateAccountDisabled
+                    ? "Account creation is disabled for this network."
+                    : "You’ll be able to use this account for every network of the protocol selected."}
                 </Typography>
               </>
             )}
@@ -306,8 +320,7 @@ export default function NewAccountModal({
                   />
                 )}
               />
-              )
-            }
+            )}
             {isCreateAccountDisabled && createAccountDisablingNotice && (
               <NetworkNotice notice={createAccountDisablingNotice} />
             )}

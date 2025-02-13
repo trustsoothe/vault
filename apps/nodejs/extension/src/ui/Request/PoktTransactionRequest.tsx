@@ -11,7 +11,7 @@ import {
   PocketNetworkTransactionTypes,
   SupportedProtocols,
   ValidateTransactionResult,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import DialogButtons from "../components/DialogButtons";
 import { WIDTH } from "../../constants/ui";

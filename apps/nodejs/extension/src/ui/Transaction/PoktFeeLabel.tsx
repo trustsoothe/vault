@@ -1,4 +1,4 @@
-import type { PocketNetworkFee } from "@poktscan/vault";
+import type { PocketNetworkFee } from "@soothe/vault";
 import type { TransactionFormValues } from "./BaseTransaction";
 import React from "react";
 import Stack from "@mui/material/Stack";

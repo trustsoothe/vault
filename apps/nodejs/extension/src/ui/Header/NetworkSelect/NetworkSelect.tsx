@@ -1,4 +1,4 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import React, { useState } from "react";
 import NetworkSelectModal from "./Modal";
 import Button from "./Button";

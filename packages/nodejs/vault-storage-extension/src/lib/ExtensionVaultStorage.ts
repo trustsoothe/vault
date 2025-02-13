@@ -2,29 +2,30 @@ import type {
   IVaultStore,
   EncryptedVault,
   SerializedEncryptedVault,
-} from "@poktscan/vault";
-import * as browser from "webextension-polyfill";
+} from '@soothe/vault'
+import * as browser from 'webextension-polyfill'
 
 export class ExtensionVaultStorage implements IVaultStore {
-  private readonly vaultPath: string = "vault";
+  private readonly vaultPath: string = 'vault'
 
-  constructor() {}
+  constructor() {
+  }
 
   async get(): Promise<EncryptedVault | null> {
     try {
       const resultMap = await browser.storage.local.get({
         [this.vaultPath]: null,
-      });
+      })
       /*
          TODO: Validate the result is a valid EncryptedVault
       */
-      return resultMap[this.vaultPath];
+      return resultMap[this.vaultPath]
     } catch (error) {
-      return null;
+      return null
     }
   }
 
   async save(vault: SerializedEncryptedVault): Promise<void> {
-    return browser.storage.local.set({ [this.vaultPath]: vault });
+    return browser.storage.local.set({ [this.vaultPath]: vault })
   }
 }

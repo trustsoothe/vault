@@ -111,8 +111,8 @@ import {
   SupportedProtocols,
   ValidateTransactionResult,
   VaultRestoreErrorName,
-} from "@poktscan/vault";
-import { WebEncryptionService } from "@poktscan/vault-encryption-web";
+} from "@soothe/vault";
+import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import store, { RootState } from "../../redux/store";
 import {
   ANSWER_CHANGE_PARAM_REQUEST,
@@ -1319,7 +1319,7 @@ class InternalCommunicationController implements ICommunicationController {
   private async _answerTransferAccount(
     message: AnswerTransferReq
   ): Promise<AnswerTransferRes> {
-    console.log('debug: _answerTransferAccount -> message', message);
+    console.log("debug: _answerTransferAccount -> message", message);
     try {
       const { rejected, request, transferData } = message?.data || {};
 

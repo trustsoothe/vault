@@ -5,7 +5,7 @@ import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import React, { useEffect, useState } from "react";
-import { Session, SupportedProtocols } from "@poktscan/vault";
+import { Session, SupportedProtocols } from "@soothe/vault";
 import { enqueueErrorSnackbar, enqueueSnackbar } from "../../utils/ui";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import SmallGrayContainer from "../components/SmallGrayContainer";

@@ -5,13 +5,13 @@ import Skeleton from "@mui/material/Skeleton";
 import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import React, { useEffect, useState } from "react";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import ActivityIcon from "../assets/img/activity_icon.svg";
 import CopyAddressButton from "./CopyAddressButton";
 import SendIcon from "../assets/img/send_icon.svg";
 import SwapIcon from "../assets/img/swap_icon.svg";
 import { useAppSelector } from "../hooks/redux";
-import {roundAndSeparate} from "../../utils/ui";
+import { roundAndSeparate } from "../../utils/ui";
 import { themeColors } from "../theme";
 import { selectedAccountSelector } from "../../redux/selectors/account";
 import { TxStatus, useLazyGetActiveMintsQuery } from "../../redux/slices/wpokt";
@@ -192,10 +192,7 @@ export default function SelectedAccount() {
           </Button>
           {(selectedAccount?.protocol === SupportedProtocols.Pocket ||
             selectedAsset?.symbol === "WPOKT") && (
-            <Button
-              disabled={isSwapDisabled}
-              onClick={initSwap}
-            >
+            <Button disabled={isSwapDisabled} onClick={initSwap}>
               <span>Swap</span>
               <SwapIcon />
             </Button>

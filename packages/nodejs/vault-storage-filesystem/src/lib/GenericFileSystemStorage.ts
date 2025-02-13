@@ -1,10 +1,10 @@
-import * as fs from "fs";
-import {IEntity, IStorage} from "@poktscan/vault";
+import * as fs from 'fs'
+import { IEntity, IStorage } from '@soothe/vault'
 
 export class GenericFileSystemStorage<T extends IEntity> implements IStorage<T> {
   constructor(private readonly filePath: string) {
     if (!fs.existsSync(this.filePath)) {
-      fs.writeFileSync(this.filePath, JSON.stringify([]), 'utf8');
+      fs.writeFileSync(this.filePath, JSON.stringify([]), 'utf8')
     }
   }
 

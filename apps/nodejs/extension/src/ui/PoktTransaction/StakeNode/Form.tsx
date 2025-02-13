@@ -9,7 +9,7 @@ import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import RecipientAutocomplete from "../../Transaction/RecipientAutocomplete";
 import { AccountInfoFromAddress } from "../../components/AccountInfo";
 import { isValidAddress } from "../../../utils/networkOperations";

@@ -10,7 +10,7 @@
     // workspace packages as npm dependencies.
     "baseUrl": ".",
     "paths": {
-      "@poktscan/*": ["./packages/nodejs/*"],
+      "@soothe/*": ["./packages/nodejs/*"],
     }
   }
 }

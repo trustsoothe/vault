@@ -5,7 +5,7 @@ import { useLocation } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import React, { useEffect, useRef, useState } from "react";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import DialogButtons from "../components/DialogButtons";
 import { enqueueErrorSnackbar } from "../../utils/ui";

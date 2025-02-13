@@ -12,7 +12,7 @@ import {
   AccountType,
   SerializedAccountReference,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import { requirePasswordForSensitiveOptsSelector } from "../../redux/selectors/preferences";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import {
@@ -20,7 +20,10 @@ import {
   getPrivateKeyFromPPK,
 } from "../../utils/networkOperations";
 import Summary, { SummaryRowItem } from "../components/Summary";
-import {labelByAddressPrefixMap, labelByProtocolMap} from "../../constants/protocols";
+import {
+  labelByAddressPrefixMap,
+  labelByProtocolMap,
+} from "../../constants/protocols";
 import useDidMountEffect from "../hooks/useDidMountEffect";
 import { MANAGE_ACCOUNTS_PAGE } from "../../constants/routes";
 import { INVALID_FILE_PASSWORD } from "../../errors/account";
@@ -44,7 +47,7 @@ import {
   readFile,
   wrongPasswordSnackbar,
 } from "../../utils/ui";
-import {networkByAccountSelector} from "../../redux/selectors/network";
+import { networkByAccountSelector } from "../../redux/selectors/network";
 
 interface FormValues {
   vault_password?: string;
@@ -330,7 +333,9 @@ export default function RemoveAccountModal({
     {
       type: "row",
       label: "Protocol",
-      value: labelByProtocolMap[accountOrRef?.protocol] || labelByAddressPrefixMap[accountOrRef?.prefix],
+      value:
+        labelByProtocolMap[accountOrRef?.protocol] ||
+        labelByAddressPrefixMap[accountOrRef?.prefix],
     },
   ];
 

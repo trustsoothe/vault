@@ -1,5 +1,5 @@
 {
-  "extends": "@poktscan/tsconfig/tsconfig.base.json",
+  "extends": "@soothe/tsconfig/tsconfig.base.json",
   "exclude": ["node_modules", "dist", "coverage"],
   "compilerOptions": {
     "outDir": "dist",

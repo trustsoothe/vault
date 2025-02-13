@@ -1,5 +1,5 @@
 import React from "react";
-import { SupportedProtocols } from "@poktscan/vault";
+import { SupportedProtocols } from "@soothe/vault";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
 import { useAppSelector } from "../hooks/redux";
 import BaseDialog from "../components/BaseDialog";
@@ -25,15 +25,15 @@ export default function SendCoinsModal({
       onClose={onClose}
       title={isSwapping ? "Swap" : "Send"}
     >
-      {selectedProtocol === SupportedProtocols.Ethereum &&
+      {selectedProtocol === SupportedProtocols.Ethereum && (
         <SendEth onCancel={onClose} isUnwrapping={isSwapping} />
-      }
-      {selectedProtocol === SupportedProtocols.Pocket &&
-          <SendPokt onCancel={onClose} isWrapping={isSwapping} />
-      }
-      {selectedProtocol === SupportedProtocols.Cosmos &&
-          <SendPoktShannon onCancel={onClose} />
-      }
+      )}
+      {selectedProtocol === SupportedProtocols.Pocket && (
+        <SendPokt onCancel={onClose} isWrapping={isSwapping} />
+      )}
+      {selectedProtocol === SupportedProtocols.Cosmos && (
+        <SendPoktShannon onCancel={onClose} />
+      )}
     </BaseDialog>
   );
 }

@@ -1,11 +1,11 @@
-import type { SupportedProtocols } from "@poktscan/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import { useEffect, useRef } from "react";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import useDidMountEffect from "./useDidMountEffect";
 import { enqueueErrorSnackbar } from "../../utils/ui";
 import { useGetBalanceQuery } from "../../redux/slices/balance";
-import {useAppSelector} from "./redux";
-import {isBalanceDisabledSelector} from "../../redux/selectors/network";
+import { useAppSelector } from "./redux";
+import { isBalanceDisabledSelector } from "../../redux/selectors/network";
 
 export interface UseGetBalance {
   address: string;
@@ -95,10 +95,10 @@ export default function useGetBalance({
   return {
     error: isError,
     balance,
-    isLoading: isBalanceDisabled ? false : (
-      isUninitialized ||
-      isLoading ||
-      (isFetching && canShowLoading.current && !balance)
-    ),
+    isLoading: isBalanceDisabled
+      ? false
+      : isUninitialized ||
+        isLoading ||
+        (isFetching && canShowLoading.current && !balance),
   };
 }

@@ -2,8 +2,8 @@ import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import {
   PocketNetworkProtocolService,
   SupportedProtocols,
-} from "@poktscan/vault";
-import { WebEncryptionService } from "@poktscan/vault-encryption-web";
+} from "@soothe/vault";
+import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import { setNetworksWithErrors } from "./app";
 import { isValidAddress, runWithNetworks } from "../../utils/networkOperations";
 

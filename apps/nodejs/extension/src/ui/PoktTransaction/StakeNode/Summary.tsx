@@ -2,7 +2,7 @@ import Stack from "@mui/material/Stack";
 import { useFormContext } from "react-hook-form";
 import Typography from "@mui/material/Typography";
 import React, { useEffect, useState } from "react";
-import { PocketNetworkFee, SupportedProtocols } from "@poktscan/vault";
+import { PocketNetworkFee, SupportedProtocols } from "@soothe/vault";
 import VaultPasswordInput from "../../Transaction/VaultPasswordInput";
 import { AccountInfoFromAddress } from "../../components/AccountInfo";
 import Summary, { SummaryProps } from "../../components/Summary";

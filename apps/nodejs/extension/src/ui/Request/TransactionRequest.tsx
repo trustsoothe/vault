@@ -7,7 +7,7 @@ import {
   SupportedProtocols,
   SupportedTransferDestinations,
   SupportedTransferOrigins,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import { themeColors } from "../theme";
 import RequestInfo from "./RequestInfo";
 import BaseTransaction, {

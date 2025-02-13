@@ -10,7 +10,7 @@ import {
   SerializedAccountReference,
   Session,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import {
   SELECTED_ACCOUNT_CHANGED,
   SELECTED_CHAIN_CHANGED,
@@ -26,12 +26,12 @@ import { ChainChangedMessageToProxy } from "../../../types/communications/chainC
 export type ErrorsByNetwork = Record<string, number>;
 
 export enum NetworkFeature {
-  Swap = 'Swap',
-  Send = 'Send',
-  Balance = 'Balance',
-  CreateAccount = 'CreateAccount',
-  PoktTransactionActions = 'PoktTransactionActions',
-  Assets = 'Assets',
+  Swap = "Swap",
+  Send = "Send",
+  Balance = "Balance",
+  CreateAccount = "CreateAccount",
+  PoktTransactionActions = "PoktTransactionActions",
+  Assets = "Assets",
 }
 
 export interface NetworkNoticeReference {
@@ -98,7 +98,7 @@ export interface CustomRPC {
 
 export type NetworkCanBeSelectedMap = {
   [K in SupportedProtocols]: string[];
-}
+};
 
 export interface GeneralAppSlice {
   requestsWindowId: number | null;
@@ -620,13 +620,12 @@ const initialState: GeneralAppSlice = {
   selectedProtocol: SupportedProtocols.Pocket,
   errorsPreferredNetwork: {},
   isDevMode: false,
-  networksCanBeSelected: Object.values(SupportedProtocols).reduce<NetworkCanBeSelectedMap>(
-    (acc, protocol) => {
-      acc[protocol] = [];
-      return acc;
-    },
-    {} as NetworkCanBeSelectedMap
-  ),
+  networksCanBeSelected: Object.values(
+    SupportedProtocols
+  ).reduce<NetworkCanBeSelectedMap>((acc, protocol) => {
+    acc[protocol] = [];
+    return acc;
+  }, {} as NetworkCanBeSelectedMap),
   assetsIdByAccount: {},
   customRpcs: [],
   contacts: [],
@@ -714,7 +713,7 @@ const generalAppSlice = createSlice({
     },
     activateDevMode: (state, _: PayloadAction) => {
       state.isDevMode = true;
-    }
+    },
   },
   extraReducers: (builder) => {
     addNetworksExtraReducers(builder);

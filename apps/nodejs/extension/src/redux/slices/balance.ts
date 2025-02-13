@@ -1,11 +1,11 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
-import { WebEncryptionService } from "@poktscan/vault-encryption-web";
+import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import {
   AccountReference,
   IAsset,
   ProtocolServiceFactory,
   SupportedProtocols,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import { setNetworksWithErrors } from "./app";
 import { runWithNetworks } from "../../utils/networkOperations";
 
@@ -75,7 +75,10 @@ export const balanceApi = createApi({
 
               return balance
                 ? balance /
-                    ([SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(protocol)
+                    ([
+                      SupportedProtocols.Pocket,
+                      SupportedProtocols.Cosmos,
+                    ].includes(protocol)
                       ? 1e6
                       : asset
                       ? 1

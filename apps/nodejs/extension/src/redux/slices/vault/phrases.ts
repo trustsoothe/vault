@@ -6,7 +6,7 @@ import {
   ImportRecoveryPhraseRequest,
   UpdateRecoveryPhraseRequest,
   AccountType,
-} from "@poktscan/vault";
+} from "@soothe/vault";
 import { getVaultPassword } from "./index";
 import { getVault } from "../../../utils";
 import {
