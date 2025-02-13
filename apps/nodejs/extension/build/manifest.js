@@ -2,8 +2,8 @@ const baseManifest = {
   manifest_version: 3,
   name: "Soothe Vault",
   description:
-    "A secure, user-friendly multi-blockchain wallet for managing digital assets with encryption, easy sync & web3 connectivity.\n",
-  version: "0.1.3",
+    "A secure, user-friendly multi-blockchain wallet for managing digital assets with encryption, easy sync & web3 connectivity.",
+  version: "0.1.4",
   icons: {
     16: "icons/16.png",
     19: "icons/19.png",
