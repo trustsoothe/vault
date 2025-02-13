@@ -1,15 +1,26 @@
 # @soothe/vault-specs
 
+## 0.1.1
+
+### Patch Changes
+
+- 6802954: Changed packages names
+- Updated dependencies [6802954]
+  - @soothe/vault-storage-filesystem@0.0.2
+  - @soothe/vault-storage-extension@0.0.2
+  - @soothe/vault-encryption-web@0.0.2
+  - @soothe/vault@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
 
 - f965d2d: \* Introduces the new RecoveryPhrase objects that are stored within the vault
 
-    - Updates the "importRecoveryPhrase" so that it only adds a new Phrase to the vault without creating any accounts.
-    - Updates the addHDWallet functionality to expect a recoveryPhraseId
-    - Adds a new listRecoveryPhrase method
-    - Adds a new set of permissions for "seed" objects.
+  - Updates the "importRecoveryPhrase" so that it only adds a new Phrase to the vault without creating any accounts.
+  - Updates the addHDWallet functionality to expect a recoveryPhraseId
+  - Adds a new listRecoveryPhrase method
+  - Adds a new set of permissions for "seed" objects.
 
   One key different is that operations involving HDWallet use the recoveryPhraseID instead of the actual recovery
   phrase. For instance, addHDWalletAccount now expects the recoveryPhraseId and it automatically takes care of creating
@@ -24,8 +35,8 @@
 
   Missing functionality:
 
-    - Sign Personal Data
-    - Final Fee retrieval calculation (not yet implemented, see: https://github.com/pokt-network/poktroll/issues/794)
+  - Sign Personal Data
+  - Final Fee retrieval calculation (not yet implemented, see: https://github.com/pokt-network/poktroll/issues/794)
 
 ### Patch Changes
 
@@ -39,4 +50,4 @@
 - Updated dependencies [88c2b38]
 - Updated dependencies [f4446e4]
 - Updated dependencies [15ef995]
-    - @soothe/vault@0.1.0
+  - @soothe/vault@0.1.0
