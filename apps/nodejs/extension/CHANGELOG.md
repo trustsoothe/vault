@@ -1,5 +1,11 @@
 # @soothe/extension
 
+## 0.1.4
+
+### Patch Changes
+
+- 1efde18: Update manifest description to match the limit of 132 characters.
+
 ## 0.1.3
 
 ### Patch Changes
