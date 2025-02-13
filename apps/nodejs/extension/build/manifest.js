@@ -1,9 +1,9 @@
 const baseManifest = {
   manifest_version: 3,
-  name: "Soothe Vault (BETA)",
+  name: "Soothe Vault",
   description:
-    "THIS EXTENSION IS FOR BETA TESTING. Extension to manage your EVM and Pocket wallets",
-  version: "0.1.2",
+    "Soothe Vault is a secure, user-friendly multi-blockchain wallet (EVM, Cosmos, Pocket) for managing, storing, and interacting with digital assets. It offers high-grade encryption, easy synchronization, and decentralized website connection.",
+  version: "0.1.3",
   icons: {
     16: "icons/16.png",
     19: "icons/19.png",

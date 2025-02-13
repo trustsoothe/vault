@@ -1,7 +1,7 @@
 {
   "name": "@poktscan/extension",
-  "version": "0.1.2",
-  "description": "Soothe Vault: browser web extension app for Firefox and Chromium based browsers to manage EVM and Pocket based wallets",
+  "version": "0.1.3",
+  "description": "Soothe Vault: browser web extension app for Firefox and Chromium based browsers to manage EVM, Cosmos and Pocket based wallets",
   "main": "build/lavamoat/build.js",
   "scripts": {
     "dev": "webpack --config build/webpack/webpack.dev.js --watch",
