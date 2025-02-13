@@ -1,5 +1,11 @@
 # @soothe/tsconfig
 
+## 0.1.1
+
+### Patch Changes
+
+- 6802954: Changed packages names
+
 ## 0.1.0
 
 ### Minor Changes
@@ -9,8 +15,8 @@
 
   Missing functionality:
 
-    - Sign Personal Data
-    - Final Fee retrieval calculation (not yet implemented, see: https://github.com/pokt-network/poktroll/issues/794)
+  - Sign Personal Data
+  - Final Fee retrieval calculation (not yet implemented, see: https://github.com/pokt-network/poktroll/issues/794)
 
 ## 0.0.1
 
