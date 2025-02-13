@@ -52,6 +52,7 @@ const validVersions = [
   "0.0.6",
   "0.1.2",
   "0.1.3",
+  "0.1.4"
 ] as const;
 
 export const SettingsSchema = z.object({
@@ -166,7 +167,7 @@ export const exportVault = createAsyncThunk(
 
     const vaultToExport: VaultBackupSchema = {
       vault: encryptedVault,
-      version: "0.1.3",
+      version: "0.1.4",
       settings: {
         contacts: currentAppState.contacts,
         customRpcs: currentAppState.customRpcs,
