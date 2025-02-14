@@ -1,7 +1,7 @@
 import type { CustomRPC, ErrorsByNetwork, Network } from "../redux/slices/app";
 import { Buffer } from "buffer";
 import { z, ZodError } from "zod";
-import crypto from "crypto-browserify";
+import { createDecipheriv, randomBytes, createCipheriv } from "crypto-browserify";
 import { scrypt } from "ethereum-cryptography/scrypt.js";
 import {
   isAddress as isEthAddress,
@@ -201,7 +201,7 @@ export const getPrivateKeyFromPPK = async (
     const data = inputBuffer.slice(0, inputBuffer.length - tagLength);
 
     // Create the decipher
-    const decipher = crypto.createDecipheriv(
+    const decipher = createDecipheriv(
       algorithm,
       Buffer.from(scryptHash),
       iv
@@ -235,7 +235,7 @@ export const getPortableWalletContent = async (
   if (protocol === SupportedProtocols.Pocket) {
     const secParam = 12;
     const algorithm = "aes-256-gcm";
-    const salt = crypto.randomBytes(16);
+    const salt = randomBytes(16);
 
     const scryptHash = await scrypt(
       Buffer.from(password, "utf8"),
@@ -250,7 +250,7 @@ export const getPortableWalletContent = async (
     const iv = Buffer.allocUnsafe(secParam);
     scryptHashBuffer.copy(iv, 0, 0, secParam);
     // Generate ciphertext by using the privateKey, nonce and sha256 Scrypt hash
-    const cipher = await crypto.createCipheriv(algorithm, scryptHashBuffer, iv);
+    const cipher = await createCipheriv(algorithm, scryptHashBuffer, iv);
     let cipherText = cipher.update(privateKey, "utf8", "hex");
     cipherText += cipher.final("hex");
     // Concatenate the ciphertext final + auth tag

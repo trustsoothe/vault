@@ -3,7 +3,7 @@ const baseManifest = {
   name: "Soothe Vault",
   description:
     "A secure, user-friendly multi-blockchain wallet for managing digital assets with encryption, easy sync & web3 connectivity.",
-  version: "0.1.4",
+  version: "0.1.5",
   icons: {
     16: "icons/16.png",
     19: "icons/19.png",
@@ -46,7 +46,7 @@ const baseChromiumManifest = {
 const baseFirefoxManifest = {
   ...baseManifest,
   background: {
-    scripts: ["js/background.js"],
+    page: "background.html",
   },
   content_security_policy: {
     extension_pages: "script-src 'self'; object-src 'self';",
@@ -64,7 +64,14 @@ const getContentScript = (isFirefox, isLavamoat) => [
   {
     matches: ["http://*/*", "https://*/*"],
     run_at: "document_start",
-    js: isLavamoat ? ["js/proxy.js"] : ["js/vendor.js", "js/proxy.js"],
+    js: isLavamoat ? ["js/proxy.js"] : [
+      "js/react-password-strength.js",
+      "js/libsodium-sumo.js",
+      "js/cosmjs.js",
+      "js/mui.js",
+      "js/vendor.js",
+      "js/proxy.js"
+    ],
   },
   {
     all_frames: true,
