@@ -1,6 +1,7 @@
 const webpack = require("webpack");
 const path = require("path");
 const Dotenv = require("dotenv-webpack");
+const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
 
 const srcDir = path.join(__dirname, "..", "..", "src");
 const distDir = path.join(__dirname, "..", "..", "dist");
@@ -50,6 +51,17 @@ module.exports = {
     },
   },
   plugins: [
+    new BundleAnalyzerPlugin({
+      analyzerMode: "static", // Generates a static HTML file for analysis
+      reportFilename: "bundle-report.html", // The name of the generated report file
+      openAnalyzer: false, // Automatically opens the report in the browser
+      generateStatsFile: true, // Generate stats.json file for further analysis
+      defaultSizes: "parsed",
+      statsFilename: "bundle-stats.json", // Name of the JSON stats file
+      statsOptions: null, // Pass customized stats options (optional)
+      excludeAssets: null, // Filter out specific assets (optional, use patterns if required)
+      logLevel: "info", // Adjust logging level (e.g., "info", "warn")
+    }),
     new webpack.ProvidePlugin({
       Buffer: ["buffer", "Buffer"],
       process: "process/browser",

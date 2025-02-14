@@ -918,6 +918,11 @@
         "@soothe/vault>@cosmjs/crypto>elliptic": true
       }
     },
+    "@soothe/vault>lodash": {
+      "globals": {
+        "define": true
+      }
+    },
     "@soothe/vault>protobufjs": {
       "globals": {
         "setTimeout": true
@@ -1567,6 +1572,7 @@
         "@soothe/vault>ethereumjs-util": true,
         "@soothe/vault>hdkey": true,
         "@soothe/vault>hex-lite": true,
+        "@soothe/vault>lodash": true,
         "@soothe/vault>protobufjs": true,
         "@soothe/vault>varint": true,
         "@soothe/vault>web3-eth": true,
@@ -1575,7 +1581,6 @@
         "browserify>buffer": true,
         "external:../../../packages/nodejs/vault/node_modules/@scure/bip39/index.js": true,
         "external:../../../packages/nodejs/vault/node_modules/@scure/bip39/wordlists/english.js": true,
-        "lodash": true,
         "uuid": true,
         "web3-eth-accounts": true,
         "web3-utils": true,
@@ -1667,11 +1672,6 @@
       "packages": {
         "stream-http": true,
         "url": true
-      }
-    },
-    "lodash": {
-      "globals": {
-        "define": true
       }
     },
     "notistack": {

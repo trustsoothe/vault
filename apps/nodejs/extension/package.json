@@ -44,7 +44,7 @@
     "file-saver": "2.0.5",
     "https-browserify": "1.0.0",
     "isomorphic-crypto": "3.0.0",
-    "lodash": "4.17.21",
+    "lodash-es": "^4.17.21",
     "net-browserify": "0.2.4",
     "notistack": "3.0.1",
     "os-browserify": "0.3.0",
@@ -107,6 +107,7 @@
     "process": "0.11.10",
     "rimraf": "3.0.2 ",
     "stream-browserify": "3.0.0",
+    "terser-webpack-plugin": "^5.3.11",
     "ts-jest": "29.1.0",
     "ts-loader": "9.4.3",
     "tsify": "5.0.4",
@@ -114,6 +115,7 @@
     "vitest": "0.32.0",
     "web-ext-types": "3.2.1",
     "webpack": "5.97.1",
+    "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "5.1.4"
   },
   "browserslist": {
