@@ -1,6 +1,6 @@
 {
   "name": "@soothe/extension",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Soothe Vault: browser web extension app for Firefox and Chromium based browsers to manage EVM, Cosmos and Pocket based wallets",
   "main": "build/lavamoat/build.js",
   "scripts": {
