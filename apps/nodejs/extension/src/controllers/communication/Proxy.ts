@@ -86,7 +86,11 @@ import type {
 import type { AccountsChangedToProvider } from "../../types/communications/accountChanged";
 import browser from "webextension-polyfill";
 import { z, ZodError } from "zod";
-import { DAOAction, SupportedProtocols } from "@soothe/vault";
+import type {
+  SupportedProtocols,
+  DAOAction,
+  DAOActionArray,
+} from "@soothe/vault";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,
@@ -142,12 +146,19 @@ import {
   UnknownError,
   UnsupportedMethod,
 } from "../../errors/communication";
+import { isValidAddress, validateTypedDataPayload } from "../../utils/proxy";
 import {
-  isValidAddress,
-  validateTypedDataPayload,
-} from "../../utils/networkOperations";
+  EthereumProtocol,
+  PocketProtocol,
+  supportedProtocolsArray,
+} from "../../constants/protocols";
 
 export type TPocketTransferBody = z.infer<typeof PocketTransferBody>;
+
+const DaoTransferAction = "dao_transfer" as DAOAction.Transfer;
+const DaoBurnAction = "dao_burn" as DAOAction.Burn;
+
+const daoActions: DAOActionArray = [DaoTransferAction, DaoBurnAction] as const;
 
 const memoSchema = z.string().max(75).optional();
 
@@ -156,14 +167,14 @@ const PocketTransferBody = z.object({
     .string()
     .length(40)
     .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      (value) => isValidAddress(value, PocketProtocol),
       "from is not a valid address"
     ),
   to: z
     .string()
     .length(40)
     .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      (value) => isValidAddress(value, PocketProtocol),
       "from is not a valid address"
     ),
   amount: z
@@ -181,7 +192,7 @@ const DaoTransferBody = z
       .string()
       .length(40)
       .refine(
-        (value) => isValidAddress(value, SupportedProtocols.Pocket),
+        (value) => isValidAddress(value, PocketProtocol),
         "address is not a valid address"
       ),
     to: z.string().optional(),
@@ -191,13 +202,17 @@ const DaoTransferBody = z
       .regex(/^\d+$/)
       .refine((value) => Number(value) > 0, "amount should be greater than 0"),
     memo: memoSchema,
-    daoAction: z.nativeEnum(DAOAction),
+    daoAction: z
+      .string()
+      .refine((value) =>
+        daoActions.includes(value as DAOAction.Transfer | DAOAction.Burn)
+      ),
   })
   .refine(
     (value) =>
       value.daoAction === "dao_burn"
         ? true
-        : isValidAddress(value.to || "", SupportedProtocols.Pocket),
+        : isValidAddress(value.to || "", PocketProtocol),
     {
       path: ["to"],
       message: "to is not a valid address",
@@ -212,7 +227,7 @@ const UpgradeBody = z
       .string()
       .length(40)
       .refine(
-        (value) => isValidAddress(value, SupportedProtocols.Pocket),
+        (value) => isValidAddress(value, PocketProtocol),
         "address is not a valid address"
       ),
     height: z.number().min(1).int(),
@@ -279,13 +294,13 @@ const EthTransferBody = z.object({
   from: z
     .string()
     .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Ethereum),
+      (value) => isValidAddress(value, EthereumProtocol),
       "from is not a valid address"
     ),
   to: z
     .string()
     .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Ethereum),
+      (value) => isValidAddress(value, EthereumProtocol),
       "from is not a valid address"
     ),
   gas: z.string().regex(numberRegex).optional(),
@@ -303,14 +318,14 @@ const StakeNodeBody = z.object({
     .string()
     .nonempty()
     .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      (value) => isValidAddress(value, PocketProtocol),
       "address is not a valid address"
     ),
   outputAddress: z
     .string()
     .optional()
     .refine(
-      (value) => !value || isValidAddress(value, SupportedProtocols.Pocket),
+      (value) => !value || isValidAddress(value, PocketProtocol),
       "outputAddress is not a valid address"
     ),
   operatorPublicKey: z.string().nonempty().optional(),
@@ -325,7 +340,7 @@ const TransferAppBody = z.object({
     .string()
     .nonempty()
     .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      (value) => isValidAddress(value, PocketProtocol),
       "address is not a valid address"
     ),
   // todo: add validation for this
@@ -342,7 +357,7 @@ const StakeAppBody = z.object({
     .string()
     .nonempty()
     .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      (value) => isValidAddress(value, PocketProtocol),
       "address is not a valid address"
     ),
   memo: memoSchema,
@@ -355,7 +370,7 @@ const UnstakeAppBody = z.object({
     .string()
     .nonempty()
     .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      (value) => isValidAddress(value, PocketProtocol),
       "address is not a valid address"
     ),
   memo: memoSchema,
@@ -368,7 +383,7 @@ const ChangeParamBody = z.object({
     .string()
     .nonempty()
     .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      (value) => isValidAddress(value, PocketProtocol),
       "address is not a valid address"
     ),
   paramKey: z.string().nonempty(),
@@ -384,7 +399,7 @@ const UnstakeNodeBody = z.object({
     .string()
     .nonempty()
     .refine(
-      (value) => isValidAddress(value, SupportedProtocols.Pocket),
+      (value) => isValidAddress(value, PocketProtocol),
       "address is not a valid address"
     ),
   nodeAddress: z
@@ -392,7 +407,7 @@ const UnstakeNodeBody = z.object({
     .nonempty()
     .optional()
     .refine(
-      (value) => !value || isValidAddress(value, SupportedProtocols.Pocket),
+      (value) => !value || isValidAddress(value, PocketProtocol),
       "address is not a valid address"
     ),
   memo: memoSchema,
@@ -419,7 +434,7 @@ class ProxyCommunicationController {
         if (
           origin === window.location.origin &&
           data?.to === "VAULT_KEYRING" &&
-          Object.values(SupportedProtocols).includes(data.protocol)
+          Object.values(supportedProtocolsArray).includes(data.protocol)
         ) {
           if (!this._backgroundIsReady) {
             return window.postMessage({
@@ -457,7 +472,7 @@ class ProxyCommunicationController {
 
           if (
             data.type === GET_POKT_TRANSACTION_REQUEST &&
-            data.protocol === SupportedProtocols.Pocket
+            data.protocol === PocketProtocol
           ) {
             await this._getPoktTx(data.data?.hash, data.id);
           }
@@ -651,7 +666,7 @@ class ProxyCommunicationController {
 
       if (response?.data?.isReady) {
         this._backgroundIsReady = true;
-        for (const protocol of Object.values(SupportedProtocols)) {
+        for (const protocol of Object.values(supportedProtocolsArray)) {
           setTimeout(() => {
             const message: AppIsReadyMessageToProvider = {
               from: "VAULT_KEYRING",
@@ -837,10 +852,8 @@ class ProxyCommunicationController {
     try {
       browser.storage.local
         .get({
-          [`${window.location.origin}-session-${SupportedProtocols.Pocket}`]:
-            null,
-          [`${window.location.origin}-session-${SupportedProtocols.Ethereum}`]:
-            null,
+          [`${window.location.origin}-session-${PocketProtocol}`]: null,
+          [`${window.location.origin}-session-${EthereumProtocol}`]: null,
         })
         .then(async (response) => {
           const checkSession = async (protocol: SupportedProtocols) => {
@@ -877,8 +890,8 @@ class ProxyCommunicationController {
           };
 
           await Promise.allSettled([
-            checkSession(SupportedProtocols.Ethereum),
-            checkSession(SupportedProtocols.Pocket),
+            checkSession(EthereumProtocol),
+            checkSession(PocketProtocol),
           ]);
         });
     } catch (e) {}
@@ -911,7 +924,7 @@ class ProxyCommunicationController {
           );
         }
 
-        if (protocol === SupportedProtocols.Pocket) {
+        if (protocol === PocketProtocol) {
           if (!(data as TPocketTransferBody)?.amount) {
             return this._sendTransferResponse(
               requestId,
@@ -922,7 +935,7 @@ class ProxyCommunicationController {
         }
 
         try {
-          if (protocol === SupportedProtocols.Pocket) {
+          if (protocol === PocketProtocol) {
             transferData = PocketTransferBody.parse(data);
           } else {
             transferData = EthTransferBody.parse(data);
@@ -1108,11 +1121,7 @@ class ProxyCommunicationController {
         return window.postMessage(message, window.location.origin);
       }
 
-      if (
-        block &&
-        protocol === SupportedProtocols.Ethereum &&
-        block !== "latest"
-      ) {
+      if (block && protocol === EthereumProtocol && block !== "latest") {
         return window.postMessage(
           {
             from: "VAULT_KEYRING",
@@ -1509,7 +1518,7 @@ class ProxyCommunicationController {
         }
 
         if (
-          protocol === SupportedProtocols.Ethereum &&
+          protocol === EthereumProtocol &&
           !stringRegex.test(data?.challenge)
         ) {
           this._sendPersonalSignResponse(
@@ -1751,7 +1760,7 @@ class ProxyCommunicationController {
     let requestWasSent = false;
 
     try {
-      if (protocol !== SupportedProtocols.Pocket) {
+      if (protocol !== PocketProtocol) {
         return this._sendPoktTxResponse<typeof responseType, PRes>(
           responseType,
           requestId,
