@@ -12,6 +12,7 @@
     "build:content-scripts": "webpack --config build/webpack/content-scripts.js",
     "build": "yarn typecheck && NODE_ENV=production webpack --config build/webpack/production.js && yarn rename-lockdown && yarn build:content-scripts",
     "build:chromium": "yarn build",
+    "build:analyze-bundle": "ANALYZE_BUNDLE=true yarn build",
     "build:firefox": "BROWSER=Firefox yarn build",
     "build:autopolicy": "LAVAMOAT_AUTO_POLICY=true yarn build",
     "build:autopolicy:firefox": "LAVAMOAT_AUTO_POLICY=true BROWSER=Firefox yarn build:firefox",
@@ -138,7 +139,12 @@
       "net-browserify>express-ws>ws": false,
       "@soothe/vault>ethereumjs-util>ethereum-cryptography>keccak": false,
       "@soothe/vault>ethereumjs-util>ethereum-cryptography>secp256k1": false,
-      "@soothe/vault>hdkey>secp256k1": false
+      "@soothe/vault>hdkey>secp256k1": false,
+      "$root$": false,
+      "esbuild-loader>esbuild": false,
+      "vitest>vite>esbuild": false,
+      "webpack-bundle-analyzer>ws>bufferutil": false,
+      "webpack-bundle-analyzer>ws>utf-8-validate": false
     }
   }
 }

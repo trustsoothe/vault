@@ -1,10 +1,7 @@
 const webpack = require("webpack");
 const path = require("path");
 const Dotenv = require("dotenv-webpack");
-const LavaMoat = require("@lavamoat/webpack");
 const CopyPlugin = require("copy-webpack-plugin");
-const TerserPlugin = require("terser-webpack-plugin");
-const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
 const getManifest = require("../manifest");
 
 const srcDir = path.join(__dirname, "..", "..", "src");
@@ -105,17 +102,6 @@ module.exports = {
     },
   },
   plugins: [
-    // new BundleAnalyzerPlugin({
-    //   analyzerMode: "static", // Generates a static HTML file for analysis
-    //   reportFilename: "bundle-report.html", // The name of the generated report file
-    //   openAnalyzer: false, // Automatically opens the report in the browser
-    //   generateStatsFile: true, // Generate stats.json file for further analysis
-    //   defaultSizes: "parsed",
-    //   statsFilename: "bundle-stats.json", // Name of the JSON stats file
-    //   statsOptions: null, // Pass customized stats options (optional)
-    //   excludeAssets: null, // Filter out specific assets (optional, use patterns if required)
-    //   logLevel: "info", // Adjust logging level (e.g., "info", "warn")
-    // }),
     new CopyPlugin({
       patterns: [
         {
