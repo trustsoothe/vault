@@ -1,5 +1,27 @@
 # @soothe/vault
 
+## 0.1.2
+
+### Patch Changes
+
+- 9370684: # Extension
+
+  - Updated proxy and provider to stop importing from @soothe/vault.
+  - Updated build script to use LavaMoat with webpack instead of browserify.
+  - Removed browserify related dependencies.
+
+  # Vault
+
+  - Exported DAOActionArray type.
+  - Exported SupportedProtocolsArray type.
+
+- bb1c6cf: \* Bumped dependencies.
+
+  # Extension
+
+  - Fixed a bug throwing an error when the balance of a Pocket account was not zero.
+  - Fixed build of the extension for Firefox.
+
 ## 0.1.1
 
 ### Patch Changes
