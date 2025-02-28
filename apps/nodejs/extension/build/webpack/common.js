@@ -128,7 +128,7 @@ module.exports = {
             "resources",
             isFirefox ? "background.html" : `${isDev ? 'dev' : 'prod'}-background-loader.js`
           ),
-          to: isFirefox ? 'background.html' : 'background-loader.js',
+          to: isFirefox ? path.join('..','background.html') : 'background-loader.js',
         },
         // We don't need to copy the snow.js file in development
         ...(isDev ? [] : [
