@@ -422,7 +422,7 @@ export default class BaseProvider extends EventEmitter {
 
           const { data, error } = event.data;
 
-          if (data || (data === null && !error)) {
+          if (data || ((data === null || data === 0) && !error)) {
             if (data && typeof data === "object" && "rejected" in data) {
               delete data.rejected;
             }
