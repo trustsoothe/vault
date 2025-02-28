@@ -1,9 +1,9 @@
 import BaseProvider, { PocketNetworkMethod } from "./base";
-import { SupportedProtocols } from "@soothe/vault";
+import { PocketProtocol } from "../../constants/protocols";
 
 export default class PocketNetworkProvider extends BaseProvider {
   constructor() {
-    super(SupportedProtocols.Pocket);
+    super(PocketProtocol);
 
     if (!this._isConnected) {
       this.send(PocketNetworkMethod.CHAIN)

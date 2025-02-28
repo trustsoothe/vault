@@ -1,3 +1,5 @@
+const basePermissions = ["storage", "unlimitedStorage"];
+
 const baseManifest = {
   manifest_version: 3,
   name: "Soothe Vault",
@@ -26,19 +28,14 @@ const baseManifest = {
     },
     default_popup: "home.html?popup=true",
   },
-  permissions: ["storage", "unlimitedStorage"],
+  permissions: basePermissions,
 };
 
-const basePermissions = ["storage", "unlimitedStorage"];
 
 const baseChromiumManifest = {
   ...baseManifest,
   background: {
-    service_worker: "js/background.js",
-  },
-  externally_connectable: {
-    ids: ['*'],
-    matches: ['http://*/*', 'https://*/*'],
+    service_worker: "js/background-loader.js"
   },
   permissions: [...basePermissions, "activeTab", "tabs"],
 };
@@ -51,7 +48,6 @@ const baseFirefoxManifest = {
   content_security_policy: {
     extension_pages: "script-src 'self'; object-src 'self';",
   },
-  permissions: [...basePermissions],
   host_permissions: ["http://*/*", "https://*/*"],
   browser_specific_settings: {
     gecko: {
@@ -60,18 +56,11 @@ const baseFirefoxManifest = {
   },
 };
 
-const getContentScript = (isFirefox, isLavamoat) => [
+const getContentScript = (isFirefox) => [
   {
     matches: ["http://*/*", "https://*/*"],
     run_at: "document_start",
-    js: isLavamoat ? ["js/proxy.js"] : [
-      "js/react-password-strength.js",
-      "js/libsodium-sumo.js",
-      "js/cosmjs.js",
-      "js/mui.js",
-      "js/vendor.js",
-      "js/proxy.js"
-    ],
+    js: ["js/proxy.js"],
   },
   {
     all_frames: true,
@@ -82,13 +71,13 @@ const getContentScript = (isFirefox, isLavamoat) => [
   },
 ];
 
-function getManifest(isFirefox, isLavamoat) {
+function getManifest(isFirefox) {
   const baseManifest = isFirefox ? baseFirefoxManifest : baseChromiumManifest;
 
   return JSON.stringify(
     {
       ...baseManifest,
-      content_scripts: getContentScript(isFirefox, isLavamoat),
+      content_scripts: getContentScript(isFirefox),
     },
     null,
     2

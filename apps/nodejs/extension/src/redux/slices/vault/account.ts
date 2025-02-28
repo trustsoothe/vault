@@ -25,6 +25,7 @@ import {
   SupportedTransferOrigins,
   TransferOptions,
   VaultRestoreErrorName,
+  DAOAction,
 } from "@soothe/vault";
 import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import { getVaultPassword, VaultSlice } from "./index";
@@ -539,7 +540,7 @@ export const getPoktTxFromRequest = async ({
         to: request.transactionData.to,
         amount: (Number(request.transactionData.amount) / 1e6).toString(),
         memo: request.transactionData.memo,
-        daoAction: request.transactionData.daoAction,
+        daoAction: request.transactionData.daoAction as DAOAction,
       };
       break;
     }
@@ -745,7 +746,7 @@ export const sendPoktTx = createAsyncThunk(
           amount: (
             Number(request.data.transactionData.amount) / 1e6
           ).toString(),
-          daoAction: request.data.transactionData.daoAction,
+          daoAction: request.data.transactionData.daoAction as DAOAction,
         };
         break;
       }
