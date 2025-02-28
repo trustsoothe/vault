@@ -9,7 +9,7 @@ import type {
 } from "../../types/provider";
 import { v4 } from "uuid";
 import { EventEmitter } from "events";
-import { SupportedProtocols } from "@soothe/vault";
+import type { SupportedProtocols } from "@soothe/vault";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,
@@ -56,6 +56,11 @@ import {
   RequestTimeout,
   UnsupportedMethod,
 } from "../../errors/communication";
+import {
+  EthereumProtocol,
+  PocketProtocol,
+  supportedProtocolsArray,
+} from "../../constants/protocols";
 
 export enum PocketNetworkMethod {
   REQUEST_ACCOUNTS = "pokt_requestAccounts",
@@ -65,8 +70,6 @@ export enum PocketNetworkMethod {
   TX = "pokt_tx",
   CHAIN = "pokt_chain",
   SWITCH_CHAIN = "wallet_switchPocketChain",
-  // HEIGHT = "pokt_height",
-  // BLOCK = 'pokt_block',
   PUBLIC_KEY = "pokt_publicKey",
   SIGN_MESSAGE = "pokt_signMessage",
   STAKE_NODE = "pokt_stakeNode",
@@ -179,16 +182,16 @@ export default class BaseProvider extends EventEmitter {
 
     let sootheRequestType: ProxyRequests["type"];
 
-    if (!Object.values(SupportedProtocols).includes(this.protocol)) {
+    if (!supportedProtocolsArray.includes(this.protocol)) {
       throw Error(`protocol not supported: ${this.protocol}`);
     }
 
     if (
-      (this.protocol === SupportedProtocols.Pocket &&
+      (this.protocol === PocketProtocol &&
         !Object.values(PocketNetworkMethod).includes(
           method as PocketNetworkMethod
         )) ||
-      (this.protocol === SupportedProtocols.Ethereum &&
+      (this.protocol === EthereumProtocol &&
         !Object.values(EthereumMethod).includes(method as EthereumMethod))
     ) {
       throw UnsupportedMethod;
@@ -289,7 +292,7 @@ export default class BaseProvider extends EventEmitter {
         responseType = EXTERNAL_ACCOUNT_BALANCE_RESPONSE;
 
         const address =
-          this.protocol === SupportedProtocols.Ethereum
+          this.protocol === EthereumProtocol
             ? params?.[0]
             : params?.[0]?.address;
 
@@ -426,7 +429,7 @@ export default class BaseProvider extends EventEmitter {
 
             let dataToResolve = data;
 
-            if (this.protocol === SupportedProtocols.Pocket) {
+            if (this.protocol === PocketProtocol) {
               if (responseType === TRANSFER_RESPONSE) {
                 // data is expected to be the transaction hash string
                 dataToResolve = { hash: data };

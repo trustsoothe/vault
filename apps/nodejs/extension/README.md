@@ -6,14 +6,19 @@ Please create a .env file from the .env.template file and change the values to y
 
 ## Build
 
-- To build the extension for Chromium based browsers run: `yarn build`
-    - This build is the result of:
-        - Building the UI and the service worker using browserify with lavamoat adds more protection to the extension.
-        - Building the content scripts with webpack instead of browserify with lavamoat to prevent brake some websites (
-          i.e. instagram, discord, facebook, etc.).
-- To build the extension for Firefox browser run: `yarn build:firefox`
-    - This build is made with webpack at the moment because with lavamoat and browserify some files are bigger
-      than the allowed file size in Firefox. We will work to fix this.
+- To build the extension for Chromium based browsers run `yarn build` and for Firefox run `yarn build:firefox`.
+
+This build is the result of:
+
+- Building the UI and the service worker using webpack with LavaMoat to add protections to the extension. These
+  protections include:
+    - [LavaMoat](https://github.com/LavaMoat/LavaMoat/tree/main/packages/webpack)
+    - [Lockdown](https://github.com/endojs/endo/tree/master/packages/ses)
+    - [Snow](https://github.com/lavamoat/snow)
+    - [Scuttling Mode](https://github.com/LavaMoat/LavaMoat/blob/main/docs/scuttling.md)
+    - [Allow Scripts](https://github.com/LavaMoat/LavaMoat/tree/main/packages/allow-scripts)
+- Building the content scripts with webpack without LavaMoat to prevent brake some websites because those scrips
+  are injected in every website.
 
 After the build command finished, a new folder called dist will be created containing the files for distribution. If the
 dist folder already exists, then it will be replaced with the new one.
@@ -26,8 +31,8 @@ dist folder already exists, then it will be replaced with the new one.
 After the dev command finished, a new folder called dist will be created containing the files for distribution. If the
 dist folder already exists, then it will be replaced with the new one.
 
-We use webpack with watch to run the dev command, that means every time you make changes and save the files, the dist
-folder will be updated.
+We use webpack without LavaMoat, applying watch to bundle every time you make changes and save the files, so the
+dist folder will be keep updated.
 
 ## Steps to install the browser extension
 

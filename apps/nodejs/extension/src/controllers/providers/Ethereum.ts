@@ -1,9 +1,9 @@
 import BaseProvider, { EthereumMethod } from "./base";
-import { SupportedProtocols } from "@soothe/vault";
+import { EthereumProtocol } from "../../constants/protocols";
 
 export default class EthereumProvider extends BaseProvider {
   constructor() {
-    super(SupportedProtocols.Ethereum);
+    super(EthereumProtocol);
 
     if (!this._isConnected) {
       this.send(EthereumMethod.CHAIN)

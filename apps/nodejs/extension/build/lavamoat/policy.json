@@ -1,0 +1,1909 @@
+{
+  "resources": {
+    "@soothe/vault>@cosmjs/amino": {
+      "packages": {
+        "@soothe/vault>@cosmjs/crypto": true,
+        "@soothe/vault>@cosmjs/encoding": true,
+        "@soothe/vault>@cosmjs/amino>@cosmjs/math": true,
+        "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true
+      }
+    },
+    "@soothe/vault>@cosmjs/crypto": {
+      "globals": {
+        "crypto.subtle": true,
+        "crypto.webcrypto.subtle": true
+      },
+      "packages": {
+        "@soothe/vault>@cosmjs/encoding": true,
+        "@soothe/vault>@cosmjs/amino>@cosmjs/math": true,
+        "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true,
+        "@soothe/vault>@cosmjs/crypto>@noble/hashes": true,
+        "@soothe/vault>@cosmjs/crypto>bn.js": true,
+        "crypto-browserify": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic": true,
+        "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo": true
+      }
+    },
+    "@soothe/vault>@cosmjs/encoding": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true
+      },
+      "packages": {
+        "buffer>base64-js": true,
+        "@soothe/vault>@cosmjs/encoding>bech32": true
+      }
+    },
+    "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/json-rpc": {
+      "packages": {
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream": true
+      }
+    },
+    "@soothe/vault>@cosmjs/amino>@cosmjs/math": {
+      "packages": {
+        "@soothe/vault>@cosmjs/amino>@cosmjs/math>bn.js": true
+      }
+    },
+    "@soothe/vault>@cosmjs/proto-signing": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "@soothe/vault>@cosmjs/amino": true,
+        "@soothe/vault>@cosmjs/crypto": true,
+        "@soothe/vault>@cosmjs/encoding": true,
+        "@soothe/vault>@cosmjs/amino>@cosmjs/math": true,
+        "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true,
+        "buffer": true,
+        "@soothe/vault>@cosmjs/stargate>cosmjs-types": true
+      }
+    },
+    "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket": {
+      "globals": {
+        "clearTimeout": true,
+        "process": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream": true,
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket>isomorphic-ws": true,
+        "process": true,
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream": true
+      }
+    },
+    "@soothe/vault>@cosmjs/stargate": {
+      "globals": {
+        "clearTimeout": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@soothe/vault>@cosmjs/amino": true,
+        "@soothe/vault>@cosmjs/encoding": true,
+        "@soothe/vault>@cosmjs/amino>@cosmjs/math": true,
+        "@soothe/vault>@cosmjs/proto-signing": true,
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc": true,
+        "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true,
+        "@soothe/vault>@cosmjs/stargate>cosmjs-types": true
+      }
+    },
+    "@soothe/vault>@cosmjs/stargate>@cosmjs/stream": {
+      "globals": {
+        "setTimeout": true
+      },
+      "packages": {
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream": true
+      }
+    },
+    "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc": {
+      "globals": {
+        "clearInterval": true,
+        "fetch": true,
+        "setInterval": true
+      },
+      "packages": {
+        "@soothe/vault>@cosmjs/crypto": true,
+        "@soothe/vault>@cosmjs/encoding": true,
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/json-rpc": true,
+        "@soothe/vault>@cosmjs/amino>@cosmjs/math": true,
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket": true,
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream": true,
+        "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true,
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>axios": true,
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream": true
+      }
+    },
+    "@soothe/vault>@cosmjs/amino>@cosmjs/utils": {
+      "globals": {
+        "Buffer": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "buffer": true
+      }
+    },
+    "@emotion/react>@emotion/cache": {
+      "globals": {
+        "console.error": true,
+        "document.head": true,
+        "document.querySelectorAll": true,
+        "process.env.NODE_ENV": true
+      },
+      "packages": {
+        "@emotion/react>@emotion/cache>@emotion/memoize": true,
+        "@emotion/react>@emotion/cache>@emotion/sheet": true,
+        "@emotion/react>@emotion/weak-memoize": true,
+        "@emotion/react>@emotion/cache>stylis": true
+      }
+    },
+    "@emotion/styled>@emotion/is-prop-valid": {
+      "packages": {
+        "@emotion/react>@emotion/cache>@emotion/memoize": true
+      }
+    },
+    "@emotion/react": {
+      "globals": {
+        "HTMLElement": true,
+        "console.error": true,
+        "console.warn": true,
+        "document.querySelector": true,
+        "jest": true,
+        "process.env.NODE_ENV": true,
+        "vi": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "@emotion/react>@emotion/cache": true,
+        "@emotion/react>@emotion/serialize": true,
+        "@emotion/react>@emotion/use-insertion-effect-with-fallbacks": true,
+        "@emotion/react>@emotion/utils": true,
+        "@emotion/react>@emotion/weak-memoize": true,
+        "react-redux>hoist-non-react-statics": true,
+        "react": true
+      }
+    },
+    "@emotion/react>@emotion/serialize": {
+      "globals": {
+        "console.error": true,
+        "process.env.NODE_ENV": true
+      },
+      "packages": {
+        "@emotion/react>@emotion/serialize>@emotion/hash": true,
+        "@emotion/react>@emotion/cache>@emotion/memoize": true,
+        "@emotion/react>@emotion/serialize>@emotion/unitless": true
+      }
+    },
+    "@emotion/react>@emotion/cache>@emotion/sheet": {
+      "globals": {
+        "console.error": true,
+        "document.createElement": true,
+        "document.createTextNode": true,
+        "document.styleSheets": true,
+        "process.env.NODE_ENV": true
+      }
+    },
+    "@emotion/styled": {
+      "globals": {
+        "console.error": true,
+        "process.env.NODE_ENV": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "@emotion/styled>@emotion/is-prop-valid": true,
+        "@emotion/react": true,
+        "@emotion/react>@emotion/serialize": true,
+        "@emotion/react>@emotion/use-insertion-effect-with-fallbacks": true,
+        "@emotion/react>@emotion/utils": true,
+        "react": true
+      }
+    },
+    "@emotion/react>@emotion/use-insertion-effect-with-fallbacks": {
+      "packages": {
+        "react": true
+      }
+    },
+    "web3-eth-accounts>@ethereumjs/rlp": {
+      "globals": {
+        "TextEncoder": true
+      }
+    },
+    "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util": {
+      "globals": {
+        "Buffer.alloc": true,
+        "Buffer.allocUnsafe": true,
+        "Buffer.byteLength": true,
+        "Buffer.concat": true,
+        "Buffer.from": true,
+        "Buffer.isBuffer": true,
+        "console.warn": true
+      },
+      "packages": {
+        "web3-eth-accounts>@ethereumjs/rlp": true,
+        "buffer": true,
+        "ethereum-cryptography": true,
+        "events": true,
+        "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": true
+      }
+    },
+    "@soothe/vault>@metamask/eth-sig-util>@metamask/abi-utils": {
+      "packages": {
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": true
+      }
+    },
+    "@soothe/vault>@metamask/eth-sig-util": {
+      "globals": {
+        "Buffer.byteLength": true,
+        "Buffer.from": true
+      },
+      "packages": {
+        "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/abi-utils": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils": true,
+        "buffer": true,
+        "ethereum-cryptography": true,
+        "@soothe/vault>@metamask/eth-sig-util>tweetnacl-util": true,
+        "@soothe/vault>ed25519-hd-key>tweetnacl": true
+      }
+    },
+    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils": {
+      "globals": {
+        "Buffer": true,
+        "TextDecoder": true,
+        "TextEncoder": true
+      },
+      "packages": {
+        "@soothe/vault-encryption-web>@noble/hashes": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": true,
+        "buffer": true,
+        "vitest>debug": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>pony-cause": true,
+        "ts-jest>semver": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": true
+      }
+    },
+    "@mui/material>@mui/base": {
+      "globals": {
+        "DocumentFragment": true,
+        "ResizeObserver": true,
+        "cancelAnimationFrame": true,
+        "clearInterval": true,
+        "console.error": true,
+        "console.warn": true,
+        "document.activeElement": true,
+        "document.body": true,
+        "process.env.NODE_ENV": true,
+        "requestAnimationFrame": true,
+        "setInterval": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "@mui/lab>@mui/utils": true,
+        "@mui/base>@popperjs/core": true,
+        "@mui/lab>clsx": true,
+        "@mui/lab>prop-types": true,
+        "react": true,
+        "react-dom": true
+      }
+    },
+    "@mui/icons-material": {
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "@mui/material": true,
+        "react": true
+      }
+    },
+    "@mui/lab": {
+      "globals": {
+        "process.env.NODE_ENV": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "@mui/base": true,
+        "@mui/material": true,
+        "@mui/lab>clsx": true,
+        "@mui/lab>prop-types": true,
+        "react": true
+      }
+    },
+    "@mui/material": {
+      "globals": {
+        "IntersectionObserver": true,
+        "ResizeObserver": true,
+        "addEventListener": true,
+        "clearTimeout": true,
+        "console.error": true,
+        "console.warn": true,
+        "document.addEventListener": true,
+        "document.body.style.WebkitUserSelect": true,
+        "document.removeEventListener": true,
+        "getSelection": true,
+        "navigator": true,
+        "performance.now": true,
+        "process.env.NODE_ENV": true,
+        "removeEventListener": true,
+        "requestAnimationFrame": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "@mui/material>@mui/base": true,
+        "@mui/lab>@mui/system": true,
+        "@mui/lab>@mui/utils": true,
+        "@mui/lab>clsx": true,
+        "@mui/lab>prop-types": true,
+        "react": true,
+        "react-redux>react-is": true,
+        "@mui/material>react-transition-group": true
+      }
+    },
+    "@mui/lab>@mui/system>@mui/private-theming": {
+      "globals": {
+        "console.error": true,
+        "process.env.NODE_ENV": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "@mui/lab>@mui/utils": true,
+        "@mui/lab>prop-types": true,
+        "react": true
+      }
+    },
+    "@mui/lab>@mui/system>@mui/styled-engine": {
+      "globals": {
+        "console.error": true,
+        "process.env.NODE_ENV": true
+      },
+      "packages": {
+        "@emotion/react": true,
+        "@emotion/styled": true,
+        "@mui/lab>prop-types": true,
+        "react": true
+      }
+    },
+    "@mui/lab>@mui/system": {
+      "globals": {
+        "console.error": true,
+        "console.warn": true,
+        "process.env.NODE_ENV": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "@mui/lab>@mui/system>@mui/private-theming": true,
+        "@mui/lab>@mui/system>@mui/styled-engine": true,
+        "@mui/lab>@mui/utils": true,
+        "@mui/lab>clsx": true,
+        "@mui/lab>prop-types": true,
+        "react": true
+      }
+    },
+    "@mui/lab>@mui/utils": {
+      "globals": {
+        "clearTimeout": true,
+        "console.error": true,
+        "document": true,
+        "innerWidth": true,
+        "process.env.NODE_ENV": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "react": true
+      }
+    },
+    "ethereum-cryptography>@noble/curves": {
+      "globals": {
+        "TextEncoder": true
+      },
+      "packages": {
+        "ethereum-cryptography>@noble/curves>@noble/hashes": true
+      }
+    },
+    "@soothe/vault>@cosmjs/crypto>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "ethereum-cryptography>@noble/curves>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "@scure/bip39>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "@soothe/vault-encryption-web>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "ethereum-cryptography>@noble/hashes": {
+      "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "@mui/base>@popperjs/core": {
+      "globals": {
+        "Element": true,
+        "HTMLElement": true,
+        "ShadowRoot": true,
+        "document": true,
+        "navigator.userAgent": true,
+        "navigator.userAgentData": true
+      }
+    },
+    "@reduxjs/toolkit": {
+      "globals": {
+        "AbortController": true,
+        "Headers": true,
+        "Request": true,
+        "URLSearchParams": true,
+        "__REDUX_DEVTOOLS_EXTENSION_COMPOSE__": true,
+        "__REDUX_DEVTOOLS_EXTENSION__": true,
+        "addEventListener": true,
+        "clearTimeout": true,
+        "console.error": true,
+        "console.log": true,
+        "console.warn": true,
+        "document": true,
+        "fetch": true,
+        "navigator": true,
+        "process": true,
+        "queueMicrotask": true,
+        "removeEventListener": true,
+        "requestAnimationFrame": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@reduxjs/toolkit>immer": true,
+        "process": true,
+        "react": true,
+        "react-redux": true,
+        "@reduxjs/toolkit>redux-thunk": true,
+        "@reduxjs/toolkit>redux": true,
+        "@reduxjs/toolkit>reselect": true
+      }
+    },
+    "react-router-dom>@remix-run/router": {
+      "globals": {
+        "AbortController": true,
+        "DOMException": true,
+        "FormData": true,
+        "Headers": true,
+        "Request": true,
+        "Response": true,
+        "URL": true,
+        "URLSearchParams": true,
+        "console": true,
+        "document.defaultView": true
+      }
+    },
+    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true
+      }
+    },
+    "@scure/bip39>@scure/base": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true
+      }
+    },
+    "@scure/bip39": {
+      "packages": {
+        "@scure/bip39>@noble/hashes": true,
+        "@scure/bip39>@scure/base": true
+      }
+    },
+    "@soothe/vault": {
+      "globals": {
+        "Buffer": true,
+        "URL": true,
+        "WebAssembly.Instance": true,
+        "WebAssembly.Module": true,
+        "atob": true,
+        "btoa": true,
+        "console.error": true,
+        "crypto": true,
+        "fetch": true
+      },
+      "packages": {
+        "@soothe/vault>@cosmjs/amino": true,
+        "@soothe/vault>@cosmjs/crypto": true,
+        "@soothe/vault>@cosmjs/encoding": true,
+        "@soothe/vault>@cosmjs/proto-signing": true,
+        "@soothe/vault>@cosmjs/stargate": true,
+        "@soothe/vault>@metamask/eth-sig-util": true,
+        "@soothe/vault>@pokt-foundation/pocketjs-types": true,
+        "@scure/bip39": true,
+        "buffer": true,
+        "@soothe/vault>ed25519-hd-key": true,
+        "@soothe/vault>ethereumjs-util": true,
+        "@soothe/vault>hdkey": true,
+        "@soothe/vault>hex-lite": true,
+        "lodash-es": true,
+        "@soothe/vault>protobufjs": true,
+        "uuid": true,
+        "@soothe/vault>varint": true,
+        "web3-eth-accounts": true,
+        "@soothe/vault>web3-eth-contract": true,
+        "@soothe/vault>web3-eth": true,
+        "@soothe/vault>web3-providers-http": true,
+        "web3-utils": true,
+        "zod": true
+      }
+    },
+    "@soothe/vault-encryption-web": {
+      "globals": {
+        "Buffer.from": true,
+        "crypto.getRandomValues": true,
+        "crypto.subtle.decrypt": true,
+        "crypto.subtle.deriveKey": true,
+        "crypto.subtle.encrypt": true,
+        "crypto.subtle.importKey": true
+      },
+      "packages": {
+        "buffer": true
+      }
+    },
+    "@soothe/vault-storage-extension": {
+      "packages": {
+        "@soothe/vault": true,
+        "webextension-polyfill": true
+      }
+    },
+    "crypto-browserify>public-encrypt>parse-asn1>asn1.js": {
+      "packages": {
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "glob>inherits": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
+        "encoding>iconv-lite>safer-buffer": true
+      }
+    },
+    "assert": {
+      "globals": {
+        "console": true,
+        "process.emitWarning": true,
+        "process.stderr": true
+      },
+      "packages": {
+        "assert>call-bind": true,
+        "assert>is-nan": true,
+        "assert>object-is": true,
+        "assert>object.assign": true,
+        "process": true,
+        "assert>util": true
+      }
+    },
+    "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>axios": {
+      "globals": {
+        "AbortController": true,
+        "Blob": true,
+        "Buffer.from": true,
+        "FormData": true,
+        "ReadableStream": true,
+        "Request": true,
+        "Response": true,
+        "TextEncoder": true,
+        "URLSearchParams": true,
+        "WorkerGlobalScope": true,
+        "XMLHttpRequest": true,
+        "btoa": true,
+        "clearTimeout": true,
+        "console.warn": true,
+        "document": true,
+        "fetch": true,
+        "importScripts": true,
+        "location.href": true,
+        "navigator": true,
+        "process": true,
+        "queueMicrotask": true,
+        "setImmediate": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "buffer": true,
+        "process": true
+      }
+    },
+    "@soothe/vault>hdkey>bs58check>bs58>base-x": {
+      "packages": {
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "@soothe/vault>@cosmjs/crypto>bn.js": {
+      "globals": {
+        "Buffer": true
+      }
+    },
+    "@soothe/vault>@cosmjs/amino>@cosmjs/math>bn.js": {
+      "globals": {
+        "Buffer": true
+      }
+    },
+    "crypto-browserify>public-encrypt>browserify-rsa>bn.js": {
+      "globals": {
+        "Buffer": true
+      }
+    },
+    "crypto-browserify>browserify-sign>bn.js": {
+      "globals": {
+        "Buffer": true
+      }
+    },
+    "crypto-browserify>create-ecdh>bn.js": {
+      "globals": {
+        "Buffer": true
+      }
+    },
+    "@soothe/vault>ethereumjs-util>bn.js": {
+      "globals": {
+        "Buffer": true
+      }
+    },
+    "@soothe/vault>ethereumjs-util>rlp>bn.js": {
+      "globals": {
+        "Buffer": true
+      }
+    },
+    "@soothe/vault>@cosmjs/crypto>elliptic>brorand": {
+      "globals": {
+        "crypto": true,
+        "msCrypto": true
+      }
+    },
+    "crypto-browserify>browserify-cipher>browserify-aes": {
+      "globals": {
+        "Buffer.concat": true
+      },
+      "packages": {
+        "buffer": true,
+        "crypto-browserify>browserify-cipher>browserify-aes>buffer-xor": true,
+        "crypto-browserify>create-hash>cipher-base": true,
+        "crypto-browserify>browserify-cipher>evp_bytestokey": true,
+        "glob>inherits": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "crypto-browserify>browserify-cipher": {
+      "packages": {
+        "crypto-browserify>browserify-cipher>browserify-aes": true,
+        "crypto-browserify>browserify-cipher>browserify-des": true,
+        "crypto-browserify>browserify-cipher>evp_bytestokey": true
+      }
+    },
+    "crypto-browserify>browserify-cipher>browserify-des": {
+      "packages": {
+        "crypto-browserify>create-hash>cipher-base": true,
+        "crypto-browserify>browserify-cipher>browserify-des>des.js": true,
+        "glob>inherits": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "crypto-browserify>public-encrypt>browserify-rsa": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "crypto-browserify>public-encrypt>browserify-rsa>bn.js": true,
+        "buffer": true,
+        "crypto-browserify>randombytes": true
+      }
+    },
+    "crypto-browserify>browserify-sign": {
+      "packages": {
+        "crypto-browserify>browserify-sign>bn.js": true,
+        "crypto-browserify>public-encrypt>browserify-rsa": true,
+        "crypto-browserify>create-hash": true,
+        "crypto-browserify>create-hmac": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic": true,
+        "glob>inherits": true,
+        "crypto-browserify>public-encrypt>parse-asn1": true,
+        "stream-http>readable-stream": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "browserify-zlib": {
+      "globals": {
+        "Buffer.alloc": true,
+        "process.nextTick": true
+      },
+      "packages": {
+        "assert": true,
+        "buffer": true,
+        "browserify-zlib>pako": true,
+        "process": true,
+        "stream-browserify": true,
+        "assert>util": true
+      }
+    },
+    "@soothe/vault>hdkey>bs58check>bs58": {
+      "packages": {
+        "@soothe/vault>hdkey>bs58check>bs58>base-x": true
+      }
+    },
+    "@soothe/vault>hdkey>bs58check": {
+      "packages": {
+        "@soothe/vault>hdkey>bs58check>bs58": true,
+        "crypto-browserify>create-hash": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "buffer": {
+      "globals": {
+        "console": true
+      },
+      "packages": {
+        "buffer>base64-js": true,
+        "buffer>ieee754": true
+      }
+    },
+    "crypto-browserify>browserify-cipher>browserify-aes>buffer-xor": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "buffer": true
+      }
+    },
+    "assert>call-bind": {
+      "packages": {
+        "assert>call-bind>function-bind": true,
+        "assert>call-bind>get-intrinsic": true,
+        "assert>call-bind>set-function-length": true
+      }
+    },
+    "crypto-browserify>create-hash>cipher-base": {
+      "packages": {
+        "glob>inherits": true,
+        "@soothe/vault>hdkey>safe-buffer": true,
+        "stream-browserify": true,
+        "stream-http>readable-stream>string_decoder": true
+      }
+    },
+    "@soothe/vault>@cosmjs/stargate>cosmjs-types": {
+      "globals": {
+        "Buffer.from": true
+      },
+      "packages": {
+        "buffer": true
+      }
+    },
+    "web3-eth-accounts>crc-32": {
+      "globals": {
+        "DO_NOT_EXPORT_CRC": true,
+        "define": true
+      }
+    },
+    "crypto-browserify>create-ecdh": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "buffer": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic": true
+      }
+    },
+    "crypto-browserify>create-hash": {
+      "packages": {
+        "crypto-browserify>create-hash>cipher-base": true,
+        "glob>inherits": true,
+        "crypto-browserify>create-hash>md5.js": true,
+        "@soothe/vault>hdkey>ripemd160": true,
+        "crypto-browserify>pbkdf2>sha.js": true
+      }
+    },
+    "crypto-browserify>create-hmac": {
+      "packages": {
+        "crypto-browserify>create-hash>cipher-base": true,
+        "crypto-browserify>create-hash": true,
+        "glob>inherits": true,
+        "@soothe/vault>hdkey>ripemd160": true,
+        "@soothe/vault>hdkey>safe-buffer": true,
+        "crypto-browserify>pbkdf2>sha.js": true
+      }
+    },
+    "@soothe/vault>web3-providers-http>cross-fetch": {
+      "globals": {
+        "Blob": true,
+        "FileReader": true,
+        "FormData": true,
+        "URLSearchParams.prototype.isPrototypeOf": true,
+        "XMLHttpRequest": true,
+        "setTimeout": true
+      }
+    },
+    "crypto-browserify": {
+      "packages": {
+        "crypto-browserify>browserify-cipher": true,
+        "crypto-browserify>browserify-sign": true,
+        "crypto-browserify>create-ecdh": true,
+        "crypto-browserify>create-hash": true,
+        "crypto-browserify>create-hmac": true,
+        "crypto-browserify>diffie-hellman": true,
+        "crypto-browserify>pbkdf2": true,
+        "crypto-browserify>public-encrypt": true,
+        "crypto-browserify>randombytes": true,
+        "crypto-browserify>randomfill": true
+      }
+    },
+    "vitest>debug": {
+      "globals": {
+        "console": true,
+        "document": true,
+        "localStorage": true,
+        "navigator": true,
+        "process": true
+      },
+      "packages": {
+        "vitest>debug>ms": true,
+        "process": true
+      }
+    },
+    "decimal.js": {
+      "globals": {
+        "crypto": true
+      }
+    },
+    "assert>is-nan>define-properties>define-data-property": {
+      "packages": {
+        "assert>call-bind>get-intrinsic": true,
+        "assert>util>which-typed-array>gopd": true,
+        "assert>is-nan>define-properties>has-property-descriptors": true
+      }
+    },
+    "assert>is-nan>define-properties": {
+      "packages": {
+        "assert>is-nan>define-properties>define-data-property": true,
+        "assert>is-nan>define-properties>has-property-descriptors": true,
+        "assert>object.assign>object-keys": true
+      }
+    },
+    "crypto-browserify>browserify-cipher>browserify-des>des.js": {
+      "packages": {
+        "glob>inherits": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true
+      }
+    },
+    "crypto-browserify>diffie-hellman": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "buffer": true,
+        "crypto-browserify>diffie-hellman>miller-rabin": true,
+        "crypto-browserify>randombytes": true
+      }
+    },
+    "@soothe/vault>ed25519-hd-key": {
+      "globals": {
+        "Buffer.alloc": true,
+        "Buffer.allocUnsafe": true,
+        "Buffer.concat": true,
+        "Buffer.from": true
+      },
+      "packages": {
+        "buffer": true,
+        "crypto-browserify>create-hmac": true,
+        "@soothe/vault>ed25519-hd-key>tweetnacl": true
+      }
+    },
+    "@soothe/vault>@cosmjs/crypto>elliptic": {
+      "packages": {
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>brorand": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>hash.js": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>hmac-drbg": true,
+        "glob>inherits": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-crypto-utils": true
+      }
+    },
+    "ethereum-cryptography": {
+      "globals": {
+        "TextDecoder": true,
+        "crypto": true,
+        "module": true
+      },
+      "packages": {
+        "ethereum-cryptography>@noble/curves": true,
+        "ethereum-cryptography>@noble/hashes": true
+      }
+    },
+    "@soothe/vault>ethereumjs-util>ethereum-cryptography": {
+      "globals": {
+        "Buffer.from": true
+      },
+      "packages": {
+        "buffer": true,
+        "@soothe/vault>ethereumjs-util>ethereum-cryptography>keccak": true,
+        "crypto-browserify>randombytes": true,
+        "@soothe/vault>hdkey>secp256k1": true
+      }
+    },
+    "@soothe/vault>ethereumjs-util": {
+      "globals": {
+        "Buffer": true
+      },
+      "packages": {
+        "assert": true,
+        "@soothe/vault>ethereumjs-util>bn.js": true,
+        "buffer": true,
+        "crypto-browserify>create-hash": true,
+        "@soothe/vault>ethereumjs-util>ethereum-cryptography": true,
+        "@soothe/vault>ethereumjs-util>rlp": true
+      }
+    },
+    "events": {
+      "globals": {
+        "console": true
+      }
+    },
+    "crypto-browserify>browserify-cipher>evp_bytestokey": {
+      "packages": {
+        "crypto-browserify>create-hash>md5.js": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "file-saver": {
+      "globals": {
+        "Blob": true,
+        "FileReader": true,
+        "HTMLAnchorElement.prototype": true,
+        "MouseEvent": true,
+        "XMLHttpRequest": true,
+        "console.error": true,
+        "console.warn": true,
+        "define": true,
+        "document.createElement": true,
+        "document.createEvent": true,
+        "global": true,
+        "location": "write",
+        "navigator": true,
+        "open": true,
+        "self": true,
+        "setTimeout": true,
+        "window": true
+      }
+    },
+    "assert>util>which-typed-array>for-each": {
+      "packages": {
+        "assert>util>which-typed-array>for-each>is-callable": true
+      }
+    },
+    "assert>call-bind>get-intrinsic": {
+      "globals": {
+        "AggregateError": true,
+        "FinalizationRegistry": true,
+        "WeakRef": true
+      },
+      "packages": {
+        "assert>call-bind>function-bind": true,
+        "assert>call-bind>get-intrinsic>has-proto": true,
+        "assert>object.assign>has-symbols": true,
+        "assert>call-bind>get-intrinsic>hasown": true
+      }
+    },
+    "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream>globalthis": {
+      "packages": {
+        "assert>is-nan>define-properties": true,
+        "assert>util>which-typed-array>gopd": true
+      }
+    },
+    "notistack>goober": {
+      "globals": {
+        "_goober": true,
+        "document.createElement": true,
+        "document.head": true
+      }
+    },
+    "assert>util>which-typed-array>gopd": {
+      "packages": {
+        "assert>call-bind>get-intrinsic": true
+      }
+    },
+    "assert>is-nan>define-properties>has-property-descriptors": {
+      "packages": {
+        "assert>call-bind>get-intrinsic": true
+      }
+    },
+    "assert>util>is-arguments>has-tostringtag": {
+      "packages": {
+        "assert>object.assign>has-symbols": true
+      }
+    },
+    "@soothe/vault>hdkey>ripemd160>hash-base": {
+      "packages": {
+        "glob>inherits": true,
+        "stream-http>readable-stream": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "@soothe/vault>@cosmjs/crypto>elliptic>hash.js": {
+      "packages": {
+        "glob>inherits": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true
+      }
+    },
+    "assert>call-bind>get-intrinsic>hasown": {
+      "packages": {
+        "assert>call-bind>function-bind": true
+      }
+    },
+    "@soothe/vault>hdkey": {
+      "packages": {
+        "assert": true,
+        "@soothe/vault>hdkey>bs58check": true,
+        "crypto-browserify": true,
+        "@soothe/vault>hdkey>ripemd160": true,
+        "@soothe/vault>hdkey>safe-buffer": true,
+        "@soothe/vault>hdkey>secp256k1": true
+      }
+    },
+    "@soothe/vault>@cosmjs/crypto>elliptic>hmac-drbg": {
+      "packages": {
+        "@soothe/vault>@cosmjs/crypto>elliptic>hash.js": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-crypto-utils": true
+      }
+    },
+    "react-redux>hoist-non-react-statics": {
+      "packages": {
+        "react-redux>hoist-non-react-statics>react-is": true
+      }
+    },
+    "https-browserify": {
+      "packages": {
+        "stream-http": true,
+        "url": true
+      }
+    },
+    "@reduxjs/toolkit>immer": {
+      "globals": {
+        "process.env.NODE_ENV": true
+      }
+    },
+    "assert>util>is-arguments": {
+      "packages": {
+        "assert>call-bind": true,
+        "assert>util>is-arguments>has-tostringtag": true
+      }
+    },
+    "assert>util>which-typed-array>for-each>is-callable": {
+      "globals": {
+        "document": true
+      }
+    },
+    "assert>util>is-generator-function": {
+      "packages": {
+        "assert>util>is-arguments>has-tostringtag": true
+      }
+    },
+    "assert>is-nan": {
+      "packages": {
+        "assert>call-bind": true,
+        "assert>is-nan>define-properties": true
+      }
+    },
+    "assert>util>is-typed-array": {
+      "packages": {
+        "assert>util>which-typed-array": true
+      }
+    },
+    "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket>isomorphic-ws": {
+      "globals": {
+        "MozWebSocket": true,
+        "WebSocket": true
+      }
+    },
+    "@soothe/vault>web3-eth>web3-providers-ws>isomorphic-ws": {
+      "globals": {
+        "MozWebSocket": true,
+        "WebSocket": true
+      }
+    },
+    "@soothe/vault>ethereumjs-util>ethereum-cryptography>keccak": {
+      "globals": {
+        "Buffer.alloc": true,
+        "Buffer.from": true,
+        "Buffer.isBuffer": true
+      },
+      "packages": {
+        "buffer": true,
+        "stream-http>readable-stream": true
+      }
+    },
+    "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo>libsodium-sumo": {
+      "globals": {
+        "Buffer.from": true,
+        "TextDecoder": true,
+        "URL": true,
+        "WebAssembly.RuntimeError": true,
+        "WebAssembly.instantiate": true,
+        "XMLHttpRequest": true,
+        "__dirname": true,
+        "atob": true,
+        "clearInterval": true,
+        "define": true,
+        "document": true,
+        "importScripts": true,
+        "location.href": true,
+        "process": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "buffer": true,
+        "crypto-browserify": true,
+        "process": true
+      }
+    },
+    "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true,
+        "define": true
+      },
+      "packages": {
+        "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo>libsodium-sumo": true
+      }
+    },
+    "lodash-es": {
+      "globals": {
+        "clearTimeout": true,
+        "exports": true,
+        "module": true,
+        "setTimeout": true
+      }
+    },
+    "ts-jest>semver>lru-cache": {
+      "packages": {
+        "ts-jest>semver>lru-cache>yallist": true
+      }
+    },
+    "crypto-browserify>create-hash>md5.js": {
+      "packages": {
+        "@soothe/vault>hdkey>ripemd160>hash-base": true,
+        "glob>inherits": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "@soothe/vault>@metamask/eth-sig-util>@ethereumjs/util>micro-ftch": {
+      "globals": {
+        "Buffer.concat": true,
+        "Headers": true,
+        "TextDecoder": true,
+        "URL": true,
+        "btoa": true,
+        "fetch": true,
+        "process": true
+      },
+      "packages": {
+        "browserify-zlib": true,
+        "buffer": true,
+        "https-browserify": true,
+        "process": true,
+        "stream-http": true,
+        "url": true,
+        "assert>util": true
+      }
+    },
+    "crypto-browserify>diffie-hellman>miller-rabin": {
+      "packages": {
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "@soothe/vault>@cosmjs/crypto>elliptic>brorand": true
+      }
+    },
+    "notistack": {
+      "globals": {
+        "addEventListener": true,
+        "clearTimeout": true,
+        "console": true,
+        "document": true,
+        "process.env.NODE_ENV": true,
+        "removeEventListener": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "notistack>clsx": true,
+        "notistack>goober": true,
+        "react": true,
+        "react-dom": true
+      }
+    },
+    "url>qs>side-channel>object-inspect": {
+      "globals": {
+        "HTMLElement": true,
+        "WeakRef": true
+      }
+    },
+    "assert>object-is": {
+      "packages": {
+        "assert>call-bind": true,
+        "assert>is-nan>define-properties": true
+      }
+    },
+    "assert>object.assign": {
+      "packages": {
+        "assert>call-bind": true,
+        "assert>object.assign>has-symbols": true,
+        "assert>object.assign>object-keys": true
+      }
+    },
+    "crypto-browserify>public-encrypt>parse-asn1": {
+      "packages": {
+        "crypto-browserify>public-encrypt>parse-asn1>asn1.js": true,
+        "crypto-browserify>browserify-cipher>browserify-aes": true,
+        "crypto-browserify>browserify-cipher>evp_bytestokey": true,
+        "crypto-browserify>pbkdf2": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "crypto-browserify>pbkdf2": {
+      "globals": {
+        "crypto": true,
+        "process": true,
+        "queueMicrotask": true,
+        "setImmediate": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "crypto-browserify>create-hash": true,
+        "process": true,
+        "@soothe/vault>hdkey>ripemd160": true,
+        "@soothe/vault>hdkey>safe-buffer": true,
+        "crypto-browserify>pbkdf2>sha.js": true
+      }
+    },
+    "process": {
+      "globals": {
+        "clearTimeout": true,
+        "setTimeout": true
+      }
+    },
+    "@soothe/vault>protobufjs": {
+      "globals": {
+        "process": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@soothe/vault>protobufjs>@protobufjs/aspromise": true,
+        "@soothe/vault>protobufjs>@protobufjs/base64": true,
+        "@soothe/vault>protobufjs>@protobufjs/eventemitter": true,
+        "@soothe/vault>protobufjs>@protobufjs/float": true,
+        "@soothe/vault>protobufjs>@protobufjs/inquire": true,
+        "@soothe/vault>protobufjs>@protobufjs/pool": true,
+        "@soothe/vault>protobufjs>@protobufjs/utf8": true
+      }
+    },
+    "crypto-browserify>public-encrypt": {
+      "packages": {
+        "crypto-browserify>create-ecdh>bn.js": true,
+        "crypto-browserify>public-encrypt>browserify-rsa": true,
+        "crypto-browserify>create-hash": true,
+        "crypto-browserify>public-encrypt>parse-asn1": true,
+        "crypto-browserify>randombytes": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "url>punycode": {
+      "globals": {
+        "define": true
+      }
+    },
+    "url>qs": {
+      "packages": {
+        "url>qs>side-channel": true
+      }
+    },
+    "random-words": {
+      "packages": {
+        "random-words>seedrandom": true
+      }
+    },
+    "crypto-browserify>randombytes": {
+      "globals": {
+        "crypto": true,
+        "msCrypto": true,
+        "process.nextTick": true
+      },
+      "packages": {
+        "process": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "crypto-browserify>randomfill": {
+      "globals": {
+        "crypto": true,
+        "msCrypto": true,
+        "process.browser": true,
+        "process.nextTick": true
+      },
+      "packages": {
+        "process": true,
+        "crypto-browserify>randombytes": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "react": {
+      "globals": {
+        "process.env.NODE_ENV": true
+      }
+    },
+    "react-dom": {
+      "globals": {
+        "MSApp": true,
+        "__REACT_DEVTOOLS_GLOBAL_HOOK__": true,
+        "addEventListener": true,
+        "clearTimeout": true,
+        "clipboardData": true,
+        "console.error": true,
+        "document": true,
+        "event": true,
+        "process.env.NODE_ENV": true,
+        "queueMicrotask": true,
+        "removeEventListener": true,
+        "reportError": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "react": true,
+        "react-dom>scheduler": true
+      }
+    },
+    "react-hook-form": {
+      "globals": {
+        "Blob": true,
+        "FileList": true,
+        "FormData": true,
+        "HTMLElement": true,
+        "clearTimeout": true,
+        "document": true,
+        "fetch": true,
+        "performance": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "react": true
+      }
+    },
+    "react-redux>hoist-non-react-statics>react-is": {
+      "globals": {
+        "process.env.NODE_ENV": true
+      }
+    },
+    "react-redux>react-is": {
+      "globals": {
+        "process.env.NODE_ENV": true
+      }
+    },
+    "react-password-strength-bar": {
+      "packages": {
+        "react": true
+      }
+    },
+    "react-redux": {
+      "globals": {
+        "console.warn": true,
+        "document": true,
+        "process.env.NODE_ENV": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "react-redux>hoist-non-react-statics": true,
+        "react": true,
+        "react-dom": true,
+        "react-redux>react-is": true,
+        "react-redux>use-sync-external-store": true
+      }
+    },
+    "react-router-dom": {
+      "globals": {
+        "FormData": true,
+        "URL": true,
+        "URLSearchParams": true,
+        "addEventListener": true,
+        "confirm": true,
+        "console.warn": true,
+        "document": true,
+        "history.scrollRestoration": true,
+        "location.href": true,
+        "process.env.NODE_ENV": true,
+        "removeEventListener": true,
+        "scrollTo": true,
+        "scrollY": true,
+        "sessionStorage.getItem": true,
+        "sessionStorage.setItem": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "react-router-dom>@remix-run/router": true,
+        "react": true,
+        "react-router-dom>react-router": true
+      }
+    },
+    "react-router-dom>react-router": {
+      "globals": {
+        "console.error": true,
+        "process.env.NODE_ENV": true
+      },
+      "packages": {
+        "react-router-dom>@remix-run/router": true,
+        "react": true
+      }
+    },
+    "@mui/material>react-transition-group": {
+      "globals": {
+        "Element": true,
+        "process.env.NODE_ENV": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@mui/lab>@babel/runtime": true,
+        "@mui/lab>prop-types": true,
+        "react": true,
+        "react-dom": true
+      }
+    },
+    "stream-http>readable-stream": {
+      "globals": {
+        "process.nextTick": true,
+        "process.stderr": true,
+        "process.stdout": true
+      },
+      "packages": {
+        "buffer": true,
+        "events": true,
+        "glob>inherits": true,
+        "process": true,
+        "stream-http>readable-stream>string_decoder": true,
+        "stream-http>readable-stream>util-deprecate": true
+      }
+    },
+    "@reduxjs/toolkit>redux": {
+      "globals": {
+        "console": true,
+        "process.env.NODE_ENV": true
+      }
+    },
+    "@reduxjs/toolkit>reselect": {
+      "globals": {
+        "WeakRef": true,
+        "console.warn": true,
+        "process.env.NODE_ENV": true
+      }
+    },
+    "@soothe/vault>hdkey>ripemd160": {
+      "packages": {
+        "buffer": true,
+        "@soothe/vault>hdkey>ripemd160>hash-base": true,
+        "glob>inherits": true
+      }
+    },
+    "@soothe/vault>ethereumjs-util>rlp": {
+      "globals": {
+        "Buffer.concat": true,
+        "Buffer.from": true,
+        "Buffer.isBuffer": true
+      },
+      "packages": {
+        "@soothe/vault>ethereumjs-util>rlp>bn.js": true,
+        "buffer": true
+      }
+    },
+    "@soothe/vault>hdkey>safe-buffer": {
+      "packages": {
+        "buffer": true
+      }
+    },
+    "encoding>iconv-lite>safer-buffer": {
+      "globals": {
+        "process.binding": true
+      },
+      "packages": {
+        "buffer": true,
+        "process": true
+      }
+    },
+    "react-dom>scheduler": {
+      "globals": {
+        "MessageChannel": true,
+        "clearTimeout": true,
+        "console.error": true,
+        "navigator": true,
+        "performance": true,
+        "process.env.NODE_ENV": true,
+        "setImmediate": true,
+        "setTimeout": true
+      }
+    },
+    "@soothe/vault>hdkey>secp256k1": {
+      "packages": {
+        "@soothe/vault>@cosmjs/crypto>elliptic": true
+      }
+    },
+    "random-words>seedrandom": {
+      "globals": {
+        "define": true
+      }
+    },
+    "ts-jest>semver": {
+      "globals": {
+        "console.error": true,
+        "process": true
+      },
+      "packages": {
+        "ts-jest>semver>lru-cache": true,
+        "process": true
+      }
+    },
+    "assert>call-bind>set-function-length": {
+      "packages": {
+        "assert>is-nan>define-properties>define-data-property": true,
+        "assert>call-bind>get-intrinsic": true,
+        "assert>util>which-typed-array>gopd": true,
+        "assert>is-nan>define-properties>has-property-descriptors": true
+      }
+    },
+    "@soothe/vault>web3-eth>setimmediate": {
+      "globals": {
+        "MessageChannel": true,
+        "process.nextTick": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "process": true
+      }
+    },
+    "crypto-browserify>pbkdf2>sha.js": {
+      "packages": {
+        "glob>inherits": true,
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "url>qs>side-channel": {
+      "packages": {
+        "assert>call-bind": true,
+        "assert>call-bind>get-intrinsic": true,
+        "url>qs>side-channel>object-inspect": true
+      }
+    },
+    "stream-browserify": {
+      "packages": {
+        "events": true,
+        "glob>inherits": true,
+        "stream-http>readable-stream": true
+      }
+    },
+    "stream-http": {
+      "globals": {
+        "AbortController": true,
+        "Blob": true,
+        "Buffer.alloc": true,
+        "Buffer.from": true,
+        "MSStreamReader": true,
+        "ReadableStream": true,
+        "WritableStream": true,
+        "XDomainRequest": true,
+        "XMLHttpRequest": true,
+        "clearTimeout": true,
+        "fetch": true,
+        "location.protocol.search": true,
+        "process.nextTick": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "buffer": true,
+        "stream-http>builtin-status-codes": true,
+        "glob>inherits": true,
+        "process": true,
+        "stream-http>readable-stream": true,
+        "url": true,
+        "stream-http>xtend": true
+      }
+    },
+    "stream-http>readable-stream>string_decoder": {
+      "packages": {
+        "@soothe/vault>hdkey>safe-buffer": true
+      }
+    },
+    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": {
+      "globals": {
+        "console.warn": true
+      }
+    },
+    "@soothe/vault>@metamask/eth-sig-util>tweetnacl-util": {
+      "globals": {
+        "Buffer": true,
+        "atob": true,
+        "btoa": true
+      }
+    },
+    "@soothe/vault>ed25519-hd-key>tweetnacl": {
+      "globals": {
+        "crypto": true,
+        "msCrypto": true,
+        "nacl": "write"
+      }
+    },
+    "url": {
+      "packages": {
+        "url>punycode": true,
+        "url>qs": true
+      }
+    },
+    "react-redux>use-sync-external-store": {
+      "globals": {
+        "document": true,
+        "process.env.NODE_ENV": true
+      },
+      "packages": {
+        "react": true
+      }
+    },
+    "stream-http>readable-stream>util-deprecate": {
+      "globals": {
+        "console.trace": true,
+        "console.warn": true,
+        "localStorage": true
+      }
+    },
+    "assert>util": {
+      "globals": {
+        "console.error": true,
+        "console.log": true,
+        "console.trace": true,
+        "process": true
+      },
+      "packages": {
+        "glob>inherits": true,
+        "assert>util>is-arguments": true,
+        "assert>util>is-generator-function": true,
+        "assert>util>is-typed-array": true,
+        "process": true,
+        "assert>util>which-typed-array": true
+      }
+    },
+    "uuid": {
+      "globals": {
+        "crypto": true
+      }
+    },
+    "@soothe/vault>web3-eth>web3-core": {
+      "packages": {
+        "web3-utils>web3-errors": true,
+        "web3-eth-accounts": true,
+        "@soothe/vault>web3-eth>web3-core>web3-eth-iban": true,
+        "@soothe/vault>web3-providers-http": true,
+        "@soothe/vault>web3-eth>web3-providers-ws": true,
+        "web3-utils>web3-types": true,
+        "web3-utils": true,
+        "web3-utils>web3-validator": true
+      }
+    },
+    "@soothe/vault>web3-eth>web3-eth-abi": {
+      "globals": {
+        "Buffer": true,
+        "console.error": true
+      },
+      "packages": {
+        "@soothe/vault>web3-eth>web3-eth-abi>abitype": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils": true,
+        "web3-utils>web3-validator": true
+      }
+    },
+    "web3-eth-accounts": {
+      "globals": {
+        "console.warn": true,
+        "localStorage": true,
+        "txUtils": true
+      },
+      "packages": {
+        "web3-eth-accounts>@ethereumjs/rlp": true,
+        "web3-eth-accounts>crc-32": true,
+        "ethereum-cryptography": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-utils": true,
+        "web3-utils>web3-validator": true
+      }
+    },
+    "@soothe/vault>web3-eth-contract": {
+      "packages": {
+        "@soothe/vault>web3-eth>web3-core": true,
+        "web3-utils>web3-errors": true,
+        "@soothe/vault>web3-eth>web3-eth-abi": true,
+        "@soothe/vault>web3-eth-contract>web3-eth": true,
+        "web3-utils>web3-types": true,
+        "web3-utils": true,
+        "web3-utils>web3-validator": true
+      }
+    },
+    "@soothe/vault>web3-eth>web3-core>web3-eth-iban": {
+      "packages": {
+        "web3-utils>web3-errors": true,
+        "web3-utils": true,
+        "web3-utils>web3-validator": true
+      }
+    },
+    "@soothe/vault>web3-eth": {
+      "globals": {
+        "clearInterval": true,
+        "clearTimeout": true,
+        "console.warn": true,
+        "setImmediate": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@soothe/vault>web3-eth>setimmediate": true,
+        "@soothe/vault>web3-eth>web3-core": true,
+        "web3-utils>web3-errors": true,
+        "@soothe/vault>web3-eth>web3-eth-abi": true,
+        "web3-eth-accounts": true,
+        "@soothe/vault>web3-eth>web3-net": true,
+        "@soothe/vault>web3-eth>web3-rpc-methods": true,
+        "web3-utils>web3-types": true,
+        "web3-utils": true,
+        "web3-utils>web3-validator": true
+      }
+    },
+    "@soothe/vault>web3-eth-contract>web3-eth": {
+      "globals": {
+        "clearInterval": true,
+        "clearTimeout": true,
+        "console.warn": true,
+        "setImmediate": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@soothe/vault>web3-eth>setimmediate": true,
+        "@soothe/vault>web3-eth>web3-core": true,
+        "web3-utils>web3-errors": true,
+        "@soothe/vault>web3-eth>web3-eth-abi": true,
+        "web3-eth-accounts": true,
+        "@soothe/vault>web3-eth>web3-net": true,
+        "@soothe/vault>web3-eth>web3-rpc-methods": true,
+        "web3-utils>web3-types": true,
+        "web3-utils": true,
+        "web3-utils>web3-validator": true
+      }
+    },
+    "@soothe/vault>web3-eth>web3-net": {
+      "packages": {
+        "@soothe/vault>web3-eth>web3-core": true,
+        "@soothe/vault>web3-eth>web3-rpc-methods": true,
+        "web3-utils>web3-types": true,
+        "web3-utils": true
+      }
+    },
+    "@soothe/vault>web3-providers-http": {
+      "packages": {
+        "@soothe/vault>web3-providers-http>cross-fetch": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true
+      }
+    },
+    "@soothe/vault>web3-eth>web3-providers-ws": {
+      "packages": {
+        "@soothe/vault>web3-eth>web3-providers-ws>isomorphic-ws": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils": true
+      }
+    },
+    "@soothe/vault>web3-eth>web3-rpc-methods": {
+      "packages": {
+        "web3-utils>web3-validator": true
+      }
+    },
+    "web3-utils": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true,
+        "clearInterval": true,
+        "clearTimeout": true,
+        "console.error": true,
+        "jsonRpc": true,
+        "setImmediate": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "ethereum-cryptography": true,
+        "web3-utils>eventemitter3": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-utils>web3-validator": true
+      }
+    },
+    "web3-validator": {
+      "globals": {
+        "utils": true
+      },
+      "packages": {
+        "ethereum-cryptography": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-validator>zod": true
+      }
+    },
+    "web3-utils>web3-validator": {
+      "globals": {
+        "utils": true
+      },
+      "packages": {
+        "ethereum-cryptography": true,
+        "web3-utils>web3-errors": true,
+        "web3-utils>web3-types": true,
+        "web3-utils>web3-validator>zod": true
+      }
+    },
+    "webext-redux": {
+      "globals": {
+        "browser": true,
+        "chrome": true,
+        "console.error": true,
+        "console.warn": true
+      },
+      "packages": {
+        "webext-redux>lodash.assignin": true
+      }
+    },
+    "webextension-polyfill": {
+      "globals": {
+        "browser": true,
+        "chrome": true,
+        "console.error": true,
+        "console.warn": true,
+        "define": true
+      }
+    },
+    "assert>util>which-typed-array": {
+      "packages": {
+        "assert>util>which-typed-array>available-typed-arrays": true,
+        "assert>call-bind": true,
+        "assert>util>which-typed-array>for-each": true,
+        "assert>util>which-typed-array>gopd": true,
+        "assert>util>is-arguments>has-tostringtag": true
+      }
+    },
+    "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream": {
+      "globals": {
+        "clearInterval": true,
+        "clearTimeout": true,
+        "console.log": true,
+        "setInterval": true,
+        "setTimeout": true
+      },
+      "packages": {
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream>globalthis": true,
+        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream>symbol-observable": true
+      }
+    },
+    "zod": {
+      "globals": {
+        "URL": true
+      }
+    },
+    "web3-validator>zod": {
+      "globals": {
+        "URL": true
+      }
+    },
+    "web3-utils>web3-validator>zod": {
+      "globals": {
+        "URL": true
+      }
+    }
+  }
+}
