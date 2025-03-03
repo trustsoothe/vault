@@ -1,5 +1,13 @@
 # @soothe/extension
 
+## 0.2.1
+
+### Patch Changes
+
+- 1447d6a: # Extension
+
+  - Updated manifest version
+
 ## 0.2.0
 
 ### Minor Changes
