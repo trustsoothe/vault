@@ -1,5 +1,16 @@
 # @soothe/tsconfig
 
+## 0.1.2
+
+### Patch Changes
+
+- bb1c6cf: \* Bumped dependencies.
+
+  # Extension
+
+  - Fixed a bug throwing an error when the balance of a Pocket account was not zero.
+  - Fixed build of the extension for Firefox.
+
 ## 0.1.1
 
 ### Patch Changes
