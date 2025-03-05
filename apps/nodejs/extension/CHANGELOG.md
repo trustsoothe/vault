@@ -1,5 +1,11 @@
 # @soothe/extension
 
+## 0.2.3
+
+### Patch Changes
+
+- 7ff907e: Adds "systemvars" option on DotEnv-Webpack.
+
 ## 0.2.2
 
 ### Patch Changes
