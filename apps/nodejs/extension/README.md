@@ -2,7 +2,7 @@
 
 ## Envs
 
-Please create a .env file from the .env.template file and change the values to your needs.
+Please create a .env file from the .env.example file and change the values to your needs.
 
 ## Build
 
