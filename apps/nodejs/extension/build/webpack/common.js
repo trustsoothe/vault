@@ -6,7 +6,7 @@ const Dotenv = require("dotenv-webpack");
 const CopyPlugin = require("copy-webpack-plugin");
 const getManifest = require("../manifest");
 
-// we dont want to save this function, we only need to run it one time
+// Its immediate because we only need to run it once.
 (function checkEnvs() {
   const requiredEnvs = [
     'WPOKT_MAINNET_API_BASE_URL',

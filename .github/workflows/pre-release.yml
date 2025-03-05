@@ -18,6 +18,9 @@ jobs:
       PRICE_API_BASE_URL: ${{ vars.PRICE_API_BASE_URL }}
       NETWORKS_CDN_URL: ${{ vars.NETWORKS_CDN_URL }}
       ASSETS_CDN_URL: ${{ vars.ASSETS_CDN_URL }}
+      POKT_MAINNET_CHAIN_MAPS_URL: ${{ vars.POKT_MAINNET_CHAIN_MAPS_URL }}
+      POKT_TESTNET_CHAIN_MAPS_URL: ${{ vars.POKT_TESTNET_CHAIN_MAPS_URL }}
+      CHAIN_IMAGES_CDN_URL: ${{ vars.CHAIN_IMAGES_CDN_URL }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
