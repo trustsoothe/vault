@@ -1,3 +1,4 @@
+const packageJson = require('../package.json')
 const basePermissions = ["storage", "unlimitedStorage"];
 
 const baseManifest = {
@@ -5,7 +6,6 @@ const baseManifest = {
   name: "Soothe Vault",
   description:
     "A secure, user-friendly multi-blockchain wallet for managing digital assets with encryption, easy sync & web3 connectivity.",
-  version: "0.2.1",
   icons: {
     16: "icons/16.png",
     19: "icons/19.png",
@@ -72,10 +72,12 @@ const getContentScript = (isFirefox) => [
 ];
 
 function getManifest(isFirefox) {
+  const packageJson = require("../package.json");
   const baseManifest = isFirefox ? baseFirefoxManifest : baseChromiumManifest;
 
   return JSON.stringify(
     {
+      version: packageJson.version,
       ...baseManifest,
       content_scripts: getContentScript(isFirefox),
     },

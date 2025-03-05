@@ -46,6 +46,8 @@ const CustomRpcSchema = z.object({
 });
 
 const validVersions = [
+  // Previously we were using the extension version as the backup version
+  // This is no longer the case, so we need to keep the old versions here
   "0.0.3",
   "0.0.4",
   "0.0.5",
@@ -55,6 +57,8 @@ const validVersions = [
   "0.1.4",
   "0.1.5",
   "0.2.1",
+  // From here on, we use a separate versioning system for the backup file
+  "1.0.0",
 ] as const;
 
 export const SettingsSchema = z.object({
@@ -169,7 +173,7 @@ export const exportVault = createAsyncThunk(
 
     const vaultToExport: VaultBackupSchema = {
       vault: encryptedVault,
-      version: "0.2.1",
+      version: "1.0.0",
       settings: {
         contacts: currentAppState.contacts,
         customRpcs: currentAppState.customRpcs,

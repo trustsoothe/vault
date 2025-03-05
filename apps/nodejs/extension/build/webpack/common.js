@@ -1,8 +1,26 @@
+// this is to load the envs so the checkEnvs function works
+require('dotenv').config()
 const webpack = require("webpack");
 const path = require("path");
 const Dotenv = require("dotenv-webpack");
 const CopyPlugin = require("copy-webpack-plugin");
 const getManifest = require("../manifest");
+
+// Its immediate because we only need to run it once.
+(function checkEnvs() {
+  const requiredEnvs = [
+    'WPOKT_MAINNET_API_BASE_URL',
+    'PRICE_API_BASE_URL',
+    'NETWORKS_CDN_URL',
+    'ASSETS_CDN_URL'
+  ]
+
+  for (const env of requiredEnvs) {
+    if (!process.env[env]) {
+      throw new Error(`Missing required env: ${env}`)
+    }
+  }
+})()
 
 const srcDir = path.join(__dirname, "..", "..", "src");
 const distDir = path.join(__dirname, "..", "..", "dist");
