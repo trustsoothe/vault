@@ -17,7 +17,7 @@ const getManifest = require("../manifest");
 
   for (const env of requiredEnvs) {
     if (!process.env[env]) {
-      throw new Error(`Missing required env: ${env}`)
+      throw new Error(`Missing required env: ${env} on the system.`)
     }
   }
 })()
@@ -167,6 +167,7 @@ module.exports = {
       resource.request = resource.request.replace(/^node:/, "");
     }),
     new Dotenv({
+      safe: true,
       systemvars: true,
     }),
   ],
