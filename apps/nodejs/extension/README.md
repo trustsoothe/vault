@@ -42,14 +42,14 @@ dist folder will be keep updated.
 2. Go to the following url: chrome://extensions/
 3. Enable Developer mode (in upper right corner).
 4. Click `Load unpacked` button.
-5. Select the dist folder result of the first step.
+5. Select the dist/chromium folder result of the first step.
 
 ### Firefox
 
 1. Run the extension in development mode `yarn dev:firefox` or in production mode `yarn build:firefox`.
 2. Go to the following url: about:debugging#/runtime/this-firefox.
 3. Click `Load Temporary Add-on…` button.
-4. Open the dist folder result of the first step and select manifest.json file.
+4. Open the dist/firefox folder result of the first step and select manifest.json file.
 
 After the 4 step the extension is installed. But to inject the content scripts you need to open the extension (click on
 the popup icon) in every

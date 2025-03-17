@@ -44,10 +44,10 @@ Before start running the code you must:
 
 ## Build
 
-- To build the extension for `Chromium` based browsers, run `yarn build:chrome`.
-- To build the extension for `Firefox` browser, run `yarn build:firefox`.
-
-The result of the build will be located at `apps/nodejs/extension/dist`.
+- To build the extension for `Chromium` based browsers, run `yarn build:chromium`. The result will be located at
+  `apps/nodejs/extension/dist/chromium`.
+- To build the extension for `Firefox` browser, run `yarn build:firefox`. The result will be located at
+  `apps/nodejs/extension/dist/firefox`.
 
 ## Apps and Packages
 
