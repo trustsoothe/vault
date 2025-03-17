@@ -51,8 +51,9 @@ dist folder will be keep updated.
 3. Click `Load Temporary Add-on…` button.
 4. Open the dist folder result of the first step and select manifest.json file.
 
-After the 4 step the extension is installed. But to inject the content scripts you need to open the extension in every
-tab you want it to be injected. To inject the content scripts automatically in every tab you must:
+After the 4 step the extension is installed. But to inject the content scripts you need to open the extension (click on
+the popup icon) in every
+tab you want it to be injected. To avoid this and inject the content scripts automatically in every tab you must:
 
 1. Go to the following url: about:addons
 2. Click the more button at the right of Soothe Vault and click `Manage` in the menu that will open.

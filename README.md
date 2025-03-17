@@ -42,6 +42,13 @@ Before start running the code you must:
   command: `npm install yarn@1.22.19`.
 - Install all the dependencies running `yarn install` or `yarn`.
 
+## Build
+
+- To build the extension for `Chromium` based browsers, run `yarn build:chrome`.
+- To build the extension for `Firefox` browser, run `yarn build:firefox`.
+
+The result of the build will be located at `apps/nodejs/extension/dist`.
+
 ## Apps and Packages
 
 This monorepo includes the following packages/apps:
@@ -55,6 +62,3 @@ This monorepo includes the following packages/apps:
 - `vault-specs`: Automated Specs for the Universal Crypto Wallet Manager.
 - `tsconfig`: `tsconfig.json`s used throughout the monorepo
 
-### Build
-
-To build all apps and packages, run the following command: `yarn build`.
