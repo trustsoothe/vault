@@ -20,8 +20,8 @@
     "build:autopolicy:chromium": "LAVAMOAT_AUTO_POLICY=true yarn build:chromium",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -f tsconfig.tsbuildinfo",
     "clean:dist": "rm -rf dist",
-    "release:chromium": "yarn clean:dist && yarn build:chromium && mkdir -p releases && cd dist/chromium && zip -r ../releases/soothe-vault-chromium-$(jq .version ../package.json -r).zip *",
-    "release:firefox": "yarn clean:dist && yarn build:firefox && mkdir -p releases && cd dist/firefox && zip -r ../releases/soothe-vault-firefox-$(jq .version ../package.json -r).zip *"
+    "release:chromium": "yarn clean:dist && yarn build:chromium && mkdir -p releases && cd dist/chromium && zip -r ../../releases/soothe-vault-chromium-$(jq .version ../../package.json -r).zip *",
+    "release:firefox": "yarn clean:dist && yarn build:firefox && mkdir -p releases && cd dist/firefox && zip -r ../../releases/soothe-vault-firefox-$(jq .version ../../package.json -r).zip *"
   },
   "repository": "git@github.com:trustsoothe/vault.git",
   "homepage": "https://trustsoothe.io",
