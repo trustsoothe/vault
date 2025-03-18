@@ -3,28 +3,74 @@
   "pipeline": {
     "build": {
       "cache": false,
-      "dependsOn": ["^build"],
-      "inputs": ["src/**"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "src/**"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "build:chromium": {
+      "cache": false,
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "src/**"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "build:firefox": {
+      "cache": false,
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "src/**"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "build:autopolicy": {
       "cache": false,
-      "dependsOn": ["^build:autopolicy"],
-      "inputs": ["src/**"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "^build:autopolicy"
+      ],
+      "inputs": [
+        "src/**"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "release:chromium": {
       "cache": false,
-      "inputs": ["src/**"],
-      "outputs": ["dist/**"]
+      "inputs": [
+        "src/**"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "release:firefox": {
       "cache": false,
-      "inputs": ["src/**"],
-      "outputs": ["dist/**"]
+      "inputs": [
+        "src/**"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "test": {
-      "dependsOn": ["build"]
+      "dependsOn": [
+        "build"
+      ]
     },
     "ci:test": {},
     "lint": {
@@ -37,12 +83,16 @@
       "cache": false
     },
     "dev": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "cache": false
     },
     "clean": {
       "cache": false
     }
   },
-  "globalEnv": ["CI_ENV"]
+  "globalEnv": [
+    "CI_ENV"
+  ]
 }

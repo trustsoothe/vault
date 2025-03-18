@@ -22,12 +22,12 @@ const getManifest = require("../manifest");
   }
 })()
 
-const srcDir = path.join(__dirname, "..", "..", "src");
-const distDir = path.join(__dirname, "..", "..", "dist");
-const jsDistDir = path.join(distDir, "js");
-
 const isFirefox = process.env.BROWSER === "Firefox";
 const isDev = process.env.NODE_ENV === 'development'
+
+const srcDir = path.join(__dirname, "..", "..", "src");
+const distDir = path.join(__dirname, "..", "..", "dist", isFirefox ? "firefox" : "chromium");
+const jsDistDir = path.join(distDir, "js");
 
 module.exports = {
   entry: {

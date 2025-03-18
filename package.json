@@ -19,6 +19,8 @@
     "lint": "turbo run lint --concurrency=100%",
     "lint:fix": "turbo run lintfix --concurrency=100%",
     "build": "turbo run build --concurrency=100%",
+    "build:chromium": "turbo run build:chromium --concurrency=100%",
+    "build:firefox": "turbo run build:firefox --concurrency=100%",
     "build:autopolicy": "turbo run build:autopolicy --concurrency=100%",
     "dev": "turbo run dev --concurrency=100%",
     "build:ci": "./build-ci.sh",

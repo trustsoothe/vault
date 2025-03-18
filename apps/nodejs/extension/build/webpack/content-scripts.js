@@ -3,8 +3,10 @@ const TerserPlugin = require("terser-webpack-plugin");
 const path = require("path");
 const LavaMoat = require('@lavamoat/webpack')
 
+const isFirefox = process.env.BROWSER === "Firefox";
+
 const srcDir = path.join(__dirname, "..", "..", "src");
-const distDir = path.join(__dirname, "..", "..", "dist");
+const distDir = path.join(__dirname, "..", "..", "dist", isFirefox ? "firefox" : "chromium");
 const jsDistDir = path.join(distDir, "js");
 
 module.exports = {
