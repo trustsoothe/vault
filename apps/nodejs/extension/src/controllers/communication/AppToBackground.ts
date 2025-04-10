@@ -69,6 +69,8 @@ import type {
   ImportHdWalletRes,
 } from "../../types/communications/hdWallet";
 import type {
+  AnswerBulkSignTransactionReq,
+  AnswerBulkSignTransactionRes,
   AnswerChangeParamReq,
   AnswerChangeParamRes,
   AnswerDaoTransferReq,
@@ -93,6 +95,7 @@ import type {
 import type { AnswerPublicKeyReq } from "../../types/communications/publicKey";
 import browser from "webextension-polyfill";
 import {
+  ANSWER_BULK_SIGN_TRANSACTION_REQUEST,
   ANSWER_CHANGE_PARAM_REQUEST,
   ANSWER_CONNECTION_REQUEST,
   ANSWER_DAO_TRANSFER_REQUEST,
@@ -490,6 +493,17 @@ export default class AppToBackground {
   ): Promise<AnswerUpgradeRes> {
     const message: AnswerUpgradeReq = {
       type: ANSWER_UPGRADE_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async signTransactions(
+    data: AnswerBulkSignTransactionReq["data"]
+  ): Promise<AnswerBulkSignTransactionRes> {
+    const message: AnswerBulkSignTransactionReq = {
+      type: ANSWER_BULK_SIGN_TRANSACTION_REQUEST,
       data,
     };
 

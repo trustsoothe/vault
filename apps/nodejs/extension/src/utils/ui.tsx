@@ -22,6 +22,8 @@ import {
 import { useAppDispatch } from "../ui/hooks/redux";
 import { themeColors } from "../ui/theme";
 import {
+  BULK_SIGN_TRANSACTION_REQUEST,
+  BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
@@ -93,7 +95,8 @@ export const removeRequestWithRes = async (
     | typeof CHANGE_PARAM_RESPONSE
     | typeof DAO_TRANSFER_RESPONSE
     | typeof PUBLIC_KEY_RESPONSE
-    | typeof UPGRADE_RESPONSE;
+    | typeof UPGRADE_RESPONSE
+    | typeof BULK_SIGN_TRANSACTION_RESPONSE;
 
   let data: UiResponsesToProxy["data"] = null;
   let errorToReturn: UiResponsesToProxy["error"] = null;
@@ -166,6 +169,16 @@ export const removeRequestWithRes = async (
         };
         errorToReturn = null;
       }
+      break;
+    }
+    case BULK_SIGN_TRANSACTION_REQUEST: {
+      data = {
+        rejected: false,
+        signatures: null,
+        protocol: null,
+      };
+      responseType = BULK_SIGN_TRANSACTION_RESPONSE;
+      errorToReturn = null;
       break;
     }
     case CONNECTION_REQUEST_MESSAGE: {

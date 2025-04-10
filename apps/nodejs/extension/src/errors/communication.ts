@@ -112,6 +112,10 @@ export const RequestUpgradeExists = createError(
   -32602,
   "There is a pending upgrade transaction request from this origin and protocol."
 );
+export const RequestSignTransactionExists = createError(
+  -32602,
+  "There is a pending sign transaction request from this origin and protocol."
+);
 export const RequestPublicKeyExists = createError(
   -32602,
   "There is a pending public key request from this origin and protocol."

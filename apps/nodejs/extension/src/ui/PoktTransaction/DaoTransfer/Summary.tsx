@@ -23,6 +23,8 @@ interface DaoTransferSummaryProps {
   };
   memo?: string;
   addValidation?: boolean;
+  hidePasswordInput?: boolean;
+  avoidFeeChecking?: boolean;
 }
 
 export default function DaoTransferSummary({
@@ -34,6 +36,8 @@ export default function DaoTransferSummary({
   to,
   chainId,
   addValidation = true,
+  hidePasswordInput = false,
+  avoidFeeChecking = false,
 }: DaoTransferSummaryProps) {
   const { coinSymbol, usdPrice, isLoading } = useUsdPrice({
     protocol: SupportedProtocols.Pocket,
@@ -86,13 +90,16 @@ export default function DaoTransferSummary({
           isLoadingUsdPrice={isLoading}
         />
       ),
-    },
-    {
+    }
+  );
+
+  if (fee) {
+    rows.push({
       type: "row",
       label: "Fee",
       value: `${fee.fee?.value || 0} ${coinSymbol}`,
-    }
-  );
+    });
+  }
 
   if (memo) {
     rows.push({
@@ -113,6 +120,7 @@ export default function DaoTransferSummary({
   ) : (
     <>
       <SummaryValidator
+        avoidFeeChecking={avoidFeeChecking}
         fromAddress={fromAddress}
         chainId={chainId}
         customValidation={() => {
@@ -137,8 +145,12 @@ export default function DaoTransferSummary({
       >
         {summaryComponent}
       </SummaryValidator>
-      <CheckInput />
-      <VaultPasswordInput />
+      {!hidePasswordInput && (
+        <>
+          <CheckInput />
+          <VaultPasswordInput />
+        </>
+      )}
     </>
   );
 }

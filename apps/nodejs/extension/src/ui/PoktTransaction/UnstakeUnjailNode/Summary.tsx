@@ -6,7 +6,7 @@ import { AccountInfoFromAddress } from "../../components/AccountInfo";
 import VaultPasswordInput from "../../Transaction/VaultPasswordInput";
 import SummaryValidator from "../SummaryValidator";
 import useUsdPrice from "../../hooks/useUsdPrice";
-import Summary from "../../components/Summary";
+import Summary, { SummaryProps } from "../../components/Summary";
 import useGetNode from "../useGetNode";
 import CheckInput from "../CheckInput";
 
@@ -19,6 +19,8 @@ interface UnstakeUnjailNodeSummaryProps {
     fetchingFee: boolean;
   };
   addValidation?: boolean;
+  hidePasswordInput?: boolean;
+  avoidFeeChecking?: boolean;
 }
 
 export default function UnstakeUnjailNodeSummary({
@@ -27,45 +29,50 @@ export default function UnstakeUnjailNodeSummary({
   fee,
   chainId,
   addValidation = true,
+  hidePasswordInput = false,
+  avoidFeeChecking = false,
 }: UnstakeUnjailNodeSummaryProps) {
   const { coinSymbol } = useUsdPrice({
     protocol: SupportedProtocols.Pocket,
     chainId,
   });
 
-  const { node, isSuccess } = useGetNode(nodeAddress, chainId);
+  const { node, isSuccess } = useGetNode(nodeAddress || signerAddress, chainId);
+
+  const summaryRows: SummaryProps["rows"] = [
+    {
+      type: "row",
+      label: "Signer",
+      value: (
+        <AccountInfoFromAddress
+          address={signerAddress}
+          protocol={SupportedProtocols.Pocket}
+        />
+      ),
+    },
+    {
+      type: "row",
+      label: "Node",
+      value: (
+        <AccountInfoFromAddress
+          address={nodeAddress || signerAddress}
+          protocol={SupportedProtocols.Pocket}
+        />
+      ),
+    },
+  ];
+
+  if (fee) {
+    summaryRows.push({
+      type: "row",
+      label: "Fee",
+      value: `${fee.fee?.value || 0} ${coinSymbol}`,
+    });
+  }
 
   const summaryComponent = (
     <Stack overflow={"auto"}>
-      <Summary
-        rows={[
-          {
-            type: "row",
-            label: "Signer",
-            value: (
-              <AccountInfoFromAddress
-                address={signerAddress}
-                protocol={SupportedProtocols.Pocket}
-              />
-            ),
-          },
-          {
-            type: "row",
-            label: "Node",
-            value: (
-              <AccountInfoFromAddress
-                address={nodeAddress}
-                protocol={SupportedProtocols.Pocket}
-              />
-            ),
-          },
-          {
-            type: "row",
-            label: "Fee",
-            value: `${fee.fee?.value || 0} ${coinSymbol}`,
-          },
-        ]}
-      />
+      <Summary rows={summaryRows} />
     </Stack>
   );
 
@@ -76,6 +83,7 @@ export default function UnstakeUnjailNodeSummary({
       <SummaryValidator
         fromAddress={signerAddress}
         chainId={chainId}
+        avoidFeeChecking={avoidFeeChecking}
         customValidation={() => {
           if (!node && !isSuccess) {
             return "Loading...";
@@ -98,8 +106,12 @@ export default function UnstakeUnjailNodeSummary({
       >
         {summaryComponent}
       </SummaryValidator>
-      <CheckInput />
-      <VaultPasswordInput />
+      {!hidePasswordInput && (
+        <>
+          <CheckInput />
+          <VaultPasswordInput />
+        </>
+      )}
     </>
   );
 }

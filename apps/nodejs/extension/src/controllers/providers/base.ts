@@ -13,6 +13,8 @@ import type { SupportedProtocols } from "@soothe/vault";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,
+  BULK_SIGN_TRANSACTION_REQUEST,
+  BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
@@ -67,6 +69,8 @@ export enum PocketNetworkMethod {
   ACCOUNTS = "pokt_accounts",
   BALANCE = "pokt_balance",
   SEND_TRANSACTION = "pokt_sendTransaction",
+  SIGN_TRANSACTION = "pokt_signTransaction",
+  BULK_SIGN_TRANSACTION = "pokt_bulkSignTransaction",
   TX = "pokt_tx",
   CHAIN = "pokt_chain",
   SWITCH_CHAIN = "wallet_switchPocketChain",
@@ -273,6 +277,11 @@ export default class BaseProvider extends EventEmitter {
         sootheRequestType = UPGRADE_REQUEST;
         break;
       }
+      case PocketNetworkMethod.SIGN_TRANSACTION:
+      case PocketNetworkMethod.BULK_SIGN_TRANSACTION: {
+        sootheRequestType = BULK_SIGN_TRANSACTION_REQUEST;
+        break;
+      }
       default: {
         throw Error(`method not supported: ${method}`);
       }
@@ -389,6 +398,10 @@ export default class BaseProvider extends EventEmitter {
         requestData = params?.[0];
         break;
       }
+      case BULK_SIGN_TRANSACTION_REQUEST: {
+        responseType = BULK_SIGN_TRANSACTION_RESPONSE;
+        requestData = params;
+      }
     }
 
     const id = v4();
@@ -450,6 +463,10 @@ export default class BaseProvider extends EventEmitter {
                 method === PocketNetworkMethod.SIGN_MESSAGE
               ) {
                 dataToResolve = { signature: data };
+              }
+
+              if (method === PocketNetworkMethod.SIGN_TRANSACTION) {
+                dataToResolve = data.signatures.at(0);
               }
             }
 

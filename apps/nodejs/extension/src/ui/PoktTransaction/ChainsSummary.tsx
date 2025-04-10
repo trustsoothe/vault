@@ -79,7 +79,7 @@ export default function ChainsSummary({ chains, chainId }: ChainsSummaryProps) {
                                 chainsMap[chain]?.image ||
                                 chainsMap.default?.image
                               }`}
-                              alt={`${chainsMap[chain].label || chain}-img`}
+                              alt={`${chainsMap[chain]?.label || chain}-img`}
                             />
                           )}
 

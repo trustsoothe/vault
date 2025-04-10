@@ -27,6 +27,8 @@ interface ChangeParamSummaryProps {
     fetchingFee: boolean;
   };
   addValidation?: boolean;
+  hidePasswordInput?: boolean;
+  avoidFeeChecking?: boolean;
 }
 
 export default function ChangeParamSummary({
@@ -38,6 +40,8 @@ export default function ChangeParamSummary({
   overrideGovParamsWhitelistValidation,
   fee,
   addValidation = true,
+  hidePasswordInput = false,
+  avoidFeeChecking = false,
 }: ChangeParamSummaryProps) {
   const { coinSymbol } = useUsdPrice({
     protocol: SupportedProtocols.Pocket,
@@ -160,12 +164,15 @@ export default function ChangeParamSummary({
           </Typography>
         ),
     },
-    {
+  ];
+
+  if (fee) {
+    rows.push({
       type: "row",
       label: "Fee",
       value: `${fee.fee?.value} ${coinSymbol}`,
-    },
-  ];
+    });
+  }
 
   if (overrideGovParamsWhitelistValidation) {
     rows.push({
@@ -194,6 +201,7 @@ export default function ChangeParamSummary({
   ) : (
     <>
       <SummaryValidator
+        avoidFeeChecking={avoidFeeChecking}
         chainId={chainId}
         fromAddress={fromAddress}
         customValidation={() => {
@@ -229,8 +237,12 @@ export default function ChangeParamSummary({
       >
         {summaryComponent}
       </SummaryValidator>
-      <CheckInput />
-      <VaultPasswordInput />
+      {!hidePasswordInput && (
+        <>
+          <CheckInput />
+          <VaultPasswordInput />
+        </>
+      )}
     </>
   );
 }

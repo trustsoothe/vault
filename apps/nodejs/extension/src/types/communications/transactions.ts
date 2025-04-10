@@ -9,6 +9,8 @@ import type {
   RequestBeingHandledRes,
 } from "./common";
 import {
+  ANSWER_BULK_SIGN_TRANSACTION_REQUEST,
+  ANSWER_BULK_SIGN_TRANSACTION_RESPONSE,
   ANSWER_CHANGE_PARAM_REQUEST,
   ANSWER_CHANGE_PARAM_RESPONSE,
   ANSWER_DAO_TRANSFER_REQUEST,
@@ -29,6 +31,8 @@ import {
   ANSWER_UPGRADE_RESPONSE,
   ANSWER_VALIDATE_POKT_TX_REQUEST,
   ANSWER_VALIDATE_POKT_TX_RESPONSE,
+  BULK_SIGN_TRANSACTION_REQUEST,
+  BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   DAO_TRANSFER_REQUEST,
@@ -53,6 +57,7 @@ import {
   DaoTransferBody,
   StakeAppBody,
   StakeNodeBody,
+  TPocketTransferBody,
   TransferAppBody,
   UnstakeAppBody,
   UnstakeNodeBody,
@@ -64,6 +69,7 @@ import {
   propertyIsRequired,
   RequestChangeParamExists,
   RequestDaoTransferExists,
+  RequestSignTransactionExists,
   RequestStakeAppExists,
   RequestStakeNodeExists,
   RequestTimeout,
@@ -77,7 +83,21 @@ import {
   UnauthorizedErrorSessionInvalid,
   UnknownError,
 } from "../../errors/communication";
-import { SupportedProtocols, ValidateTransactionResult } from "@soothe/vault";
+import type {
+  PocketNetworkAppStake,
+  PocketNetworkAppTransfer,
+  PocketNetworkAppUnstake,
+  PocketNetworkGovChangeParam,
+  PocketNetworkGovDAOTransfer,
+  PocketNetworkGovUpgrade,
+  PocketNetworkNodeStake,
+  PocketNetworkNodeUnjail,
+  PocketNetworkNodeUnstake,
+  PocketNetworkSend,
+  SupportedProtocols,
+  ValidateTransactionResult,
+} from "@soothe/vault";
+import type { UnstakeAndUnjailNodeBody } from "../provider";
 
 export type ExternalBasePoktTxErrors =
   | BaseErrors
@@ -86,10 +106,10 @@ export type ExternalBasePoktTxErrors =
   | typeof UnauthorizedError
   | typeof UnauthorizedErrorSessionInvalid;
 
-export type AnswerBasePoktTxResponseData = BaseData & {
-  hash: string;
-  isPasswordWrong?: boolean;
-};
+export type AnswerBasePoktTxResponseData<TData = { hash: string }> =
+  BaseData & {
+    isPasswordWrong?: boolean;
+  } & TData;
 
 type BaseError = {
   code: number;
@@ -105,18 +125,17 @@ export type ExternalResponse<
     })
   | void;
 
-export interface InternalResponse<T extends string> {
+export interface InternalResponse<T extends string, TData = { hash: string }> {
   type: T;
   requestId: string;
   data: {
     rejected: boolean;
-    hash: string | null;
     protocol: SupportedProtocols | null;
-  };
+  } & TData;
   error: null | typeof UnknownError | typeof OperationRejected;
 }
 
-export type ProxyPoktTxRes<T extends string> =
+export type ProxyPoktTxRes<T extends string, TData = { hash: string }> =
   | (BaseProxyResponse & {
       type: T;
       data: null;
@@ -128,17 +147,18 @@ export type ProxyPoktTxRes<T extends string> =
     })
   | (BaseProxyResponse & {
       type: T;
-      data: {
-        hash: string;
-      };
+      data: TData;
       error: null;
     });
 
-export type AnswerBasePoktTxReq<T extends string, TBody> = {
+export type AnswerBasePoktTxReq<
+  T extends string,
+  TBody,
+  TKey extends "transactionData" | "data" = "transactionData"
+> = {
   type: T;
   data: {
     rejected?: boolean;
-    transactionData: TBody & { chainId?: string };
     vaultPassword?: string;
     fee: number;
     request?: {
@@ -147,8 +167,12 @@ export type AnswerBasePoktTxReq<T extends string, TBody> = {
       requestId: string;
       protocol: SupportedProtocols;
     } | null;
-  };
+  } & OneKeyType<TKey, TBody & { chainId: string }>;
 };
+
+type OneKeyType<T extends string, TBody> = {
+  [K in T]: { [P in K]: TBody };
+}[T];
 
 type Creator<
   TReq extends string,
@@ -156,7 +180,9 @@ type Creator<
   TErrorExists extends BaseError,
   TInReq extends string,
   TInRes extends string,
-  TRes extends string
+  TRes extends string,
+  TKey extends "transactionData" | "data" = "transactionData",
+  TData = { hash: string }
 > = {
   ProxyReq: BaseProxyRequest & {
     type: TReq;
@@ -165,24 +191,21 @@ type Creator<
   ExternalReq: {
     type: TReq;
     requestId: string;
-    data: BaseExternalRequestBodyWithSession & {
-      transactionData: TBody;
-    };
+    data: BaseExternalRequestBodyWithSession & OneKeyType<TKey, TBody>;
   };
-  AppReq: BaseExternalRequestWithSession<TReq> & {
-    transactionData: TBody & { chainId: string };
-  };
+  AppReq: BaseExternalRequestWithSession<TReq> &
+    OneKeyType<TKey, TBody & { chainId: string }>;
   ExternalRes: ExternalResponse<TRes, TErrorExists>;
-  AnswerReq: AnswerBasePoktTxReq<TInReq, TBody>;
-  AnswerRes: BaseResponse<TInRes, AnswerBasePoktTxResponseData>;
-  InternalRes: InternalResponse<TRes>;
+  AnswerReq: AnswerBasePoktTxReq<TInReq, TBody, TKey>;
+  AnswerRes: BaseResponse<TInRes, AnswerBasePoktTxResponseData<TData>>;
+  InternalRes: InternalResponse<TRes, TData>;
   ExternalResToProxy:
     | Extract<ExternalResponse<TRes, BaseError>, { data: null }>
     | RequestBeingHandledRes;
   ResponseFromBack:
     | Extract<ExternalResponse<TRes, TErrorExists>, { data: null }>
     | InternalResponse<TRes>;
-  ProxyRes: ProxyPoktTxRes<TRes>;
+  ProxyRes: ProxyPoktTxRes<TRes, TData>;
 };
 
 // Stake Node
@@ -392,3 +415,101 @@ export type AnswerValidatePoktTxRes = {
   };
   error: null | typeof UnknownError;
 };
+
+// SignTransaction
+
+interface SignAppStakeBody {
+  type: typeof PocketNetworkAppStake;
+  transaction: StakeAppBody;
+}
+
+interface SignAppTransferBody {
+  type: typeof PocketNetworkAppTransfer;
+  transaction: TransferAppBody;
+}
+
+interface SignAppUnstakeBody {
+  type: typeof PocketNetworkAppUnstake;
+  transaction: UnstakeAppBody;
+}
+
+interface SignGovChangeParamBody {
+  type: typeof PocketNetworkGovChangeParam;
+  transaction: ChangeParamBody;
+}
+
+interface SignGovDAOTransferBody {
+  type: typeof PocketNetworkGovDAOTransfer;
+  transaction: DaoTransferBody;
+}
+
+interface SignGovUpgradeBody {
+  type: typeof PocketNetworkGovUpgrade;
+  transaction: UpgradeBody;
+}
+
+interface SignNodeStakeBody {
+  type: typeof PocketNetworkNodeStake;
+  transaction: StakeNodeBody & { nodeAddress?: string };
+}
+
+interface SignNodeUnjailBody {
+  type: typeof PocketNetworkNodeUnjail;
+  transaction: UnstakeAndUnjailNodeBody;
+}
+
+interface SignNodeUnstakeBody {
+  type: typeof PocketNetworkNodeUnstake;
+  transaction: UnstakeAndUnjailNodeBody;
+}
+
+interface SignSendBody {
+  type: typeof PocketNetworkSend;
+  transaction: TPocketTransferBody;
+}
+
+type SignTransactionBody = (
+  | SignAppStakeBody
+  | SignAppTransferBody
+  | SignAppUnstakeBody
+  | SignGovChangeParamBody
+  | SignGovDAOTransferBody
+  | SignGovUpgradeBody
+  | SignNodeStakeBody
+  | SignNodeUnjailBody
+  | SignNodeUnstakeBody
+  | SignSendBody
+) & { id?: string };
+
+type BulkSignTransactionCreator = Creator<
+  typeof BULK_SIGN_TRANSACTION_REQUEST,
+  { transactions: Array<SignTransactionBody> },
+  typeof RequestSignTransactionExists,
+  typeof ANSWER_BULK_SIGN_TRANSACTION_REQUEST,
+  typeof ANSWER_BULK_SIGN_TRANSACTION_RESPONSE,
+  typeof BULK_SIGN_TRANSACTION_RESPONSE,
+  "data",
+  {
+    signatures: Array<{
+      id?: string;
+      signature: string;
+      transactionHex: string;
+    }>;
+  }
+>;
+
+export type ProxyBulkSignTransactionReq =
+  BulkSignTransactionCreator["ProxyReq"];
+export type ExternalBulkSignTransactionReq =
+  BulkSignTransactionCreator["ExternalReq"];
+export type ExternalBulkSignTransactionRes =
+  BulkSignTransactionCreator["ExternalRes"];
+export type AppBulkSignTransactionReq = BulkSignTransactionCreator["AppReq"];
+export type AnswerBulkSignTransactionReq =
+  BulkSignTransactionCreator["AnswerReq"];
+export type AnswerBulkSignTransactionRes =
+  BulkSignTransactionCreator["AnswerRes"];
+export type InternalBulkSignTransactionRes =
+  BulkSignTransactionCreator["InternalRes"];
+export type ProxyBulkSignTransactionRes =
+  BulkSignTransactionCreator["ProxyRes"];

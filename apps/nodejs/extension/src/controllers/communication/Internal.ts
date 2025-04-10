@@ -79,9 +79,12 @@ import type {
 } from "../../types/communications/hdWallet";
 import type {
   AnswerBasePoktTxResponseData,
+  AnswerBulkSignTransactionReq,
+  AnswerBulkSignTransactionRes,
   AnswerPoktTxRequests,
   AnswerValidatePoktTxReq,
   AnswerValidatePoktTxRes,
+  InternalBulkSignTransactionRes,
   InternalChangeParamRes,
   InternalDaoTransferRes,
   InternalResponse,
@@ -115,6 +118,8 @@ import {
 import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import store, { RootState } from "../../redux/store";
 import {
+  ANSWER_BULK_SIGN_TRANSACTION_REQUEST,
+  ANSWER_BULK_SIGN_TRANSACTION_RESPONSE,
   ANSWER_CHANGE_PARAM_REQUEST,
   ANSWER_CHANGE_PARAM_RESPONSE,
   ANSWER_CONNECTION_REQUEST,
@@ -148,6 +153,8 @@ import {
   ANSWER_UPGRADE_RESPONSE,
   ANSWER_VALIDATE_POKT_TX_REQUEST,
   ANSWER_VALIDATE_POKT_TX_RESPONSE,
+  BULK_SIGN_TRANSACTION_REQUEST,
+  BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   CHECK_PERMISSION_FOR_SESSION_REQUEST,
@@ -242,6 +249,7 @@ import {
   removeAccount,
   sendPoktTx,
   sendTransfer,
+  signTransactions,
   updateAccount,
 } from "../../redux/slices/vault/account";
 import {
@@ -307,6 +315,7 @@ const mapMessageType: Record<InternalRequests["type"], true> = {
   [ANSWER_VALIDATE_POKT_TX_REQUEST]: true,
   [ANSWER_PUBLIC_KEY_REQUEST]: true,
   [ANSWER_UPGRADE_REQUEST]: true,
+  [ANSWER_BULK_SIGN_TRANSACTION_REQUEST]: true,
 };
 
 // Controller to manage the communication between extension views and the background
@@ -512,6 +521,10 @@ class InternalCommunicationController implements ICommunicationController {
     if (message?.type === ANSWER_PUBLIC_KEY_REQUEST) {
       return this._answerPublicKeyRequest(message);
     }
+
+    if (message?.type === ANSWER_BULK_SIGN_TRANSACTION_REQUEST) {
+      return this._answerSignTxRequest(message);
+    }
   }
 
   private async _handleOnRemovedWindow(windowId: number) {
@@ -535,7 +548,8 @@ class InternalCommunicationController implements ICommunicationController {
             | InternalChangeParamRes
             | InternalDaoTransferRes
             | InternalUpgradeRes
-            | InternalPublicKeyRes;
+            | InternalPublicKeyRes
+            | InternalBulkSignTransactionRes;
 
           if (request.type === CONNECTION_REQUEST_MESSAGE) {
             response = {
@@ -657,6 +671,17 @@ class InternalCommunicationController implements ICommunicationController {
               },
               error: null,
             } as InternalUpgradeRes;
+          } else if (request.type === BULK_SIGN_TRANSACTION_REQUEST) {
+            response = {
+              type: BULK_SIGN_TRANSACTION_RESPONSE,
+              requestId: request.requestId,
+              data: {
+                rejected: true,
+                signatures: null,
+                protocol: null,
+              },
+              error: null,
+            };
           } else if (request.type === SIGN_TYPED_DATA_REQUEST) {
             response = {
               requestId: request.requestId,
@@ -1319,7 +1344,6 @@ class InternalCommunicationController implements ICommunicationController {
   private async _answerTransferAccount(
     message: AnswerTransferReq
   ): Promise<AnswerTransferRes> {
-    console.log("debug: _answerTransferAccount -> message", message);
     try {
       const { rejected, request, transferData } = message?.data || {};
 
@@ -1566,7 +1590,7 @@ class InternalCommunicationController implements ICommunicationController {
       if (tabId) {
         await browser.tabs
           .sendMessage(tabId, {
-            type: STAKE_NODE_RESPONSE,
+            type: externalResponseType,
             data: null,
             error: UnknownError,
           })
@@ -1580,6 +1604,142 @@ class InternalCommunicationController implements ICommunicationController {
         data: null,
         error: UnknownError,
       } as Res;
+    }
+  }
+
+  private async _answerSignTxRequest(
+    message: AnswerBulkSignTransactionReq
+  ): Promise<AnswerBulkSignTransactionRes> {
+    try {
+      const {
+        rejected,
+        request,
+        vaultPassword: vaultPasswordFromRequest,
+      } = message?.data || {};
+
+      let signatures: Array<{
+        id: string;
+        signature: string;
+        transactionHex: string;
+      }> | null = null;
+      let response: InternalBulkSignTransactionRes;
+
+      if (typeof rejected === "boolean" && rejected && request) {
+        response = {
+          type: BULK_SIGN_TRANSACTION_RESPONSE,
+          requestId: request.requestId,
+          data: {
+            rejected: true,
+            protocol: request.protocol,
+            signatures: null,
+          },
+          error: null,
+        };
+        await Promise.all([
+          browser.tabs.sendMessage(request.tabId, response),
+          store.dispatch(
+            removeExternalRequest({
+              origin: request.origin,
+              type: BULK_SIGN_TRANSACTION_REQUEST,
+              protocol: request.protocol,
+            })
+          ),
+        ]);
+      } else if (!rejected) {
+        const {
+          app: { requirePasswordForSensitiveOpts },
+          vault: { vaultSession },
+        } = store.getState();
+
+        if (requirePasswordForSensitiveOpts) {
+          const vaultPassword = await getVaultPassword(vaultSession.id);
+
+          if (vaultPassword !== vaultPasswordFromRequest) {
+            return {
+              type: ANSWER_BULK_SIGN_TRANSACTION_RESPONSE,
+              data: {
+                answered: true,
+                signatures: null,
+                isPasswordWrong: true,
+              },
+              error: null,
+            };
+          }
+        }
+
+        signatures = await store.dispatch(signTransactions(message)).unwrap();
+
+        if (request) {
+          response = {
+            type: BULK_SIGN_TRANSACTION_RESPONSE,
+            requestId: request.requestId,
+            data: {
+              signatures,
+              rejected: false,
+              protocol: request.protocol,
+            },
+            error: null,
+          };
+          await Promise.all([
+            browser.tabs.sendMessage(request.tabId, response),
+            store.dispatch(
+              removeExternalRequest({
+                origin: request.origin,
+                type: BULK_SIGN_TRANSACTION_REQUEST,
+                protocol: request.protocol,
+              })
+            ),
+          ]);
+        }
+      }
+
+      if (request) {
+        await this._updateBadgeText();
+      }
+
+      return {
+        type: ANSWER_BULK_SIGN_TRANSACTION_RESPONSE,
+        data: {
+          answered: true,
+          signatures,
+        },
+        error: null,
+      };
+    } catch (error) {
+      if (
+        error?.name === PrivateKeyRestoreErrorName ||
+        error?.name === VaultRestoreErrorName
+      ) {
+        return {
+          type: ANSWER_BULK_SIGN_TRANSACTION_RESPONSE,
+          data: {
+            answered: true,
+            isPasswordWrong: true,
+            signatures: null,
+          },
+          error: null,
+        };
+      }
+
+      const tabId = message?.data?.request?.tabId;
+
+      if (tabId) {
+        await browser.tabs
+          .sendMessage(tabId, {
+            type: STAKE_NODE_RESPONSE,
+            data: null,
+            error: UnknownError,
+          })
+          .catch();
+      }
+
+      console.log(`Tx ${message?.type} ERROR:`, error);
+
+      return {
+        type: ANSWER_BULK_SIGN_TRANSACTION_RESPONSE,
+        data: null,
+        error: UnknownError,
+      };
     }
   }
 

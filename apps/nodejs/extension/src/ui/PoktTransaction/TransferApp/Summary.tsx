@@ -25,6 +25,8 @@ interface TransferAppSummaryProps {
     fetchingFee: boolean;
   };
   addValidation?: boolean;
+  hidePasswordInput?: boolean;
+  avoidFeeChecking?: boolean;
 }
 
 export default function TransferAppSummary({
@@ -35,6 +37,8 @@ export default function TransferAppSummary({
   chainId,
   memo,
   addValidation = true,
+  hidePasswordInput = false,
+  avoidFeeChecking = false,
 }: TransferAppSummaryProps) {
   const { coinSymbol } = useUsdPrice({
     protocol: SupportedProtocols.Pocket,
@@ -74,12 +78,15 @@ export default function TransferAppSummary({
         />
       ),
     },
-    {
+  ];
+
+  if (fee) {
+    rows.push({
       type: "row",
       label: "Fee",
       value: `${fee.fee?.value || 0} ${coinSymbol}`,
-    },
-  ];
+    });
+  }
 
   if (memo) {
     rows.push({
@@ -100,6 +107,7 @@ export default function TransferAppSummary({
   ) : (
     <>
       <SummaryValidator
+        avoidFeeChecking={avoidFeeChecking}
         fromAddress={appAddress}
         chainId={chainId}
         customValidation={() => {
@@ -120,8 +128,12 @@ export default function TransferAppSummary({
       >
         {summaryComponent}
       </SummaryValidator>
-      <CheckInput />
-      <VaultPasswordInput />
+      {!hidePasswordInput && (
+        <>
+          <CheckInput />
+          <VaultPasswordInput />
+        </>
+      )}
     </>
   );
 }

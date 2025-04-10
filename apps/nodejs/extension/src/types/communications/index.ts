@@ -102,6 +102,7 @@ import {
   ImportHdWalletReq,
 } from "./hdWallet";
 import {
+  AnswerBulkSignTransactionReq,
   AnswerChangeParamReq,
   AnswerDaoTransferReq,
   AnswerStakeAppReq,
@@ -112,6 +113,7 @@ import {
   AnswerUnstakeNodeReq,
   AnswerUpgradeReq,
   AnswerValidatePoktTxReq,
+  AppBulkSignTransactionReq,
   AppChangeParamReq,
   AppDaoTransferReq,
   AppStakeAppReq,
@@ -121,6 +123,7 @@ import {
   AppUnstakeAppReq,
   AppUnstakeNodeReq,
   AppUpgradeReq,
+  ExternalBulkSignTransactionReq,
   ExternalChangeParamReq,
   ExternalDaoTransferReq,
   ExternalStakeAppReq,
@@ -130,6 +133,7 @@ import {
   ExternalUnstakeAppReq,
   ExternalUnstakeNodeReq,
   ExternalUpgradeReq,
+  InternalBulkSignTransactionRes,
   InternalChangeParamRes,
   InternalDaoTransferRes,
   InternalStakeAppRes,
@@ -139,6 +143,8 @@ import {
   InternalUnstakeAppRes,
   InternalUnstakeNodeRes,
   InternalUpgradeRes,
+  ProxyBulkSignTransactionReq,
+  ProxyBulkSignTransactionRes,
   ProxyChangeParamReq,
   ProxyChangeParamRes,
   ProxyDaoTransferReq,
@@ -186,7 +192,8 @@ export type ProxyRequests =
   | ProxyChangeParamReq
   | ProxyDaoTransferReq
   | ProxyPublicKeyReq
-  | ProxyUpgradeReq;
+  | ProxyUpgradeReq
+  | ProxyBulkSignTransactionReq;
 export type ProxyResponses =
   | ProxyConnectionRes
   | ProxySelectedChainRes
@@ -207,7 +214,8 @@ export type ProxyResponses =
   | ProxyChangeParamRes
   | ProxyDaoTransferRes
   | ProxyUpgradeRes
-  | ProxyUnstakeNodeRes;
+  | ProxyUnstakeNodeRes
+  | ProxyBulkSignTransactionRes;
 
 export type ExternalRequests =
   | ExternalConnectionReq
@@ -229,7 +237,9 @@ export type ExternalRequests =
   | ExternalDaoTransferReq
   | ExternalChangeParamReq
   | ExternalUnstakeNodeReq
-  | ExternalUpgradeReq;
+  | ExternalUpgradeReq
+  | ExternalBulkSignTransactionReq;
+
 export type ExternalResponses = ExternalConnectionRes;
 
 export type InternalRequests =
@@ -269,7 +279,8 @@ export type InternalRequests =
   | AnswerChangeParamReq
   | AnswerDaoTransferReq
   | AnswerUpgradeReq
-  | AnswerValidatePoktTxReq;
+  | AnswerValidatePoktTxReq
+  | AnswerBulkSignTransactionReq;
 /**Responses that the Proxy can receive from Internal controller */
 export type InternalResponses =
   | InternalConnectionRes
@@ -289,14 +300,26 @@ export type InternalResponses =
   | InternalChangeParamRes
   | InternalDaoTransferRes
   | InternalUpgradeRes
-  | InternalPublicKeyRes;
+  | InternalPublicKeyRes
+  | InternalBulkSignTransactionRes;
 
 export type UiResponsesToProxy =
   | InternalConnectionRes
   | InternalTransferRes
   | InternalSwitchChainRes
   | InternalPersonalSignRes
-  | InternalSignedTypedDataRes;
+  | InternalSignedTypedDataRes
+  | InternalStakeNodeRes
+  | InternalUnstakeNodeRes
+  | InternalUnjailNodeRes
+  | InternalStakeAppRes
+  | InternalTransferAppRes
+  | InternalUnstakeAppRes
+  | InternalChangeParamRes
+  | InternalDaoTransferRes
+  | InternalUpgradeRes
+  | InternalPublicKeyRes
+  | InternalBulkSignTransactionRes;
 
 export type AppRequests = (
   | AppConnectionRequest
@@ -314,6 +337,7 @@ export type AppRequests = (
   | AppChangeParamReq
   | AppDaoTransferReq
   | AppUpgradeReq
+  | AppBulkSignTransactionReq
 ) & { requestedAt?: number };
 
 export type RequestExistsError<T> = T extends typeof TRANSFER_RESPONSE

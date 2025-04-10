@@ -1,7 +1,12 @@
-import type {
+import {
   ExternalBasePoktTxErrors,
+  ExternalBulkSignTransactionReq,
+  ExternalBulkSignTransactionRes,
   ExternalResponse,
+  InternalBulkSignTransactionRes,
   InternalResponse,
+  ProxyBulkSignTransactionReq,
+  ProxyBulkSignTransactionRes,
   ProxyPoktTxRes,
 } from "../../types/communications/transactions";
 import type {
@@ -95,6 +100,8 @@ import {
   APP_IS_NOT_READY,
   APP_IS_READY,
   APP_IS_READY_REQUEST,
+  BULK_SIGN_TRANSACTION_REQUEST,
+  BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
@@ -585,6 +592,13 @@ class ProxyCommunicationController {
               UPGRADE_RESPONSE
             );
           }
+
+          if (data.type === BULK_SIGN_TRANSACTION_REQUEST) {
+            await this._sendSignTxRequest(data.protocol, data.id, {
+              // @ts-ignore
+              transactions: data.data,
+            });
+          }
         }
       }
     );
@@ -619,6 +633,10 @@ class ProxyCommunicationController {
           await this._handlePoktTxResponse(
             message as InternalResponse<typeof message.type>
           );
+        }
+
+        if (message.type === BULK_SIGN_TRANSACTION_RESPONSE) {
+          await this._handleSignTxResponse(message);
         }
 
         if (message.type === DISCONNECT_RESPONSE) {
@@ -1773,6 +1791,15 @@ class ProxyCommunicationController {
       if (sessionId) {
         let transactionData: z.infer<V>;
 
+        if (!data) {
+          return this._sendPoktTxResponse<typeof responseType, PRes>(
+            responseType,
+            requestId,
+            null,
+            propertyIsNotValid("params")
+          );
+        }
+
         try {
           transactionData = validator.parse(data);
         } catch (e) {
@@ -1925,6 +1952,208 @@ class ProxyCommunicationController {
           data: null,
           error: UnknownError,
         } as T,
+        window.location.origin
+      );
+    }
+  }
+
+  private async _sendSignTxRequest(
+    protocol: SupportedProtocols,
+    requestId: string,
+    data: ProxyBulkSignTransactionReq["data"]
+  ) {
+    let requestWasSent = false;
+
+    try {
+      if (protocol !== PocketProtocol) {
+        return this._sendSignTxResponse(requestId, null, UnsupportedMethod);
+      }
+
+      const sessionId = this._sessionByProtocol[protocol]?.id;
+      if (sessionId) {
+        const dataValidated: ExternalBulkSignTransactionReq["data"]["data"]["transactions"] =
+          [];
+
+        if (!data?.transactions?.length) {
+          return this._sendSignTxResponse(
+            requestId,
+            null,
+            propertyIsNotValid("params")
+          );
+        }
+
+        try {
+          for (const { id, type, transaction } of data.transactions) {
+            let schema:
+              | typeof StakeAppBody
+              | typeof TransferAppBody
+              | typeof UnstakeAppBody
+              | typeof PocketTransferBody
+              | typeof UpgradeBody
+              | typeof StakeNodeBody
+              | typeof ChangeParamBody
+              | typeof UnstakeNodeBody
+              | typeof DaoTransferBody;
+            switch (type) {
+              case "app_stake":
+                schema = StakeAppBody;
+                break;
+              case "app_transfer":
+                schema = TransferAppBody;
+                break;
+              case "app_unstake":
+                schema = UnstakeAppBody;
+                break;
+              case "send":
+                schema = PocketTransferBody;
+                break;
+              case "gov_dao_transfer":
+                schema = DaoTransferBody;
+                break;
+              case "gov_change_param":
+                schema = ChangeParamBody;
+                break;
+              case "gov_upgrade":
+                schema = UpgradeBody;
+                break;
+              case "node_stake":
+                schema = StakeNodeBody;
+                break;
+              case "node_unjail":
+                schema = UnstakeNodeBody;
+                break;
+              case "node_unstake":
+                schema = UnstakeNodeBody;
+                break;
+              default:
+                return this._sendSignTxResponse(
+                  requestId,
+                  null,
+                  propertyIsNotValid("type")
+                );
+            }
+
+            dataValidated.push({
+              type,
+              id,
+              transaction: schema.parse(transaction),
+            } as ExternalBulkSignTransactionReq["data"]["data"]["transactions"][number]);
+          }
+        } catch (e) {
+          const zodError: ZodError = e;
+          const path = zodError?.issues?.[0]?.path?.[0] as string;
+
+          const errorToReturn = !data?.[path]
+            ? propertyIsRequired(zodError?.issues?.[0]?.path?.join(".") || path)
+            : propertyIsNotValid(
+                zodError?.issues?.[0]?.path?.join(".") || path
+              );
+          return this._sendSignTxResponse(requestId, null, errorToReturn);
+        }
+
+        const message: ExternalBulkSignTransactionReq = {
+          type: BULK_SIGN_TRANSACTION_REQUEST,
+          requestId,
+          data: {
+            origin: window.location.origin,
+            faviconUrl: this._getFaviconUrl(),
+            sessionId,
+            protocol,
+            data: {
+              transactions: dataValidated,
+            },
+          },
+        };
+
+        console.log("request is going to be sent", message);
+
+        const response: ExternalBulkSignTransactionRes =
+          await browser.runtime.sendMessage(message);
+
+        console.log("response is received", response);
+
+        requestWasSent = true;
+
+        if (response && response?.type === BULK_SIGN_TRANSACTION_RESPONSE) {
+          this._sendSignTxResponse(requestId, null, response.error);
+
+          if (response?.error?.isSessionInvalid) {
+            this._handleDisconnect(protocol);
+          }
+        }
+      } else {
+        return this._sendSignTxResponse(requestId, null, UnauthorizedError);
+      }
+    } catch (e) {
+      if (!requestWasSent) {
+        this._sendSignTxResponse(requestId, null, UnknownError);
+      }
+    }
+  }
+
+  private async _handleSignTxResponse(
+    response: InternalBulkSignTransactionRes
+  ) {
+    try {
+      const { error, data, requestId, type } = response;
+
+      if (data) {
+        if (data.rejected) {
+          this._sendSignTxResponse(requestId, null, OperationRejected);
+        } else {
+          this._sendSignTxResponse(requestId, data, null);
+        }
+      } else {
+        this._sendSignTxResponse(requestId, null, error);
+
+        // @ts-ignore
+        if (error?.isSessionInvalid) {
+          this._handleDisconnect(response.data.protocol);
+        }
+      }
+    } catch (e) {
+      this._sendSignTxResponse(response?.requestId, null, UnknownError);
+    }
+  }
+
+  private _sendSignTxResponse(
+    requestId: string,
+    data: ProxyBulkSignTransactionRes["data"],
+    error: ExternalBasePoktTxErrors | null
+  ) {
+    try {
+      let response: ProxyBulkSignTransactionRes;
+
+      if (error) {
+        response = {
+          id: requestId,
+          type: BULK_SIGN_TRANSACTION_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error,
+        };
+      } else {
+        response = {
+          id: requestId,
+          type: BULK_SIGN_TRANSACTION_RESPONSE,
+          from: "VAULT_KEYRING",
+          error: null,
+          data: {
+            signatures: data.signatures,
+          },
+        };
+      }
+
+      window.postMessage(response, window.location.origin);
+    } catch (e) {
+      window.postMessage(
+        {
+          id: requestId,
+          type: BULK_SIGN_TRANSACTION_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error: UnknownError,
+        } as ProxyBulkSignTransactionRes,
         window.location.origin
       );
     }

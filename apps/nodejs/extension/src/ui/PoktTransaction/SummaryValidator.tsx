@@ -16,6 +16,7 @@ interface SummaryValidatorProps {
   customValidation?: (value: unknown) => string | true;
   fromAddress: string;
   chainId: string;
+  avoidFeeChecking?: boolean;
 }
 
 export default function SummaryValidator({
@@ -24,6 +25,7 @@ export default function SummaryValidator({
   amount = 0,
   fromAddress,
   chainId,
+  avoidFeeChecking = false,
 }: SummaryValidatorProps) {
   const requirePasswordForSensitiveOpts = useAppSelector(
     requirePasswordForSensitiveOptsSelector
@@ -48,6 +50,12 @@ export default function SummaryValidator({
       control={control}
       rules={{
         validate: (fee: PocketNetworkFee, formValues) => {
+          if (avoidFeeChecking && !customValidation) return true;
+
+          if (customValidation && avoidFeeChecking) {
+            return customValidation(formValues);
+          }
+
           if (isLoading || !fee) {
             return "Loading...";
           }
@@ -72,13 +80,15 @@ export default function SummaryValidator({
             <>
               <Typography
                 fontSize={11}
-                marginTop={0.8}
+                marginTop={avoidFeeChecking ? -0.6 : 0.8}
                 lineHeight={"16px"}
                 color={themeColors.red}
+                marginLeft={avoidFeeChecking ? 0.8 : 0}
+                marginBottom={avoidFeeChecking ? 1 : 0}
               >
                 {error.message}
               </Typography>
-              {requirePasswordForSensitiveOpts && (
+              {requirePasswordForSensitiveOpts && !avoidFeeChecking && (
                 <Divider sx={{ marginTop: 1.2 }} />
               )}
             </>

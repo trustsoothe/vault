@@ -103,6 +103,8 @@ export function getTransactionTypeLabel(type: PocketNetworkTransactionTypes) {
       return "DAO Transfer";
     case PocketNetworkTransactionTypes.GovUpgrade:
       return "Upgrade";
+    case PocketNetworkTransactionTypes.Send:
+      return "Send";
     default:
       throw new Error("Invalid transaction request type: " + type);
   }

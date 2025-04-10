@@ -15,6 +15,7 @@ import {
   PREFERENCES_PAGE,
   REQUEST_CONNECTION_PAGE,
   SEEDS_PAGE,
+  SIGN_TRANSACTIONS_PAGE,
   SIGN_TYPED_DATA_PAGE,
   SITES_PAGE,
   TRANSFER_PAGE,
@@ -37,6 +38,7 @@ import Networks from "./Networks/Networks";
 import Activity from "./Activity/Activity";
 import Handler from "./Request/Handler";
 import Backup from "./Backup/Backup";
+import PoktSignTransactionRequest from "./Request/PoktSignTransactionRequest";
 
 export const router = createHashRouter([
   {
@@ -119,6 +121,10 @@ export const requestRouter = createHashRouter([
       {
         path: POKT_TRANSACTION_PAGE,
         element: <PoktTransactionRequest />,
+      },
+      {
+        path: SIGN_TRANSACTIONS_PAGE,
+        element: <PoktSignTransactionRequest />,
       },
     ],
   },

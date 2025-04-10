@@ -53,6 +53,7 @@ import browser, { type Runtime } from "webextension-polyfill";
 import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import {
   INetwork,
+  PocketNetworkNodeStake,
   PocketNetworkProtocolService,
   SupportedProtocols,
   VaultIsLockedErrorName,
@@ -65,6 +66,7 @@ import {
   RequestPersonalSignExists,
   RequestPublicKeyExists,
   RequestSignedTypedDataExists,
+  RequestSignTransactionExists,
   RequestStakeAppExists,
   RequestStakeNodeExists,
   RequestSwitchChainExists,
@@ -86,6 +88,8 @@ import {
   getBlockedSites,
 } from "../../redux/slices/app";
 import {
+  BULK_SIGN_TRANSACTION_REQUEST,
+  BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
@@ -136,11 +140,16 @@ import {
   isValidAddress,
 } from "../../utils/networkOperations";
 import { balanceApi } from "../../redux/slices/balance";
-import { ExternalResponse } from "../../types/communications/transactions";
+import {
+  ExternalBulkSignTransactionReq,
+  ExternalBulkSignTransactionRes,
+  ExternalResponse,
+} from "../../types/communications/transactions";
 import {
   ExternalPublicKeyReq,
   ExternalPublicKeyRes,
 } from "../../types/communications/publicKey";
+import { StakeNodeBody } from "../../types/provider";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -165,6 +174,7 @@ const mapMessageType: Record<ExternalRequests["type"], true> = {
   [DAO_TRANSFER_REQUEST]: true,
   [PUBLIC_KEY_REQUEST]: true,
   [UPGRADE_REQUEST]: true,
+  [BULK_SIGN_TRANSACTION_REQUEST]: true,
 };
 
 const errorReqExistByResType = {
@@ -183,6 +193,7 @@ const errorReqExistByResType = {
   [DAO_TRANSFER_RESPONSE]: RequestDaoTransferExists,
   [PUBLIC_KEY_RESPONSE]: RequestPublicKeyExists,
   [UPGRADE_RESPONSE]: RequestUpgradeExists,
+  [BULK_SIGN_TRANSACTION_RESPONSE]: RequestSignTransactionExists,
 };
 
 const ExtensionVaultInstance = getVault();
@@ -440,6 +451,14 @@ class ExternalCommunicationController implements ICommunicationController {
       );
 
       if (response && response.type === UPGRADE_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === BULK_SIGN_TRANSACTION_REQUEST) {
+      const response = await this._handleSignTxRequest(message, sender);
+
+      if (response && response.type === BULK_SIGN_TRANSACTION_RESPONSE) {
         return response;
       }
     }
@@ -719,6 +738,87 @@ class ExternalCommunicationController implements ICommunicationController {
     }
   }
 
+  private async _handleSignTxRequest(
+    message: ExternalBulkSignTransactionReq,
+    sender: MessageSender
+  ): Promise<ExternalBulkSignTransactionRes> {
+    try {
+      const { sessionId, protocol } = message?.data || {};
+
+      if (!sessionId) {
+        return {
+          type: BULK_SIGN_TRANSACTION_RESPONSE,
+          error: SessionIdNotPresented,
+          data: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      try {
+        await ExtensionVaultInstance.validateSessionForPermissions(
+          sessionId,
+          "transaction",
+          "send",
+          message.data.data.transactions.map(({ transaction }) => {
+            if ("from" in transaction) {
+              return transaction.from;
+            }
+
+            return (transaction as StakeNodeBody).address;
+          })
+        );
+      } catch (error) {
+        return {
+          requestId: message?.requestId,
+          ...returnExtensionErr(error, BULK_SIGN_TRANSACTION_RESPONSE),
+        };
+      }
+
+      const chainId = store
+        .getState()
+        .app.selectedChainByProtocol[protocol].toString();
+
+      const transactions: ExternalBulkSignTransactionReq["data"]["data"]["transactions"] =
+        [];
+
+      for (const transaction of message.data.data.transactions) {
+        if (
+          transaction.type === PocketNetworkNodeStake &&
+          transaction.transaction.operatorPublicKey
+        ) {
+          transaction.transaction.nodeAddress = await getAddressFromPublicKey(
+            transaction.transaction.operatorPublicKey
+          );
+        }
+        transactions.push(transaction);
+      }
+
+      return this._addExternalRequest(
+        {
+          type: message.type,
+          requestId: message.requestId,
+          sessionId: message.data.sessionId,
+          protocol: message.data.protocol,
+          origin: message.data.origin,
+          faviconUrl: message.data.faviconUrl,
+          tabId: sender.tab.id,
+          data: {
+            chainId,
+            transactions,
+          },
+        },
+        BULK_SIGN_TRANSACTION_RESPONSE
+      );
+    } catch (e) {
+      return {
+        type: BULK_SIGN_TRANSACTION_RESPONSE,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
+      };
+    }
+  }
+
   private async _handleSignTypedDataRequest(
     message: ExternalSignTypedDataReq,
     sender: MessageSender
@@ -856,6 +956,7 @@ class ExternalCommunicationController implements ICommunicationController {
       | typeof STAKE_NODE_RESPONSE
       | typeof UNSTAKE_NODE_RESPONSE
       | typeof PUBLIC_KEY_RESPONSE
+      | typeof BULK_SIGN_TRANSACTION_RESPONSE
   >(
     request: AppRequests,
     responseMessage: T
@@ -1292,6 +1393,7 @@ class ExternalCommunicationController implements ICommunicationController {
       | typeof STAKE_NODE_RESPONSE
       | typeof UNSTAKE_NODE_RESPONSE
       | typeof PUBLIC_KEY_RESPONSE
+      | typeof BULK_SIGN_TRANSACTION_RESPONSE
   >(
     origin: string,
     responseMessage: T
