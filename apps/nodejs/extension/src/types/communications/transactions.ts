@@ -37,6 +37,7 @@ import {
   CHANGE_PARAM_RESPONSE,
   DAO_TRANSFER_REQUEST,
   DAO_TRANSFER_RESPONSE,
+  SIGN_TRANSACTION_REQUEST,
   STAKE_APP_REQUEST,
   STAKE_APP_RESPONSE,
   STAKE_NODE_REQUEST,
@@ -499,7 +500,10 @@ type BulkSignTransactionCreator = Creator<
 >;
 
 export type ProxyBulkSignTransactionReq =
-  BulkSignTransactionCreator["ProxyReq"];
+  | BulkSignTransactionCreator["ProxyReq"]
+  | (Omit<BulkSignTransactionCreator["ProxyReq"], "type"> & {
+      type: typeof SIGN_TRANSACTION_REQUEST;
+    });
 export type ExternalBulkSignTransactionReq =
   BulkSignTransactionCreator["ExternalReq"];
 export type ExternalBulkSignTransactionRes =

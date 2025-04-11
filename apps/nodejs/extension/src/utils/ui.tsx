@@ -172,13 +172,16 @@ export const removeRequestWithRes = async (
       break;
     }
     case BULK_SIGN_TRANSACTION_REQUEST: {
-      data = {
-        rejected: false,
-        signatures: null,
-        protocol: null,
-      };
+      if (error.code === OperationRejected.code) {
+        data = {
+          rejected: true,
+          signatures: null,
+          protocol: null,
+        };
+        errorToReturn = null;
+      }
+
       responseType = BULK_SIGN_TRANSACTION_RESPONSE;
-      errorToReturn = null;
       break;
     }
     case CONNECTION_REQUEST_MESSAGE: {

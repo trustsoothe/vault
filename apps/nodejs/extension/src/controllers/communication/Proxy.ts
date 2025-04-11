@@ -92,9 +92,9 @@ import type { AccountsChangedToProvider } from "../../types/communications/accou
 import browser from "webextension-polyfill";
 import { z, ZodError } from "zod";
 import type {
-  SupportedProtocols,
   DAOAction,
   DAOActionArray,
+  SupportedProtocols,
 } from "@soothe/vault";
 import {
   APP_IS_NOT_READY,
@@ -125,6 +125,7 @@ import {
   SELECTED_CHAIN_CHANGED,
   SELECTED_CHAIN_REQUEST,
   SELECTED_CHAIN_RESPONSE,
+  SIGN_TRANSACTION_REQUEST,
   SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
   STAKE_APP_REQUEST,
@@ -149,6 +150,7 @@ import {
   OperationRejected,
   propertyIsNotValid,
   propertyIsRequired,
+  SignTransactionOnlyAcceptsOne,
   UnauthorizedError,
   UnknownError,
   UnsupportedMethod,
@@ -594,10 +596,27 @@ class ProxyCommunicationController {
           }
 
           if (data.type === BULK_SIGN_TRANSACTION_REQUEST) {
-            await this._sendSignTxRequest(data.protocol, data.id, {
-              // @ts-ignore
-              transactions: data.data,
-            });
+            await this._sendSignTxRequest(
+              data.protocol,
+              data.id,
+              {
+                // @ts-ignore
+                transactions: data.data,
+              },
+              data.type
+            );
+          }
+
+          if (data.type === SIGN_TRANSACTION_REQUEST) {
+            await this._sendSignTxRequest(
+              data.protocol,
+              data.id,
+              {
+                // @ts-ignore
+                transactions: data.data,
+              },
+              data.type
+            );
           }
         }
       }
@@ -1960,7 +1979,8 @@ class ProxyCommunicationController {
   private async _sendSignTxRequest(
     protocol: SupportedProtocols,
     requestId: string,
-    data: ProxyBulkSignTransactionReq["data"]
+    data: ProxyBulkSignTransactionReq["data"],
+    type?: ProxyBulkSignTransactionReq["type"]
   ) {
     let requestWasSent = false;
 
@@ -1979,6 +1999,14 @@ class ProxyCommunicationController {
             requestId,
             null,
             propertyIsNotValid("params")
+          );
+        }
+
+        if (type === SIGN_TRANSACTION_REQUEST && data.transactions.length > 1) {
+          return this._sendSignTxResponse(
+            requestId,
+            null,
+            SignTransactionOnlyAcceptsOne
           );
         }
 
@@ -2065,12 +2093,8 @@ class ProxyCommunicationController {
           },
         };
 
-        console.log("request is going to be sent", message);
-
         const response: ExternalBulkSignTransactionRes =
           await browser.runtime.sendMessage(message);
-
-        console.log("response is received", response);
 
         requestWasSent = true;
 
@@ -2095,7 +2119,7 @@ class ProxyCommunicationController {
     response: InternalBulkSignTransactionRes
   ) {
     try {
-      const { error, data, requestId, type } = response;
+      const { error, data, requestId } = response;
 
       if (data) {
         if (data.rejected) {

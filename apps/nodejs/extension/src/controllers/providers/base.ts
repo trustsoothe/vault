@@ -36,6 +36,7 @@ import {
   SELECTED_CHAIN_CHANGED,
   SELECTED_CHAIN_REQUEST,
   SELECTED_CHAIN_RESPONSE,
+  SIGN_TRANSACTION_REQUEST,
   SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
   STAKE_APP_REQUEST,
@@ -277,7 +278,10 @@ export default class BaseProvider extends EventEmitter {
         sootheRequestType = UPGRADE_REQUEST;
         break;
       }
-      case PocketNetworkMethod.SIGN_TRANSACTION:
+      case PocketNetworkMethod.SIGN_TRANSACTION: {
+        sootheRequestType = SIGN_TRANSACTION_REQUEST;
+        break;
+      }
       case PocketNetworkMethod.BULK_SIGN_TRANSACTION: {
         sootheRequestType = BULK_SIGN_TRANSACTION_REQUEST;
         break;
@@ -398,6 +402,7 @@ export default class BaseProvider extends EventEmitter {
         requestData = params?.[0];
         break;
       }
+      case SIGN_TRANSACTION_REQUEST:
       case BULK_SIGN_TRANSACTION_REQUEST: {
         responseType = BULK_SIGN_TRANSACTION_RESPONSE;
         requestData = params;
@@ -418,7 +423,13 @@ export default class BaseProvider extends EventEmitter {
     );
 
     return new window.Promise((resolve, reject) => {
-      const listener = (event: MessageEvent<ProxyResponses>) => {
+      // the background has a timeout, this is just in case
+      const timeout = setTimeout(() => {
+        window.removeEventListener("message", listener);
+        reject(RequestTimeout);
+      }, (MINUTES_ALLOWED_FOR_REQ + 1) * 60000);
+
+      function listener(event: MessageEvent<ProxyResponses>) {
         if (
           (responseType === event.data.type ||
             event.data.type === APP_IS_NOT_READY) &&
@@ -427,6 +438,8 @@ export default class BaseProvider extends EventEmitter {
           event.data?.from === "VAULT_KEYRING" &&
           event.data?.id === id
         ) {
+          clearTimeout(timeout);
+
           window.removeEventListener("message", listener);
 
           if (event.data.type === "APP_IS_NOT_READY") {
@@ -480,15 +493,9 @@ export default class BaseProvider extends EventEmitter {
             return reject(error);
           }
         }
-      };
+      }
 
       window.addEventListener("message", listener);
-
-      // the background has a timeout, this is just in case
-      setTimeout(() => {
-        window.removeEventListener("message", listener);
-        reject(RequestTimeout);
-      }, (MINUTES_ALLOWED_FOR_REQ + 1) * 60000);
     });
   }
 

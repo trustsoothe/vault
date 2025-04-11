@@ -381,7 +381,7 @@ export default function PoktSignTransactionRequest() {
         <Typography variant={"subtitle2"} marginBottom={0.8}>
           {transactionRequest.data.transactions.length > 1
             ? `Sign Multiple Transactions [${transactionRequest.data.transactions.length}]`
-            : `${getTransactionTypeLabel(
+            : `Sign ${getTransactionTypeLabel(
                 transactionRequest.data.transactions[0].type
               )} Transaction`}
         </Typography>
@@ -389,7 +389,10 @@ export default function PoktSignTransactionRequest() {
           <Stack overflow={"auto"} flexGrow={1} minHeight={0} flexBasis={"1px"}>
             {content}
           </Stack>
-          <CheckInput />
+          <CheckInput
+            isSigning={true}
+            moreThanOne={transactionRequest.data.transactions.length > 1}
+          />
           <VaultPasswordInput />
         </FormProvider>
       </Stack>
@@ -397,7 +400,7 @@ export default function PoktSignTransactionRequest() {
         <DialogButtons
           primaryButtonProps={{
             isLoading,
-            children: "Send",
+            children: "Sign",
             type: "submit",
           }}
           secondaryButtonProps={{
