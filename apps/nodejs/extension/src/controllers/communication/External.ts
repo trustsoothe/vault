@@ -996,6 +996,15 @@ class ExternalCommunicationController implements ICommunicationController {
           requestId: request?.requestId,
         };
       } else {
+        // here we are waiting because of the following use case:
+        // 1. website makes a request to the extension
+        // 2. extension opens a new window with the request
+        // 3. user accepts the request
+        // 4. extension closes the window
+        // 5. website receives the response and immediately sends another request, but the window is being closed
+        // 6. extension respond automatically to the second request with user rejection because the window was closed
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         await store.dispatch(addExternalRequest(request));
 
         if (!requestsWindowId) {
