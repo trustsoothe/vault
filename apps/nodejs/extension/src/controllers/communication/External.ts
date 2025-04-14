@@ -977,7 +977,7 @@ class ExternalCommunicationController implements ICommunicationController {
         return { ...checkOriginResponse, requestId: request.requestId };
       }
 
-      const { externalRequests, requestsWindowId } = store.getState().app;
+      const { externalRequests } = store.getState().app;
 
       const pendingRequestWindow = externalRequests.find(
         (item) =>
@@ -1003,9 +1003,11 @@ class ExternalCommunicationController implements ICommunicationController {
         // 4. extension closes the window
         // 5. website receives the response and immediately sends another request, but the window is being closed
         // 6. extension respond automatically to the second request with user rejection because the window was closed
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 150));
 
         await store.dispatch(addExternalRequest(request));
+
+        const { requestsWindowId } = store.getState().app;
 
         if (!requestsWindowId) {
           const windowCreated = await browser.windows.create({

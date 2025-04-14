@@ -424,12 +424,9 @@ export default class BaseProvider extends EventEmitter {
 
     return new window.Promise((resolve, reject) => {
       // the background has a timeout, this is just in case
-      const timeout = setTimeout(() => {
-        window.removeEventListener("message", listener);
-        reject(RequestTimeout);
-      }, (MINUTES_ALLOWED_FOR_REQ + 1) * 60000);
+      let timeout: NodeJS.Timeout;
 
-      function listener(event: MessageEvent<ProxyResponses>) {
+      const listener = (event: MessageEvent<ProxyResponses>) => {
         if (
           (responseType === event.data.type ||
             event.data.type === APP_IS_NOT_READY) &&
@@ -493,7 +490,12 @@ export default class BaseProvider extends EventEmitter {
             return reject(error);
           }
         }
-      }
+      };
+
+      timeout = setTimeout(() => {
+        window.removeEventListener("message", listener);
+        reject(RequestTimeout);
+      }, (MINUTES_ALLOWED_FOR_REQ + 1) * 60000);
 
       window.addEventListener("message", listener);
     });
