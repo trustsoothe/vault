@@ -296,7 +296,6 @@ export interface SendTransactionParams
     maxPriorityFeePerGas?: number;
     data?: string;
     fee?: number;
-    shannonFee?: CosmosFee;
     memo?: string;
     gasLimit?: number;
   };
@@ -423,7 +422,7 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
       tx = {
         ...baseTx,
         protocol: SupportedProtocols.Cosmos,
-        fee: transferOptions.transactionParams.shannonFee.value,
+        fee: transferOptions.transactionParams.maxFeePerGas,
         memo: transferOptions.transactionParams.memo,
       };
     }

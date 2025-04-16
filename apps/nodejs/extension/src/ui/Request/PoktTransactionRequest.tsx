@@ -36,6 +36,8 @@ import TransferAppSummary from "../PoktTransaction/TransferApp/Summary";
 import ChangeParamSummary from "../PoktTransaction/ChangeParam/Summary";
 import DaoTransferSummary from "../PoktTransaction/DaoTransfer/Summary";
 import UnstakeUnjailNodeSummary from "../PoktTransaction/UnstakeUnjailNode/Summary";
+import {useAppSelector} from "../hooks/redux";
+import {selectedNetworkSelector} from "../../redux/selectors/network";
 
 export function getTransactionFn(transactionRequest: PoktTxRequest) {
   let fn:
@@ -158,6 +160,8 @@ export default function PoktTransactionRequest() {
     result: null,
   });
 
+  const selectedNetwork = useAppSelector(selectedNetworkSelector);
+
   const closeSnackbars = () => {
     if (feeErrorSnackbarKey.current) {
       closeSnackbar(feeErrorSnackbarKey.current);
@@ -194,6 +198,9 @@ export default function PoktTransactionRequest() {
     AppToBackground.getNetworkFee({
       chainId: transactionRequest.transactionData.chainId,
       protocol: SupportedProtocols.Pocket,
+      toAddress: transactionRequest.transactionData.address,
+      from: transactionRequest.transactionData.address,
+      maxFeePerGas: (selectedNetwork?.defaultGasPrice ?? 0.001).toString(),
     })
       .then((res) => {
         if (res.error) {

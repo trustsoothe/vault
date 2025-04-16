@@ -6,7 +6,7 @@ import {z} from "zod";
 
 export interface CosmosProtocolTransactionMessage {
   type: CosmosTransactionTypes;
-  payload: z.infer<typeof PayloadUnionSchema>;
+  payload: z.input<typeof PayloadUnionSchema>;
 }
 
 export interface CosmosProtocolTransaction
@@ -18,5 +18,6 @@ export interface CosmosProtocolTransaction
   messages: CosmosProtocolTransactionMessage[];
   gasPrice?: number;
   gasLimit?: number;
+  gasAdjustment?: number;
   memo?: string;
 }

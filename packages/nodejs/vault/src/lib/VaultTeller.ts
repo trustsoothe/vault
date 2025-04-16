@@ -73,7 +73,6 @@ export interface TransferOptions {
     gasLimit?: number;
     data?: string;
     fee?: number;
-    shannonFee?: CosmosFee;
     memo?: string;
   };
   asset?: IAsset;
@@ -573,16 +572,17 @@ export class VaultTeller {
               payload: {
                 fromAddress: account.address,
                 toAddress: options.to.value,
-                // @ts-ignore
                 amount: options.amount.toString(),
               }
             }
           ],
+          gasPrice: options.transactionParams.maxFeePerGas,
+          memo: options.transactionParams.memo ?? '',
+          privateKey,
+          // TODO: Refactor the transaction when morse is sunset to remove this fields.
           from: "",
           to: "",
           amount: "",
-          memo: options.transactionParams.memo ?? '',
-          privateKey,
         });
       default:
         throw new Error(`Transfer origin "${options.from.type}" not supported`);
@@ -639,16 +639,17 @@ export class VaultTeller {
               payload: {
                 fromAddress: account.address,
                 toAddress: options.to.value,
-                // @ts-ignore
                 amount: options.amount.toString(),
               }
             }
           ],
+          gasPrice: options.transactionParams.maxFeePerGas,
+          memo: options.transactionParams.memo ?? '',
+          privateKey,
+          // TODO: Refactor the transaction when morse is sunset to remove this fields.
           from: "",
           to: "",
           amount: "",
-          memo: options.transactionParams.memo ?? '',
-          privateKey,
         });
       default:
         throw new Error(`Protocol ${options.network.protocol} not supported`);

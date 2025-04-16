@@ -1,21 +1,22 @@
-import type { AnswerTransferReq } from "../../types/communications/transfer";
-import type { SendTransactionParams } from "../../redux/slices/vault/account";
-import { closeSnackbar, SnackbarKey } from "notistack";
+import type {AnswerTransferReq} from "../../types/communications/transfer";
+import type {SendTransactionParams} from "../../redux/slices/vault/account";
+import {closeSnackbar, SnackbarKey} from "notistack";
 import DialogActions from "@mui/material/DialogActions";
-import { FormProvider, useForm } from "react-hook-form";
-import React, { useEffect, useRef, useState } from "react";
+import {FormProvider, useForm} from "react-hook-form";
+import React, {useEffect, useRef, useState} from "react";
 import {
+  CosmosFee,
   EthereumNetworkFee,
   EthereumNetworkFeeRequestOptions,
   PocketNetworkFee,
-  CosmosFee,
   SupportedProtocols,
 } from "@soothe/vault";
-import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../utils/ui";
+import {enqueueErrorSnackbar, wrongPasswordSnackbar} from "../../utils/ui";
 import AppToBackground from "../../controllers/communication/AppToBackground";
-import { isValidAddress } from "../../utils/networkOperations";
+import {isValidAddress} from "../../utils/networkOperations";
 import useDidMountEffect from "../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
+import {CosmosFeeRequestOption} from "@soothe/vault/dist/lib/core/common/protocols/Cosmos/CosmosFeeRequestOption";
 
 export interface TransactionFormValues {
   memo?: string;
@@ -164,6 +165,11 @@ export default function BaseTransaction({
               chainID: chainId,
             }
           : undefined,
+      }),
+      ...(protocol === SupportedProtocols.Cosmos && {
+        from: fromAddress,
+        toAddress: feeOptions?.to || getValues("recipientAddress"),
+        maxFeePerGas: feeOptions?.maxFeePerGas,
       }),
     })
       .then((res) => {

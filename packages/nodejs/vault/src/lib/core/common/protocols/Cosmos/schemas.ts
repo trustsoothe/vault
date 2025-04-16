@@ -84,7 +84,7 @@ export const CosmosProtocolTransactionMessageSchema = z.object({
 export const CosmosProtocolTransactionSchema = z.object({
   protocol: z.literal(SupportedProtocols.Cosmos),
   messages: z.array(CosmosProtocolTransactionMessageSchema),
-  gasPrice: z.number().optional(),
+  gasPrice: z.coerce.number().optional(),
   gasLimit: z.number().optional(),
   memo: z.string().optional(),
 });

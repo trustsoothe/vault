@@ -41,12 +41,6 @@ export type BaseTransaction = z.infer<typeof BaseTransaction>;
 
 export type SwapTo = BaseTransaction["swapTo"];
 
-export const PoktShannonFee = z.object({
-  protocol: z.literal(SupportedProtocols.Cosmos),
-  amount: z.string(),
-  denom: z.string(),
-});
-
 export const PoktShannonTransaction = BaseTransaction.extend({
   protocol: z.literal(SupportedProtocols.Cosmos),
   fee: z.number(),
@@ -57,7 +51,7 @@ export const PoktShannonTransaction = BaseTransaction.extend({
     .default(CosmosTransactionTypes.Send),
   transactionParams: z
     .object({
-      shannonFee: PoktShannonFee,
+      maxFeePerGas: z.number(),
       memo: z.string().optional(),
     })
     .optional(),

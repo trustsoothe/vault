@@ -22,7 +22,10 @@ import {DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-sign
 import {Bip39, EnglishMnemonic, Random, Secp256k1, sha256, Slip10, Slip10Curve} from "@cosmjs/crypto";
 import {CosmosFee} from "./CosmosFee";
 import {
-  CosmosProtocolTransactionSchema, MsgSendSchema, MsgStakeSupplierSchema, MsgUnstakeSupplierSchema,
+  CosmosProtocolTransactionSchema,
+  MsgSendSchema,
+  MsgStakeSupplierSchema,
+  MsgUnstakeSupplierSchema,
   PocketShannonProtocolNetworkSchema,
   PocketShannonRpcCanSendTransactionResponseSchema,
 } from "./schemas";
@@ -35,6 +38,7 @@ import {CosmosTransactionTypes} from "./CosmosTransactionTypes";
 import {MsgSend} from "./pocket/client/cosmos/bank/v1beta1/tx";
 import {CosmosTransactionTypeUrlMap} from "./CosmosTransactionTypeUrlMap";
 import {MsgStakeSupplier, MsgUnstakeSupplier} from "./pocket/client/pocket/supplier/tx";
+import {CosmosFeeRequestOption} from "./CosmosFeeRequestOption";
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos>
@@ -194,13 +198,55 @@ export class CosmosProtocolService
     }
   }
 
-  async getFee(network: INetwork): Promise<CosmosFee> {
-    // @ts-ignore
-    return {
-      protocol: SupportedProtocols.Cosmos,
-      value: 0,
-      denom: 'upokt',
-    };
+  async getFee(network: INetwork, options: CosmosFeeRequestOption): Promise<CosmosFee> {
+    const { transaction } = options;
+
+    if (!network) {
+      throw new ArgumentError("network");
+    }
+
+    if (!transaction) {
+      throw new ArgumentError("transaction");
+    }
+
+    let estimatedGas = 80000;
+    let gasAdjustmentUsed = transaction.gasAdjustment ?? 1.5;
+    let gasPriceUsed = Number(transaction.gasPrice ?? 0);
+    let value = 0;
+
+    try {
+      const privateKey = transaction.privateKey ?? Buffer.from(Random.getBytes(32)).toString("hex");
+      const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), "pokt");
+
+      const client = await SigningStargateClient.connectWithSigner(network.rpcUrl, wallet);
+
+      const messages = this.buildMessages(transaction);
+
+      estimatedGas = await client.simulate(transaction.from, messages, transaction.memo ?? "");
+
+      const amountInUpokt = Math.ceil(Math.ceil(estimatedGas * gasAdjustmentUsed) * gasPriceUsed);
+
+      value = (amountInUpokt / 1e6);
+
+      return {
+        protocol: SupportedProtocols.Cosmos,
+        estimatedGas,
+        gasAdjustmentUsed,
+        gasPriceUsed,
+        value,
+      };
+    } catch (err) {                        ``
+      console.error(err);
+      const amountInUpokt = Math.ceil(estimatedGas * Number(gasPriceUsed));
+      const value = (amountInUpokt / 1e6);
+      return {
+        protocol: SupportedProtocols.Cosmos,
+        estimatedGas,
+        gasAdjustmentUsed,
+        gasPriceUsed,
+        value,
+      };
+    }
   }
 
   async getNetworkBalanceStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
@@ -226,14 +272,7 @@ export class CosmosProtocolService
   async getNetworkFeeStatus(network: INetwork, status?: NetworkStatus): Promise<NetworkStatus> {
     this.validateNetwork(network);
     const updatedStatus = NetworkStatus.createFrom(status);
-
-    try {
-      await this.getFee(network);
-      updatedStatus.updateFeeStatus(true);
-    } catch (err) {
-      updatedStatus.updateFeeStatus(false);
-    }
-
+    updatedStatus.updateFeeStatus(true);
     return updatedStatus;
   }
 
@@ -304,7 +343,7 @@ export class CosmosProtocolService
     }
 
     try {
-      const {privateKey } = transaction;
+      const { privateKey } = transaction;
       const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), "pokt");
 
       const [{ address: signerAddress }] = await wallet.getAccounts();
@@ -321,47 +360,24 @@ export class CosmosProtocolService
       })
 
       if (expectedSignerOnMessages.some(signer => signer !== signerAddress)) {
-        throw new Error(`The provided private key does not match one or more of the expected message signers. Derived: ${signerAddress}, Provided: ${expectedSignerOnMessages.join(', ')}`);
+        throw new Error(`The provided private key does not match one or more of the expected message signers. Derived: ${signerAddress}, Provided List: ${expectedSignerOnMessages.join(', ')}`);
       }
 
       const client = await SigningStargateClient.connectWithSigner(network.rpcUrl, wallet);
 
-      const messages = transaction.messages.map(({ type, payload }) => {
-         switch (type) {
-           case CosmosTransactionTypes.Send:
-              return {
-                typeUrl: CosmosTransactionTypeUrlMap[type],
-                value: MsgSend.fromJSON({
-                  ...MsgSendSchema.parse(payload),
-                }),
-              };
-           case CosmosTransactionTypes.StakeSupplier:
-             return {
-               typeUrl: CosmosTransactionTypeUrlMap[type],
-               value: MsgStakeSupplier.fromJSON({
-                 ...MsgStakeSupplierSchema.parse(payload),
-               }),
-             }
-           case CosmosTransactionTypes.UnstakeSupplier:
-             return {
-               typeUrl: CosmosTransactionTypeUrlMap[type],
-               value: MsgUnstakeSupplier.fromJSON({
-                 ...MsgUnstakeSupplierSchema.parse(payload),
-               })
-             }
-         }
+      const messages = this.buildMessages(transaction);
+
+      const {estimatedGas, gasAdjustmentUsed, gasPriceUsed} = await this.getFee(network, {
+        protocol: SupportedProtocols.Cosmos,
+        transaction,
       });
 
-      const estimatedGas = await client.simulate(signerAddress, messages, transaction.memo ?? "");
-
-      const signVerifyCost = await this.getSignVerifyCostSecp256k1(network);
-
-      const fee = calculateFee(Math.ceil(estimatedGas * 1.5),  `${signVerifyCost / 1e6}upokt`);
+      const fee = calculateFee(Math.ceil(estimatedGas * gasAdjustmentUsed), `${gasPriceUsed}upokt`);
       
       const txRaw = await client.sign(signerAddress, messages, fee, transaction.memo ?? "");
       const txBytes = TxRaw.encode(txRaw).finish();
 
-      const transactionHash = await client.broadcastTxSync(txBytes)
+      const transactionHash = await client.broadcastTxSync(txBytes);
 
       return {
         protocol: SupportedProtocols.Cosmos,
@@ -377,6 +393,34 @@ export class CosmosProtocolService
 
       throw err;
     }
+  }
+
+  private buildMessages(transaction: CosmosProtocolTransaction) {
+    return transaction.messages.map(({type, payload}) => {
+      switch (type) {
+        case CosmosTransactionTypes.Send:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgSend.fromJSON({
+              ...MsgSendSchema.parse(payload),
+            }),
+          };
+        case CosmosTransactionTypes.StakeSupplier:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgStakeSupplier.fromJSON({
+              ...MsgStakeSupplierSchema.parse(payload),
+            }),
+          }
+        case CosmosTransactionTypes.UnstakeSupplier:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgUnstakeSupplier.fromJSON({
+              ...MsgUnstakeSupplierSchema.parse(payload),
+            })
+          }
+      }
+    });
   }
 
   async signPersonalData(request: SignPersonalDataRequest): Promise<string> {
@@ -415,27 +459,6 @@ export class CosmosProtocolService
     } catch (error) {
       console.error(error);
       throw new ArgumentError("network");
-    }
-  }
-
-  private async getSignVerifyCostSecp256k1(network: INetwork) {
-    const response = await globalThis.fetch(`${network.rpcUrl}/cosmos/auth/v1beta1/params`, {
-      method: "GET",
-      headers: {
-        "accept": "application/json",
-      }
-    });
-
-    if (!response.ok) {
-      return 1000; // Default value
-    }
-
-    try {
-      const data = await response.json();
-      return data?.params?.sig_verify_cost_secp256k1 ?? 1000; // Default value if key is missing
-    } catch (error) {
-      console.error("Failed to parse response JSON:", error);
-      return 1000;
     }
   }
 }

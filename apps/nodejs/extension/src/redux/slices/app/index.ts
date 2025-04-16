@@ -69,6 +69,7 @@ export interface Network {
   assetPlatformId?: string;
   addressPrefix?: string;
   isProtocolDefault?: boolean;
+  defaultGasPrice?: number;
   wip?: NetworkNotice;
   notices?: NetworkNotice[];
 }

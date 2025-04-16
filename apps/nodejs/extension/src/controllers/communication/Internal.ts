@@ -101,6 +101,7 @@ import browser, { type Runtime } from "webextension-polyfill";
 import {
   AccountExistErrorName,
   AccountReference,
+  CosmosTransactionTypes,
   EthereumNetworkProtocolService,
   ExternalAccessRequest,
   OriginReference,
@@ -2130,6 +2131,7 @@ class InternalCommunicationController implements ICommunicationController {
         async (network) => {
           return protocolService.getFee(
             network,
+            // @ts-ignore
             protocol === SupportedProtocols.Ethereum
               ? {
                   protocol,
@@ -2139,7 +2141,26 @@ class InternalCommunicationController implements ICommunicationController {
                     : undefined,
                   ...optionProps,
                 }
-              : undefined
+              : protocol === SupportedProtocols.Cosmos
+                ? {
+                    protocol,
+                    transaction: {
+                      protocol,
+                      transactionType: CosmosTransactionTypes.Send,
+                      messages: [
+                        {
+                          type: CosmosTransactionTypes.Send,
+                          payload: {
+                            fromAddress: optionProps.from,
+                            toAddress,
+                            amount: "1",
+                          }
+                        }
+                      ],
+                      gasPrice: optionProps.maxFeePerGas,
+                    },
+                  }
+                : undefined
           );
         }
       );

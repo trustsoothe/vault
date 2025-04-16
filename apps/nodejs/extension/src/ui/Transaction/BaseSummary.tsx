@@ -6,7 +6,7 @@ import Stack from "@mui/material/Stack";
 import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import { Controller, useFormContext } from "react-hook-form";
-import { SerializedAccountReference, SupportedProtocols } from "@soothe/vault";
+import {PocketNetworkFee, SerializedAccountReference, SupportedProtocols} from "@soothe/vault";
 import Summary, { SummaryRowItem } from "../components/Summary";
 import { networksSelector } from "../../redux/selectors/network";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
@@ -176,8 +176,8 @@ export default function BaseSummary({
   const amountNum = Number(amount);
   const feeOfTx = Number(
     fee
-      ? fee.protocol === SupportedProtocols.Pocket
-        ? fee.value
+      ? [SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(fee.protocol)
+        ? (fee as PocketNetworkFee).value
         : fee[txSpeed]?.amount || 0
       : 0
   );
