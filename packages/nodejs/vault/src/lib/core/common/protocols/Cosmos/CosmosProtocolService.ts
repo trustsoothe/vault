@@ -39,7 +39,6 @@ import {MsgSend} from "./pocket/client/cosmos/bank/v1beta1/tx";
 import {CosmosTransactionTypeUrlMap} from "./CosmosTransactionTypeUrlMap";
 import {MsgStakeSupplier, MsgUnstakeSupplier} from "./pocket/client/pocket/supplier/tx";
 import {CosmosFeeRequestOption} from "./CosmosFeeRequestOption";
-import {PocketNetworkProtocolTransaction} from "../PocketNetwork";
 import {Buffer} from "buffer";
 
 export class CosmosProtocolService
