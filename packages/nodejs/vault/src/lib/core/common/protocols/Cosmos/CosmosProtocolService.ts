@@ -5,7 +5,7 @@ import {
   DeriveAddressOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService,
-  SignPersonalDataRequest,
+  SignPersonalDataRequest, SignTransactionResult,
   ValidateTransactionResult
 } from "../IProtocolService";
 import {AccountReference, SupportedProtocols} from "../../values";
@@ -39,6 +39,8 @@ import {MsgSend} from "./pocket/client/cosmos/bank/v1beta1/tx";
 import {CosmosTransactionTypeUrlMap} from "./CosmosTransactionTypeUrlMap";
 import {MsgStakeSupplier, MsgUnstakeSupplier} from "./pocket/client/pocket/supplier/tx";
 import {CosmosFeeRequestOption} from "./CosmosFeeRequestOption";
+import {PocketNetworkProtocolTransaction} from "../PocketNetwork";
+import {Buffer} from "buffer";
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos>
@@ -218,11 +220,13 @@ export class CosmosProtocolService
       const privateKey = transaction.privateKey ?? Buffer.from(Random.getBytes(32)).toString("hex");
       const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), "pokt");
 
+      const [{ address: signerAddress }] = await wallet.getAccounts();
+
       const client = await SigningStargateClient.connectWithSigner(network.rpcUrl, wallet);
 
       const messages = this.buildMessages(transaction);
 
-      estimatedGas = await client.simulate(transaction.from, messages, transaction.memo ?? "");
+      estimatedGas = await client.simulate(signerAddress, messages, transaction.memo ?? "");
 
       const amountInUpokt = Math.ceil(Math.ceil(estimatedGas * gasAdjustmentUsed) * gasPriceUsed);
 
@@ -328,57 +332,11 @@ export class CosmosProtocolService
   }
 
   async sendTransaction(network: INetwork, transaction: CosmosProtocolTransaction): Promise<IProtocolTransactionResult<SupportedProtocols.Cosmos>> {
-    if (!network) {
-      throw new ArgumentError("network");
-    }
-
-    if (!transaction) {
-      throw new ArgumentError("transaction");
-    }
-
-    const {success} = CosmosProtocolTransactionSchema.safeParse(transaction);
-
-    if (!success) {
-      throw new ArgumentError("transaction");
-    }
-
     try {
-      const { privateKey } = transaction;
-      const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), "pokt");
-
-      const [{ address: signerAddress }] = await wallet.getAccounts();
-
-      const expectedSignerOnMessages = transaction.messages.map(({ type, payload }) => {
-        switch (type) {
-          case CosmosTransactionTypes.Send:
-            return MsgSendSchema.parse(payload).fromAddress;
-          case CosmosTransactionTypes.StakeSupplier:
-            return MsgStakeSupplierSchema.parse(payload).signer;
-          case CosmosTransactionTypes.UnstakeSupplier:
-            return MsgUnstakeSupplierSchema.parse(payload).signer;
-        }
-      })
-
-      if (expectedSignerOnMessages.some(signer => signer !== signerAddress)) {
-        throw new Error(`The provided private key does not match one or more of the expected message signers. Derived: ${signerAddress}, Provided List: ${expectedSignerOnMessages.join(', ')}`);
-      }
-
-      const client = await SigningStargateClient.connectWithSigner(network.rpcUrl, wallet);
-
-      const messages = this.buildMessages(transaction);
-
-      const {estimatedGas, gasAdjustmentUsed, gasPriceUsed} = await this.getFee(network, {
-        protocol: SupportedProtocols.Cosmos,
-        transaction,
-      });
-
-      const fee = calculateFee(Math.ceil(estimatedGas * gasAdjustmentUsed), `${gasPriceUsed}upokt`);
-      
-      const txRaw = await client.sign(signerAddress, messages, fee, transaction.memo ?? "");
-      const txBytes = TxRaw.encode(txRaw).finish();
-
+      const { transactionHex } = await this.signTransaction(network, transaction);
+      const client = await SigningStargateClient.connect(network.rpcUrl);
+      const txBytes = Buffer.from(transactionHex, "hex");
       const transactionHash = await client.broadcastTxSync(txBytes);
-
       return {
         protocol: SupportedProtocols.Cosmos,
         transactionHash,
@@ -429,6 +387,73 @@ export class CosmosProtocolService
     const messageHash = sha256(toUtf8(challenge));
     const signature = await Secp256k1.createSignature(messageHash, privateKeyBytes);
     return toHex(signature.toFixedLength());
+  }
+
+  async signTransaction(
+    network: INetwork,
+    transaction: CosmosProtocolTransaction
+  ): Promise<SignTransactionResult> {
+    if (!network) {
+      throw new ArgumentError("network");
+    }
+
+    if (!transaction) {
+      throw new ArgumentError("transaction");
+    }
+
+    const {success} = CosmosProtocolTransactionSchema.safeParse(transaction);
+
+    if (!success) {
+      throw new ArgumentError("transaction");
+    }
+
+    try {
+      const {privateKey} = transaction;
+
+      const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), "pokt");
+
+      const [{address: signerAddress, pubkey: signerPublicKey}] = await wallet.getAccounts();
+
+      const expectedSignerOnMessages = transaction.messages.map(({type, payload}) => {
+        switch (type) {
+          case CosmosTransactionTypes.Send:
+            return MsgSendSchema.parse(payload).fromAddress;
+          case CosmosTransactionTypes.StakeSupplier:
+            return MsgStakeSupplierSchema.parse(payload).signer;
+          case CosmosTransactionTypes.UnstakeSupplier:
+            return MsgUnstakeSupplierSchema.parse(payload).signer;
+        }
+      })
+
+      if (expectedSignerOnMessages.some(signer => signer !== signerAddress)) {
+        throw new Error(`The provided private key does not match one or more of the expected message signers. Derived: ${signerAddress}, Provided List: ${expectedSignerOnMessages.join(', ')}`);
+      }
+
+      const client = await SigningStargateClient.connectWithSigner(network.rpcUrl, wallet);
+
+      const messages = this.buildMessages(transaction);
+
+      const {estimatedGas, gasAdjustmentUsed, gasPriceUsed} = await this.getFee(network, {
+        protocol: SupportedProtocols.Cosmos,
+        transaction,
+      });
+
+      const fee = calculateFee(Math.ceil(estimatedGas * gasAdjustmentUsed), `${gasPriceUsed}upokt`);
+
+      const txRaw = await client.sign(signerAddress, messages, fee, transaction.memo ?? "");
+      
+      const txBytes = TxRaw.encode(txRaw).finish();
+
+      return {
+        transactionHex: Buffer.from(txBytes).toString('hex'),
+        publicKey: Buffer.from(signerPublicKey).toString('hex'),
+        signature: Buffer.concat(txRaw.signatures),
+      };
+    } catch (err) {
+      console.log('There has been an error while signing the transaction');
+      console.error(err);
+      throw err;
+    }
   }
 
   async validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.Cosmos>, network: INetwork): Promise<ValidateTransactionResult> {
