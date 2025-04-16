@@ -8,15 +8,10 @@ import {
   SupportedTransferOrigins,
 } from "./core/common/values";
 import IVaultStore from "./core/common/storage/IVaultStorage";
-import { IEncryptionService } from "./core/common/encryption/IEncryptionService";
-import {
-  Account,
-  AccountType,
-  AccountUpdateOptions,
-  Vault,
-} from "./core/vault";
-import { SerializedSession, Session, SessionOptions } from "./core/session";
-import { Permission, PermissionsBuilder } from "./core/common/permissions";
+import {IEncryptionService} from "./core/common/encryption/IEncryptionService";
+import {Account, AccountType, AccountUpdateOptions, Vault,} from "./core/vault";
+import {SerializedSession, Session, SessionOptions} from "./core/session";
+import {Permission, PermissionsBuilder} from "./core/common/permissions";
 import IStorage from "./core/common/storage/IStorage";
 import {
   AccountNotFoundError,
@@ -33,29 +28,26 @@ import {
   VaultUninitializedError,
 } from "./errors";
 import {
+  CosmosFee,
+  CosmosProtocolService,
+  CosmosTransactionTypes,
   CreateAccountFromPrivateKeyOptions,
   CreateAccountOptions,
   EthereumNetworkProtocolService,
   ImportRecoveryPhraseOptions,
   PocketNetworkProtocolService,
-  CosmosFee,
-  CosmosProtocolService,
-  CosmosTransactionTypes,
   ProtocolServiceFactory,
 } from "./core/common/protocols";
-import { v4, validate } from "uuid";
-import { Asset } from "./core/asset";
-import { INetwork } from "./core/common/protocols/INetwork";
-import { IProtocolTransactionResult } from "./core/common/protocols/ProtocolTransaction";
-import { PocketNetworkTransactionTypes } from "./core/common/protocols/PocketNetwork/PocketNetworkTransactionTypes";
-import { EthereumNetworkTransactionTypes } from "./core/common/protocols/EthereumNetwork/EthereumNetworkTransactionTypes";
-import { IAsset } from "./core/common/protocols/IAsset";
+import {v4, validate} from "uuid";
+import {Asset} from "./core/asset";
+import {INetwork} from "./core/common/protocols/INetwork";
+import {IProtocolTransactionResult} from "./core/common/protocols/ProtocolTransaction";
+import {PocketNetworkTransactionTypes} from "./core/common/protocols/PocketNetwork/PocketNetworkTransactionTypes";
+import {EthereumNetworkTransactionTypes} from "./core/common/protocols/EthereumNetwork/EthereumNetworkTransactionTypes";
+import {IAsset} from "./core/common/protocols/IAsset";
 import * as bip39 from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
-import {
-  RecoveryPhraseReference,
-  RecoveryPhrase,
-} from "./core/vault/entities/RecoveryPhrase";
+import {wordlist} from "@scure/bip39/wordlists/english";
+import {RecoveryPhrase, RecoveryPhraseReference,} from "./core/vault/entities/RecoveryPhrase";
 
 export type AllowedProtocols = keyof typeof SupportedProtocols;
 
@@ -575,10 +567,20 @@ export class VaultTeller {
         ).sendTransaction(options.network, {
           protocol: SupportedProtocols.Cosmos,
           transactionType: CosmosTransactionTypes.Send,
-          from: account.address,
-          to: options.to.value,
-          amount: options.amount.toString(),
-          fee: options.transactionParams.shannonFee,
+          messages: [
+            {
+              type: CosmosTransactionTypes.Send,
+              payload: {
+                fromAddress: account.address,
+                toAddress: options.to.value,
+                // @ts-ignore
+                amount: options.amount.toString(),
+              }
+            }
+          ],
+          from: "",
+          to: "",
+          amount: "",
           memo: options.transactionParams.memo ?? '',
           privateKey,
         });
@@ -631,10 +633,20 @@ export class VaultTeller {
         ).sendTransaction(options.network, {
           protocol: SupportedProtocols.Cosmos,
           transactionType: CosmosTransactionTypes.Send,
-          from: account.address,
-          to: options.to.value,
-          amount: options.amount.toString(),
-          fee: options.transactionParams.shannonFee,
+          messages: [
+            {
+              type: CosmosTransactionTypes.Send,
+              payload: {
+                fromAddress: account.address,
+                toAddress: options.to.value,
+                // @ts-ignore
+                amount: options.amount.toString(),
+              }
+            }
+          ],
+          from: "",
+          to: "",
+          amount: "",
           memo: options.transactionParams.memo ?? '',
           privateKey,
         });

@@ -28,7 +28,9 @@
     "commit": "turbo run commit",
     "ci:test": "turbo run ci:test",
     "release:chromium": "turbo run release:chromium",
-    "release:firefox": "turbo run release:firefox"
+    "release:firefox": "turbo run release:firefox",
+    "checkout-poktroll-proto": "bash tools/checkout-poktroll-proto.sh",
+    "generate:pocket:proto": "buf generate --config packages/nodejs/vault/src/lib/core/common/protocols/Cosmos/pocket/proto/buf.gen.ts.yaml"
   },
   "dependencies": {
     "@changesets/cli": "^2.26.1",

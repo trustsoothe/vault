@@ -1,0 +1,22 @@
+version: v2
+clean: true
+managed:
+  enabled: true
+inputs:
+  - module: buf.build/cosmos/cosmos-sdk
+    types:
+      - cosmos.tx.v1beta1
+      - cosmos.bank.v1beta1.MsgSend
+  - module: buf.build/pokt-network/pocket
+    types:
+      - pocket.supplier
+plugins:
+  - remote: buf.build/community/stephenh-ts-proto
+    out: ../client
+    opt:
+      - logtostderr=true
+      - allow_merge=true
+      - json_names_for_fields=false
+      - ts_proto_opt=snakeToCamel=true
+      - ts_proto_opt=esModuleInterop=true
+      - ts_proto_out=cosmos/tx

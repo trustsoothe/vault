@@ -1,9 +1,11 @@
 import {
   AddHDWalletAccountOptions,
   CreateAccountFromPrivateKeyOptions,
-  CreateAccountOptions, DeriveAddressOptions,
+  CreateAccountOptions,
+  DeriveAddressOptions,
   ImportRecoveryPhraseOptions,
-  IProtocolService, SignPersonalDataRequest,
+  IProtocolService,
+  SignPersonalDataRequest,
   ValidateTransactionResult
 } from "../IProtocolService";
 import {AccountReference, SupportedProtocols} from "../../values";
@@ -16,18 +18,23 @@ import {IEncryptionService} from "../../encryption/IEncryptionService";
 import {CosmosProtocolTransaction} from "./CosmosProtocolTransaction";
 import {fromHex, toHex, toUtf8} from "@cosmjs/encoding";
 import {ArgumentError, InvalidPrivateKeyError, NetworkRequestError, RecoveryPhraseError} from "../../../../errors";
-import {coins, DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing";
+import {DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing";
 import {Bip39, EnglishMnemonic, Random, Secp256k1, sha256, Slip10, Slip10Curve} from "@cosmjs/crypto";
 import {CosmosFee} from "./CosmosFee";
 import {
-  CosmosProtocolTransactionSchema,
+  CosmosProtocolTransactionSchema, MsgSendSchema, MsgStakeSupplierSchema, MsgUnstakeSupplierSchema,
   PocketShannonProtocolNetworkSchema,
-  PocketShannonRpcCanSendTransactionResponseSchema
+  PocketShannonRpcCanSendTransactionResponseSchema,
 } from "./schemas";
-import {calculateFee, GasPrice, SigningStargateClient, StargateClient, TimeoutError} from "@cosmjs/stargate";
-import { makeCosmoshubPath } from '@cosmjs/amino';
-import { validateMnemonic } from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
+import {calculateFee, SigningStargateClient, StargateClient, TimeoutError} from "@cosmjs/stargate";
+import {makeCosmoshubPath} from '@cosmjs/amino';
+import {validateMnemonic} from "@scure/bip39";
+import {wordlist} from "@scure/bip39/wordlists/english";
+import {TxRaw} from "./pocket/client/cosmos/tx/v1beta1/tx";
+import {CosmosTransactionTypes} from "./CosmosTransactionTypes";
+import {MsgSend} from "./pocket/client/cosmos/bank/v1beta1/tx";
+import {CosmosTransactionTypeUrlMap} from "./CosmosTransactionTypeUrlMap";
+import {MsgStakeSupplier, MsgUnstakeSupplier} from "./pocket/client/pocket/supplier/tx";
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos>
@@ -281,7 +288,7 @@ export class CosmosProtocolService
     );
   }
 
-  async sendTransaction(network: INetwork, transaction: CosmosProtocolTransaction, asset?: IAsset): Promise<IProtocolTransactionResult<SupportedProtocols.Cosmos>> {
+  async sendTransaction(network: INetwork, transaction: CosmosProtocolTransaction): Promise<IProtocolTransactionResult<SupportedProtocols.Cosmos>> {
     if (!network) {
       throw new ArgumentError("network");
     }
@@ -297,36 +304,64 @@ export class CosmosProtocolService
     }
 
     try {
-      const {privateKey, from, to, amount, fee: providedFee} = transaction;
+      const {privateKey } = transaction;
       const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), "pokt");
-      const [{ address: derivedAddress }] = await wallet.getAccounts();
-      if (derivedAddress !== from) {
-        throw new Error(`The provided fromAddress does not match the address derived from the private key. Derived: ${derivedAddress}, Provided: ${from}`);
+
+      const [{ address: signerAddress }] = await wallet.getAccounts();
+
+      const expectedSignerOnMessages = transaction.messages.map(({ type, payload }) => {
+        switch (type) {
+          case CosmosTransactionTypes.Send:
+            return MsgSendSchema.parse(payload).fromAddress;
+          case CosmosTransactionTypes.StakeSupplier:
+            return MsgStakeSupplierSchema.parse(payload).signer;
+          case CosmosTransactionTypes.UnstakeSupplier:
+            return MsgUnstakeSupplierSchema.parse(payload).signer;
+        }
+      })
+
+      if (expectedSignerOnMessages.some(signer => signer !== signerAddress)) {
+        throw new Error(`The provided private key does not match one or more of the expected message signers. Derived: ${signerAddress}, Provided: ${expectedSignerOnMessages.join(', ')}`);
       }
 
       const client = await SigningStargateClient.connectWithSigner(network.rpcUrl, wallet);
-      const amountInUpokt = parseInt(amount) * 1e6;
-      const amountFinal = coins(amountInUpokt, 'upokt');
 
-      const gasPrice = GasPrice.fromString(`${providedFee?.value ?? 0}${providedFee?.denom ?? 'upokt'}`);
-      const fee = calculateFee(200000, gasPrice);
+      const messages = transaction.messages.map(({ type, payload }) => {
+         switch (type) {
+           case CosmosTransactionTypes.Send:
+              return {
+                typeUrl: CosmosTransactionTypeUrlMap[type],
+                value: MsgSend.fromJSON({
+                  ...MsgSendSchema.parse(payload),
+                }),
+              };
+           case CosmosTransactionTypes.StakeSupplier:
+             return {
+               typeUrl: CosmosTransactionTypeUrlMap[type],
+               value: MsgStakeSupplier.fromJSON({
+                 ...MsgStakeSupplierSchema.parse(payload),
+               }),
+             }
+           case CosmosTransactionTypes.UnstakeSupplier:
+             return {
+               typeUrl: CosmosTransactionTypeUrlMap[type],
+               value: MsgUnstakeSupplier.fromJSON({
+                 ...MsgUnstakeSupplierSchema.parse(payload),
+               })
+             }
+         }
+      });
 
-      const tx = {
-        msgs: [
-          {
-            typeUrl: "/cosmos.bank.v1beta1.MsgSend",
-            value: {
-              fromAddress: from,
-              toAddress: to,
-              amount: amountFinal,
-            },
-          },
-        ],
-        fee,
-        memo: "",
-      };
+      const estimatedGas = await client.simulate(signerAddress, messages, transaction.memo ?? "");
 
-      const transactionHash = await client.signAndBroadcastSync(from, tx.msgs, tx.fee, tx.memo);
+      const signVerifyCost = await this.getSignVerifyCostSecp256k1(network);
+
+      const fee = calculateFee(Math.ceil(estimatedGas * 1.5),  `${signVerifyCost / 1e6}upokt`);
+      
+      const txRaw = await client.sign(signerAddress, messages, fee, transaction.memo ?? "");
+      const txBytes = TxRaw.encode(txRaw).finish();
+
+      const transactionHash = await client.broadcastTxSync(txBytes)
 
       return {
         protocol: SupportedProtocols.Cosmos,
@@ -377,8 +412,30 @@ export class CosmosProtocolService
   private validateNetwork(network: INetwork) {
     try {
       PocketShannonProtocolNetworkSchema.parse(network);
-    } catch {
+    } catch (error) {
+      console.error(error);
       throw new ArgumentError("network");
+    }
+  }
+
+  private async getSignVerifyCostSecp256k1(network: INetwork) {
+    const response = await globalThis.fetch(`${network.rpcUrl}/cosmos/auth/v1beta1/params`, {
+      method: "GET",
+      headers: {
+        "accept": "application/json",
+      }
+    });
+
+    if (!response.ok) {
+      return 1000; // Default value
+    }
+
+    try {
+      const data = await response.json();
+      return data?.params?.sig_verify_cost_secp256k1 ?? 1000; // Default value if key is missing
+    } catch (error) {
+      console.error("Failed to parse response JSON:", error);
+      return 1000;
     }
   }
 }
