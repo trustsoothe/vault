@@ -7,7 +7,9 @@ inputs:
     types:
       - cosmos.tx.v1beta1
       - cosmos.bank.v1beta1.MsgSend
-  - module: buf.build/pokt-network/pocket
+  - git_repo: https://github.com/pokt-network/poktroll.git
+    branch: main
+    subdir: proto
     types:
       - pocket.supplier
 plugins:
