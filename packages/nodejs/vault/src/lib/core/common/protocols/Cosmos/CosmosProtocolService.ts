@@ -334,7 +334,7 @@ export class CosmosProtocolService
   async sendTransaction(network: INetwork, transaction: CosmosProtocolTransaction): Promise<IProtocolTransactionResult<SupportedProtocols.Cosmos>> {
     try {
       const { transactionHex } = await this.signTransaction(network, transaction);
-      const client = await SigningStargateClient.connect(network.rpcUrl);
+      const client = await StargateClient.connect(network.rpcUrl);
       const txBytes = Buffer.from(transactionHex, "hex");
       const transactionHash = await client.broadcastTxSync(txBytes);
       return {
