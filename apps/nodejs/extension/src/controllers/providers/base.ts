@@ -60,6 +60,7 @@ import {
   UnsupportedMethod,
 } from "../../errors/communication";
 import {
+  CosmosProtocol,
   EthereumProtocol,
   PocketProtocol,
   supportedProtocolsArray,
@@ -86,6 +87,26 @@ export enum PocketNetworkMethod {
   CHANGE_PARAM = "pokt_changeParam",
   DAO_TRANSFER = "pokt_daoTransfer",
   UPGRADE = "pokt_upgrade",
+}
+
+// TODO: discuss if we need to change the name of the methods
+export enum PocketShannonMethod {
+  //
+  REQUEST_ACCOUNTS = "pokt_requestAccounts",
+  //
+  PUBLIC_KEY = "pokt_publicKey",
+  //
+  SIGN_MESSAGE = "pokt_signMessage",
+
+  SIGN_BULK_TRANSACTION = "pokt_bulkSignTransaction",
+  //
+  BALANCE = "pokt_balance",
+  //
+  CHAIN = "pokt_chain",
+  //
+  SWITCH_CHAIN = "wallet_switchPocketChain",
+  //
+  ACCOUNTS = "pokt_accounts",
 }
 
 export enum EthereumMethod {
@@ -405,7 +426,11 @@ export default class BaseProvider extends EventEmitter {
       case SIGN_TRANSACTION_REQUEST:
       case BULK_SIGN_TRANSACTION_REQUEST: {
         responseType = BULK_SIGN_TRANSACTION_RESPONSE;
-        requestData = params;
+        // @ts-ignore
+        requestData = params.map((item) => ({
+          ...item,
+          protocol: this.protocol,
+        }));
       }
     }
 
@@ -452,7 +477,10 @@ export default class BaseProvider extends EventEmitter {
 
             let dataToResolve = data;
 
-            if (this.protocol === PocketProtocol) {
+            if (
+              this.protocol === PocketProtocol ||
+              this.protocol === CosmosProtocol
+            ) {
               if (responseType === TRANSFER_RESPONSE) {
                 // data is expected to be the transaction hash string
                 dataToResolve = { hash: data };

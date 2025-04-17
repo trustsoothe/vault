@@ -1,7 +1,10 @@
 import React, { useRef, useState } from "react";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import { useLocation } from "react-router-dom";
-import { AppBulkSignTransactionReq } from "../../types/communications/transactions";
+import {
+  AppBulkSignTransactionReq,
+  SignTransactionBodyShannon,
+} from "../../types/communications/transactions";
 import {
   PocketNetworkAppStake,
   PocketNetworkAppTransfer,
@@ -13,6 +16,7 @@ import {
   PocketNetworkNodeUnjail,
   PocketNetworkNodeUnstake,
   PocketNetworkSend,
+  SupportedProtocols,
 } from "@soothe/vault";
 import { FormProvider, useForm } from "react-hook-form";
 import AppToBackground from "../../controllers/communication/AppToBackground";
@@ -34,166 +38,449 @@ import DaoTransferSummary from "../PoktTransaction/DaoTransfer/Summary";
 import UpgradeSummary from "../PoktTransaction/Upgrade/Summary";
 import CheckInput from "../PoktTransaction/CheckInput";
 import VaultPasswordInput from "../Transaction/VaultPasswordInput";
-import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  SxProps,
+} from "@mui/material";
 import ExpandIcon from "../assets/img/expand_select_icon.svg";
 import PoktSignSendSummary from "./PoktSignSendSummary";
+import StakeSupplierSummary from "../PocketShannonTransaction/StakeSupplier/Summary/Summary";
+import UnstakeSupplierSummary from "../PocketShannonTransaction/UnstakeSupplier/Summary";
 
-type SummaryComponentProps =
-  AppBulkSignTransactionReq["data"]["transactions"][number] & {
-    chainId: string;
-  };
+type Transaction = AppBulkSignTransactionReq["data"]["transactions"][number];
+
+interface CustomAccordionProps {
+  children: React.ReactNode;
+  title: string;
+  accordionSxProps?: SxProps;
+}
+
+function CustomAccordion({
+  children,
+  title,
+  accordionSxProps,
+}: CustomAccordionProps) {
+  return (
+    <Accordion
+      sx={{
+        marginBottom: "6px!important",
+        marginTop: "0!important",
+        ...accordionSxProps,
+      }}
+      elevation={0}
+    >
+      <AccordionSummary
+        expandIcon={<ExpandIcon />}
+        sx={{
+          minHeight: "36px!important",
+          height: "36px!important",
+          paddingX: 1.2,
+          "& .MuiAccordionSummary-content": {
+            marginY: "0px!important",
+          },
+        }}
+      >
+        <Typography variant={"subtitle2"}>{title}</Typography>
+      </AccordionSummary>
+      <AccordionDetails
+        sx={{
+          padding: 0,
+        }}
+      >
+        {children}
+      </AccordionDetails>
+    </Accordion>
+  );
+}
+
+function getMessageLabel(
+  typeUrl: SignTransactionBodyShannon["messages"][number]["typeUrl"]
+) {
+  switch (typeUrl) {
+    case "/cosmos.bank.v1beta1.MsgSend":
+      return "Send";
+    case "/pocket.supplier.MsgStakeSupplier":
+      return "Stake Supplier";
+    case "/pocket.supplier.MsgUnstakeSupplier":
+      return "Unstake Supplier";
+    default:
+      return "Unknown";
+  }
+}
+
+function getTransactionLabel(transaction: Transaction) {
+  if (transaction.protocol === SupportedProtocols.Pocket) {
+    return getTransactionTypeLabel(transaction.type);
+  }
+
+  if (transaction.protocol === SupportedProtocols.Cosmos) {
+    const uniqueMessages = new Set(
+      transaction.messages.map((message) => message.typeUrl)
+    );
+
+    const messageLabels = Array.from(uniqueMessages)
+      .slice(0, 2)
+      .map(getMessageLabel);
+
+    if (uniqueMessages.size === 1) {
+      return messageLabels[0];
+    }
+
+    if (uniqueMessages.size === 2) {
+      return `${messageLabels[0]} & ${messageLabels[1]}`;
+    }
+
+    return `${messageLabels[0]}, ${messageLabels[1]} & more`;
+  }
+
+  return "";
+}
+
+type SummaryComponentProps = Transaction & {
+  chainId: string;
+};
 
 function SummaryComponent({
   chainId,
-  type,
-  transaction,
+  ...baseTransaction
 }: SummaryComponentProps) {
-  switch (type) {
-    case PocketNetworkNodeStake: {
-      return (
-        <StakeNodeSummary
-          fromAddress={transaction.address}
-          chainId={chainId}
-          amount={Number(transaction.amount) / 1e6}
-          chains={transaction.chains}
-          serviceURL={transaction.serviceURL}
-          fee={null}
-          nodeAddress={transaction.nodeAddress}
-          outputAddress={transaction.outputAddress}
-          memo={transaction.memo}
-          rewardDelegators={transaction.rewardDelegators}
-          hidePasswordInput={true}
-          avoidFeeChecking={true}
-        />
-      );
+  if (baseTransaction.protocol === SupportedProtocols.Pocket) {
+    const { type, transaction } = baseTransaction;
+    switch (type) {
+      case PocketNetworkNodeStake: {
+        return (
+          <StakeNodeSummary
+            fromAddress={transaction.address}
+            chainId={chainId}
+            amount={Number(transaction.amount) / 1e6}
+            chains={transaction.chains}
+            serviceURL={transaction.serviceURL}
+            fee={null}
+            nodeAddress={transaction.nodeAddress}
+            outputAddress={transaction.outputAddress}
+            memo={transaction.memo}
+            rewardDelegators={transaction.rewardDelegators}
+            hidePasswordInput={true}
+            avoidFeeChecking={true}
+          />
+        );
+      }
+      case PocketNetworkNodeUnjail:
+      case PocketNetworkNodeUnstake: {
+        return (
+          <UnstakeUnjailNodeSummary
+            signerAddress={transaction.address}
+            nodeAddress={transaction.nodeAddress}
+            chainId={chainId}
+            fee={null}
+            hidePasswordInput={true}
+            avoidFeeChecking={true}
+          />
+        );
+      }
+      case PocketNetworkAppStake: {
+        return (
+          <StakeAppSummary
+            appAddress={transaction.address}
+            chainId={chainId}
+            amount={Number(transaction.amount) / 1e6}
+            chains={transaction.chains}
+            fee={null}
+            memo={transaction.memo}
+            hidePasswordInput={true}
+            avoidFeeChecking={true}
+          />
+        );
+      }
+      case PocketNetworkAppTransfer: {
+        return (
+          <TransferAppSummary
+            appAddress={transaction.address}
+            chainId={chainId}
+            fee={null}
+            memo={transaction.memo}
+            newAppPublicKey={transaction.newAppPublicKey}
+            hidePasswordInput={true}
+            avoidFeeChecking={true}
+          />
+        );
+      }
+      case PocketNetworkAppUnstake: {
+        return (
+          <UnstakeApp
+            fromAddress={transaction.address}
+            chainId={chainId}
+            fee={null}
+            memo={transaction.memo}
+            canEditMemo={false}
+            addTitle={false}
+            hidePasswordInput={true}
+            avoidFeeChecking={true}
+          />
+        );
+      }
+      case PocketNetworkGovChangeParam: {
+        return (
+          <ChangeParamSummary
+            fromAddress={transaction.address}
+            chainId={chainId}
+            fee={null}
+            memo={transaction.memo}
+            paramKey={transaction.paramKey}
+            paramValue={transaction.paramValue}
+            overrideGovParamsWhitelistValidation={
+              transaction.overrideGovParamsWhitelistValidation
+            }
+            hidePasswordInput={true}
+            avoidFeeChecking={true}
+          />
+        );
+      }
+      case PocketNetworkGovDAOTransfer: {
+        return (
+          <DaoTransferSummary
+            fromAddress={transaction.address}
+            chainId={chainId}
+            fee={null}
+            memo={transaction.memo}
+            daoAction={transaction.daoAction}
+            amount={Number(transaction.amount) / 1e6}
+            to={transaction.to}
+            hidePasswordInput={true}
+            avoidFeeChecking={true}
+          />
+        );
+      }
+      case PocketNetworkGovUpgrade: {
+        return (
+          <UpgradeSummary
+            fromAddress={transaction.address}
+            chainId={chainId}
+            fee={null}
+            memo={transaction.memo}
+            upgradeHeight={transaction.height.toString()}
+            upgradeVersion={transaction.version}
+            upgradeType={
+              transaction.version === "FEATURE" ? "features" : "version"
+            }
+            features={transaction.features.map((rawFeature) => {
+              const [feature, height] = rawFeature.split(":");
+              return {
+                feature,
+                height,
+              };
+            })}
+            hidePasswordInput={true}
+            avoidFeeChecking={true}
+          />
+        );
+      }
+      case PocketNetworkSend: {
+        return (
+          <PoktSignSendSummary
+            fromAddress={transaction.from}
+            chainId={chainId}
+            amount={Number(transaction.amount) / 1e6}
+            toAddress={transaction.to}
+            memo={transaction.memo}
+            protocol={baseTransaction.protocol}
+          />
+        );
+      }
+      default: {
+        throw new Error("Invalid transaction request");
+      }
     }
-    case PocketNetworkNodeUnjail:
-    case PocketNetworkNodeUnstake: {
-      return (
-        <UnstakeUnjailNodeSummary
-          signerAddress={transaction.address}
-          nodeAddress={transaction.nodeAddress}
-          chainId={chainId}
-          fee={null}
-          hidePasswordInput={true}
-          avoidFeeChecking={true}
-        />
-      );
-    }
-    case PocketNetworkAppStake: {
-      return (
-        <StakeAppSummary
-          appAddress={transaction.address}
-          chainId={chainId}
-          amount={Number(transaction.amount) / 1e6}
-          chains={transaction.chains}
-          fee={null}
-          memo={transaction.memo}
-          hidePasswordInput={true}
-          avoidFeeChecking={true}
-        />
-      );
-    }
-    case PocketNetworkAppTransfer: {
-      return (
-        <TransferAppSummary
-          appAddress={transaction.address}
-          chainId={chainId}
-          fee={null}
-          memo={transaction.memo}
-          newAppPublicKey={transaction.newAppPublicKey}
-          hidePasswordInput={true}
-          avoidFeeChecking={true}
-        />
-      );
-    }
-    case PocketNetworkAppUnstake: {
-      return (
-        <UnstakeApp
-          fromAddress={transaction.address}
-          chainId={chainId}
-          fee={null}
-          memo={transaction.memo}
-          canEditMemo={false}
-          addTitle={false}
-          hidePasswordInput={true}
-          avoidFeeChecking={true}
-        />
-      );
-    }
-    case PocketNetworkGovChangeParam: {
-      return (
-        <ChangeParamSummary
-          fromAddress={transaction.address}
-          chainId={chainId}
-          fee={null}
-          memo={transaction.memo}
-          paramKey={transaction.paramKey}
-          paramValue={transaction.paramValue}
-          overrideGovParamsWhitelistValidation={
-            transaction.overrideGovParamsWhitelistValidation
-          }
-          hidePasswordInput={true}
-          avoidFeeChecking={true}
-        />
-      );
-    }
-    case PocketNetworkGovDAOTransfer: {
-      return (
-        <DaoTransferSummary
-          fromAddress={transaction.address}
-          chainId={chainId}
-          fee={null}
-          memo={transaction.memo}
-          daoAction={transaction.daoAction}
-          amount={Number(transaction.amount) / 1e6}
-          to={transaction.to}
-          hidePasswordInput={true}
-          avoidFeeChecking={true}
-        />
-      );
-    }
-    case PocketNetworkGovUpgrade: {
-      return (
-        <UpgradeSummary
-          fromAddress={transaction.address}
-          chainId={chainId}
-          fee={null}
-          memo={transaction.memo}
-          upgradeHeight={transaction.height.toString()}
-          upgradeVersion={transaction.version}
-          upgradeType={
-            transaction.version === "FEATURE" ? "features" : "version"
-          }
-          features={transaction.features.map((rawFeature) => {
-            const [feature, height] = rawFeature.split(":");
-            return {
-              feature,
-              height,
-            };
-          })}
-          hidePasswordInput={true}
-          avoidFeeChecking={true}
-        />
-      );
-    }
-    case PocketNetworkSend: {
-      return (
-        <PoktSignSendSummary
-          fromAddress={transaction.from}
-          chainId={chainId}
-          amount={Number(transaction.amount) / 1e6}
-          toAddress={transaction.to}
-          memo={transaction.memo}
-        />
-      );
-    }
-    default: {
-      throw new Error("Invalid transaction request");
-    }
+  } else if (baseTransaction.protocol === SupportedProtocols.Cosmos) {
   }
 
   return null;
+}
+
+function MessageSummary({
+  address,
+  chainId,
+  message,
+  memo,
+}: {
+  address: string;
+  chainId: string;
+  memo?: string;
+  message: SignTransactionBodyShannon["messages"][number];
+}) {
+  switch (message.typeUrl) {
+    case "/cosmos.bank.v1beta1.MsgSend":
+      return (
+        <PoktSignSendSummary
+          fromAddress={address}
+          chainId={chainId}
+          amount={Number(message.body.amount) / 1e6}
+          toAddress={message.body.toAddress}
+          memo={memo}
+          protocol={SupportedProtocols.Cosmos}
+        />
+      );
+    case "/pocket.supplier.MsgStakeSupplier":
+      return (
+        <StakeSupplierSummary
+          fromAddress={address}
+          chainId={chainId}
+          amount={Number(message.body.stakeAmount) / 1e6}
+          supplierServices={message.body.services}
+          fee={null}
+          operatorAddress={message.body.operatorAddress}
+          ownerAddress={message.body.ownerAddress}
+          // memo={memo}
+        />
+      );
+    case "/pocket.supplier.MsgUnstakeSupplier":
+      return (
+        <UnstakeSupplierSummary
+          signerAddress={address}
+          chainId={chainId}
+          operatorAddress={message.body.operatorAddress}
+          fee={null}
+        />
+      );
+    default:
+      throw new Error("Invalid message type");
+  }
+}
+
+interface ShannonTransactionSummaryProps {
+  transaction: Transaction;
+  chainId: string;
+}
+
+function ShannonTransactionSummary({
+  transaction,
+  chainId,
+}: ShannonTransactionSummaryProps) {
+  if (transaction.protocol !== SupportedProtocols.Cosmos) {
+    throw new Error("Invalid protocol");
+  }
+
+  if (transaction.messages.length === 1) {
+    const message = transaction.messages[0];
+    return (
+      <MessageSummary
+        message={message}
+        chainId={chainId}
+        address={transaction.address}
+        memo={transaction.memo}
+      />
+    );
+  } else {
+    return (
+      <>
+        {transaction.messages.map((message, index) => (
+          <CustomAccordion
+            title={getMessageLabel(message.typeUrl)}
+            key={message.typeUrl + index}
+          >
+            <Stack marginTop={-1.2}>
+              <MessageSummary
+                message={message}
+                chainId={chainId}
+                address={transaction.address}
+                memo={transaction.memo}
+              />
+            </Stack>
+          </CustomAccordion>
+        ))}
+      </>
+    );
+  }
+}
+
+interface TransactionSummaryProps {
+  transactions: Array<Transaction>;
+  protocol: SupportedProtocols;
+  chainId: string;
+  isError: boolean;
+}
+
+function TransactionsSummary({
+  transactions,
+  protocol,
+  chainId,
+  isError,
+}: TransactionSummaryProps) {
+  if (protocol === SupportedProtocols.Pocket) {
+    if (transactions.length === 1) {
+      const transaction = transactions[0];
+      return <SummaryComponent chainId={chainId} {...transaction} />;
+    } else {
+      return (
+        <>
+          {isError && (
+            <Typography
+              fontSize={11}
+              lineHeight={"16px"}
+              color={themeColors.red}
+              marginBottom={1.2}
+            >
+              There are errors in the transactions. Please check and try again.
+            </Typography>
+          )}
+          {transactions.map((transaction) => (
+            <CustomAccordion title={getTransactionLabel(transaction)}>
+              <Stack marginTop={-1.2}>
+                <SummaryComponent chainId={chainId} {...transaction} />
+              </Stack>
+            </CustomAccordion>
+          ))}
+        </>
+      );
+    }
+  } else if (protocol === SupportedProtocols.Cosmos) {
+    if (transactions.length === 1) {
+      return (
+        <ShannonTransactionSummary
+          chainId={chainId}
+          transaction={transactions[0]}
+        />
+      );
+    }
+
+    return (
+      <>
+        {transactions.map((transaction: SignTransactionBodyShannon) => (
+          <CustomAccordion
+            title={`${getTransactionLabel(transaction)} Transaction`}
+            accordionSxProps={{
+              marginBottom: "6px!important",
+              marginTop: "0!important",
+              border: `1px solid ${themeColors.light_gray1}`,
+              borderTop: "none",
+            }}
+          >
+            <Stack
+              paddingX={1.2}
+              paddingTop={1.2}
+              paddingBottom={0.6}
+              borderRadius={"12px"}
+              bgcolor={themeColors.white}
+            >
+              {transaction.messages.length > 1 && (
+                <Typography marginBottom={0.8} fontSize={12} fontWeight={500}>
+                  Messages [{transaction.messages.length}]
+                </Typography>
+              )}
+              <ShannonTransactionSummary
+                chainId={chainId}
+                transaction={transaction}
+              />
+            </Stack>
+          </CustomAccordion>
+        ))}
+      </>
+    );
+  } else {
+    throw new Error("Invalid protocol");
+  }
 }
 
 export default function PoktSignTransactionRequest() {
@@ -272,7 +559,7 @@ export default function PoktSignTransactionRequest() {
             variant: "error",
             message: {
               title: "Failed to answer the request",
-              content: `There was an error trying to sign the transaction(s).`,
+              content: `There was an error signing the transaction(s).`,
             },
             onRetry: () => onSubmit(data),
           });
@@ -289,74 +576,13 @@ export default function PoktSignTransactionRequest() {
           variant: "error",
           message: {
             title: "Failed to answer the request",
-            content: `There was an error trying to sign the transaction(s).`,
+            content: `There was an error signing the transaction(s).`,
           },
           onRetry: () => onSubmit(data),
         });
       })
       .finally(() => setIsLoading(false));
   };
-
-  let content: React.ReactNode;
-
-  if (transactionRequest.data.transactions.length === 1) {
-    const transaction = transactionRequest.data.transactions[0];
-    content = (
-      <SummaryComponent
-        chainId={transactionRequest.data.chainId}
-        {...transaction}
-      />
-    );
-  } else {
-    content = (
-      <>
-        {methods.formState.errors.fee?.message && (
-          <Typography
-            fontSize={11}
-            lineHeight={"16px"}
-            color={themeColors.red}
-            marginBottom={1.2}
-          >
-            There are errors in the transactions. Please check and try again.
-          </Typography>
-        )}
-        {transactionRequest.data.transactions.map((transaction) => (
-          <Accordion
-            sx={{ marginBottom: "6px!important", marginTop: "0!important" }}
-            elevation={0}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandIcon />}
-              sx={{
-                minHeight: "36px!important",
-                height: "36px!important",
-                paddingX: 1.2,
-                "& .MuiAccordionSummary-content": {
-                  marginY: "0px!important",
-                },
-              }}
-            >
-              <Typography variant={"subtitle2"}>
-                {getTransactionTypeLabel(transaction.type)}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails
-              sx={{
-                padding: 0,
-              }}
-            >
-              <Stack marginTop={-1.2}>
-                <SummaryComponent
-                  chainId={transactionRequest.data.chainId}
-                  {...transaction}
-                />
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-        ))}
-      </>
-    );
-  }
 
   return (
     <Stack
@@ -381,13 +607,18 @@ export default function PoktSignTransactionRequest() {
         <Typography variant={"subtitle2"} marginBottom={0.8}>
           {transactionRequest.data.transactions.length > 1
             ? `Sign Multiple Transactions [${transactionRequest.data.transactions.length}]`
-            : `Sign ${getTransactionTypeLabel(
-                transactionRequest.data.transactions[0].type
+            : `Sign ${getTransactionLabel(
+                transactionRequest.data.transactions[0]
               )} Transaction`}
         </Typography>
         <FormProvider {...methods}>
           <Stack overflow={"auto"} flexGrow={1} minHeight={0} flexBasis={"1px"}>
-            {content}
+            <TransactionsSummary
+              transactions={transactionRequest.data.transactions}
+              protocol={transactionRequest.data.transactions[0].protocol}
+              chainId={transactionRequest.data.chainId}
+              isError={!!methods.formState.errors.fee?.message}
+            />
           </Stack>
           <CheckInput
             isSigning={true}

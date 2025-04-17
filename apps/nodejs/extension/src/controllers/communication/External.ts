@@ -759,12 +759,16 @@ class ExternalCommunicationController implements ICommunicationController {
           sessionId,
           "transaction",
           "send",
-          message.data.data.transactions.map(({ transaction }) => {
-            if ("from" in transaction) {
-              return transaction.from;
-            }
+          message.data.data.transactions.map((item) => {
+            if (item.protocol === SupportedProtocols.Pocket) {
+              if ("from" in item.transaction) {
+                return item.transaction.from;
+              }
 
-            return (transaction as StakeNodeBody).address;
+              return (item.transaction as StakeNodeBody).address;
+            } else if (item.protocol === SupportedProtocols.Cosmos) {
+              return item.address;
+            }
           })
         );
       } catch (error) {
@@ -783,6 +787,7 @@ class ExternalCommunicationController implements ICommunicationController {
 
       for (const transaction of message.data.data.transactions) {
         if (
+          transaction.protocol === SupportedProtocols.Pocket &&
           transaction.type === PocketNetworkNodeStake &&
           transaction.transaction.operatorPublicKey
         ) {
@@ -1259,7 +1264,10 @@ class ExternalCommunicationController implements ICommunicationController {
 
       let balanceToReturn;
 
-      if (data.protocol === SupportedProtocols.Pocket) {
+      if (
+        data.protocol === SupportedProtocols.Pocket ||
+        data.protocol === SupportedProtocols.Cosmos
+      ) {
         // balance should be returned in uPOKT
         balanceToReturn = balance ? balance * 1e6 : 0;
       } else {

@@ -204,6 +204,8 @@ export const MINUTES_ALLOWED_FOR_REQ = 5;
 
 export const EIP6963EthAnnounceType = "eip6963:announceProvider";
 export const PocketAnnounceType = "pocket:announceProvider";
+export const PocketShannonAnnounceType = "pocket_shannon:announceProvider";
 
 export const EIP6963EthRequestType = "eip6963:requestProvider";
 export const PocketRequestType = "pocket:requestProvider";
+export const PocketShannonRequestType = "pocket_shannon:requestProvider";

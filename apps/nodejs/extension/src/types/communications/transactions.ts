@@ -469,6 +469,83 @@ interface SignSendBody {
   transaction: TPocketTransferBody;
 }
 
+export interface Coin {
+  denom: string;
+  amount: string;
+}
+
+export interface SupplierServiceConfig {
+  serviceId: string;
+  endpoints: SupplierEndpoint[];
+  revShare: ServiceRevenueShare[];
+}
+
+export interface ServiceRevenueShare {
+  address: string;
+  revSharePercentage: number;
+}
+
+export interface SupplierEndpoint {
+  url: string;
+  rpcType: RPCType;
+  configs: ConfigOption[];
+}
+
+export interface ConfigOption {
+  key: ConfigOptions;
+  value: string;
+}
+
+export enum ConfigOptions {
+  UNKNOWN_CONFIG = 0,
+  TIMEOUT = 1,
+  UNRECOGNIZED = -1,
+}
+
+export enum RPCType {
+  UNKNOWN_RPC = 0,
+  GRPC = 1,
+  WEBSOCKET = 2,
+  JSON_RPC = 3,
+  REST = 4,
+  UNRECOGNIZED = -1,
+}
+
+export interface MsgStakeSupplier {
+  typeUrl: "/pocket.supplier.MsgStakeSupplier";
+  body: {
+    ownerAddress: string;
+    operatorAddress: string;
+    stakeAmount: string;
+    services: SupplierServiceConfig[];
+  };
+}
+
+interface MsgSend {
+  typeUrl: "/cosmos.bank.v1beta1.MsgSend";
+  body: {
+    toAddress: string;
+    amount: string;
+  };
+}
+
+interface MsgUnstakeSupplier {
+  typeUrl: "/pocket.supplier.MsgUnstakeSupplier";
+  body: {
+    operatorAddress: string;
+  };
+}
+
+type ShannonMessages = MsgSend | MsgStakeSupplier | MsgUnstakeSupplier;
+
+export type SignTransactionBodyShannon = {
+  address: string;
+  memo?: string;
+  id?: string;
+  messages: Array<ShannonMessages>;
+  protocol: SupportedProtocols.Cosmos;
+};
+
 type SignTransactionBody = (
   | SignAppStakeBody
   | SignAppTransferBody
@@ -480,11 +557,11 @@ type SignTransactionBody = (
   | SignNodeUnjailBody
   | SignNodeUnstakeBody
   | SignSendBody
-) & { id?: string };
+) & { id?: string; protocol: SupportedProtocols.Pocket };
 
 type BulkSignTransactionCreator = Creator<
   typeof BULK_SIGN_TRANSACTION_REQUEST,
-  { transactions: Array<SignTransactionBody> },
+  { transactions: Array<SignTransactionBody | SignTransactionBodyShannon> },
   typeof RequestSignTransactionExists,
   typeof ANSWER_BULK_SIGN_TRANSACTION_REQUEST,
   typeof ANSWER_BULK_SIGN_TRANSACTION_RESPONSE,

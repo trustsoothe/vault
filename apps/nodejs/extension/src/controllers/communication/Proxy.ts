@@ -157,6 +157,7 @@ import {
 } from "../../errors/communication";
 import { isValidAddress, validateTypedDataPayload } from "../../utils/proxy";
 import {
+  CosmosProtocol,
   EthereumProtocol,
   PocketProtocol,
   supportedProtocolsArray,
@@ -891,6 +892,7 @@ class ProxyCommunicationController {
         .get({
           [`${window.location.origin}-session-${PocketProtocol}`]: null,
           [`${window.location.origin}-session-${EthereumProtocol}`]: null,
+          [`${window.location.origin}-session-${CosmosProtocol}`]: null,
         })
         .then(async (response) => {
           const checkSession = async (protocol: SupportedProtocols) => {
@@ -929,6 +931,7 @@ class ProxyCommunicationController {
           await Promise.allSettled([
             checkSession(EthereumProtocol),
             checkSession(PocketProtocol),
+            checkSession(CosmosProtocol),
           ]);
         });
     } catch (e) {}
@@ -1985,10 +1988,6 @@ class ProxyCommunicationController {
     let requestWasSent = false;
 
     try {
-      if (protocol !== PocketProtocol) {
-        return this._sendSignTxResponse(requestId, null, UnsupportedMethod);
-      }
-
       const sessionId = this._sessionByProtocol[protocol]?.id;
       if (sessionId) {
         const dataValidated: ExternalBulkSignTransactionReq["data"]["data"]["transactions"] =
@@ -2011,61 +2010,73 @@ class ProxyCommunicationController {
         }
 
         try {
-          for (const { id, type, transaction } of data.transactions) {
-            let schema:
-              | typeof StakeAppBody
-              | typeof TransferAppBody
-              | typeof UnstakeAppBody
-              | typeof PocketTransferBody
-              | typeof UpgradeBody
-              | typeof StakeNodeBody
-              | typeof ChangeParamBody
-              | typeof UnstakeNodeBody
-              | typeof DaoTransferBody;
-            switch (type) {
-              case "app_stake":
-                schema = StakeAppBody;
-                break;
-              case "app_transfer":
-                schema = TransferAppBody;
-                break;
-              case "app_unstake":
-                schema = UnstakeAppBody;
-                break;
-              case "send":
-                schema = PocketTransferBody;
-                break;
-              case "gov_dao_transfer":
-                schema = DaoTransferBody;
-                break;
-              case "gov_change_param":
-                schema = ChangeParamBody;
-                break;
-              case "gov_upgrade":
-                schema = UpgradeBody;
-                break;
-              case "node_stake":
-                schema = StakeNodeBody;
-                break;
-              case "node_unjail":
-                schema = UnstakeNodeBody;
-                break;
-              case "node_unstake":
-                schema = UnstakeNodeBody;
-                break;
-              default:
-                return this._sendSignTxResponse(
-                  requestId,
-                  null,
-                  propertyIsNotValid("type")
-                );
-            }
+          for (const item of data.transactions) {
+            if (item.protocol === PocketProtocol) {
+              const { id, type, transaction } = item;
+              let schema:
+                | typeof StakeAppBody
+                | typeof TransferAppBody
+                | typeof UnstakeAppBody
+                | typeof PocketTransferBody
+                | typeof UpgradeBody
+                | typeof StakeNodeBody
+                | typeof ChangeParamBody
+                | typeof UnstakeNodeBody
+                | typeof DaoTransferBody;
+              switch (type) {
+                case "app_stake":
+                  schema = StakeAppBody;
+                  break;
+                case "app_transfer":
+                  schema = TransferAppBody;
+                  break;
+                case "app_unstake":
+                  schema = UnstakeAppBody;
+                  break;
+                case "send":
+                  schema = PocketTransferBody;
+                  break;
+                case "gov_dao_transfer":
+                  schema = DaoTransferBody;
+                  break;
+                case "gov_change_param":
+                  schema = ChangeParamBody;
+                  break;
+                case "gov_upgrade":
+                  schema = UpgradeBody;
+                  break;
+                case "node_stake":
+                  schema = StakeNodeBody;
+                  break;
+                case "node_unjail":
+                  schema = UnstakeNodeBody;
+                  break;
+                case "node_unstake":
+                  schema = UnstakeNodeBody;
+                  break;
+                default:
+                  return this._sendSignTxResponse(
+                    requestId,
+                    null,
+                    propertyIsNotValid("type")
+                  );
+              }
 
-            dataValidated.push({
-              type,
-              id,
-              transaction: schema.parse(transaction),
-            } as ExternalBulkSignTransactionReq["data"]["data"]["transactions"][number]);
+              dataValidated.push({
+                type,
+                id,
+                transaction: schema.parse(transaction),
+                protocol: item.protocol,
+              } as ExternalBulkSignTransactionReq["data"]["data"]["transactions"][number]);
+            } else if (item.protocol === CosmosProtocol) {
+              dataValidated.push(item);
+            } else {
+              return this._sendSignTxResponse(
+                requestId,
+                null,
+                UnsupportedMethod
+              );
+            }
           }
         } catch (e) {
           const zodError: ZodError = e;

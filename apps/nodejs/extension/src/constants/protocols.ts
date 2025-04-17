@@ -17,7 +17,7 @@ export const supportedProtocolsArray: SupportedProtocolsArray = [
 export const labelByProtocolMap: Record<SupportedProtocols, string> = {
   [PocketProtocol]: "Pocket Network (Morse)",
   [EthereumProtocol]: "EVM",
-  [CosmosProtocol]: "",
+  [CosmosProtocol]: "Pocket Network (Shannon)",
 };
 
 export const labelByAddressPrefixMap: Record<string, string> = {

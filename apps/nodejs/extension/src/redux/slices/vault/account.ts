@@ -36,6 +36,10 @@ import {
   PocketNetworkGovDAOTransfer,
   PocketNetworkGovUpgrade,
   PocketNetworkSend,
+  CosmosProtocolTransaction,
+  ProtocolServiceFactory,
+  CosmosProtocolService,
+  CosmosTransactionTypes,
 } from "@soothe/vault";
 import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import { getVaultPassword, VaultSlice } from "./index";
@@ -874,215 +878,286 @@ export const signTransactions = createAsyncThunk(
 
     const transactions: Array<{
       id?: string;
-      transaction: PocketNetworkProtocolTransaction;
+      transaction: PocketNetworkProtocolTransaction | CosmosProtocolTransaction;
     }> = [];
 
-    for (const { transaction: transactionEl, type, id } of request.data.data
-      .transactions) {
-      const address =
-        "from" in transactionEl
-          ? transactionEl.from
-          : "address" in transactionEl
-          ? transactionEl.address
-          : "";
+    for (const baseTransaction of request.data.data.transactions) {
+      let transaction: Partial<
+          PocketNetworkProtocolTransaction | CosmosProtocolTransaction
+        >,
+        account: SerializedAccountReference;
 
-      if (!address) {
-        throw new Error("Invalid transaction data: missing address");
+      if (baseTransaction.protocol === SupportedProtocols.Pocket) {
+        const { transaction: transactionEl, type } = baseTransaction;
+        const address =
+          "from" in transactionEl
+            ? transactionEl.from
+            : "address" in transactionEl
+            ? transactionEl.address
+            : "";
+
+        if (!address) {
+          throw new Error("Invalid transaction data: missing address");
+        }
+
+        account = accounts.find(
+          (account) =>
+            account.address === address &&
+            account.protocol === SupportedProtocols.Pocket
+        );
+
+        switch (type) {
+          case PocketNetworkSend: {
+            transaction = {
+              from: account.address,
+              to: transactionEl.to,
+              amount: transactionEl.amount,
+              memo: transactionEl.memo,
+              protocol: SupportedProtocols.Pocket,
+              transactionType: PocketNetworkTransactionTypes.Send,
+            };
+            break;
+          }
+          case PocketNetworkNodeStake: {
+            let nodePublicKey: string;
+
+            if (isValidPublicKey(transactionEl.operatorPublicKey || "")) {
+              nodePublicKey = transactionEl.operatorPublicKey;
+            } else if (
+              transactionEl.operatorPublicKey &&
+              isValidAddress(
+                transactionEl.operatorPublicKey,
+                SupportedProtocols.Pocket
+              ) &&
+              transactionEl.operatorPublicKey !== transactionEl.address
+            ) {
+              nodePublicKey = await ExtensionVaultInstance.getPublicKey(
+                vaultSession.id,
+                transactionEl.operatorPublicKey
+              );
+            } else {
+              nodePublicKey = await ExtensionVaultInstance.getPublicKey(
+                vaultSession.id,
+                account.address
+              );
+            }
+
+            transaction = {
+              protocol: SupportedProtocols.Pocket,
+              transactionType: PocketNetworkTransactionTypes.NodeStake,
+              from: transactionEl.address,
+              nodePublicKey,
+              outputAddress: transactionEl.outputAddress || account.address,
+              chains: transactionEl.chains,
+              amount: (Number(transactionEl.amount) / 1e6).toString(),
+              serviceURL: transactionEl.serviceURL,
+              rewardDelegators:
+                Object.keys(transactionEl.rewardDelegators || {}).length > 0
+                  ? transactionEl.rewardDelegators
+                  : undefined,
+              memo: transactionEl.memo,
+            };
+            break;
+          }
+          case PocketNetworkNodeUnstake: {
+            transaction = {
+              protocol: SupportedProtocols.Pocket,
+              transactionType: PocketNetworkTransactionTypes.NodeUnstake,
+              from: transactionEl.nodeAddress || transactionEl.address,
+              outputAddress: transactionEl.address,
+            };
+            break;
+          }
+          case PocketNetworkNodeUnjail: {
+            transaction = {
+              protocol: SupportedProtocols.Pocket,
+              transactionType: PocketNetworkTransactionTypes.NodeUnjail,
+              from: transactionEl.nodeAddress || transactionEl.address,
+              outputAddress: transactionEl.address,
+            };
+            break;
+          }
+          case PocketNetworkAppStake: {
+            transaction = {
+              protocol: SupportedProtocols.Pocket,
+              transactionType: PocketNetworkTransactionTypes.AppStake,
+              appPublicKey: await ExtensionVaultInstance.getPublicKey(
+                vaultSession.id,
+                account.address
+              ),
+              chains: transactionEl.chains,
+              amount: (Number(transactionEl.amount) / 1e6).toString(),
+            };
+            break;
+          }
+          case PocketNetworkAppTransfer: {
+            let newAppPublicKey: string;
+
+            if (isValidPublicKey(transactionEl.newAppPublicKey || "")) {
+              newAppPublicKey = transactionEl.newAppPublicKey;
+            } else if (
+              transactionEl.newAppPublicKey &&
+              isValidAddress(
+                transactionEl.newAppPublicKey,
+                SupportedProtocols.Pocket
+              ) &&
+              transactionEl.newAppPublicKey !== transactionEl.address
+            ) {
+              newAppPublicKey = await ExtensionVaultInstance.getPublicKey(
+                vaultSession.id,
+                transactionEl.newAppPublicKey
+              );
+            } else {
+              newAppPublicKey = await ExtensionVaultInstance.getPublicKey(
+                vaultSession.id,
+                account.address
+              );
+            }
+
+            transaction = {
+              protocol: SupportedProtocols.Pocket,
+              transactionType: PocketNetworkTransactionTypes.AppTransfer,
+              appPublicKey: newAppPublicKey,
+            };
+            break;
+          }
+          case PocketNetworkAppUnstake: {
+            transaction = {
+              protocol: SupportedProtocols.Pocket,
+              transactionType: PocketNetworkTransactionTypes.AppUnstake,
+              appAddress: transactionEl.address,
+            };
+            break;
+          }
+          case PocketNetworkGovChangeParam: {
+            transaction = {
+              from: transactionEl.address,
+              protocol: SupportedProtocols.Pocket,
+              transactionType: PocketNetworkTransactionTypes.GovChangeParam,
+              paramKey: transactionEl.paramKey,
+              paramValue: transactionEl.paramValue,
+              overrideGovParamsWhitelistValidation:
+                transactionEl.overrideGovParamsWhitelistValidation,
+            };
+            break;
+          }
+          case PocketNetworkGovDAOTransfer: {
+            transaction = {
+              protocol: SupportedProtocols.Pocket,
+              transactionType: PocketNetworkTransactionTypes.GovDAOTransfer,
+              from: transactionEl.address,
+              to: transactionEl.to,
+              amount: (Number(transactionEl.amount) / 1e6).toString(),
+              daoAction: transactionEl.daoAction as DAOAction,
+            };
+            break;
+          }
+          case PocketNetworkGovUpgrade: {
+            if (transactionEl.version === "FEATURE") {
+              transaction = {
+                protocol: SupportedProtocols.Pocket,
+                transactionType: PocketNetworkTransactionTypes.GovUpgrade,
+                from: transactionEl.address,
+                upgrade: {
+                  height: 1,
+                  version: transactionEl.version,
+                  features: transactionEl.features as string[],
+                  //@ts-ignore
+                  oldUpgradeHeight: 0,
+                },
+              };
+            } else {
+              transaction = {
+                protocol: SupportedProtocols.Pocket,
+                transactionType: PocketNetworkTransactionTypes.GovUpgrade,
+                from: transactionEl.address,
+                upgrade: {
+                  height: Number(transactionEl.height),
+                  version: transactionEl.version,
+                  features: [],
+                  //@ts-ignore
+                  oldUpgradeHeight: 0,
+                },
+              };
+            }
+
+            break;
+          }
+          default: {
+            throw new Error("Transaction type not supported");
+          }
+        }
+        transaction.memo = "memo" in transactionEl ? transactionEl.memo : "";
+      } else if (baseTransaction.protocol === SupportedProtocols.Cosmos) {
+        const messages: CosmosProtocolTransaction["messages"] = [];
+
+        for (const message of baseTransaction.messages) {
+          switch (message.typeUrl) {
+            case "/cosmos.bank.v1beta1.MsgSend":
+              messages.push({
+                type: CosmosTransactionTypes.Send,
+                payload: {
+                  fromAddress: baseTransaction.address,
+                  toAddress: message.body.toAddress,
+                  amount: message.body.amount,
+                },
+              });
+              break;
+            case "/pocket.supplier.MsgStakeSupplier":
+              messages.push({
+                type: CosmosTransactionTypes.StakeSupplier,
+                payload: {
+                  signer: baseTransaction.address,
+                  ownerAddress:
+                    message.body.ownerAddress || baseTransaction.address,
+                  operatorAddress:
+                    message.body.operatorAddress ||
+                    message.body.ownerAddress ||
+                    baseTransaction.address,
+                  stake: (Number(message.body.stakeAmount) / 1e6).toString(),
+                  services: message.body.services,
+                },
+              });
+              break;
+            case "/pocket.supplier.MsgUnstakeSupplier":
+              messages.push({
+                type: CosmosTransactionTypes.UnstakeSupplier,
+                payload: {
+                  signer: baseTransaction.address,
+                  operatorAddress:
+                    message.body.operatorAddress || baseTransaction.address,
+                },
+              });
+              break;
+            default:
+              throw new Error("Invalid message type");
+          }
+        }
+
+        transaction = {
+          protocol: SupportedProtocols.Cosmos,
+          messages,
+          // gasPrice: baseTransaction.gasPrice,
+          // gasLimit: baseTransaction.gasLimit,
+          memo: baseTransaction.memo,
+          transactionType: null,
+          from: null,
+          to: null,
+          amount: null,
+        };
+
+        account = accounts.find(
+          (account) =>
+            account.address === baseTransaction.address &&
+            account.protocol === SupportedProtocols.Cosmos
+        );
+      } else {
+        throw new Error("Invalid protocol");
       }
-
-      const account = accounts.find(
-        (account) =>
-          account.address === address &&
-          account.protocol === SupportedProtocols.Pocket
-      );
-
-      let transaction: Partial<PocketNetworkProtocolTransaction>;
 
       const {
-        data: { fee, vaultPassword: passwordFromArg },
+        data: { vaultPassword: passwordFromArg },
       } = request;
-
-      switch (type) {
-        case PocketNetworkSend: {
-          transaction = {
-            from: account.address,
-            to: transactionEl.to,
-            amount: transactionEl.amount,
-            memo: transactionEl.memo,
-            protocol: SupportedProtocols.Pocket,
-            transactionType: PocketNetworkTransactionTypes.Send,
-          };
-          break;
-        }
-        case PocketNetworkNodeStake: {
-          let nodePublicKey: string;
-
-          if (isValidPublicKey(transactionEl.operatorPublicKey || "")) {
-            nodePublicKey = transactionEl.operatorPublicKey;
-          } else if (
-            transactionEl.operatorPublicKey &&
-            isValidAddress(
-              transactionEl.operatorPublicKey,
-              SupportedProtocols.Pocket
-            ) &&
-            transactionEl.operatorPublicKey !== transactionEl.address
-          ) {
-            nodePublicKey = await ExtensionVaultInstance.getPublicKey(
-              vaultSession.id,
-              transactionEl.operatorPublicKey
-            );
-          } else {
-            nodePublicKey = await ExtensionVaultInstance.getPublicKey(
-              vaultSession.id,
-              account.address
-            );
-          }
-
-          transaction = {
-            protocol: SupportedProtocols.Pocket,
-            transactionType: PocketNetworkTransactionTypes.NodeStake,
-            from: transactionEl.address,
-            nodePublicKey,
-            outputAddress: transactionEl.outputAddress || account.address,
-            chains: transactionEl.chains,
-            amount: (Number(transactionEl.amount) / 1e6).toString(),
-            serviceURL: transactionEl.serviceURL,
-            rewardDelegators:
-              Object.keys(transactionEl.rewardDelegators || {}).length > 0
-                ? transactionEl.rewardDelegators
-                : undefined,
-            memo: transactionEl.memo,
-          };
-          break;
-        }
-        case PocketNetworkNodeUnstake: {
-          transaction = {
-            protocol: SupportedProtocols.Pocket,
-            transactionType: PocketNetworkTransactionTypes.NodeUnstake,
-            from: transactionEl.nodeAddress || transactionEl.address,
-            outputAddress: transactionEl.address,
-          };
-          break;
-        }
-        case PocketNetworkNodeUnjail: {
-          transaction = {
-            protocol: SupportedProtocols.Pocket,
-            transactionType: PocketNetworkTransactionTypes.NodeUnjail,
-            from: transactionEl.nodeAddress || transactionEl.address,
-            outputAddress: transactionEl.address,
-          };
-          break;
-        }
-        case PocketNetworkAppStake: {
-          transaction = {
-            protocol: SupportedProtocols.Pocket,
-            transactionType: PocketNetworkTransactionTypes.AppStake,
-            appPublicKey: await ExtensionVaultInstance.getPublicKey(
-              vaultSession.id,
-              account.address
-            ),
-            chains: transactionEl.chains,
-            amount: (Number(transactionEl.amount) / 1e6).toString(),
-          };
-          break;
-        }
-        case PocketNetworkAppTransfer: {
-          let newAppPublicKey: string;
-
-          if (isValidPublicKey(transactionEl.newAppPublicKey || "")) {
-            newAppPublicKey = transactionEl.newAppPublicKey;
-          } else if (
-            transactionEl.newAppPublicKey &&
-            isValidAddress(
-              transactionEl.newAppPublicKey,
-              SupportedProtocols.Pocket
-            ) &&
-            transactionEl.newAppPublicKey !== transactionEl.address
-          ) {
-            newAppPublicKey = await ExtensionVaultInstance.getPublicKey(
-              vaultSession.id,
-              transactionEl.newAppPublicKey
-            );
-          } else {
-            newAppPublicKey = await ExtensionVaultInstance.getPublicKey(
-              vaultSession.id,
-              account.address
-            );
-          }
-
-          transaction = {
-            protocol: SupportedProtocols.Pocket,
-            transactionType: PocketNetworkTransactionTypes.AppTransfer,
-            appPublicKey: newAppPublicKey,
-          };
-          break;
-        }
-        case PocketNetworkAppUnstake: {
-          transaction = {
-            protocol: SupportedProtocols.Pocket,
-            transactionType: PocketNetworkTransactionTypes.AppUnstake,
-            appAddress: transactionEl.address,
-          };
-          break;
-        }
-        case PocketNetworkGovChangeParam: {
-          transaction = {
-            from: transactionEl.address,
-            protocol: SupportedProtocols.Pocket,
-            transactionType: PocketNetworkTransactionTypes.GovChangeParam,
-            paramKey: transactionEl.paramKey,
-            paramValue: transactionEl.paramValue,
-            overrideGovParamsWhitelistValidation:
-              transactionEl.overrideGovParamsWhitelistValidation,
-          };
-          break;
-        }
-        case PocketNetworkGovDAOTransfer: {
-          transaction = {
-            protocol: SupportedProtocols.Pocket,
-            transactionType: PocketNetworkTransactionTypes.GovDAOTransfer,
-            from: transactionEl.address,
-            to: transactionEl.to,
-            amount: (Number(transactionEl.amount) / 1e6).toString(),
-            daoAction: transactionEl.daoAction as DAOAction,
-          };
-          break;
-        }
-        case PocketNetworkGovUpgrade: {
-          if (transactionEl.version === "FEATURE") {
-            transaction = {
-              protocol: SupportedProtocols.Pocket,
-              transactionType: PocketNetworkTransactionTypes.GovUpgrade,
-              from: transactionEl.address,
-              upgrade: {
-                height: 1,
-                version: transactionEl.version,
-                features: transactionEl.features as string[],
-                //@ts-ignore
-                oldUpgradeHeight: 0,
-              },
-            };
-          } else {
-            transaction = {
-              protocol: SupportedProtocols.Pocket,
-              transactionType: PocketNetworkTransactionTypes.GovUpgrade,
-              from: transactionEl.address,
-              upgrade: {
-                height: Number(transactionEl.height),
-                version: transactionEl.version,
-                features: [],
-                //@ts-ignore
-                oldUpgradeHeight: 0,
-              },
-            };
-          }
-
-          break;
-        }
-        default: {
-          throw new Error("Transaction type not supported");
-        }
-      }
 
       const vaultPassword =
         passwordFromArg || requirePasswordForSensitiveOpts
@@ -1097,22 +1172,21 @@ export const signTransactions = createAsyncThunk(
           })
         )
         .unwrap();
-      transaction.fee = fee;
-      transaction.memo = "memo" in transactionEl ? transactionEl.memo : "";
 
       transactions.push({
-        id,
+        id: baseTransaction.id,
         transaction: transaction as PocketNetworkProtocolTransaction,
       });
     }
 
-    const protocolService = new PocketNetworkProtocolService(
+    const protocolService = ProtocolServiceFactory.getProtocolService(
+      request.data.request.protocol,
       new WebEncryptionService()
-    );
+    ) as PocketNetworkProtocolService | CosmosProtocolService;
 
     const { result, rpcWithErrors } = await runWithNetworks(
       {
-        protocol: SupportedProtocols.Pocket,
+        protocol: request.data.request.protocol,
         chainId: request.data.data.chainId,
         customRpcs,
         networks,
@@ -1123,6 +1197,7 @@ export const signTransactions = createAsyncThunk(
           transactions.map(async ({ id, transaction }) => {
             const result = await protocolService.signTransaction(
               network,
+              // @ts-ignore
               transaction
             );
 
@@ -1140,11 +1215,7 @@ export const signTransactions = createAsyncThunk(
       await context.dispatch(setNetworksWithErrors(rpcWithErrors));
     }
 
-    return result.map((transaction) => ({
-      id: transaction.id,
-      signature: transaction.signature,
-      transactionHex: transaction.transactionHex,
-    }));
+    return result;
   }
 );
 

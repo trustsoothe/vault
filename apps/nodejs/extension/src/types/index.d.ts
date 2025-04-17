@@ -67,6 +67,7 @@ interface IProvider {
 declare global {
   interface Window {
     pocketNetwork: IProvider;
+    pocketShannon: IProvider;
     ethereum: IProvider;
     soothe: {
       connect: () => Promise<ProxyConnectionRes["data"]>;

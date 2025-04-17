@@ -18,6 +18,7 @@ import type {
   PocketNetworkNodeUnstake,
   PocketNetworkSend,
 } from "@soothe/vault";
+import { SignTransactionBodyShannon } from "./communications/transactions";
 
 interface AccountRequest {
   method:
@@ -249,7 +250,7 @@ interface SignSendBody {
   transaction: TPocketTransferBody;
 }
 
-type SignTransactionBody =
+type SignTransactionBodyMorse =
   | SignAppStakeBody
   | SignAppTransferBody
   | SignAppUnstakeBody
@@ -261,14 +262,24 @@ type SignTransactionBody =
   | SignNodeUnstakeBody
   | SignSendBody;
 
-interface SignTransactionRequest {
+interface SignTransactionRequestMorse {
   method: typeof PocketNetworkMethod.SIGN_TRANSACTION;
-  params: [SignTransactionBody];
+  params: [SignTransactionBodyMorse];
 }
 
-interface BulkSignTransactionRequest {
+interface BulkSignTransactionRequestMorse {
   method: typeof PocketNetworkMethod.BULK_SIGN_TRANSACTION;
-  params: Array<SignTransactionBody>;
+  params: Array<SignTransactionBodyMorse>;
+}
+
+interface SignTransactionRequestShannon {
+  method: typeof PocketNetworkMethod.SIGN_TRANSACTION;
+  params: [SignTransactionBodyShannon];
+}
+
+interface BulkSignTransactionRequestShannon {
+  method: typeof PocketNetworkMethod.BULK_SIGN_TRANSACTION;
+  params: Array<SignTransactionBodyShannon>;
 }
 
 export type Method =
@@ -294,8 +305,10 @@ export type Method =
   | DaoTransferRequest
   | UpgradeRequest
   | PublicKeyRequest
-  | SignTransactionRequest
-  | BulkSignTransactionRequest;
+  | SignTransactionRequestShannon
+  | BulkSignTransactionRequestShannon
+  | SignTransactionRequestMorse
+  | BulkSignTransactionRequestMorse;
 
 export type SuccessfulCallback = (error: null, res: unknown) => unknown;
 export type ErrorCallback = (error: unknown, res: null) => unknown;

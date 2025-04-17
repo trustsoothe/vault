@@ -14,9 +14,8 @@ interface PoktSignSendSummaryProps {
   chainId: string;
   memo?: string;
   amount: number;
+  protocol: SupportedProtocols;
 }
-
-const protocol = SupportedProtocols.Pocket;
 
 export default function PoktSignSendSummary({
   chainId,
@@ -24,6 +23,7 @@ export default function PoktSignSendSummary({
   amount,
   memo,
   toAddress: recipientAddress,
+  protocol,
 }: PoktSignSendSummaryProps) {
   const { coinSymbol, usdPrice, isLoadingUsdPrice } = useBalanceAndUsdPrice({
     address: fromAddress,

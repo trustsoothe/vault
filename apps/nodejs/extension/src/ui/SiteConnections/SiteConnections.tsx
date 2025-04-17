@@ -22,6 +22,17 @@ import { useAppSelector } from "../hooks/redux";
 import MoreIcon from "../assets/img/more_icon.svg";
 import { themeColors } from "../theme";
 
+function getDefaultChainIdByProtocol(protocol: SupportedProtocols) {
+  switch (protocol) {
+    case SupportedProtocols.Pocket:
+      return "mainnet";
+    case SupportedProtocols.Cosmos:
+      return "pocket";
+    default:
+      return "1";
+  }
+}
+
 interface ConnectionItemProps {
   connection: Session;
   openDetailModal: (connection: Session) => void;
@@ -33,8 +44,7 @@ function ConnectionItem({ connection, openDetailModal }: ConnectionItemProps) {
   const networkOfConnection = networks.find(
     (network) =>
       network.protocol === connection.protocol &&
-      network.chainId ===
-        (connection.protocol === SupportedProtocols.Pocket ? "mainnet" : "1")
+      network.chainId === getDefaultChainIdByProtocol(connection.protocol)
   );
 
   const addressesOfAccountsConnected = uniq(
@@ -88,8 +98,8 @@ function ConnectionItem({ connection, openDetailModal }: ConnectionItemProps) {
         <img
           height={15}
           width={15}
-          src={networkOfConnection.iconUrl}
-          alt={`${networkOfConnection.protocol}-icon`}
+          src={networkOfConnection?.iconUrl}
+          alt={`${networkOfConnection?.protocol}-icon`}
         />
         <Stack spacing={0.4} flexGrow={1}>
           <Typography variant={"subtitle2"} lineHeight={"16px"}>
