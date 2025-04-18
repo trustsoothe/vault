@@ -112,7 +112,7 @@ if (isFirefox) {
 initAnnounceProvider({
   requestType: PocketShannonRequestType,
   announceType: PocketShannonAnnounceType,
-  provider: pocketProvider,
+  provider: pocketShannonProvider,
 });
 
 const ethProvider = new EthereumProvider();
