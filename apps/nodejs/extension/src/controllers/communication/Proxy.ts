@@ -8,6 +8,7 @@ import {
   ProxyBulkSignTransactionReq,
   ProxyBulkSignTransactionRes,
   ProxyPoktTxRes,
+  SignTransactionBodyShannon,
 } from "../../types/communications/transactions";
 import type {
   ExternalPublicKeyReq,
@@ -169,6 +170,74 @@ const DaoTransferAction = "dao_transfer" as DAOAction.Transfer;
 const DaoBurnAction = "dao_burn" as DAOAction.Burn;
 
 const daoActions: DAOActionArray = [DaoTransferAction, DaoBurnAction] as const;
+
+/*
+ TODO: Move this schemas to its own package
+  We created a issue to do this: https://github.com/trustsoothe/vault/issues/130
+*/
+
+export enum ConfigOptions {
+  /** UNKNOWN_CONFIG - Undefined config option */
+  UNKNOWN_CONFIG = 0,
+  /** TIMEOUT - Timeout setting */
+  TIMEOUT = 1,
+  UNRECOGNIZED = -1,
+}
+
+export enum RPCType {
+  /** UNKNOWN_RPC - Undefined RPC type */
+  UNKNOWN_RPC = 0,
+  /** GRPC - gRPC */
+  GRPC = 1,
+  /** WEBSOCKET - WebSocket */
+  WEBSOCKET = 2,
+  /** JSON_RPC - JSON-RPC */
+  JSON_RPC = 3,
+  /** REST - REST */
+  REST = 4,
+  UNRECOGNIZED = -1,
+}
+
+export const ConfigOptionSchema = z.object({
+  key: z.nativeEnum(ConfigOptions),
+  value: z.string(),
+});
+
+export const SupplierEndpointSchema = z.object({
+  url: z.string(),
+  rpcType: z.nativeEnum(RPCType),
+  configs: z.array(ConfigOptionSchema),
+});
+
+export const ServiceRevenueShareSchema = z.object({
+  address: z.string(),
+  revSharePercentage: z.number(),
+});
+
+export const SupplierServiceConfigSchema = z.object({
+  serviceId: z.string(),
+  endpoints: z.array(SupplierEndpointSchema),
+  revShare: z.array(ServiceRevenueShareSchema),
+});
+
+export const MsgSendSchema = z.object({
+  fromAddress: z.string(),
+  toAddress: z.string(),
+  amount: z.string(),
+});
+
+export const MsgStakeSupplierSchema = z.object({
+  signer: z.string(),
+  ownerAddress: z.string(),
+  operatorAddress: z.string(),
+  stakeAmount: z.string(),
+  services: z.array(SupplierServiceConfigSchema),
+});
+
+export const MsgUnstakeSupplierSchema = z.object({
+  signer: z.string(),
+  operatorAddress: z.string(),
+});
 
 const memoSchema = z.string().max(75).optional();
 
@@ -2069,7 +2138,64 @@ class ProxyCommunicationController {
                 protocol: item.protocol,
               } as ExternalBulkSignTransactionReq["data"]["data"]["transactions"][number]);
             } else if (item.protocol === CosmosProtocol) {
-              dataValidated.push(item);
+              if (item.messages.length < 1) {
+                return this._sendSignTxResponse(
+                  requestId,
+                  null,
+                  propertyIsNotValid("messages")
+                );
+              }
+
+              const validatedMessages: SignTransactionBodyShannon["messages"] =
+                [];
+
+              for (const message of item.messages) {
+                let data;
+
+                switch (message.typeUrl) {
+                  case "/cosmos.bank.v1beta1.MsgSend":
+                    data = MsgSendSchema.parse({
+                      ...message.body,
+                      fromAddress: item.address,
+                    });
+                    break;
+                  case "/pocket.supplier.MsgStakeSupplier":
+                    data = MsgStakeSupplierSchema.parse({
+                      ...message.body,
+                      signer: item.address,
+                      ownerAddress: message.body.ownerAddress || item.address,
+                      operatorAddress:
+                        message.body.operatorAddress ||
+                        message.body.ownerAddress ||
+                        item.address,
+                    });
+                    break;
+                  case "/pocket.supplier.MsgUnstakeSupplier":
+                    data = MsgUnstakeSupplierSchema.parse({
+                      ...message.body,
+                      signer: item.address,
+                      operatorAddress:
+                        message.body.operatorAddress || item.address,
+                    });
+                    break;
+                  default:
+                    return this._sendSignTxResponse(
+                      requestId,
+                      null,
+                      propertyIsNotValid("typeUrl")
+                    );
+                }
+
+                validatedMessages.push({
+                  typeUrl: message.typeUrl,
+                  body: data,
+                });
+              }
+
+              dataValidated.push({
+                ...item,
+                messages: validatedMessages,
+              });
             } else {
               return this._sendSignTxResponse(
                 requestId,
