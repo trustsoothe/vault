@@ -184,6 +184,21 @@ export enum ConfigOptions {
   UNRECOGNIZED = -1,
 }
 
+export function configOptionsFromJSON(object: any): ConfigOptions {
+  switch (object) {
+    case 0:
+    case "UNKNOWN_CONFIG":
+      return ConfigOptions.UNKNOWN_CONFIG;
+    case 1:
+    case "TIMEOUT":
+      return ConfigOptions.TIMEOUT;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return ConfigOptions.UNRECOGNIZED;
+  }
+}
+
 export enum RPCType {
   /** UNKNOWN_RPC - Undefined RPC type */
   UNKNOWN_RPC = 0,
@@ -199,13 +214,51 @@ export enum RPCType {
 }
 
 export const ConfigOptionSchema = z.object({
-  key: z.nativeEnum(ConfigOptions),
+  key: z
+    .string()
+    .or(z.number().int())
+    .refine((v) => {
+      return configOptionsFromJSON(v) !== ConfigOptions.UNRECOGNIZED;
+    })
+    .transform((v) => configOptionsFromJSON(v)),
   value: z.string(),
 });
 
+function rPCTypeFromJSON(object: any): RPCType {
+  switch (object) {
+    case 0:
+    case "UNKNOWN_RPC":
+      return RPCType.UNKNOWN_RPC;
+    case 1:
+    case "GRPC":
+      return RPCType.GRPC;
+    case 2:
+    case "WEBSOCKET":
+      return RPCType.WEBSOCKET;
+    case 3:
+    case "JSON_RPC":
+      return RPCType.JSON_RPC;
+    case 4:
+    case "REST":
+      return RPCType.REST;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return RPCType.UNRECOGNIZED;
+  }
+}
+
 export const SupplierEndpointSchema = z.object({
   url: z.string(),
-  rpcType: z.nativeEnum(RPCType),
+  rpcType: z
+    .string()
+    .or(z.number().int())
+    .refine((v) => {
+      const type = rPCTypeFromJSON(v);
+
+      return type !== RPCType.UNRECOGNIZED;
+    })
+    .transform((v) => rPCTypeFromJSON(v)),
   configs: z.array(ConfigOptionSchema),
 });
 
