@@ -46,6 +46,8 @@ export interface SignTransactionResult {
   signature: Buffer;
   publicKey: string;
   transactionHex: string;
+  fee?: string
+  rawTx?: string
 }
 
 export interface PublicKeyResult {

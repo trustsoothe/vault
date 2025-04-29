@@ -572,6 +572,8 @@ type BulkSignTransactionCreator = Creator<
       id?: string;
       signature: string;
       transactionHex: string;
+      rawTx?: string;
+      fee?: string;
     }>;
   }
 >;

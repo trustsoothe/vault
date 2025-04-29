@@ -1205,6 +1205,8 @@ export const signTransactions = createAsyncThunk(
               id,
               transactionHex: result.transactionHex,
               signature: result.signature.toString("hex"),
+              fee: result.fee,
+              rawTx: result.rawTx,
             };
           })
         );

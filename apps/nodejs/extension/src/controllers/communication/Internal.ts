@@ -1622,6 +1622,8 @@ class InternalCommunicationController implements ICommunicationController {
         id: string;
         signature: string;
         transactionHex: string;
+        rawTx?: string;
+        fee?: string;
       }> | null = null;
       let response: InternalBulkSignTransactionRes;
 
@@ -2142,25 +2144,25 @@ class InternalCommunicationController implements ICommunicationController {
                   ...optionProps,
                 }
               : protocol === SupportedProtocols.Cosmos
-                ? {
+              ? {
+                  protocol,
+                  transaction: {
                     protocol,
-                    transaction: {
-                      protocol,
-                      transactionType: CosmosTransactionTypes.Send,
-                      messages: [
-                        {
-                          type: CosmosTransactionTypes.Send,
-                          payload: {
-                            fromAddress: optionProps.from,
-                            toAddress,
-                            amount: "1",
-                          }
-                        }
-                      ],
-                      gasPrice: optionProps.maxFeePerGas,
-                    },
-                  }
-                : undefined
+                    transactionType: CosmosTransactionTypes.Send,
+                    messages: [
+                      {
+                        type: CosmosTransactionTypes.Send,
+                        payload: {
+                          fromAddress: optionProps.from,
+                          toAddress,
+                          amount: "1",
+                        },
+                      },
+                    ],
+                    gasPrice: optionProps.maxFeePerGas,
+                  },
+                }
+              : undefined
           );
         }
       );

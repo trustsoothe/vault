@@ -18,7 +18,7 @@ import { IEncryptionService } from '../../encryption/IEncryptionService'
 import { CosmosProtocolTransaction } from './CosmosProtocolTransaction'
 import { fromHex, toHex, toUtf8 } from '@cosmjs/encoding'
 import { ArgumentError, InvalidPrivateKeyError, NetworkRequestError, RecoveryPhraseError } from '../../../../errors'
-import { DirectSecp256k1HdWallet, DirectSecp256k1Wallet, Registry } from '@cosmjs/proto-signing'
+import { DirectSecp256k1HdWallet, DirectSecp256k1Wallet, Registry, decodePubkey } from '@cosmjs/proto-signing'
 import { Bip39, EnglishMnemonic, Random, Secp256k1, sha256, Slip10, Slip10Curve } from '@cosmjs/crypto'
 import { CosmosFee } from './CosmosFee'
 import {
@@ -33,7 +33,7 @@ import { calculateFee, SigningStargateClient, StargateClient, TimeoutError } fro
 import { makeCosmoshubPath } from '@cosmjs/amino'
 import { validateMnemonic } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english'
-import { TxRaw } from './pocket/client/cosmos/tx/v1beta1/tx'
+import { AuthInfo, TxBody, TxRaw } from './pocket/client/cosmos/tx/v1beta1/tx'
 import { CosmosTransactionTypes } from './CosmosTransactionTypes'
 import { MsgSend } from './pocket/client/cosmos/bank/v1beta1/tx'
 import { CosmosTransactionTypeUrlMap } from './CosmosTransactionTypeUrlMap'
@@ -451,6 +451,8 @@ export class CosmosProtocolService
         transactionHex: Buffer.from(txBytes).toString('hex'),
         publicKey: Buffer.from(signerPublicKey).toString('hex'),
         signature: Buffer.concat(txRaw.signatures),
+        fee: Math.ceil(Math.ceil(estimatedGas * gasAdjustmentUsed) * gasPriceUsed).toString(),
+        rawTx: this._getRawTxJson(txRaw),
       }
     } catch (err) {
       console.log('There has been an error while signing the transaction')
@@ -501,5 +503,51 @@ export class CosmosProtocolService
     return SigningStargateClient.connectWithSigner(rpcUrl, wallet, {
       registry: new Registry(registry),
     })
+  }
+
+  private _getRawTxJson(txRaw: TxRaw): string {
+    const decodedBody = TxBody.decode(txRaw.bodyBytes)
+
+    const decodedAuthInfo = AuthInfo.decode(txRaw.authInfoBytes)
+
+    for (let i = 0; i < decodedAuthInfo.signerInfos.length; i++) {
+      const signerInfo = decodedAuthInfo.signerInfos[i]
+
+      if (signerInfo.publicKey) {
+        const decodedPubKey = decodePubkey(signerInfo.publicKey)
+
+        if (decodedPubKey) {
+          decodedAuthInfo.signerInfos[i].publicKey = {
+            typeUrl: decodedPubKey.type,
+            value: decodedPubKey.value,
+          }
+        }
+      }
+    }
+
+    return JSON.stringify({
+      body: {
+        ...decodedBody,
+        messages: decodedBody.messages.map((message) => ({
+          typeUrl: message.typeUrl,
+          value: this._decodeMessage(message),
+        })),
+      },
+      auth_info: decodedAuthInfo,
+      signatures: txRaw.signatures.map(signature => Buffer.from(signature).toString('base64')),
+    })
+  }
+
+  private _decodeMessage(message: { typeUrl: string, value: Uint8Array }): object {
+    switch (message.typeUrl) {
+      case '/cosmos.bank.v1beta1.MsgSend':
+        return MsgSend.decode(message.value)
+      case '/pocket.supplier.MsgStakeSupplier':
+        return MsgStakeSupplier.decode(message.value)
+      case '/pocket.supplier.MsgUnstakeSupplier':
+        return MsgUnstakeSupplier.decode(message.value)
+      default:
+        throw new Error(`Unknown message type: ${message.typeUrl}`)
+    }
   }
 }
