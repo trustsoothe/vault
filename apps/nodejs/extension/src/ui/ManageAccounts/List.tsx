@@ -28,6 +28,7 @@ import {
   changeSelectedAccountOfNetwork,
   changeSelectedNetwork,
 } from "../../redux/slices/app";
+import ViewPublicKeyModal from "./ViewPublicKeyModal";
 
 type AccountWithSeed = SerializedAccountReference & {
   seedName?: string;
@@ -37,6 +38,7 @@ interface AccountItemProps {
   account: AccountWithSeed;
   showRenameModal: (account: SerializedAccountReference) => void;
   showViewPkModal: (account: SerializedAccountReference) => void;
+  showViewPublicKeyModal: (account: SerializedAccountReference) => void;
   showRemoveModal: (account: SerializedAccountReference) => void;
 }
 
@@ -45,6 +47,7 @@ function AccountItem({
   showRenameModal,
   showViewPkModal,
   showRemoveModal,
+  showViewPublicKeyModal,
 }: AccountItemProps) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -143,6 +146,14 @@ function AccountItem({
         </MenuItem>
         <MenuItem
           onClick={() => {
+            showViewPublicKeyModal(account);
+            handleClose();
+          }}
+        >
+          View Public Key
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
             showViewPkModal(account);
             handleClose();
           }}
@@ -170,7 +181,7 @@ export default function ListAccounts() {
   const [selectedAccount, setSelectedAccount] =
     useState<SerializedAccountReference | null>(null);
   const [modalToShow, setModalToShow] = useState<
-    "none" | "rename" | "private_key" | "remove"
+    "none" | "rename" | "private_key" | "remove" | "public_key"
   >("none");
 
   const showRenameModal = (account: SerializedAccountReference) => {
@@ -181,6 +192,11 @@ export default function ListAccounts() {
   const showViewPrivateKeyModal = (account: SerializedAccountReference) => {
     setSelectedAccount(account);
     setModalToShow("private_key");
+  };
+
+  const showViewPublicKeyModal = (account: SerializedAccountReference) => {
+    setSelectedAccount(account);
+    setModalToShow("public_key");
   };
 
   const showRemoveModal = (account: SerializedAccountReference) => {
@@ -263,6 +279,10 @@ export default function ListAccounts() {
         onClose={closeModal}
         account={modalToShow === "private_key" ? selectedAccount : null}
       />
+      <ViewPublicKeyModal
+        onClose={closeModal}
+        account={modalToShow === "public_key" ? selectedAccount : null}
+      />
       <RemoveAccountModal
         onClose={closeModal}
         account={modalToShow === "remove" ? selectedAccount : null}
@@ -285,6 +305,7 @@ export default function ListAccounts() {
                 showViewPkModal={showViewPrivateKeyModal}
                 showRenameModal={showRenameModal}
                 showRemoveModal={showRemoveModal}
+                showViewPublicKeyModal={showViewPublicKeyModal}
               />
             ))}
           </Stack>
