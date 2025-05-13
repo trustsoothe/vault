@@ -60,7 +60,7 @@ export const MsgStakeSupplierSchema = z.object({
   signer: z.string(),
   ownerAddress: z.string(),
   operatorAddress: z.string(),
-  stake: z.string().transform((stake) => poktToUPoktCoin(stake)),
+  stake: z.string().transform((stake) => poktToUPoktCoin(stake).at(0)!),
   services: z.array(SupplierServiceConfigSchema),
 });
 

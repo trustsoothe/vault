@@ -1099,7 +1099,7 @@ export const signTransactions = createAsyncThunk(
                 payload: {
                   fromAddress: baseTransaction.address,
                   toAddress: message.body.toAddress,
-                  amount: message.body.amount,
+                  amount: (Number(message.body.amount) / 1e6).toString(),
                 },
               });
               break;
