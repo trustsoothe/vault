@@ -216,7 +216,7 @@ export class CosmosProtocolService
 
     let estimatedGas = 80000
     let gasAdjustmentUsed = transaction.gasAdjustment ?? 1.5
-    let gasPriceUsed = Number(transaction.gasPrice ?? 0)
+    let gasPriceUsed = Number(transaction.gasPrice ?? 0.001)
     let value = 0
 
     try {
