@@ -48,6 +48,7 @@ import ExpandIcon from "../assets/img/expand_select_icon.svg";
 import PoktSignSendSummary from "./PoktSignSendSummary";
 import StakeSupplierSummary from "../PocketShannonTransaction/StakeSupplier/Summary/Summary";
 import UnstakeSupplierSummary from "../PocketShannonTransaction/UnstakeSupplier/Summary";
+import ClaimMorseSupplierSummary from "../PocketShannonTransaction/ClaimMorseSupplier/Summary";
 
 type Transaction = AppBulkSignTransactionReq["data"]["transactions"][number];
 
@@ -105,6 +106,8 @@ function getMessageLabel(
       return "Stake Supplier";
     case "/pocket.supplier.MsgUnstakeSupplier":
       return "Unstake Supplier";
+    case "/pocket.migration.MsgClaimMorseSupplier":
+      return "Claim Morse Supplier";
     default:
       return "Unknown";
   }
@@ -332,6 +335,20 @@ function MessageSummary({
           fee={null}
           operatorAddress={message.body.operatorAddress}
           ownerAddress={message.body.ownerAddress}
+          // memo={memo}
+        />
+      );
+    case "/pocket.migration.MsgClaimMorseSupplier":
+      return (
+        <ClaimMorseSupplierSummary
+          fromAddress={address}
+          chainId={chainId}
+          supplierServices={message.body.services}
+          fee={null}
+          operatorAddress={message.body.shannonOperatorAddress}
+          ownerAddress={message.body.shannonOwnerAddress}
+          morsePublicKey={message.body.morsePublicKey}
+          morseSignature={message.body.morseSignature}
           // memo={memo}
         />
       );

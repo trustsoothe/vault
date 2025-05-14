@@ -2,6 +2,7 @@ import { RootState } from "../../store";
 import type { VaultSliceBuilder } from "../../../types";
 import TransactionDatasource, {
   BaseTransaction,
+  PoktShannonTransaction,
   PoktTransaction,
   SwapTo,
   Transaction,
@@ -13,33 +14,34 @@ import {
   AccountType,
   AccountUpdateOptions,
   AddHDWalletAccountExternalRequest,
-  Passphrase,
-  PocketNetworkProtocolService,
-  PocketNetworkProtocolTransaction,
-  CosmosFee,
-  PocketNetworkTransactionTypes,
-  PrivateKeyRestoreErrorName,
-  SerializedAccountReference,
-  SerializedSession,
-  SupportedProtocols,
-  SupportedTransferOrigins,
-  TransferOptions,
-  VaultRestoreErrorName,
+  CosmosProtocolService,
+  CosmosProtocolTransaction,
+  CosmosTransactionTypes,
   DAOAction,
-  PocketNetworkNodeStake,
-  PocketNetworkNodeUnstake,
-  PocketNetworkNodeUnjail,
+  Passphrase,
   PocketNetworkAppStake,
   PocketNetworkAppTransfer,
   PocketNetworkAppUnstake,
   PocketNetworkGovChangeParam,
   PocketNetworkGovDAOTransfer,
   PocketNetworkGovUpgrade,
+  PocketNetworkNodeStake,
+  PocketNetworkNodeUnjail,
+  PocketNetworkNodeUnstake,
+  PocketNetworkProtocolService,
+  PocketNetworkProtocolTransaction,
   PocketNetworkSend,
-  CosmosProtocolTransaction,
+  PocketNetworkTransactionTypes,
+  PrivateKeyRestoreErrorName,
   ProtocolServiceFactory,
-  CosmosProtocolService,
-  CosmosTransactionTypes,
+  SerializedAccount,
+  SerializedAccountReference,
+  SerializedSession,
+  SupportedProtocols,
+  SupportedTransferDestinations,
+  SupportedTransferOrigins,
+  TransferOptions,
+  VaultRestoreErrorName,
 } from "@soothe/vault";
 import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import { getVaultPassword, VaultSlice } from "./index";
@@ -80,6 +82,7 @@ import {
   UNSTAKE_APP_REQUEST,
   UNSTAKE_NODE_REQUEST,
 } from "../../../constants/communication";
+import { AnswerMigrateMorseAccountReq } from "../../../types/communications/migration";
 
 const MAX_PASSWORDS_TRIES = 4;
 export const VAULT_PASSWORD_ID = "vault";
@@ -1129,6 +1132,23 @@ export const signTransactions = createAsyncThunk(
                 },
               });
               break;
+            case "/pocket.migration.MsgClaimMorseSupplier":
+              messages.push({
+                type: CosmosTransactionTypes.ClaimSupplier,
+                payload: {
+                  shannonSigningAddress: baseTransaction.address,
+                  shannonOwnerAddress:
+                    message.body.shannonOwnerAddress || baseTransaction.address,
+                  shannonOperatorAddress:
+                    message.body.shannonOperatorAddress ||
+                    message.body.shannonOwnerAddress ||
+                    baseTransaction.address,
+                  services: message.body.services,
+                  morsePublicKey: message.body.morsePublicKey,
+                  morseSignature: message.body.morseSignature,
+                },
+              });
+              break;
             default:
               throw new Error("Invalid message type");
           }
@@ -1218,6 +1238,144 @@ export const signTransactions = createAsyncThunk(
     }
 
     return result;
+  }
+);
+
+export const migrateMorseAccount = createAsyncThunk(
+  "vault/migrateMorseAccount",
+  async (
+    {
+      shannonChainId,
+      morseAddress,
+      shannonAddress,
+      vaultPassword,
+    }: AnswerMigrateMorseAccountReq["data"],
+    context
+  ) => {
+    const {
+      vault: { vaultSession, accounts },
+      app: {
+        requirePasswordForSensitiveOpts,
+        networks,
+        customRpcs,
+        errorsPreferredNetwork,
+        selectedChainByProtocol,
+      },
+    } = context.getState() as RootState;
+
+    const sessionId = vaultSession.id;
+
+    const vaultPassphrase = new Passphrase(
+      requirePasswordForSensitiveOpts
+        ? vaultPassword
+        : await getVaultPassword(sessionId)
+    );
+
+    const morseAccount = accounts.find(
+      (a) =>
+        a.protocol === SupportedProtocols.Pocket && a.address === morseAddress
+    );
+
+    if (!morseAccount) {
+      throw new Error("Morse account not found");
+    }
+
+    const shannonAccount = accounts.find(
+      (a) =>
+        a.protocol === SupportedProtocols.Cosmos && a.address === shannonAddress
+    );
+
+    if (!shannonAccount) {
+      throw new Error("Shannon account not found");
+    }
+
+    const morsePrivateKey = await ExtensionVaultInstance.getAccountPrivateKey(
+      sessionId,
+      vaultPassphrase,
+      AccountReference.deserialize(morseAccount)
+    );
+
+    const shannonPrivateKey = await ExtensionVaultInstance.getAccountPrivateKey(
+      sessionId,
+      vaultPassphrase,
+      AccountReference.deserialize(shannonAccount)
+    );
+
+    const webEncryptionService = new WebEncryptionService();
+    const morseService = new PocketNetworkProtocolService(webEncryptionService);
+    const shannonService = new CosmosProtocolService(webEncryptionService);
+
+    const signature = await morseService.signMigrateMorseMessage({
+      privateKey: morsePrivateKey,
+      shannonAddress,
+    });
+
+    const transaction: CosmosProtocolTransaction = {
+      protocol: SupportedProtocols.Cosmos,
+      privateKey: shannonPrivateKey,
+      messages: [
+        {
+          type: CosmosTransactionTypes.ClaimAccount,
+          payload: {
+            shannonSigningAddress: shannonAddress,
+            shannonDestAddress: shannonAddress,
+            morsePublicKey: Buffer.from(morseAccount.publicKey, "hex").toString(
+              "base64"
+            ),
+            morseSignature: Buffer.from(signature).toString("base64"),
+          },
+        },
+      ],
+      // memo: null,
+      transactionType: null,
+      from: null,
+      to: null,
+      amount: null,
+    };
+
+    const { result, rpcWithErrors, rpcUrl } = await runWithNetworks(
+      {
+        protocol: SupportedProtocols.Cosmos,
+        chainId: shannonChainId,
+        customRpcs,
+        networks,
+        errorsPreferredNetwork,
+      },
+      async (network) => {
+        return shannonService.sendTransaction(network, transaction);
+      }
+    );
+
+    if (rpcWithErrors.length) {
+      await context.dispatch(setNetworksWithErrors(rpcWithErrors));
+    }
+
+    const hash = result.transactionHash;
+
+    const transactionToSave: PoktShannonTransaction = {
+      protocol: SupportedProtocols.Cosmos,
+      hash,
+      from: shannonAddress,
+      chainId: shannonChainId,
+      amount: 0,
+      to: shannonAddress,
+      rpcUrl,
+      timestamp: Date.now(),
+      swapFrom: {
+        address: morseAddress,
+        network: {
+          protocol: SupportedProtocols.Pocket,
+          chainId: selectedChainByProtocol[SupportedProtocols.Pocket] || "",
+        },
+      },
+      fee: 0,
+      type: CosmosTransactionTypes.ClaimAccount,
+    };
+
+    await TransactionDatasource.save(transactionToSave);
+    context.dispatch(addTransaction(transactionToSave));
+
+    return hash;
   }
 );
 
@@ -1345,6 +1503,20 @@ const addSignTxToBuilder = (builder: VaultSliceBuilder) => {
   });
 };
 
+const addMigrateMorseAccountToBuilder = (builder: VaultSliceBuilder) => {
+  builder.addCase(migrateMorseAccount.fulfilled, (state, action) => {
+    if (!!action.meta.arg.vaultPassword) {
+      resetWrongPasswordCounter(VAULT_PASSWORD_ID, state);
+    }
+  });
+
+  builder.addCase(migrateMorseAccount.rejected, (state, action) => {
+    if (!!action.meta.arg.vaultPassword) {
+      increaseWrongPasswordCounter(VAULT_PASSWORD_ID, state, action.error);
+    }
+  });
+};
+
 export const addAccountThunksToBuilder = (builder: VaultSliceBuilder) => {
   addAddNewAccountToBuilder(builder);
   addImportAccountToBuilder(builder);
@@ -1355,6 +1527,7 @@ export const addAccountThunksToBuilder = (builder: VaultSliceBuilder) => {
   addSendPoktTxToBuilder(builder);
   addSignTxToBuilder(builder);
   addCreateNewAccountFromHdSeedToBuilder(builder);
+  addMigrateMorseAccountToBuilder(builder);
 };
 
 export function resetWrongPasswordCounter(id: string, state: VaultSlice) {

@@ -1,11 +1,11 @@
-import {Account} from "../../vault";
-import {AccountReference, Passphrase, SupportedProtocols} from "../values";
-import {ProtocolFee} from "./ProtocolFee";
-import {INetwork} from "./INetwork";
-import {IAsset} from "./IAsset";
-import {NetworkStatus} from "../values/NetworkStatus";
-import {IAbstractProtocolFeeRequestOptions} from "./ProtocolFeeRequestOptions";
-import {IProtocolTransactionResult, ProtocolTransaction,} from "./ProtocolTransaction";
+import { Account } from '../../vault'
+import { AccountReference, Passphrase, SupportedProtocols } from '../values'
+import { ProtocolFee } from './ProtocolFee'
+import { INetwork } from './INetwork'
+import { IAsset } from './IAsset'
+import { NetworkStatus } from '../values/NetworkStatus'
+import { IAbstractProtocolFeeRequestOptions } from './ProtocolFeeRequestOptions'
+import { IProtocolTransactionResult, ProtocolTransaction } from './ProtocolTransaction'
 
 export interface CreateAccountOptions {
   name?: string;
@@ -51,23 +51,24 @@ export interface SignTransactionResult {
 }
 
 export interface PublicKeyResult {
-    publicKey: string;
+  publicKey: string;
 }
 
 export enum TransactionValidationResultType {
-    Error = 'error',
-    Warning = 'warning',
-    Info = 'info',
+  Error = 'error',
+  Warning = 'warning',
+  Info = 'info',
 }
 
 export class ValidateTransactionResult {
-    constructor(
-        public readonly results: ReadonlyArray<TransactionValidationResult> = [],
-    ) {}
+  constructor(
+    public readonly results: ReadonlyArray<TransactionValidationResult> = [],
+  ) {
+  }
 
-    get hasErrors(): boolean {
-        return this.results.some((r) => r.type === TransactionValidationResultType.Error);
-    }
+  get hasErrors(): boolean {
+    return this.results.some((r) => r.type === TransactionValidationResultType.Error)
+  }
 }
 
 export interface TransactionValidationResult {
@@ -85,49 +86,49 @@ export interface IProtocolService<T extends SupportedProtocols> {
   createAccount(options: CreateAccountOptions): Promise<Account>;
 
   createAccountFromPrivateKey(
-    options: CreateAccountFromPrivateKeyOptions
+    options: CreateAccountFromPrivateKeyOptions,
   ): Promise<Account>;
 
   sendTransaction(
     network: INetwork,
     transaction: ProtocolTransaction<T>,
-    asset?: IAsset
+    asset?: IAsset,
   ): Promise<IProtocolTransactionResult<T>>;
 
   isValidPrivateKey(privateKey: string): boolean;
 
   getNetworkFeeStatus(
     network: INetwork,
-    status?: NetworkStatus
+    status?: NetworkStatus,
   ): Promise<NetworkStatus>;
 
   getNetworkBalanceStatus(
     network: INetwork,
-    status?: NetworkStatus
+    status?: NetworkStatus,
   ): Promise<NetworkStatus>;
 
   getNetworkSendTransactionStatus(
     network: INetwork,
-    status?: NetworkStatus
+    status?: NetworkStatus,
   ): Promise<NetworkStatus>;
 
   getNetworkStatus(network: INetwork): Promise<NetworkStatus>;
 
   getFee(
     network: INetwork,
-    options?: IAbstractProtocolFeeRequestOptions<T>
+    options?: IAbstractProtocolFeeRequestOptions<T>,
   ): Promise<ProtocolFee<T>>;
 
   getBalance(
     account: AccountReference,
     network: INetwork,
-    asset?: IAsset
+    asset?: IAsset,
   ): Promise<number>;
 
   getAddressFromPrivateKey(options: DeriveAddressOptions): Promise<string>;
 
   createAccountsFromRecoveryPhrase(
-    options: ImportRecoveryPhraseOptions
+    options: ImportRecoveryPhraseOptions,
   ): Promise<Account[]>;
 
   createHDWalletAccount(options: AddHDWalletAccountOptions): Promise<Account>;

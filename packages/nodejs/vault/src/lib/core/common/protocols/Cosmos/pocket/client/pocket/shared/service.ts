@@ -105,6 +105,12 @@ export function configOptionsToJSON(object: ConfigOptions): string {
   }
 }
 
+/** ApplicationServiceConfig holds the service configuration the application stakes for */
+export interface ApplicationServiceConfig {
+  /** The Service ID for which the application is configured */
+  serviceId: string;
+}
+
 /** SupplierServiceConfig holds the service configuration the supplier stakes for */
 export interface SupplierServiceConfig {
   /** The Service ID for which the supplier is configured */
@@ -140,6 +146,64 @@ export interface ConfigOption {
   /** Config option value */
   value: string;
 }
+
+function createBaseApplicationServiceConfig(): ApplicationServiceConfig {
+  return { serviceId: "" };
+}
+
+export const ApplicationServiceConfig: MessageFns<ApplicationServiceConfig> = {
+  encode(message: ApplicationServiceConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.serviceId !== "") {
+      writer.uint32(10).string(message.serviceId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ApplicationServiceConfig {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseApplicationServiceConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.serviceId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ApplicationServiceConfig {
+    return { serviceId: isSet(object.serviceId) ? globalThis.String(object.serviceId) : "" };
+  },
+
+  toJSON(message: ApplicationServiceConfig): unknown {
+    const obj: any = {};
+    if (message.serviceId !== "") {
+      obj.serviceId = message.serviceId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ApplicationServiceConfig>, I>>(base?: I): ApplicationServiceConfig {
+    return ApplicationServiceConfig.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ApplicationServiceConfig>, I>>(object: I): ApplicationServiceConfig {
+    const message = createBaseApplicationServiceConfig();
+    message.serviceId = object.serviceId ?? "";
+    return message;
+  },
+};
 
 function createBaseSupplierServiceConfig(): SupplierServiceConfig {
   return { serviceId: "", endpoints: [], revShare: [] };

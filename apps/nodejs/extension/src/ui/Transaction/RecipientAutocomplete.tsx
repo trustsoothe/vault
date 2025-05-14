@@ -53,7 +53,10 @@ interface RecipientAutocompleteProps {
   textFieldProps?: Partial<Omit<TextFieldProps, "onPaste">>;
   smallPasteButton?: boolean;
   shouldBeDifferentFrom?: boolean;
-  customValidation?: (value: string) => true | string;
+  customValidation?: (value: string) => true | string | Promise<true | string>;
+  protocol?: SupportedProtocols;
+  canTypeNotSavedAddress?: boolean;
+  canPaste?: boolean;
 }
 
 export default function RecipientAutocomplete({
@@ -68,6 +71,9 @@ export default function RecipientAutocomplete({
   customValidation,
   required = true,
   shouldBeDifferentFrom = true,
+  canTypeNotSavedAddress = true,
+  canPaste = true,
+  protocol: protocolFromProps,
 }: RecipientAutocompleteProps) {
   const { control, watch } = useFormContext<TransactionFormValues>();
   const [txProtocol, fromAddress, recipientProtocol] = watch([
@@ -75,7 +81,7 @@ export default function RecipientAutocomplete({
     "fromAddress",
     "recipientProtocol",
   ]);
-  const protocol = recipientProtocol || txProtocol;
+  const protocol = protocolFromProps || recipientProtocol || txProtocol;
 
   const [inputValue, setInputValue] = useState("");
 
@@ -233,7 +239,11 @@ export default function RecipientAutocomplete({
             clearOnBlur={true}
             onInputChange={(event, value, reason) => {
               onChangeInputValue(event, value, reason);
-              if (isValid(value) && reason === "input") {
+              if (
+                canTypeNotSavedAddress &&
+                isValid(value) &&
+                reason === "input"
+              ) {
                 onChange(value);
                 otherProps.onBlur();
               }
@@ -333,7 +343,7 @@ export default function RecipientAutocomplete({
                       </Stack>
                     ) : undefined,
                 }}
-                overrideEndAdornment={!!value || !!inputValue}
+                overrideEndAdornment={!!value || !!inputValue || !canPaste}
                 placeholder={label}
                 fullWidth
                 required={required}

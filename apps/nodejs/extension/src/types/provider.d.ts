@@ -105,6 +105,11 @@ interface SignMessageRequest {
   params: [{ address: string; message: string }];
 }
 
+interface BulkSignMessageRequest {
+  method: typeof PocketNetworkMethod.BULK_SIGN_MESSAGE;
+  params: Array<{ id?: string; address: string; message: string }>;
+}
+
 interface StakeNodeBody {
   amount: string;
   chains: string[];
@@ -295,6 +300,7 @@ export type Method =
   | SignTypedDataRequest
   | PersonalSignRequest
   | SignMessageRequest
+  | BulkSignMessageRequest
   | StakeNodeRequest
   | UnstakeNodeRequest
   | UnjailNodeRequest

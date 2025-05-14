@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  CosmosTransactionTypes,
   PocketNetworkTransactionTypes,
   SupportedProtocols,
 } from "@soothe/vault";
@@ -151,7 +152,13 @@ function TransactionItem({
               variant={"subtitle2"}
               color={themeColors.black}
             >
-              {wasReceived ? "Received" : "Sent"}
+              {"protocol" in fullTransaction &&
+              fullTransaction.protocol === SupportedProtocols.Cosmos &&
+              fullTransaction.type === CosmosTransactionTypes.ClaimAccount
+                ? "Migration"
+                : wasReceived
+                ? "Received"
+                : "Sent"}
             </Typography>
             <Stack
               direction={"row"}

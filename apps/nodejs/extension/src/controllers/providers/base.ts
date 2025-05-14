@@ -13,6 +13,8 @@ import type { SupportedProtocols } from "@soothe/vault";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,
+  BULK_PERSONAL_SIGN_REQUEST,
+  BULK_PERSONAL_SIGN_RESPONSE,
   BULK_SIGN_TRANSACTION_REQUEST,
   BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
@@ -78,6 +80,7 @@ export enum PocketNetworkMethod {
   SWITCH_CHAIN = "wallet_switchPocketChain",
   PUBLIC_KEY = "pokt_publicKey",
   SIGN_MESSAGE = "pokt_signMessage",
+  BULK_SIGN_MESSAGE = "pokt_bulkSignMessage",
   STAKE_NODE = "pokt_stakeNode",
   UNSTAKE_NODE = "pokt_unstakeNode",
   UNJAIL_NODE = "pokt_unjailNode",
@@ -267,6 +270,9 @@ export default class BaseProvider extends EventEmitter {
         sootheRequestType = PERSONAL_SIGN_REQUEST;
         break;
       }
+      case PocketNetworkMethod.BULK_SIGN_MESSAGE:
+        sootheRequestType = BULK_PERSONAL_SIGN_REQUEST;
+        break;
       case PocketNetworkMethod.PUBLIC_KEY: {
         sootheRequestType = PUBLIC_KEY_REQUEST;
         break;
@@ -381,6 +387,11 @@ export default class BaseProvider extends EventEmitter {
             challenge: params?.[0]?.message,
           };
         }
+        break;
+      }
+      case BULK_PERSONAL_SIGN_REQUEST: {
+        responseType = BULK_PERSONAL_SIGN_RESPONSE;
+        requestData = params?.[0];
         break;
       }
       case PUBLIC_KEY_REQUEST: {
@@ -501,6 +512,13 @@ export default class BaseProvider extends EventEmitter {
                 method === PocketNetworkMethod.SIGN_MESSAGE
               ) {
                 dataToResolve = { signature: data };
+              }
+
+              if (
+                responseType === BULK_PERSONAL_SIGN_RESPONSE &&
+                method === PocketNetworkMethod.BULK_SIGN_MESSAGE
+              ) {
+                dataToResolve = { signatures: data };
               }
 
               if (method === PocketNetworkMethod.SIGN_TRANSACTION) {

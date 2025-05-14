@@ -8,8 +8,12 @@ import type {
   RequestBeingHandledRes,
 } from "./common";
 import {
+  ANSWER_BULK_PERSONAL_SIGN_REQUEST,
+  ANSWER_BULK_PERSONAL_SIGN_RESPONSE,
   ANSWER_PERSONAL_SIGN_REQUEST,
   ANSWER_PERSONAL_SIGN_RESPONSE,
+  BULK_PERSONAL_SIGN_REQUEST,
+  BULK_PERSONAL_SIGN_RESPONSE,
   PERSONAL_SIGN_REQUEST,
   PERSONAL_SIGN_RESPONSE,
 } from "../../constants/communication";
@@ -107,4 +111,104 @@ export interface AnswerPersonalSignReq {
 
 export type AnswerPersonalSignRes = BaseResponse<
   typeof ANSWER_PERSONAL_SIGN_RESPONSE
+>;
+
+// ###
+
+export interface ProxyBulkPersonalSignReq extends BaseProxyRequest {
+  type: typeof BULK_PERSONAL_SIGN_REQUEST;
+  data: {
+    address: string;
+    challenges: Array<{
+      id?: string;
+      challenge: string;
+    }>;
+  };
+}
+
+export type ExternalBulkPersonalSignReq = {
+  type: typeof BULK_PERSONAL_SIGN_REQUEST;
+  requestId: string;
+  data: {
+    sessionId: string;
+    protocol: SupportedProtocols;
+    origin: string;
+    faviconUrl: string;
+    address: string;
+    challenges: Array<{
+      id?: string;
+      challenge: string;
+    }>;
+  };
+};
+
+type ExternalBulkPersonalSignErrors =
+  | BaseErrors
+  | typeof UnauthorizedError
+  | typeof UnauthorizedErrorSessionInvalid
+  | typeof RequestPersonalSignExists
+  | typeof OperationRejected
+  | typeof SessionIdNotPresented;
+
+export type ExternalBulkPersonalSignRes = {
+  type: typeof BULK_PERSONAL_SIGN_RESPONSE;
+  requestId: string;
+  data: null;
+  error: ExternalBulkPersonalSignErrors | null;
+} | void;
+
+export type ExternalBulkPersonalSignResToProxy =
+  | Extract<ExternalBulkPersonalSignRes, { data: null }>
+  | RequestBeingHandledRes;
+
+export interface InternalBulkPersonalSignRes {
+  type: typeof BULK_PERSONAL_SIGN_RESPONSE;
+  requestId: string;
+  data: {
+    signatures: Array<{
+      id?: string;
+      signature: string;
+    }>;
+  } | null;
+  error: typeof UnknownError | typeof OperationRejected;
+}
+
+export type ProxyBulkPersonalSignErrors =
+  | ExternalBulkPersonalSignErrors
+  | typeof RequestTimeout;
+
+export interface ProxyValidBulkPersonalSignRes extends BaseProxyResponse {
+  type: typeof BULK_PERSONAL_SIGN_RESPONSE;
+  data: Array<{
+    id?: string;
+    signature: string;
+  }>;
+  error: null;
+}
+
+export interface ProxyErrBulkPersonalSignRes extends BaseProxyResponse {
+  type: typeof BULK_PERSONAL_SIGN_RESPONSE;
+  data: null;
+  error: ProxyBulkPersonalSignErrors;
+}
+
+export type ProxyBulkPersonalSignRes =
+  | ProxyValidBulkPersonalSignRes
+  | ProxyErrBulkPersonalSignRes;
+
+export type AppBulkPersonalSignReq = BaseExternalRequest<
+  typeof BULK_PERSONAL_SIGN_REQUEST
+> &
+  ExternalBulkPersonalSignReq["data"];
+
+export interface AnswerBulkPersonalSignReq {
+  type: typeof ANSWER_BULK_PERSONAL_SIGN_REQUEST;
+  data: {
+    accepted: boolean;
+    request: AppBulkPersonalSignReq;
+  };
+}
+
+export type AnswerBulkPersonalSignRes = BaseResponse<
+  typeof ANSWER_BULK_PERSONAL_SIGN_RESPONSE
 >;

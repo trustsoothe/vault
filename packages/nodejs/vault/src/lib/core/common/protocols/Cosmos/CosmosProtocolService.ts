@@ -5,7 +5,8 @@ import {
   DeriveAddressOptions,
   ImportRecoveryPhraseOptions,
   IProtocolService,
-  SignPersonalDataRequest, SignTransactionResult,
+  SignPersonalDataRequest,
+  SignTransactionResult,
   ValidateTransactionResult,
 } from '../IProtocolService'
 import { AccountReference, SupportedProtocols } from '../../values'
@@ -18,11 +19,13 @@ import { IEncryptionService } from '../../encryption/IEncryptionService'
 import { CosmosProtocolTransaction } from './CosmosProtocolTransaction'
 import { fromHex, toHex, toUtf8 } from '@cosmjs/encoding'
 import { ArgumentError, InvalidPrivateKeyError, NetworkRequestError, RecoveryPhraseError } from '../../../../errors'
-import { DirectSecp256k1HdWallet, DirectSecp256k1Wallet, Registry, decodePubkey } from '@cosmjs/proto-signing'
+import { decodePubkey, DirectSecp256k1HdWallet, DirectSecp256k1Wallet, Registry } from '@cosmjs/proto-signing'
 import { Bip39, EnglishMnemonic, Random, Secp256k1, sha256, Slip10, Slip10Curve } from '@cosmjs/crypto'
 import { CosmosFee } from './CosmosFee'
 import {
   CosmosProtocolTransactionSchema,
+  MsgClaimAccountSchema,
+  MsgClaimSupplierSchema,
   MsgSendSchema,
   MsgStakeSupplierSchema,
   MsgUnstakeSupplierSchema,
@@ -41,6 +44,7 @@ import { MsgStakeSupplier, MsgUnstakeSupplier } from './pocket/client/pocket/sup
 import { CosmosFeeRequestOption } from './CosmosFeeRequestOption'
 import { Buffer } from 'buffer'
 import { GeneratedType } from '@cosmjs/proto-signing/build/registry'
+import { MsgClaimMorseAccount, MsgClaimMorseSupplier } from './pocket/client/pocket/migration/tx'
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos> {
@@ -380,6 +384,21 @@ export class CosmosProtocolService
               ...MsgUnstakeSupplierSchema.parse(payload),
             }),
           }
+        case CosmosTransactionTypes.ClaimSupplier:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgClaimMorseSupplier.fromJSON({
+              ...MsgClaimSupplierSchema.parse(payload),
+            }),
+          }
+        case CosmosTransactionTypes.ClaimAccount: {
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgClaimMorseAccount.fromJSON({
+              ...MsgClaimAccountSchema.parse(payload),
+            }),
+          }
+        }
       }
     })
   }
@@ -425,6 +444,10 @@ export class CosmosProtocolService
             return MsgStakeSupplierSchema.parse(payload).signer
           case CosmosTransactionTypes.UnstakeSupplier:
             return MsgUnstakeSupplierSchema.parse(payload).signer
+          case CosmosTransactionTypes.ClaimSupplier:
+            return MsgClaimSupplierSchema.parse(payload).shannonSigningAddress
+          case CosmosTransactionTypes.ClaimAccount:
+            return MsgClaimAccountSchema.parse(payload).shannonSigningAddress
         }
       })
 
@@ -498,6 +521,8 @@ export class CosmosProtocolService
       ['/cosmos.bank.v1beta1.MsgSend', MsgSend as unknown as GeneratedType],
       ['/pocket.supplier.MsgStakeSupplier', MsgStakeSupplier as unknown as GeneratedType],
       ['/pocket.supplier.MsgUnstakeSupplier', MsgUnstakeSupplier as unknown as GeneratedType],
+      ['/pocket.migration.MsgClaimMorseSupplier', MsgClaimMorseSupplier as unknown as GeneratedType],
+      ['/pocket.migration.MsgClaimMorseAccount', MsgClaimMorseAccount as unknown as GeneratedType],
     ]
 
     return SigningStargateClient.connectWithSigner(rpcUrl, wallet, {
@@ -546,6 +571,10 @@ export class CosmosProtocolService
         return MsgStakeSupplier.decode(message.value)
       case '/pocket.supplier.MsgUnstakeSupplier':
         return MsgUnstakeSupplier.decode(message.value)
+      case '/pocket.migration.MsgClaimMorseSupplier':
+        return MsgClaimMorseSupplier.decode(message.value)
+      case '/pocket.migration.MsgClaimMorseAccount':
+        return MsgClaimMorseAccount.decode(message.value)
       default:
         throw new Error(`Unknown message type: ${message.typeUrl}`)
     }

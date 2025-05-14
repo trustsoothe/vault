@@ -3,6 +3,8 @@ clean: true
 managed:
   enabled: true
 inputs:
+  - module: buf.build/gogo/protobuf
+  - module: buf.build/cosmos/cosmos-proto
   - module: buf.build/cosmos/cosmos-sdk
     types:
       - cosmos.tx.v1beta1
@@ -12,6 +14,7 @@ inputs:
     subdir: proto
     types:
       - pocket.supplier
+      - pocket.migration
 plugins:
   - remote: buf.build/community/stephenh-ts-proto
     out: ../client

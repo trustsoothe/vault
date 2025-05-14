@@ -83,9 +83,14 @@ import type {
   ProxySignTypedDataReq,
 } from "../../types/communications/signTypedData";
 import type {
+  ExternalBulkPersonalSignReq,
+  ExternalBulkPersonalSignResToProxy,
   ExternalPersonalSignReq,
   ExternalPersonalSignResToProxy,
+  InternalBulkPersonalSignRes,
   InternalPersonalSignRes,
+  ProxyBulkPersonalSignReq,
+  ProxyBulkPersonalSignRes,
   ProxyPersonalSignReq,
   ProxyPersonalSignRes,
 } from "../../types/communications/personalSign";
@@ -101,6 +106,8 @@ import {
   APP_IS_NOT_READY,
   APP_IS_READY,
   APP_IS_READY_REQUEST,
+  BULK_PERSONAL_SIGN_REQUEST,
+  BULK_PERSONAL_SIGN_RESPONSE,
   BULK_SIGN_TRANSACTION_REQUEST,
   BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
@@ -290,6 +297,18 @@ export const MsgStakeSupplierSchema = z.object({
 export const MsgUnstakeSupplierSchema = z.object({
   signer: z.string(),
   operatorAddress: z.string(),
+});
+
+export const MsgClaimSupplierSchema = z.object({
+  shannonSigningAddress: z.string(),
+  shannonOwnerAddress: z.string(),
+  shannonOperatorAddress: z.string(),
+  morsePublicKey: z
+    .string()
+    .length(64)
+    .regex(/^[0-9a-fA-F]+$/),
+  morseSignature: z.string(),
+  services: z.array(SupplierServiceConfigSchema),
 });
 
 const memoSchema = z.string().max(75).optional();
@@ -633,6 +652,14 @@ class ProxyCommunicationController {
             );
           }
 
+          if (data.type === BULK_PERSONAL_SIGN_REQUEST) {
+            await this._sendBulkPersonalSignRequest(
+              data.protocol,
+              data.id,
+              data.data
+            );
+          }
+
           if (data.type === PUBLIC_KEY_REQUEST) {
             await this._sendPublicKeyRequest(
               data.protocol,
@@ -795,6 +822,10 @@ class ProxyCommunicationController {
 
         if (message.type === PERSONAL_SIGN_RESPONSE) {
           this._handlePersonalSignResponse(message);
+        }
+
+        if (message.type === BULK_PERSONAL_SIGN_RESPONSE) {
+          this._handleBulkPersonalSignResponse(message);
         }
 
         if (message.type === PUBLIC_KEY_RESPONSE) {
@@ -1783,6 +1814,157 @@ class ProxyCommunicationController {
     }
   }
 
+  private async _sendBulkPersonalSignRequest(
+    protocol: SupportedProtocols,
+    requestId: string,
+    data: ProxyBulkPersonalSignReq["data"]
+  ) {
+    try {
+      const sessionId = this._sessionByProtocol[protocol]?.id;
+
+      if (sessionId) {
+        if (!isValidAddress(data.address, protocol)) {
+          return this._sendBulkPersonalSignResponse(
+            requestId,
+            null,
+            propertyIsNotValid("address")
+          );
+        }
+
+        if (!Array.isArray(data.challenges)) {
+          return this._sendBulkPersonalSignResponse(
+            requestId,
+            null,
+            propertyIsNotValid("challenges")
+          );
+        }
+
+        if (!data.challenges.length) {
+          return this._sendBulkPersonalSignResponse(
+            requestId,
+            null,
+            propertyIsRequired("challenges")
+          );
+        }
+
+        for (const item of data.challenges) {
+          if (protocol === EthereumProtocol) {
+            if (!stringRegex.test(item?.challenge)) {
+              return this._sendBulkPersonalSignResponse(
+                requestId,
+                null,
+                propertyIsNotValid("challenge")
+              );
+            }
+          } else if (!item.challenge) {
+            return this._sendBulkPersonalSignResponse(
+              requestId,
+              null,
+              propertyIsNotValid("challenge")
+            );
+          }
+        }
+
+        const message: ExternalBulkPersonalSignReq = {
+          type: BULK_PERSONAL_SIGN_REQUEST,
+          requestId,
+          data: {
+            protocol,
+            sessionId,
+            origin: window.location.origin,
+            faviconUrl: this._getFaviconUrl(),
+            address: data.address,
+            challenges: data.challenges,
+          },
+        };
+
+        const response: ExternalBulkPersonalSignResToProxy =
+          await browser.runtime.sendMessage(message);
+
+        if (response?.type === BULK_PERSONAL_SIGN_RESPONSE) {
+          this._sendBulkPersonalSignResponse(
+            response.requestId || requestId,
+            null,
+            response.error
+          );
+
+          if (response?.error?.isSessionInvalid) {
+            this._handleDisconnect(protocol);
+          }
+        }
+      } else {
+        return this._sendBulkPersonalSignResponse(
+          requestId,
+          null,
+          UnauthorizedError
+        );
+      }
+    } catch (e) {
+      this._sendBulkPersonalSignResponse(requestId, null, UnknownError);
+    }
+  }
+
+  private _handleBulkPersonalSignResponse(
+    response: InternalBulkPersonalSignRes
+  ) {
+    try {
+      const { error, data, requestId } = response;
+
+      if (data) {
+        this._sendBulkPersonalSignResponse(requestId, data.signatures);
+      } else {
+        this._sendBulkPersonalSignResponse(requestId, null, error);
+      }
+    } catch (e) {
+      this._sendBulkPersonalSignResponse(
+        response?.requestId,
+        null,
+        UnknownError
+      );
+    }
+  }
+
+  private _sendBulkPersonalSignResponse(
+    requestId: string,
+    signatures: ProxyBulkPersonalSignRes["data"],
+    error?
+  ) {
+    try {
+      let response: ProxyBulkPersonalSignRes;
+
+      if (error) {
+        response = {
+          id: requestId,
+          type: BULK_PERSONAL_SIGN_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error,
+        };
+      } else {
+        response = {
+          id: requestId,
+          type: BULK_PERSONAL_SIGN_RESPONSE,
+          from: "VAULT_KEYRING",
+          error: null,
+          data: signatures,
+        };
+      }
+
+      window.postMessage(response, window.location.origin);
+    } catch (e) {
+      window.postMessage(
+        {
+          id: requestId,
+          type: BULK_PERSONAL_SIGN_RESPONSE,
+          from: "VAULT_KEYRING",
+          data: null,
+          error: UnknownError,
+        } as ProxyBulkPersonalSignRes,
+        window.location.origin
+      );
+    }
+  }
+
   private async _sendPublicKeyRequest(
     protocol: SupportedProtocols,
     requestId: string,
@@ -2229,6 +2411,18 @@ class ProxyCommunicationController {
                       signer: item.address,
                       operatorAddress:
                         message.body.operatorAddress || item.address,
+                    });
+                    break;
+                  case "/pocket.migration.MsgClaimMorseSupplier":
+                    data = MsgClaimSupplierSchema.parse({
+                      ...message.body,
+                      shannonSigningAddress: item.address,
+                      shannonOwnerAddress:
+                        message.body.shannonOwnerAddress || item.address,
+                      shannonOperatorAddress:
+                        message.body.shannonOperatorAddress ||
+                        message.body.shannonOwnerAddress ||
+                        item.address,
                     });
                     break;
                   default:

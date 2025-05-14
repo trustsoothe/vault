@@ -68,7 +68,7 @@ export enum BroadcastMode {
   /** BROADCAST_MODE_UNSPECIFIED - zero-value for mode ordering */
   BROADCAST_MODE_UNSPECIFIED = 0,
   /**
-   * BROADCAST_MODE_BLOCK - Deprecated: use BROADCAST_MODE_SYNC instead,
+   * BROADCAST_MODE_BLOCK - DEPRECATED: use BROADCAST_MODE_SYNC instead,
    * BROADCAST_MODE_BLOCK is not supported by the SDK from v0.47.x onwards.
    *
    * @deprecated
@@ -131,7 +131,7 @@ export function broadcastModeToJSON(object: BroadcastMode): string {
 export interface GetTxsEventRequest {
   /**
    * events is the list of transaction event type.
-   * Deprecated: post v0.47.x use query instead, which should contain a valid
+   * Deprecated post v0.47.x: use query instead, which should contain a valid
    * events query.
    *
    * @deprecated
@@ -139,7 +139,7 @@ export interface GetTxsEventRequest {
   events: string[];
   /**
    * pagination defines a pagination for the request.
-   * Deprecated: post v0.46.x use page and limit instead.
+   * Deprecated post v0.46.x: use page and limit instead.
    *
    * @deprecated
    */
@@ -158,8 +158,6 @@ export interface GetTxsEventRequest {
   /**
    * query defines the transaction event query that is proxied to Tendermint's
    * TxSearch RPC method. The query must be valid.
-   *
-   * Since cosmos-sdk 0.50
    */
   query: string;
 }
@@ -175,7 +173,7 @@ export interface GetTxsEventResponse {
   txResponses: TxResponse[];
   /**
    * pagination defines a pagination for the response.
-   * Deprecated: post v0.46.x use total instead.
+   * Deprecated post v0.46.x: use total instead.
    *
    * @deprecated
    */
@@ -219,11 +217,7 @@ export interface SimulateRequest {
   tx:
     | Tx
     | undefined;
-  /**
-   * tx_bytes is the raw transaction.
-   *
-   * Since: cosmos-sdk 0.43
-   */
+  /** tx_bytes is the raw transaction. */
   txBytes: Uint8Array;
 }
 
@@ -262,8 +256,6 @@ export interface GetTxResponse {
 /**
  * GetBlockWithTxsRequest is the request type for the Service.GetBlockWithTxs
  * RPC method.
- *
- * Since: cosmos-sdk 0.45.2
  */
 export interface GetBlockWithTxsRequest {
   /** height is the height of the block to query. */
@@ -275,8 +267,6 @@ export interface GetBlockWithTxsRequest {
 /**
  * GetBlockWithTxsResponse is the response type for the Service.GetBlockWithTxs
  * method.
- *
- * Since: cosmos-sdk 0.45.2
  */
 export interface GetBlockWithTxsResponse {
   /** txs are the transactions in the block. */
@@ -292,8 +282,6 @@ export interface GetBlockWithTxsResponse {
 /**
  * TxDecodeRequest is the request type for the Service.TxDecode
  * RPC method.
- *
- * Since: cosmos-sdk 0.47
  */
 export interface TxDecodeRequest {
   /** tx_bytes is the raw transaction. */
@@ -303,8 +291,6 @@ export interface TxDecodeRequest {
 /**
  * TxDecodeResponse is the response type for the
  * Service.TxDecode method.
- *
- * Since: cosmos-sdk 0.47
  */
 export interface TxDecodeResponse {
   /** tx is the decoded transaction. */
@@ -314,8 +300,6 @@ export interface TxDecodeResponse {
 /**
  * TxEncodeRequest is the request type for the Service.TxEncode
  * RPC method.
- *
- * Since: cosmos-sdk 0.47
  */
 export interface TxEncodeRequest {
   /** tx is the transaction to encode. */
@@ -325,8 +309,6 @@ export interface TxEncodeRequest {
 /**
  * TxEncodeResponse is the response type for the
  * Service.TxEncode method.
- *
- * Since: cosmos-sdk 0.47
  */
 export interface TxEncodeResponse {
   /** tx_bytes is the encoded transaction bytes. */
@@ -336,8 +318,6 @@ export interface TxEncodeResponse {
 /**
  * TxEncodeAminoRequest is the request type for the Service.TxEncodeAmino
  * RPC method.
- *
- * Since: cosmos-sdk 0.47
  */
 export interface TxEncodeAminoRequest {
   aminoJson: string;
@@ -346,8 +326,6 @@ export interface TxEncodeAminoRequest {
 /**
  * TxEncodeAminoResponse is the response type for the Service.TxEncodeAmino
  * RPC method.
- *
- * Since: cosmos-sdk 0.47
  */
 export interface TxEncodeAminoResponse {
   aminoBinary: Uint8Array;
@@ -356,8 +334,6 @@ export interface TxEncodeAminoResponse {
 /**
  * TxDecodeAminoRequest is the request type for the Service.TxDecodeAmino
  * RPC method.
- *
- * Since: cosmos-sdk 0.47
  */
 export interface TxDecodeAminoRequest {
   aminoBinary: Uint8Array;
@@ -366,8 +342,6 @@ export interface TxDecodeAminoRequest {
 /**
  * TxDecodeAminoResponse is the response type for the Service.TxDecodeAmino
  * RPC method.
- *
- * Since: cosmos-sdk 0.47
  */
 export interface TxDecodeAminoResponse {
   aminoJson: string;
@@ -1719,35 +1693,15 @@ export interface Service {
   BroadcastTx(request: BroadcastTxRequest): Promise<BroadcastTxResponse>;
   /** GetTxsEvent fetches txs by event. */
   GetTxsEvent(request: GetTxsEventRequest): Promise<GetTxsEventResponse>;
-  /**
-   * GetBlockWithTxs fetches a block with decoded txs.
-   *
-   * Since: cosmos-sdk 0.45.2
-   */
+  /** GetBlockWithTxs fetches a block with decoded txs. */
   GetBlockWithTxs(request: GetBlockWithTxsRequest): Promise<GetBlockWithTxsResponse>;
-  /**
-   * TxDecode decodes the transaction.
-   *
-   * Since: cosmos-sdk 0.47
-   */
+  /** TxDecode decodes the transaction. */
   TxDecode(request: TxDecodeRequest): Promise<TxDecodeResponse>;
-  /**
-   * TxEncode encodes the transaction.
-   *
-   * Since: cosmos-sdk 0.47
-   */
+  /** TxEncode encodes the transaction. */
   TxEncode(request: TxEncodeRequest): Promise<TxEncodeResponse>;
-  /**
-   * TxEncodeAmino encodes an Amino transaction from JSON to encoded bytes.
-   *
-   * Since: cosmos-sdk 0.47
-   */
+  /** TxEncodeAmino encodes an Amino transaction from JSON to encoded bytes. */
   TxEncodeAmino(request: TxEncodeAminoRequest): Promise<TxEncodeAminoResponse>;
-  /**
-   * TxDecodeAmino decodes an Amino transaction from encoded bytes to JSON.
-   *
-   * Since: cosmos-sdk 0.47
-   */
+  /** TxDecodeAmino decodes an Amino transaction from encoded bytes to JSON. */
   TxDecodeAmino(request: TxDecodeAminoRequest): Promise<TxDecodeAminoResponse>;
 }
 

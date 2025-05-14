@@ -27,6 +27,7 @@ import {
 } from "../../redux/selectors/session";
 import { themeColors } from "../theme";
 import {
+  BULK_PERSONAL_SIGN_REQUEST,
   BULK_SIGN_TRANSACTION_REQUEST,
   CHANGE_PARAM_REQUEST,
   DAO_TRANSFER_REQUEST,
@@ -188,6 +189,7 @@ export default function UnlockVault() {
       case PUBLIC_KEY_REQUEST:
         requestDescription = "is trying to get your public key";
         break;
+      case BULK_PERSONAL_SIGN_REQUEST:
       case "SIGN_TYPED_DATA_REQUEST":
       case "PERSONAL_SIGN_REQUEST":
         requestDescription = "is trying to sign data with your account";

@@ -22,6 +22,8 @@ import {
 import { useAppDispatch } from "../ui/hooks/redux";
 import { themeColors } from "../ui/theme";
 import {
+  BULK_PERSONAL_SIGN_REQUEST,
+  BULK_PERSONAL_SIGN_RESPONSE,
   BULK_SIGN_TRANSACTION_REQUEST,
   BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
@@ -86,6 +88,7 @@ export const removeRequestWithRes = async (
     | typeof SWITCH_CHAIN_RESPONSE
     | typeof SIGN_TYPED_DATA_RESPONSE
     | typeof PERSONAL_SIGN_RESPONSE
+    | typeof BULK_PERSONAL_SIGN_RESPONSE
     | typeof STAKE_NODE_RESPONSE
     | typeof UNSTAKE_NODE_RESPONSE
     | typeof UNJAIL_NODE_RESPONSE
@@ -209,6 +212,12 @@ export const removeRequestWithRes = async (
       data = null;
       errorToReturn = OperationRejected;
       responseType = PERSONAL_SIGN_RESPONSE;
+      break;
+    }
+    case BULK_PERSONAL_SIGN_REQUEST: {
+      data = null;
+      errorToReturn = OperationRejected;
+      responseType = BULK_PERSONAL_SIGN_RESPONSE;
       break;
     }
     case PUBLIC_KEY_REQUEST: {

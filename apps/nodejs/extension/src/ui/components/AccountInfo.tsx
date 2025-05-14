@@ -38,7 +38,7 @@ export function AccountAvatar({
 export default function AccountInfo(props: AccountInfoProps) {
   const { name, address } = props;
   return (
-    <Stack direction={"row"} alignItems={"center"} spacing={name ? 0.8 : 0.7}>
+    <Stack direction={"row"} alignItems={"center"} spacing={name ? 0.6 : 0.7}>
       <AccountAvatar {...props} />
       <Typography variant={"subtitle2"} noWrap>
         {name || getTruncatedText(address, 5)}

@@ -536,7 +536,22 @@ interface MsgUnstakeSupplier {
   };
 }
 
-type ShannonMessages = MsgSend | MsgStakeSupplier | MsgUnstakeSupplier;
+export interface MsgClaimMorseSupplier {
+  typeUrl: "/pocket.migration.MsgClaimMorseSupplier";
+  body: {
+    shannonOwnerAddress: string;
+    shannonOperatorAddress: string;
+    morsePublicKey: string;
+    morseSignature: string;
+    services: SupplierServiceConfig[];
+  };
+}
+
+type ShannonMessages =
+  | MsgSend
+  | MsgStakeSupplier
+  | MsgUnstakeSupplier
+  | MsgClaimMorseSupplier;
 
 export type SignTransactionBodyShannon = {
   address: string;

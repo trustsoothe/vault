@@ -24,6 +24,8 @@ import type {
   ExternalSignTypedDataRes,
 } from "../../types/communications/signTypedData";
 import type {
+  ExternalBulkPersonalSignReq,
+  ExternalBulkPersonalSignRes,
   ExternalPersonalSignReq,
   ExternalPersonalSignRes,
 } from "../../types/communications/personalSign";
@@ -60,6 +62,7 @@ import {
 } from "@soothe/vault";
 import {
   propertyIsRequired,
+  RequestBulkPersonalSignExists,
   RequestChangeParamExists,
   RequestConnectionExists,
   RequestDaoTransferExists,
@@ -88,6 +91,8 @@ import {
   getBlockedSites,
 } from "../../redux/slices/app";
 import {
+  BULK_PERSONAL_SIGN_REQUEST,
+  BULK_PERSONAL_SIGN_RESPONSE,
   BULK_SIGN_TRANSACTION_REQUEST,
   BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
@@ -164,6 +169,7 @@ const mapMessageType: Record<ExternalRequests["type"], true> = {
   [GET_POKT_TRANSACTION_REQUEST]: true,
   [SIGN_TYPED_DATA_REQUEST]: true,
   [PERSONAL_SIGN_REQUEST]: true,
+  [BULK_PERSONAL_SIGN_REQUEST]: true,
   [STAKE_NODE_REQUEST]: true,
   [UNSTAKE_NODE_REQUEST]: true,
   [UNJAIL_NODE_REQUEST]: true,
@@ -183,6 +189,7 @@ const errorReqExistByResType = {
   [TRANSFER_RESPONSE]: RequestTransferExists,
   [SIGN_TYPED_DATA_RESPONSE]: RequestSignedTypedDataExists,
   [PERSONAL_SIGN_RESPONSE]: RequestPersonalSignExists,
+  [BULK_PERSONAL_SIGN_RESPONSE]: RequestBulkPersonalSignExists,
   [STAKE_NODE_RESPONSE]: RequestStakeNodeExists,
   [UNSTAKE_NODE_RESPONSE]: RequestUnstakeNodeExists,
   [UNJAIL_NODE_RESPONSE]: RequestUnjailNodeExists,
@@ -303,6 +310,22 @@ class ExternalCommunicationController implements ICommunicationController {
       const response = await this._handlePersonalSignRequest(message, sender);
 
       if (response && response.type === PERSONAL_SIGN_RESPONSE) {
+        return response;
+      }
+
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
+    }
+
+    if (message?.type === BULK_PERSONAL_SIGN_REQUEST) {
+      const response = await this._handleBulkPersonalSignRequest(
+        message,
+        sender
+      );
+
+      if (response && response.type === BULK_PERSONAL_SIGN_RESPONSE) {
         return response;
       }
 
@@ -951,6 +974,60 @@ class ExternalCommunicationController implements ICommunicationController {
     }
   }
 
+  private async _handleBulkPersonalSignRequest(
+    message: ExternalBulkPersonalSignReq,
+    sender: MessageSender
+  ): Promise<ExternalBulkPersonalSignRes> {
+    try {
+      const { sessionId, address, challenges } = message.data;
+
+      if (!sessionId) {
+        return {
+          type: BULK_PERSONAL_SIGN_RESPONSE,
+          error: SessionIdNotPresented,
+          data: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      try {
+        await ExtensionVaultInstance.validateSessionForPermissions(
+          sessionId,
+          "account",
+          "read",
+          [address]
+        );
+      } catch (error) {
+        return {
+          requestId: message?.requestId,
+          ...returnExtensionErr(error, BULK_PERSONAL_SIGN_RESPONSE),
+        };
+      }
+
+      return this._addExternalRequest(
+        {
+          type: BULK_PERSONAL_SIGN_REQUEST,
+          tabId: sender.tab.id,
+          challenges,
+          address,
+          origin: message.data.origin,
+          faviconUrl: message.data.faviconUrl,
+          protocol: message.data.protocol,
+          requestId: message.requestId,
+          sessionId: message.data.sessionId,
+        },
+        BULK_PERSONAL_SIGN_RESPONSE
+      );
+    } catch (e) {
+      return {
+        type: BULK_PERSONAL_SIGN_RESPONSE,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
+      };
+    }
+  }
+
   private async _addExternalRequest<
     T extends
       | typeof CONNECTION_RESPONSE_MESSAGE
@@ -958,6 +1035,7 @@ class ExternalCommunicationController implements ICommunicationController {
       | typeof SWITCH_CHAIN_RESPONSE
       | typeof SIGN_TYPED_DATA_RESPONSE
       | typeof PERSONAL_SIGN_RESPONSE
+      | typeof BULK_PERSONAL_SIGN_RESPONSE
       | typeof STAKE_NODE_RESPONSE
       | typeof UNSTAKE_NODE_RESPONSE
       | typeof PUBLIC_KEY_RESPONSE
@@ -1409,6 +1487,7 @@ class ExternalCommunicationController implements ICommunicationController {
       | typeof SWITCH_CHAIN_RESPONSE
       | typeof SIGN_TYPED_DATA_RESPONSE
       | typeof PERSONAL_SIGN_RESPONSE
+      | typeof BULK_PERSONAL_SIGN_RESPONSE
       | typeof STAKE_NODE_RESPONSE
       | typeof UNSTAKE_NODE_RESPONSE
       | typeof PUBLIC_KEY_RESPONSE

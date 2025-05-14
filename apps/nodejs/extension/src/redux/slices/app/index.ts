@@ -62,6 +62,7 @@ export interface Network {
   isDefault: boolean;
   iconUrl: string;
   rpcUrl: string;
+  apiUrl?: string;
   explorerAccountUrl: string;
   explorerAccountWithAssetUrl?: string;
   explorerTransactionUrl: string;

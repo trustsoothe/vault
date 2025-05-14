@@ -70,6 +70,10 @@ export const RequestPersonalSignExists = createError(
   -32602,
   "There is a pending personal sign request from this origin and protocol."
 );
+export const RequestBulkPersonalSignExists = createError(
+  -32602,
+  "There is a pending bulk personal sign request from this origin and protocol."
+);
 
 export const RequestStakeNodeExists = createError(
   -32602,
