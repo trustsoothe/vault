@@ -429,7 +429,9 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
       tx = {
         ...baseTx,
         protocol: SupportedProtocols.Cosmos,
-        fee: transferOptions.transactionParams.maxFeePerGas,
+        fee:
+          transferOptions.transactionParams.maxFeePerGas ||
+          transferOptions.transactionParams.fee,
         memo: transferOptions.transactionParams.memo,
       };
     }

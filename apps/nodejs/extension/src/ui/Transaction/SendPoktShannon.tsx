@@ -1,12 +1,23 @@
 import React from "react";
-import {SupportedProtocols, SupportedTransferDestinations, SupportedTransferOrigins,} from "@soothe/vault";
+import {
+  CosmosFee,
+  SupportedTransferDestinations,
+  SupportedTransferOrigins,
+} from "@soothe/vault";
 import Summary from "./Summary";
 import Submitted from "./Submitted";
-import {accountsSelector, selectedAccountAddressSelector,} from "../../redux/selectors/account";
-import {selectedChainSelector, selectedNetworkSelector, selectedProtocolSelector,} from "../../redux/selectors/network";
+import {
+  accountsSelector,
+  selectedAccountAddressSelector,
+} from "../../redux/selectors/account";
+import {
+  selectedChainSelector,
+  selectedNetworkSelector,
+  selectedProtocolSelector,
+} from "../../redux/selectors/network";
 import SendFormPokt from "./SendFormPokt";
-import BaseTransaction, {TransactionFormValues} from "./BaseTransaction";
-import {useAppSelector} from "../hooks/redux";
+import BaseTransaction, { TransactionFormValues } from "./BaseTransaction";
+import { useAppSelector } from "../hooks/redux";
 
 interface SendPoktProps {
   onCancel: () => void;
@@ -19,13 +30,13 @@ export default function SendPoktShannon({ onCancel }: SendPoktProps) {
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedAccountAddress = useAppSelector(selectedAccountAddressSelector);
 
-  const getFeeOptions = (data: TransactionFormValues)  => {
+  const getFeeOptions = (data: TransactionFormValues) => {
     return {
       maxFeePerGas: (selectedNetwork?.defaultGasPrice ?? 0.001).toString(),
-      toAddress: data.recipientAddress ?? '',
-      fromAddress: data.fromAddress ?? '',
-    }
-  }
+      toAddress: data.recipientAddress ?? "",
+      fromAddress: data.fromAddress ?? "",
+    };
+  };
 
   return (
     <BaseTransaction
@@ -58,6 +69,7 @@ export default function SendPoktShannon({ onCancel }: SendPoktProps) {
             // TODO: Refactor here to use a UI input value when we decide to make this configurable.
             maxFeePerGas: selectedNetwork.defaultGasPrice,
             memo: data.memo || undefined,
+            fee: (data.fee as CosmosFee).value,
           },
         };
       }}
