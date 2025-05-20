@@ -288,7 +288,7 @@ export default function SiteConnections() {
           <DialogButtons
             containerProps={{
               sx: {
-                height: 85,
+                height: 56,
               },
             }}
             primaryButtonProps={{

@@ -189,7 +189,7 @@ export default function CreateNewSeed() {
           <DialogButtons
             containerProps={{
               sx: {
-                height: 85,
+                height: 56,
               },
             }}
             secondaryButtonProps={{
@@ -266,7 +266,7 @@ export default function CreateNewSeed() {
           <DialogButtons
             containerProps={{
               sx: {
-                height: 85,
+                height: 56,
               },
             }}
             secondaryButtonProps={{

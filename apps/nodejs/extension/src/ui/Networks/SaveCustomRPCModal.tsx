@@ -319,7 +319,7 @@ export default function SaveCustomRPCModal({
               this RPC fails the default RPC will be used.
             </Typography>
           </DialogContent>
-          <DialogActions sx={{ padding: 0, height: 85 }}>
+          <DialogActions sx={{ padding: 0, height: 56 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Save",
@@ -346,7 +346,7 @@ export default function SaveCustomRPCModal({
               type={status === "success" ? "saved" : "already_exists"}
             />
           </DialogContent>
-          <DialogActions sx={{ padding: 0, height: 85 }}>
+          <DialogActions sx={{ padding: 0, height: 56 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Done",

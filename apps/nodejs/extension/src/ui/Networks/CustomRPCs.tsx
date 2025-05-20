@@ -196,7 +196,7 @@ export default function CustomRPCs() {
         <DialogButtons
           containerProps={{
             sx: {
-              height: 85,
+              height: 56,
             },
           }}
           primaryButtonProps={{

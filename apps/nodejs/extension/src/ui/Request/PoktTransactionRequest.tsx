@@ -36,8 +36,8 @@ import TransferAppSummary from "../PoktTransaction/TransferApp/Summary";
 import ChangeParamSummary from "../PoktTransaction/ChangeParam/Summary";
 import DaoTransferSummary from "../PoktTransaction/DaoTransfer/Summary";
 import UnstakeUnjailNodeSummary from "../PoktTransaction/UnstakeUnjailNode/Summary";
-import {useAppSelector} from "../hooks/redux";
-import {selectedNetworkSelector} from "../../redux/selectors/network";
+import { useAppSelector } from "../hooks/redux";
+import { selectedNetworkSelector } from "../../redux/selectors/network";
 
 export function getTransactionFn(transactionRequest: PoktTxRequest) {
   let fn:
@@ -516,7 +516,7 @@ export default function PoktTransactionRequest() {
         </Typography>
         <FormProvider {...methods}>{summaryComponent}</FormProvider>
       </Stack>
-      <Stack height={85}>
+      <Stack height={56}>
         <DialogButtons
           primaryButtonProps={{
             isLoading,

@@ -644,7 +644,7 @@ export default function PoktSignTransactionRequest() {
           <VaultPasswordInput />
         </FormProvider>
       </Stack>
-      <Stack height={85}>
+      <Stack height={56}>
         <DialogButtons
           primaryButtonProps={{
             isLoading,

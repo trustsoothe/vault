@@ -883,7 +883,7 @@ export default function MigrateAccountDialog({
       >
         <FormProvider {...methods}>{content}</FormProvider>
       </Stack>
-      <DialogActions sx={{ height: 85, padding: 0 }}>
+      <DialogActions sx={{ padding: 0, height: 56 }}>
         <DialogButtons
           secondaryButtonProps={{
             children: status === "info" ? "Close" : "Back",

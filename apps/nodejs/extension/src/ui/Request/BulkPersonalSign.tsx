@@ -158,7 +158,7 @@ export default function BulkPersonalSign() {
           ))}
         </Stack>
       </Stack>
-      <Stack height={85}>
+      <Stack height={56}>
         <DialogButtons
           primaryButtonProps={{
             isLoading,

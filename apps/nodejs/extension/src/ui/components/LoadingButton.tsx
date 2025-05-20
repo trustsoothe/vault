@@ -19,6 +19,7 @@ function LoadingButton(
       onClick={!isLoading ? buttonProps.onClick : undefined}
       disabled={buttonProps.disabled || isLoading}
       sx={{
+        height: 32,
         backgroundColor: isLoading
           ? `${themeColors.dark_primary}!important`
           : undefined,
@@ -26,7 +27,7 @@ function LoadingButton(
       }}
     >
       {isLoading ? (
-        <CircularProgress size={24} sx={{ color: themeColors.white }} />
+        <CircularProgress size={20} sx={{ color: themeColors.white }} />
       ) : (
         buttonProps.children
       )}

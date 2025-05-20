@@ -34,7 +34,8 @@ export default function ViewPublicKeyModal({
 }: ViewPublicKeyModalProps) {
   const errorSnackbarKey = useRef<SnackbarKey>();
 
-  const lastRevealedPublicKeyAccountRef = useRef<SerializedAccountReference>(null);
+  const lastRevealedPublicKeyAccountRef =
+    useRef<SerializedAccountReference>(null);
   const [publicKey, setPublicKey] = useState<string>(null);
 
   const closeSnackbars = () => {
@@ -69,11 +70,7 @@ export default function ViewPublicKeyModal({
   }, [account]);
 
   return (
-    <BaseDialog
-      open={!!account}
-      onClose={onClose}
-      title={"View Public Key"}
-    >
+    <BaseDialog open={!!account} onClose={onClose} title={"View Public Key"}>
       <DialogContent sx={{ padding: "24px!important" }}>
         <Summary
           rows={[
@@ -86,7 +83,9 @@ export default function ViewPublicKeyModal({
                     (account || lastRevealedPublicKeyAccountRef.current)
                       ?.address || ""
                   }
-                  name={(account || lastRevealedPublicKeyAccountRef.current)?.name}
+                  name={
+                    (account || lastRevealedPublicKeyAccountRef.current)?.name
+                  }
                 />
               ),
             },
@@ -96,7 +95,7 @@ export default function ViewPublicKeyModal({
               value:
                 labelByProtocolMap[
                   (account || lastRevealedPublicKeyAccountRef.current)?.protocol
-                  ],
+                ],
             },
           ]}
         />
@@ -108,10 +107,7 @@ export default function ViewPublicKeyModal({
           bgcolor={themeColors.bgLightGray}
         >
           <Stack direction={"row"} spacing={0.7}>
-            <Typography
-              variant={"subtitle2"}
-              sx={{ wordBreak: "break-all" }}
-            >
+            <Typography variant={"subtitle2"} sx={{ wordBreak: "break-all" }}>
               {publicKey}
             </Typography>
           </Stack>
@@ -121,7 +117,7 @@ export default function ViewPublicKeyModal({
           </Stack>
         </Stack>
       </DialogContent>
-      <DialogActions sx={{ height: 85, padding: 0 }}>
+      <DialogActions sx={{ padding: 0, height: 56 }}>
         <DialogButtons
           primaryButtonProps={{
             children: "Done",

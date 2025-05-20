@@ -38,14 +38,15 @@ function getConfigLabel(config: ConfigOptions) {
 
 interface SupplierServiceItemProps {
   service: SupplierServiceConfig;
+  index: number;
 }
 
-function SupplierServiceItem({ service }: SupplierServiceItemProps) {
+function SupplierServiceItem({ service, index }: SupplierServiceItemProps) {
   const [expanded, setExpanded] = useState(false);
   return (
     <Stack
-      borderBottom={`1px solid ${themeColors.light_gray1}`}
       paddingY={0.5}
+      borderTop={index > 0 ? `1px solid ${themeColors.light_gray1}` : undefined}
       sx={{
         paddingX: 0.8,
       }}
@@ -68,7 +69,7 @@ function SupplierServiceItem({ service }: SupplierServiceItemProps) {
             transition: "transform 0.1s ease-in-out",
           },
           "&:hover": {
-            backgroundColor: themeColors.bgLightGray,
+            backgroundColor: "transparent",
           },
         }}
       >
@@ -76,51 +77,57 @@ function SupplierServiceItem({ service }: SupplierServiceItemProps) {
         <ExpandIcon />
       </Button>
       {expanded && (
-        <Stack
-          border={`1px solid ${themeColors.light_gray}`}
-          padding={1}
-          borderRadius={1}
-          marginTop={0.4}
-        >
-          <Typography fontSize={11}>Endpoints</Typography>
-          <Stack component={"ul"} margin={0} paddingLeft={1.2}>
-            {service.endpoints.map((endpoint) => (
-              <Stack margin={0} component={"li"} key={endpoint.url} width={1}>
+        <Stack padding={0} borderRadius={1} marginTop={0.4}>
+          <Typography fontSize={11} marginBottom={0.8}>
+            Endpoints
+          </Typography>
+          <Stack
+            margin={0}
+            component={"ul"}
+            paddingLeft={0}
+            border={`1px solid ${themeColors.light_gray1}`}
+            borderRadius={"6px"}
+          >
+            {service.endpoints.map((endpoint, index) => (
+              <Stack
+                margin={0}
+                component={"li"}
+                key={endpoint.url}
+                paddingX={1}
+                paddingY={0.4}
+                borderTop={
+                  index > 0
+                    ? `1px solid ${themeColors.borderLightGray}`
+                    : undefined
+                }
+                bgcolor={
+                  index % 2 === 0 ? themeColors.bgLightGray2 : themeColors.white
+                }
+              >
                 <Stack
+                  width={1}
                   direction={"row"}
                   alignItems={"center"}
+                  justifyContent={"space-between"}
                   spacing={0.6}
-                  width={1}
                 >
-                  <Typography>-</Typography>
+                  <Typography fontSize={11} noWrap={true}>
+                    {endpoint.url}
+                  </Typography>
                   <Stack
-                    width={1}
-                    direction={"row"}
-                    alignItems={"center"}
-                    spacing={1.2}
+                    paddingX={0.4}
+                    paddingY={0.2}
+                    border={`1px solid ${themeColors.light_gray}`}
+                    borderRadius={"4px"}
                   >
-                    <Typography fontSize={10} noWrap={true}>
-                      {endpoint.url}
+                    <Typography fontSize={9} whiteSpace={"nowrap"}>
+                      {getRpcLabel(endpoint.rpcType)}
                     </Typography>
-                    <Stack
-                      paddingX={0.4}
-                      paddingY={0.2}
-                      border={`1px solid ${themeColors.light_gray}`}
-                      borderRadius={"4px"}
-                      marginRight={"5px!important"}
-                    >
-                      <Typography fontSize={9} whiteSpace={"nowrap"}>
-                        {getRpcLabel(endpoint.rpcType)}
-                      </Typography>
-                    </Stack>
                   </Stack>
                 </Stack>
                 {endpoint.configs.length > 0 && (
                   <>
-                    <Typography fontSize={10} marginLeft={1.2}>
-                      Config
-                    </Typography>
-                    <Stack component={"ul"} margin={0} paddingLeft={2.4}>
+                    <Stack component={"ul"} margin={0} paddingLeft={0.4}>
                       {endpoint.configs.map((config) => (
                         <Stack margin={0} component={"li"} key={config.key}>
                           <Stack
@@ -154,48 +161,54 @@ function SupplierServiceItem({ service }: SupplierServiceItemProps) {
           </Stack>
           {service.revShare.length > 0 && (
             <>
-              <Typography fontSize={11} marginY={0.4}>
+              <Typography fontSize={11} marginTop={0.8} marginBottom={0.4}>
                 Rev Share
               </Typography>
-              <Stack component={"ul"} margin={0} paddingLeft={1.2}>
+              <Stack component={"ul"} margin={0} paddingLeft={0}>
                 {service.revShare.map((revShare) => (
-                  <Stack margin={0} component={"li"} key={revShare.address}>
+                  <Stack
+                    margin={0}
+                    component={"li"}
+                    key={revShare.address}
+                    paddingX={0.6}
+                    marginBottom={"6px!important"}
+                  >
+                    <Stack
+                      sx={{
+                        transform: "scale(0.9)",
+                        marginLeft: "-16px!important",
+                      }}
+                    >
+                      <AccountInfoFromAddress
+                        address={revShare.address}
+                        protocol={SupportedProtocols.Cosmos}
+                      />
+                    </Stack>
                     <Stack
                       direction={"row"}
                       alignItems={"center"}
                       spacing={0.6}
                       width={1}
                     >
-                      <Typography>-</Typography>
                       <Stack
                         width={1}
-                        spacing={0.6}
-                        direction={"row"}
-                        alignItems={"center"}
+                        height={8}
+                        borderRadius={"8px"}
+                        bgcolor={themeColors.light_gray1}
                       >
                         <Stack
+                          width={`${revShare.revSharePercentage}%`}
+                          bgcolor={themeColors.black}
+                          height={1}
                           sx={{
-                            transform: "scale(0.8)",
-                            marginLeft: "-8px!important",
+                            borderTopLeftRadius: "8px",
+                            borderBottomLeftRadius: "8px",
                           }}
-                        >
-                          <AccountInfoFromAddress
-                            address={revShare.address}
-                            protocol={SupportedProtocols.Cosmos}
-                          />
-                        </Stack>
-                        <Stack
-                          paddingX={0.4}
-                          paddingY={0.2}
-                          border={`1px solid ${themeColors.light_gray}`}
-                          borderRadius={"4px"}
-                          marginRight={"5px!important"}
-                        >
-                          <Typography fontSize={9} whiteSpace={"nowrap"}>
-                            {revShare.revSharePercentage}%
-                          </Typography>
-                        </Stack>
+                        />
                       </Stack>
+                      <Typography fontSize={11} whiteSpace={"nowrap"}>
+                        {revShare.revSharePercentage}%
+                      </Typography>
                     </Stack>
                   </Stack>
                 ))}
@@ -216,9 +229,20 @@ export default function SupplierServicesSummary({
   services,
 }: SupplierServicesSummaryProps) {
   return (
-    <Stack width={1} marginLeft={-9} marginTop={1.8}>
-      {services.map((service) => (
-        <SupplierServiceItem key={service.serviceId} service={service} />
+    <Stack
+      width={1}
+      marginLeft={-9}
+      marginTop={2.8}
+      borderRadius={"6px"}
+      bgcolor={themeColors.white}
+      border={`1px solid ${themeColors.light_gray1}`}
+    >
+      {services.map((service, index) => (
+        <SupplierServiceItem
+          key={service.serviceId}
+          service={service}
+          index={index}
+        />
       ))}
     </Stack>
   );

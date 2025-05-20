@@ -62,7 +62,7 @@ export default function SeedAdded({ type, onDone, id }: SeedAddedProps) {
       </Stack>
       <DialogButtons
         containerProps={{
-          sx: { height: 85 },
+          sx: { height: 56 },
         }}
         primaryButtonProps={{
           children: type === "renamed" ? "Done" : "View Seeds",

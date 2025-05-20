@@ -490,7 +490,7 @@ export default function TransactionDetailModal({
       isLoading={false}
     >
       {contentComponent}
-      <DialogActions sx={{ height: 85, padding: 0 }}>
+      <DialogActions sx={{ height: 56, padding: 0 }}>
         <DialogButtons
           primaryButtonProps={{ children: "Done", onClick: onClose }}
         />

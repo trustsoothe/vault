@@ -286,7 +286,7 @@ export default function RemoveSeedModal({
             </>
           )}
         </DialogContent>
-        <DialogActions sx={{ height: 85, padding: 0 }}>
+        <DialogActions sx={{ padding: 0, height: 56 }}>
           <DialogButtons
             primaryButtonProps={{
               variant: "text",
