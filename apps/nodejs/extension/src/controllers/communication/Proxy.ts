@@ -880,9 +880,8 @@ class ProxyCommunicationController {
 
   private _getFaviconUrl() {
     let faviconUrl: string;
-    const faviconFromSelector: HTMLAnchorElement = document.querySelector(
-      "link[rel*='icon']"
-    );
+    const faviconFromSelector: HTMLAnchorElement =
+      document.querySelector("link[rel*='icon']");
 
     if (faviconFromSelector) {
       faviconUrl = faviconFromSelector.href;
@@ -1819,6 +1818,13 @@ class ProxyCommunicationController {
     requestId: string,
     data: ProxyBulkPersonalSignReq["data"]
   ) {
+    // Disabled until needed
+    return this._sendBulkPersonalSignResponse(
+      requestId,
+      null,
+      UnsupportedMethod
+    );
+
     try {
       const sessionId = this._sessionByProtocol[protocol]?.id;
 
@@ -1881,13 +1887,15 @@ class ProxyCommunicationController {
         const response: ExternalBulkPersonalSignResToProxy =
           await browser.runtime.sendMessage(message);
 
-        if (response?.type === BULK_PERSONAL_SIGN_RESPONSE) {
+        if (response && response.type === BULK_PERSONAL_SIGN_RESPONSE) {
           this._sendBulkPersonalSignResponse(
             response.requestId || requestId,
             null,
+            // @ts-ignore
             response.error
           );
 
+          // @ts-ignore
           if (response?.error?.isSessionInvalid) {
             this._handleDisconnect(protocol);
           }
@@ -2289,6 +2297,15 @@ class ProxyCommunicationController {
     data: ProxyBulkSignTransactionReq["data"],
     type?: ProxyBulkSignTransactionReq["type"]
   ) {
+    if (type === BULK_SIGN_TRANSACTION_REQUEST) {
+      // Disabled until needed
+      return this._sendBulkPersonalSignResponse(
+        requestId,
+        null,
+        UnsupportedMethod
+      );
+    }
+
     let requestWasSent = false;
 
     try {
