@@ -1,5 +1,11 @@
 # @soothe/extension
 
+## 0.3.2
+
+### Patch Changes
+
+- 7442461: Just to update extension version.
+
 ## 0.3.1
 
 ### Patch Changes
