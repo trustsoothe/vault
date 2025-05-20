@@ -14,7 +14,7 @@
     "build": "yarn typecheck && NODE_ENV=production webpack --config build/webpack/production.js && yarn build:content-scripts",
     "build:chromium": "yarn build && yarn rename-lockdown:chromium",
     "build:analyze-bundle": "ANALYZE_BUNDLE=true yarn build",
-    "build:firefox": "BROWSER=Firefox yarn build && yarn rename-lockdown:firefox",
+    "build:firefox": "BROWSER=Firefox yarn build && yarn rename-lockdown:firefox && ./scripts/sort-js-number-arrays.sh ./dist/firefox/js/runtime.js",
     "build:autopolicy": "LAVAMOAT_AUTO_POLICY=true yarn build",
     "build:autopolicy:firefox": "LAVAMOAT_AUTO_POLICY=true BROWSER=Firefox yarn build:firefox",
     "build:autopolicy:chromium": "LAVAMOAT_AUTO_POLICY=true yarn build:chromium",
