@@ -1,6 +1,6 @@
 {
   "name": "@soothe/vault-specs",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Automated Specs for the Universal Crypto Wallet Manager",
   "repository": "git@github.com:trustsoothe/vault.git",
   "homepage": "https://trustsoothe.io",

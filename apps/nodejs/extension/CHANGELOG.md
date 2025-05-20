@@ -1,5 +1,39 @@
 # @soothe/extension
 
+## 0.3.0
+
+### Minor Changes
+
+- 019b443: # Extension
+
+  - Added support for signing Pocket Network (morse) transactions.
+
+  # Vault
+
+  - Exported Pocket Network (morse) transactions types without enum.
+
+- 019b443: Added buf.gen.yaml to configure proto generation for Cosmos and Pocket Network. Introduced generated types, clients, and utilities in the project. Updated package.json to include @bufbuild/protobuf as a new dependency for handling protobuf.
+
+  Updated the CosmosProtocolService to expect a list of messages.
+
+  Replaced `shannonFee` with `maxFeePerGas` for Cosmos transactions and removed unused structures. Introduced gas-related fields and enhanced fee calculation logic. Improved code reusability by modularizing message building and transaction fee options.
+
+  Extracted transaction signing logic into a dedicated `signTransaction` method to improve code modularity and reusability. Updated `sendTransaction` to leverage this method, simplifying its implementation and separating concerns. Minor adjustments made to align with the new workflow.
+
+  Revised Cosmos transaction structure to include detailed message payloads, replacing flat properties like 'amount'. Updated `sendTransaction` to use `StargateClient` instead of `SigningStargateClient`, ensuring compatibility with transaction broadcasting. Adjusted test imports and structures for consistency.
+
+### Patch Changes
+
+- 019b443: Adds "View Public Key" functionality for accounts management
+- 4cd9075: \* Updated `package.json` to include the following scripts: - `build:chromium`: to build the extension for chromium based browsers - `build:firefox`: to build the extension for firefox browser
+
+  - Updated README.md to specify the build commands for the extension and the result location
+  - Updated README.md of the extension to clarify how to inject the content scripts automatically in Firefox.
+  - Updated build of extension to place the result of the build for chromium based browsers at `dist/chromium` and for
+    firefox at `dist/firefox`
+  - Updated version of `@lavamoat/webpack` which includes the scuttling options, as result of it we no longer need the
+    update-lavamoat script.
+
 ## 0.2.3
 
 ### Patch Changes
