@@ -1,5 +1,11 @@
 # @soothe/extension
 
+## 0.3.1
+
+### Patch Changes
+
+- 53b08d6: \* Added a script to sort number arrays in Firefox runtime.js builds
+
 ## 0.3.0
 
 ### Minor Changes
