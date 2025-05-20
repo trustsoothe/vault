@@ -12,6 +12,21 @@ import {
 } from "../../utils/networkOperations";
 import { getSchemaFromParamKey } from "../../ui/PoktTransaction/ChangeParam/schemas";
 
+export const SwapSchema = z
+  .object({
+    address: z.string(),
+    network: z.object({
+      protocol: z.nativeEnum(SupportedProtocols),
+      chainId: z.string(),
+    }),
+    assetId: z.string().uuid().optional(),
+  })
+  .refine(
+    (value) => isValidAddress(value.address, value.network.protocol),
+    "invalid swap to address"
+  )
+  .optional();
+
 export const BaseTransaction = z.object({
   hash: z.string(),
   from: z.string(),
@@ -21,31 +36,13 @@ export const BaseTransaction = z.object({
   rpcUrl: z.string().url(),
   timestamp: z.number(),
   requestedBy: z.string().url().optional(),
-  swapTo: z
-    .object({
-      address: z.string(),
-      network: z.object({
-        protocol: z.nativeEnum(SupportedProtocols),
-        chainId: z.string(),
-      }),
-      assetId: z.string().uuid().optional(),
-    })
-    .refine(
-      (value) => isValidAddress(value.address, value.network.protocol),
-      "invalid swap to address"
-    )
-    .optional(),
+  swapTo: SwapSchema,
+  swapFrom: SwapSchema,
 });
 
 export type BaseTransaction = z.infer<typeof BaseTransaction>;
 
 export type SwapTo = BaseTransaction["swapTo"];
-
-export const PoktShannonFee = z.object({
-  protocol: z.literal(SupportedProtocols.Cosmos),
-  amount: z.string(),
-  denom: z.string(),
-});
 
 export const PoktShannonTransaction = BaseTransaction.extend({
   protocol: z.literal(SupportedProtocols.Cosmos),
@@ -57,7 +54,7 @@ export const PoktShannonTransaction = BaseTransaction.extend({
     .default(CosmosTransactionTypes.Send),
   transactionParams: z
     .object({
-      shannonFee: PoktShannonFee,
+      maxFeePerGas: z.number(),
       memo: z.string().optional(),
     })
     .optional(),

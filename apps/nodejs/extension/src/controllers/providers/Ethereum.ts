@@ -1,4 +1,4 @@
-import BaseProvider, { EthereumMethod } from "./base";
+import BaseProvider, { EthereumMethod, PocketNetworkMethod } from "./base";
 import { EthereumProtocol } from "../../constants/protocols";
 
 export default class EthereumProvider extends BaseProvider {
@@ -6,14 +6,18 @@ export default class EthereumProvider extends BaseProvider {
     super(EthereumProtocol);
 
     if (!this._isConnected) {
-      this.send(EthereumMethod.CHAIN)
-        .then((chainId) => {
-          if (chainId && !this._isConnected) {
-            this._isConnected = true;
-            this.emit("connect", chainId);
-          }
+      setTimeout(() => {
+        this.request({
+          method: EthereumMethod.CHAIN,
         })
-        .catch();
+          .then((chainId) => {
+            if (chainId && !this._isConnected) {
+              this._isConnected = true;
+              this.emit("connect", chainId);
+            }
+          })
+          .catch();
+      }, 100);
     }
   }
 }

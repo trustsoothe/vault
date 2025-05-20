@@ -39,6 +39,11 @@
         "HTMLIFrameElement": true
       }
     },
+    "file-saver": {
+      "globals": {
+        "URL": true
+      }
+    },
     "crypto-browserify>randombytes": {
       "globals": {
         "crypto": true,

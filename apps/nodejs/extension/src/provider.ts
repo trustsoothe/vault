@@ -11,7 +11,10 @@ import {
   EIP6963EthRequestType,
   PocketAnnounceType,
   PocketRequestType,
+  PocketShannonAnnounceType,
+  PocketShannonRequestType,
 } from "./constants/communication";
+import PocketShannonProvider from "./controllers/providers/Shannon";
 
 type EIP696 = {
   announceType: typeof EIP6963EthAnnounceType;
@@ -23,7 +26,12 @@ type Pocket = {
   requestType: typeof PocketRequestType;
 };
 
-type InitAnnounceProviderArg = (EIP696 | Pocket) & {
+type PocketShannon = {
+  announceType: typeof PocketShannonAnnounceType;
+  requestType: typeof PocketShannonRequestType;
+};
+
+type InitAnnounceProviderArg = (EIP696 | Pocket | PocketShannon) & {
   provider: IProvider;
 };
 
@@ -85,6 +93,26 @@ initAnnounceProvider({
   requestType: PocketRequestType,
   announceType: PocketAnnounceType,
   provider: pocketProvider,
+});
+
+const pocketShannonProvider = new PocketShannonProvider();
+if (isFirefox) {
+  // @ts-ignore
+  window.wrappedJSObject.pocketShannon = cloneInto(
+    pocketShannonProvider,
+    window,
+    {
+      cloneFunctions: true,
+    }
+  );
+} else {
+  window.pocketShannon = pocketShannonProvider;
+}
+
+initAnnounceProvider({
+  requestType: PocketShannonRequestType,
+  announceType: PocketShannonAnnounceType,
+  provider: pocketShannonProvider,
 });
 
 const ethProvider = new EthereumProvider();

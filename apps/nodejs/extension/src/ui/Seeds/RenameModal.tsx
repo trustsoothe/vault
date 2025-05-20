@@ -122,7 +122,7 @@ export default function RenameSeedModal({
               )}
             />
           </DialogContent>
-          <DialogActions sx={{ padding: 0, height: 85 }}>
+          <DialogActions sx={{ padding: 0, height: 56 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Rename",

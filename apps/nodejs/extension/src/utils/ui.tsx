@@ -22,6 +22,10 @@ import {
 import { useAppDispatch } from "../ui/hooks/redux";
 import { themeColors } from "../ui/theme";
 import {
+  BULK_PERSONAL_SIGN_REQUEST,
+  BULK_PERSONAL_SIGN_RESPONSE,
+  BULK_SIGN_TRANSACTION_REQUEST,
+  BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
@@ -84,6 +88,7 @@ export const removeRequestWithRes = async (
     | typeof SWITCH_CHAIN_RESPONSE
     | typeof SIGN_TYPED_DATA_RESPONSE
     | typeof PERSONAL_SIGN_RESPONSE
+    | typeof BULK_PERSONAL_SIGN_RESPONSE
     | typeof STAKE_NODE_RESPONSE
     | typeof UNSTAKE_NODE_RESPONSE
     | typeof UNJAIL_NODE_RESPONSE
@@ -93,7 +98,8 @@ export const removeRequestWithRes = async (
     | typeof CHANGE_PARAM_RESPONSE
     | typeof DAO_TRANSFER_RESPONSE
     | typeof PUBLIC_KEY_RESPONSE
-    | typeof UPGRADE_RESPONSE;
+    | typeof UPGRADE_RESPONSE
+    | typeof BULK_SIGN_TRANSACTION_RESPONSE;
 
   let data: UiResponsesToProxy["data"] = null;
   let errorToReturn: UiResponsesToProxy["error"] = null;
@@ -168,6 +174,19 @@ export const removeRequestWithRes = async (
       }
       break;
     }
+    case BULK_SIGN_TRANSACTION_REQUEST: {
+      if (error.code === OperationRejected.code) {
+        data = {
+          rejected: true,
+          signatures: null,
+          protocol: null,
+        };
+        errorToReturn = null;
+      }
+
+      responseType = BULK_SIGN_TRANSACTION_RESPONSE;
+      break;
+    }
     case CONNECTION_REQUEST_MESSAGE: {
       responseType = CONNECTION_RESPONSE_MESSAGE;
       if (error.code === OperationRejected.code) {
@@ -193,6 +212,12 @@ export const removeRequestWithRes = async (
       data = null;
       errorToReturn = OperationRejected;
       responseType = PERSONAL_SIGN_RESPONSE;
+      break;
+    }
+    case BULK_PERSONAL_SIGN_REQUEST: {
+      data = null;
+      errorToReturn = OperationRejected;
+      responseType = BULK_PERSONAL_SIGN_RESPONSE;
       break;
     }
     case PUBLIC_KEY_REQUEST: {

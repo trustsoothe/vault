@@ -223,7 +223,7 @@ export default function SignTypedData() {
           <RenderMessage message={signRequest?.data?.message || {}} />
         </Stack>
       </Stack>
-      <Stack height={85}>
+      <Stack height={56}>
         <DialogButtons
           primaryButtonProps={{
             isLoading,

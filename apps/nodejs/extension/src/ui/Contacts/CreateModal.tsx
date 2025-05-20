@@ -263,7 +263,7 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
               )}
             />
           </DialogContent>
-          <DialogActions sx={{ padding: 0, height: 85 }}>
+          <DialogActions sx={{ padding: 0, height: 56 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Save",
@@ -295,7 +295,7 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
               type={"warning"}
             />
           </DialogContent>
-          <DialogActions sx={{ padding: 0 }}>
+          <DialogActions sx={{ padding: 0, height: 56 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Done",
@@ -316,7 +316,7 @@ export default function CreateModal({ open, onClose }: CreateModalProps) {
               contact={contactSaved}
             />
           </DialogContent>
-          <DialogActions sx={{ padding: 0 }}>
+          <DialogActions sx={{ padding: 0, height: 56 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Done",

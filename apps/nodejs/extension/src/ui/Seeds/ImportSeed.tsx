@@ -124,7 +124,7 @@ export default function ImportSeed() {
           <DialogButtons
             containerProps={{
               sx: {
-                height: 85,
+                height: 56,
               },
             }}
             secondaryButtonProps={{

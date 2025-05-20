@@ -51,11 +51,17 @@ import type {
   ProxySignedTypedDataRes,
   ProxySignTypedDataReq,
 } from "./signTypedData";
-import type {
+import {
+  AnswerBulkPersonalSignReq,
   AnswerPersonalSignReq,
+  AppBulkPersonalSignReq,
   AppPersonalSignReq,
+  ExternalBulkPersonalSignReq,
   ExternalPersonalSignReq,
+  InternalBulkPersonalSignRes,
   InternalPersonalSignRes,
+  ProxyBulkPersonalSignReq,
+  ProxyBulkPersonalSignRes,
   ProxyPersonalSignReq,
   ProxyPersonalSignRes,
 } from "./personalSign";
@@ -64,12 +70,14 @@ import type { ChainChangedMessageToProxy } from "./chainChanged";
 import type { AccountsChangedToProxy } from "./accountChanged";
 import type { AppIsReadyMessageToProvider } from "./appIsReady";
 import {
+  BULK_PERSONAL_SIGN_RESPONSE,
   CONNECTION_RESPONSE_MESSAGE,
   PERSONAL_SIGN_RESPONSE,
   SIGN_TYPED_DATA_RESPONSE,
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
 import {
+  RequestBulkPersonalSignExists,
   RequestConnectionExists,
   RequestPersonalSignExists,
   RequestSignedTypedDataExists,
@@ -102,6 +110,7 @@ import {
   ImportHdWalletReq,
 } from "./hdWallet";
 import {
+  AnswerBulkSignTransactionReq,
   AnswerChangeParamReq,
   AnswerDaoTransferReq,
   AnswerStakeAppReq,
@@ -112,6 +121,7 @@ import {
   AnswerUnstakeNodeReq,
   AnswerUpgradeReq,
   AnswerValidatePoktTxReq,
+  AppBulkSignTransactionReq,
   AppChangeParamReq,
   AppDaoTransferReq,
   AppStakeAppReq,
@@ -121,6 +131,7 @@ import {
   AppUnstakeAppReq,
   AppUnstakeNodeReq,
   AppUpgradeReq,
+  ExternalBulkSignTransactionReq,
   ExternalChangeParamReq,
   ExternalDaoTransferReq,
   ExternalStakeAppReq,
@@ -130,6 +141,7 @@ import {
   ExternalUnstakeAppReq,
   ExternalUnstakeNodeReq,
   ExternalUpgradeReq,
+  InternalBulkSignTransactionRes,
   InternalChangeParamRes,
   InternalDaoTransferRes,
   InternalStakeAppRes,
@@ -139,6 +151,8 @@ import {
   InternalUnstakeAppRes,
   InternalUnstakeNodeRes,
   InternalUpgradeRes,
+  ProxyBulkSignTransactionReq,
+  ProxyBulkSignTransactionRes,
   ProxyChangeParamReq,
   ProxyChangeParamRes,
   ProxyDaoTransferReq,
@@ -166,6 +180,7 @@ import {
   ProxyPublicKeyReq,
   ProxyPublicKeyRes,
 } from "./publicKey";
+import { AnswerMigrateMorseAccountReq } from "./migration";
 
 export type ProxyRequests =
   | ProxyConnectionReq
@@ -177,6 +192,7 @@ export type ProxyRequests =
   | ProxySwitchChainReq
   | ProxySignTypedDataReq
   | ProxyPersonalSignReq
+  | ProxyBulkPersonalSignReq
   | ProxyStakeNodeReq
   | ProxyUnstakeNodeReq
   | ProxyUnjailNodeReq
@@ -186,7 +202,8 @@ export type ProxyRequests =
   | ProxyChangeParamReq
   | ProxyDaoTransferReq
   | ProxyPublicKeyReq
-  | ProxyUpgradeReq;
+  | ProxyUpgradeReq
+  | ProxyBulkSignTransactionReq;
 export type ProxyResponses =
   | ProxyConnectionRes
   | ProxySelectedChainRes
@@ -197,6 +214,7 @@ export type ProxyResponses =
   | ProxySwitchChainRes
   | ProxySignedTypedDataRes
   | ProxyPersonalSignRes
+  | ProxyBulkPersonalSignRes
   | AppIsReadyMessageToProvider
   | ProxyPublicKeyRes
   | ProxyStakeNodeRes
@@ -207,7 +225,8 @@ export type ProxyResponses =
   | ProxyChangeParamRes
   | ProxyDaoTransferRes
   | ProxyUpgradeRes
-  | ProxyUnstakeNodeRes;
+  | ProxyUnstakeNodeRes
+  | ProxyBulkSignTransactionRes;
 
 export type ExternalRequests =
   | ExternalConnectionReq
@@ -220,6 +239,7 @@ export type ExternalRequests =
   | ExternalGetPoktTxReq
   | ExternalSignTypedDataReq
   | ExternalPersonalSignReq
+  | ExternalBulkPersonalSignReq
   | ExternalPublicKeyReq
   | ExternalStakeNodeReq
   | ExternalUnjailNodeReq
@@ -229,7 +249,9 @@ export type ExternalRequests =
   | ExternalDaoTransferReq
   | ExternalChangeParamReq
   | ExternalUnstakeNodeReq
-  | ExternalUpgradeReq;
+  | ExternalUpgradeReq
+  | ExternalBulkSignTransactionReq;
+
 export type ExternalResponses = ExternalConnectionRes;
 
 export type InternalRequests =
@@ -252,6 +274,7 @@ export type InternalRequests =
   | AnswerSwitchChainReq
   | AnswerSignedTypedDataReq
   | AnswerPersonalSignReq
+  | AnswerBulkPersonalSignReq
   | AnswerPublicKeyReq
   | ExportVaultReq
   | ShouldExportVaultReq
@@ -269,7 +292,9 @@ export type InternalRequests =
   | AnswerChangeParamReq
   | AnswerDaoTransferReq
   | AnswerUpgradeReq
-  | AnswerValidatePoktTxReq;
+  | AnswerValidatePoktTxReq
+  | AnswerBulkSignTransactionReq
+  | AnswerMigrateMorseAccountReq;
 /**Responses that the Proxy can receive from Internal controller */
 export type InternalResponses =
   | InternalConnectionRes
@@ -278,6 +303,7 @@ export type InternalResponses =
   | InternalSwitchChainRes
   | InternalSignedTypedDataRes
   | InternalPersonalSignRes
+  | InternalBulkPersonalSignRes
   | ChainChangedMessageToProxy
   | AccountsChangedToProxy
   | InternalStakeNodeRes
@@ -289,14 +315,26 @@ export type InternalResponses =
   | InternalChangeParamRes
   | InternalDaoTransferRes
   | InternalUpgradeRes
-  | InternalPublicKeyRes;
+  | InternalPublicKeyRes
+  | InternalBulkSignTransactionRes;
 
 export type UiResponsesToProxy =
   | InternalConnectionRes
   | InternalTransferRes
   | InternalSwitchChainRes
   | InternalPersonalSignRes
-  | InternalSignedTypedDataRes;
+  | InternalSignedTypedDataRes
+  | InternalStakeNodeRes
+  | InternalUnstakeNodeRes
+  | InternalUnjailNodeRes
+  | InternalStakeAppRes
+  | InternalTransferAppRes
+  | InternalUnstakeAppRes
+  | InternalChangeParamRes
+  | InternalDaoTransferRes
+  | InternalUpgradeRes
+  | InternalPublicKeyRes
+  | InternalBulkSignTransactionRes;
 
 export type AppRequests = (
   | AppConnectionRequest
@@ -304,6 +342,7 @@ export type AppRequests = (
   | AppSwitchChainReq
   | AppSignTypedDataReq
   | AppPersonalSignReq
+  | AppBulkPersonalSignReq
   | AppPublicKeyReq
   | AppStakeNodeReq
   | AppUnstakeNodeReq
@@ -314,6 +353,7 @@ export type AppRequests = (
   | AppChangeParamReq
   | AppDaoTransferReq
   | AppUpgradeReq
+  | AppBulkSignTransactionReq
 ) & { requestedAt?: number };
 
 export type RequestExistsError<T> = T extends typeof TRANSFER_RESPONSE
@@ -324,4 +364,6 @@ export type RequestExistsError<T> = T extends typeof TRANSFER_RESPONSE
   ? typeof RequestSignedTypedDataExists
   : T extends typeof PERSONAL_SIGN_RESPONSE
   ? typeof RequestPersonalSignExists
+  : T extends typeof BULK_PERSONAL_SIGN_RESPONSE
+  ? typeof RequestBulkPersonalSignExists
   : typeof RequestSwitchChainExists;

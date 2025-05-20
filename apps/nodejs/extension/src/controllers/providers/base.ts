@@ -13,6 +13,10 @@ import type { SupportedProtocols } from "@soothe/vault";
 import {
   APP_IS_NOT_READY,
   APP_IS_READY,
+  BULK_PERSONAL_SIGN_REQUEST,
+  BULK_PERSONAL_SIGN_RESPONSE,
+  BULK_SIGN_TRANSACTION_REQUEST,
+  BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
@@ -34,6 +38,7 @@ import {
   SELECTED_CHAIN_CHANGED,
   SELECTED_CHAIN_REQUEST,
   SELECTED_CHAIN_RESPONSE,
+  SIGN_TRANSACTION_REQUEST,
   SIGN_TYPED_DATA_REQUEST,
   SIGN_TYPED_DATA_RESPONSE,
   STAKE_APP_REQUEST,
@@ -57,6 +62,7 @@ import {
   UnsupportedMethod,
 } from "../../errors/communication";
 import {
+  CosmosProtocol,
   EthereumProtocol,
   PocketProtocol,
   supportedProtocolsArray,
@@ -67,11 +73,14 @@ export enum PocketNetworkMethod {
   ACCOUNTS = "pokt_accounts",
   BALANCE = "pokt_balance",
   SEND_TRANSACTION = "pokt_sendTransaction",
+  SIGN_TRANSACTION = "pokt_signTransaction",
+  BULK_SIGN_TRANSACTION = "pokt_bulkSignTransaction",
   TX = "pokt_tx",
   CHAIN = "pokt_chain",
   SWITCH_CHAIN = "wallet_switchPocketChain",
   PUBLIC_KEY = "pokt_publicKey",
   SIGN_MESSAGE = "pokt_signMessage",
+  BULK_SIGN_MESSAGE = "pokt_bulkSignMessage",
   STAKE_NODE = "pokt_stakeNode",
   UNSTAKE_NODE = "pokt_unstakeNode",
   UNJAIL_NODE = "pokt_unjailNode",
@@ -81,6 +90,26 @@ export enum PocketNetworkMethod {
   CHANGE_PARAM = "pokt_changeParam",
   DAO_TRANSFER = "pokt_daoTransfer",
   UPGRADE = "pokt_upgrade",
+}
+
+// TODO: discuss if we need to change the name of the methods
+export enum PocketShannonMethod {
+  //
+  REQUEST_ACCOUNTS = "pokt_requestAccounts",
+  //
+  PUBLIC_KEY = "pokt_publicKey",
+  //
+  SIGN_MESSAGE = "pokt_signMessage",
+
+  SIGN_BULK_TRANSACTION = "pokt_bulkSignTransaction",
+  //
+  BALANCE = "pokt_balance",
+  //
+  CHAIN = "pokt_chain",
+  //
+  SWITCH_CHAIN = "wallet_switchPocketChain",
+  //
+  ACCOUNTS = "pokt_accounts",
 }
 
 export enum EthereumMethod {
@@ -241,6 +270,9 @@ export default class BaseProvider extends EventEmitter {
         sootheRequestType = PERSONAL_SIGN_REQUEST;
         break;
       }
+      case PocketNetworkMethod.BULK_SIGN_MESSAGE:
+        sootheRequestType = BULK_PERSONAL_SIGN_REQUEST;
+        break;
       case PocketNetworkMethod.PUBLIC_KEY: {
         sootheRequestType = PUBLIC_KEY_REQUEST;
         break;
@@ -271,6 +303,14 @@ export default class BaseProvider extends EventEmitter {
       }
       case PocketNetworkMethod.UPGRADE: {
         sootheRequestType = UPGRADE_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.SIGN_TRANSACTION: {
+        sootheRequestType = SIGN_TRANSACTION_REQUEST;
+        break;
+      }
+      case PocketNetworkMethod.BULK_SIGN_TRANSACTION: {
+        sootheRequestType = BULK_SIGN_TRANSACTION_REQUEST;
         break;
       }
       default: {
@@ -349,6 +389,11 @@ export default class BaseProvider extends EventEmitter {
         }
         break;
       }
+      case BULK_PERSONAL_SIGN_REQUEST: {
+        responseType = BULK_PERSONAL_SIGN_RESPONSE;
+        requestData = params?.[0];
+        break;
+      }
       case PUBLIC_KEY_REQUEST: {
         responseType = PUBLIC_KEY_RESPONSE;
         requestData = params?.[0];
@@ -389,6 +434,15 @@ export default class BaseProvider extends EventEmitter {
         requestData = params?.[0];
         break;
       }
+      case SIGN_TRANSACTION_REQUEST:
+      case BULK_SIGN_TRANSACTION_REQUEST: {
+        responseType = BULK_SIGN_TRANSACTION_RESPONSE;
+        // @ts-ignore
+        requestData = params.map((item) => ({
+          ...item,
+          protocol: this.protocol,
+        }));
+      }
     }
 
     const id = v4();
@@ -405,6 +459,9 @@ export default class BaseProvider extends EventEmitter {
     );
 
     return new window.Promise((resolve, reject) => {
+      // the background has a timeout, this is just in case
+      let timeout: NodeJS.Timeout;
+
       const listener = (event: MessageEvent<ProxyResponses>) => {
         if (
           (responseType === event.data.type ||
@@ -414,6 +471,8 @@ export default class BaseProvider extends EventEmitter {
           event.data?.from === "VAULT_KEYRING" &&
           event.data?.id === id
         ) {
+          clearTimeout(timeout);
+
           window.removeEventListener("message", listener);
 
           if (event.data.type === "APP_IS_NOT_READY") {
@@ -429,7 +488,10 @@ export default class BaseProvider extends EventEmitter {
 
             let dataToResolve = data;
 
-            if (this.protocol === PocketProtocol) {
+            if (
+              this.protocol === PocketProtocol ||
+              this.protocol === CosmosProtocol
+            ) {
               if (responseType === TRANSFER_RESPONSE) {
                 // data is expected to be the transaction hash string
                 dataToResolve = { hash: data };
@@ -451,6 +513,17 @@ export default class BaseProvider extends EventEmitter {
               ) {
                 dataToResolve = { signature: data };
               }
+
+              if (
+                responseType === BULK_PERSONAL_SIGN_RESPONSE &&
+                method === PocketNetworkMethod.BULK_SIGN_MESSAGE
+              ) {
+                dataToResolve = { signatures: data };
+              }
+
+              if (method === PocketNetworkMethod.SIGN_TRANSACTION) {
+                dataToResolve = data.signatures.at(0);
+              }
             }
 
             if (navigator.userAgent.includes("Firefox")) {
@@ -465,13 +538,12 @@ export default class BaseProvider extends EventEmitter {
         }
       };
 
-      window.addEventListener("message", listener);
-
-      // the background has a timeout, this is just in case
-      setTimeout(() => {
+      timeout = setTimeout(() => {
         window.removeEventListener("message", listener);
         reject(RequestTimeout);
       }, (MINUTES_ALLOWED_FOR_REQ + 1) * 60000);
+
+      window.addEventListener("message", listener);
     });
   }
 

@@ -196,7 +196,7 @@ export default function ConnectionRequest() {
             suggest transactions for you to approve.
           </Typography>
         </Stack>
-        <Stack height={85}>
+        <Stack height={56}>
           <DialogButtons
             primaryButtonProps={{
               children: "Connect",

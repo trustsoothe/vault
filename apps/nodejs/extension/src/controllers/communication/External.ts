@@ -24,6 +24,8 @@ import type {
   ExternalSignTypedDataRes,
 } from "../../types/communications/signTypedData";
 import type {
+  ExternalBulkPersonalSignReq,
+  ExternalBulkPersonalSignRes,
   ExternalPersonalSignReq,
   ExternalPersonalSignRes,
 } from "../../types/communications/personalSign";
@@ -53,18 +55,21 @@ import browser, { type Runtime } from "webextension-polyfill";
 import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import {
   INetwork,
+  PocketNetworkNodeStake,
   PocketNetworkProtocolService,
   SupportedProtocols,
   VaultIsLockedErrorName,
 } from "@soothe/vault";
 import {
   propertyIsRequired,
+  RequestBulkPersonalSignExists,
   RequestChangeParamExists,
   RequestConnectionExists,
   RequestDaoTransferExists,
   RequestPersonalSignExists,
   RequestPublicKeyExists,
   RequestSignedTypedDataExists,
+  RequestSignTransactionExists,
   RequestStakeAppExists,
   RequestStakeNodeExists,
   RequestSwitchChainExists,
@@ -86,6 +91,10 @@ import {
   getBlockedSites,
 } from "../../redux/slices/app";
 import {
+  BULK_PERSONAL_SIGN_REQUEST,
+  BULK_PERSONAL_SIGN_RESPONSE,
+  BULK_SIGN_TRANSACTION_REQUEST,
+  BULK_SIGN_TRANSACTION_RESPONSE,
   CHANGE_PARAM_REQUEST,
   CHANGE_PARAM_RESPONSE,
   CONNECTION_REQUEST_MESSAGE,
@@ -136,11 +145,16 @@ import {
   isValidAddress,
 } from "../../utils/networkOperations";
 import { balanceApi } from "../../redux/slices/balance";
-import { ExternalResponse } from "../../types/communications/transactions";
+import {
+  ExternalBulkSignTransactionReq,
+  ExternalBulkSignTransactionRes,
+  ExternalResponse,
+} from "../../types/communications/transactions";
 import {
   ExternalPublicKeyReq,
   ExternalPublicKeyRes,
 } from "../../types/communications/publicKey";
+import { StakeNodeBody } from "../../types/provider";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -155,6 +169,7 @@ const mapMessageType: Record<ExternalRequests["type"], true> = {
   [GET_POKT_TRANSACTION_REQUEST]: true,
   [SIGN_TYPED_DATA_REQUEST]: true,
   [PERSONAL_SIGN_REQUEST]: true,
+  [BULK_PERSONAL_SIGN_REQUEST]: true,
   [STAKE_NODE_REQUEST]: true,
   [UNSTAKE_NODE_REQUEST]: true,
   [UNJAIL_NODE_REQUEST]: true,
@@ -165,6 +180,7 @@ const mapMessageType: Record<ExternalRequests["type"], true> = {
   [DAO_TRANSFER_REQUEST]: true,
   [PUBLIC_KEY_REQUEST]: true,
   [UPGRADE_REQUEST]: true,
+  [BULK_SIGN_TRANSACTION_REQUEST]: true,
 };
 
 const errorReqExistByResType = {
@@ -173,6 +189,7 @@ const errorReqExistByResType = {
   [TRANSFER_RESPONSE]: RequestTransferExists,
   [SIGN_TYPED_DATA_RESPONSE]: RequestSignedTypedDataExists,
   [PERSONAL_SIGN_RESPONSE]: RequestPersonalSignExists,
+  [BULK_PERSONAL_SIGN_RESPONSE]: RequestBulkPersonalSignExists,
   [STAKE_NODE_RESPONSE]: RequestStakeNodeExists,
   [UNSTAKE_NODE_RESPONSE]: RequestUnstakeNodeExists,
   [UNJAIL_NODE_RESPONSE]: RequestUnjailNodeExists,
@@ -183,6 +200,7 @@ const errorReqExistByResType = {
   [DAO_TRANSFER_RESPONSE]: RequestDaoTransferExists,
   [PUBLIC_KEY_RESPONSE]: RequestPublicKeyExists,
   [UPGRADE_RESPONSE]: RequestUpgradeExists,
+  [BULK_SIGN_TRANSACTION_RESPONSE]: RequestSignTransactionExists,
 };
 
 const ExtensionVaultInstance = getVault();
@@ -292,6 +310,22 @@ class ExternalCommunicationController implements ICommunicationController {
       const response = await this._handlePersonalSignRequest(message, sender);
 
       if (response && response.type === PERSONAL_SIGN_RESPONSE) {
+        return response;
+      }
+
+      return {
+        requestId: message?.requestId,
+        type: REQUEST_BEING_HANDLED,
+      };
+    }
+
+    if (message?.type === BULK_PERSONAL_SIGN_REQUEST) {
+      const response = await this._handleBulkPersonalSignRequest(
+        message,
+        sender
+      );
+
+      if (response && response.type === BULK_PERSONAL_SIGN_RESPONSE) {
         return response;
       }
 
@@ -440,6 +474,14 @@ class ExternalCommunicationController implements ICommunicationController {
       );
 
       if (response && response.type === UPGRADE_RESPONSE) {
+        return response;
+      }
+    }
+
+    if (message?.type === BULK_SIGN_TRANSACTION_REQUEST) {
+      const response = await this._handleSignTxRequest(message, sender);
+
+      if (response && response.type === BULK_SIGN_TRANSACTION_RESPONSE) {
         return response;
       }
     }
@@ -719,6 +761,92 @@ class ExternalCommunicationController implements ICommunicationController {
     }
   }
 
+  private async _handleSignTxRequest(
+    message: ExternalBulkSignTransactionReq,
+    sender: MessageSender
+  ): Promise<ExternalBulkSignTransactionRes> {
+    try {
+      const { sessionId, protocol } = message?.data || {};
+
+      if (!sessionId) {
+        return {
+          type: BULK_SIGN_TRANSACTION_RESPONSE,
+          error: SessionIdNotPresented,
+          data: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      try {
+        await ExtensionVaultInstance.validateSessionForPermissions(
+          sessionId,
+          "transaction",
+          "send",
+          message.data.data.transactions.map((item) => {
+            if (item.protocol === SupportedProtocols.Pocket) {
+              if ("from" in item.transaction) {
+                return item.transaction.from;
+              }
+
+              return (item.transaction as StakeNodeBody).address;
+            } else if (item.protocol === SupportedProtocols.Cosmos) {
+              return item.address;
+            }
+          })
+        );
+      } catch (error) {
+        return {
+          requestId: message?.requestId,
+          ...returnExtensionErr(error, BULK_SIGN_TRANSACTION_RESPONSE),
+        };
+      }
+
+      const chainId = store
+        .getState()
+        .app.selectedChainByProtocol[protocol].toString();
+
+      const transactions: ExternalBulkSignTransactionReq["data"]["data"]["transactions"] =
+        [];
+
+      for (const transaction of message.data.data.transactions) {
+        if (
+          transaction.protocol === SupportedProtocols.Pocket &&
+          transaction.type === PocketNetworkNodeStake &&
+          transaction.transaction.operatorPublicKey
+        ) {
+          transaction.transaction.nodeAddress = await getAddressFromPublicKey(
+            transaction.transaction.operatorPublicKey
+          );
+        }
+        transactions.push(transaction);
+      }
+
+      return this._addExternalRequest(
+        {
+          type: message.type,
+          requestId: message.requestId,
+          sessionId: message.data.sessionId,
+          protocol: message.data.protocol,
+          origin: message.data.origin,
+          faviconUrl: message.data.faviconUrl,
+          tabId: sender.tab.id,
+          data: {
+            chainId,
+            transactions,
+          },
+        },
+        BULK_SIGN_TRANSACTION_RESPONSE
+      );
+    } catch (e) {
+      return {
+        type: BULK_SIGN_TRANSACTION_RESPONSE,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
+      };
+    }
+  }
+
   private async _handleSignTypedDataRequest(
     message: ExternalSignTypedDataReq,
     sender: MessageSender
@@ -846,6 +974,60 @@ class ExternalCommunicationController implements ICommunicationController {
     }
   }
 
+  private async _handleBulkPersonalSignRequest(
+    message: ExternalBulkPersonalSignReq,
+    sender: MessageSender
+  ): Promise<ExternalBulkPersonalSignRes> {
+    try {
+      const { sessionId, address, challenges } = message.data;
+
+      if (!sessionId) {
+        return {
+          type: BULK_PERSONAL_SIGN_RESPONSE,
+          error: SessionIdNotPresented,
+          data: null,
+          requestId: message?.requestId,
+        };
+      }
+
+      try {
+        await ExtensionVaultInstance.validateSessionForPermissions(
+          sessionId,
+          "account",
+          "read",
+          [address]
+        );
+      } catch (error) {
+        return {
+          requestId: message?.requestId,
+          ...returnExtensionErr(error, BULK_PERSONAL_SIGN_RESPONSE),
+        };
+      }
+
+      return this._addExternalRequest(
+        {
+          type: BULK_PERSONAL_SIGN_REQUEST,
+          tabId: sender.tab.id,
+          challenges,
+          address,
+          origin: message.data.origin,
+          faviconUrl: message.data.faviconUrl,
+          protocol: message.data.protocol,
+          requestId: message.requestId,
+          sessionId: message.data.sessionId,
+        },
+        BULK_PERSONAL_SIGN_RESPONSE
+      );
+    } catch (e) {
+      return {
+        type: BULK_PERSONAL_SIGN_RESPONSE,
+        error: UnknownError,
+        data: null,
+        requestId: message?.requestId,
+      };
+    }
+  }
+
   private async _addExternalRequest<
     T extends
       | typeof CONNECTION_RESPONSE_MESSAGE
@@ -853,9 +1035,11 @@ class ExternalCommunicationController implements ICommunicationController {
       | typeof SWITCH_CHAIN_RESPONSE
       | typeof SIGN_TYPED_DATA_RESPONSE
       | typeof PERSONAL_SIGN_RESPONSE
+      | typeof BULK_PERSONAL_SIGN_RESPONSE
       | typeof STAKE_NODE_RESPONSE
       | typeof UNSTAKE_NODE_RESPONSE
       | typeof PUBLIC_KEY_RESPONSE
+      | typeof BULK_SIGN_TRANSACTION_RESPONSE
   >(
     request: AppRequests,
     responseMessage: T
@@ -876,7 +1060,7 @@ class ExternalCommunicationController implements ICommunicationController {
         return { ...checkOriginResponse, requestId: request.requestId };
       }
 
-      const { externalRequests, requestsWindowId } = store.getState().app;
+      const { externalRequests } = store.getState().app;
 
       const pendingRequestWindow = externalRequests.find(
         (item) =>
@@ -895,7 +1079,18 @@ class ExternalCommunicationController implements ICommunicationController {
           requestId: request?.requestId,
         };
       } else {
+        // here we are waiting because of the following use case:
+        // 1. website makes a request to the extension
+        // 2. extension opens a new window with the request
+        // 3. user accepts the request
+        // 4. extension closes the window
+        // 5. website receives the response and immediately sends another request, but the window is being closed
+        // 6. extension respond automatically to the second request with user rejection because the window was closed
+        await new Promise((resolve) => setTimeout(resolve, 150));
+
         await store.dispatch(addExternalRequest(request));
+
+        const { requestsWindowId } = store.getState().app;
 
         if (!requestsWindowId) {
           const windowCreated = await browser.windows.create({
@@ -1147,7 +1342,10 @@ class ExternalCommunicationController implements ICommunicationController {
 
       let balanceToReturn;
 
-      if (data.protocol === SupportedProtocols.Pocket) {
+      if (
+        data.protocol === SupportedProtocols.Pocket ||
+        data.protocol === SupportedProtocols.Cosmos
+      ) {
         // balance should be returned in uPOKT
         balanceToReturn = balance ? balance * 1e6 : 0;
       } else {
@@ -1289,9 +1487,11 @@ class ExternalCommunicationController implements ICommunicationController {
       | typeof SWITCH_CHAIN_RESPONSE
       | typeof SIGN_TYPED_DATA_RESPONSE
       | typeof PERSONAL_SIGN_RESPONSE
+      | typeof BULK_PERSONAL_SIGN_RESPONSE
       | typeof STAKE_NODE_RESPONSE
       | typeof UNSTAKE_NODE_RESPONSE
       | typeof PUBLIC_KEY_RESPONSE
+      | typeof BULK_SIGN_TRANSACTION_RESPONSE
   >(
     origin: string,
     responseMessage: T

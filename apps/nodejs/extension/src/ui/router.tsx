@@ -3,6 +3,7 @@ import { createHashRouter } from "react-router-dom";
 import Preferences from "./Preferences/Preferences";
 import {
   ACTIVITY_PAGE,
+  BULK_PERSONAL_SIGN_PAGE,
   CHANGE_SELECTED_CHAIN_PAGE,
   CONTACTS_PAGE,
   EXPORT_VAULT_PAGE,
@@ -15,6 +16,7 @@ import {
   PREFERENCES_PAGE,
   REQUEST_CONNECTION_PAGE,
   SEEDS_PAGE,
+  SIGN_TRANSACTIONS_PAGE,
   SIGN_TYPED_DATA_PAGE,
   SITES_PAGE,
   TRANSFER_PAGE,
@@ -37,6 +39,8 @@ import Networks from "./Networks/Networks";
 import Activity from "./Activity/Activity";
 import Handler from "./Request/Handler";
 import Backup from "./Backup/Backup";
+import PoktSignTransactionRequest from "./Request/PoktSignTransactionRequest";
+import BulkPersonalSign from "./Request/BulkPersonalSign";
 
 export const router = createHashRouter([
   {
@@ -105,6 +109,10 @@ export const requestRouter = createHashRouter([
         element: <PersonalSign />,
       },
       {
+        path: BULK_PERSONAL_SIGN_PAGE,
+        element: <BulkPersonalSign />,
+      },
+      {
         path: CHANGE_SELECTED_CHAIN_PAGE,
         element: <SwitchNetwork />,
       },
@@ -119,6 +127,10 @@ export const requestRouter = createHashRouter([
       {
         path: POKT_TRANSACTION_PAGE,
         element: <PoktTransactionRequest />,
+      },
+      {
+        path: SIGN_TRANSACTIONS_PAGE,
+        element: <PoktSignTransactionRequest />,
       },
     ],
   },

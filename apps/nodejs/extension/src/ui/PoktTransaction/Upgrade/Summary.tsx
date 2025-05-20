@@ -26,10 +26,13 @@ interface UpgradeSummaryProps {
     fetchingFee: boolean;
   };
   memo?: string;
+  hidePasswordInput?: boolean;
+  avoidFeeChecking?: boolean;
 }
 
 export default function UpgradeSummary({
   addValidation = true,
+  hidePasswordInput = false,
   fromAddress,
   upgradeType,
   upgradeVersion,
@@ -38,6 +41,7 @@ export default function UpgradeSummary({
   features,
   memo,
   fee,
+  avoidFeeChecking = false,
 }: UpgradeSummaryProps) {
   const { coinSymbol } = useUsdPrice({
     protocol: SupportedProtocols.Pocket,
@@ -122,11 +126,13 @@ export default function UpgradeSummary({
     });
   }
 
-  rows.push({
-    type: "row",
-    label: "Fee",
-    value: `${fee.fee?.value || 0} ${coinSymbol}`,
-  });
+  if (fee) {
+    rows.push({
+      type: "row",
+      label: "Fee",
+      value: `${fee.fee?.value || 0} ${coinSymbol}`,
+    });
+  }
 
   if (memo) {
     rows.push({
@@ -148,11 +154,19 @@ export default function UpgradeSummary({
 
   return (
     <>
-      <SummaryValidator fromAddress={fromAddress} chainId={chainId}>
+      <SummaryValidator
+        avoidFeeChecking={avoidFeeChecking}
+        fromAddress={fromAddress}
+        chainId={chainId}
+      >
         {summaryComponent}
       </SummaryValidator>
-      <CheckInput />
-      <VaultPasswordInput />
+      {!hidePasswordInput && (
+        <>
+          <CheckInput />
+          <VaultPasswordInput />
+        </>
+      )}
     </>
   );
 }

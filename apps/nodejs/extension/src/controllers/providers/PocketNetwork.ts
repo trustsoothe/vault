@@ -6,14 +6,18 @@ export default class PocketNetworkProvider extends BaseProvider {
     super(PocketProtocol);
 
     if (!this._isConnected) {
-      this.send(PocketNetworkMethod.CHAIN)
-        .then((chainId) => {
-          if (chainId && !this._isConnected) {
-            this._isConnected = true;
-            this.emit("connect", chainId);
-          }
+      setTimeout(() => {
+        this.request({
+          method: PocketNetworkMethod.CHAIN,
         })
-        .catch();
+          .then((chainId) => {
+            if (chainId && !this._isConnected) {
+              this._isConnected = true;
+              this.emit("connect", chainId);
+            }
+          })
+          .catch();
+      }, 100);
     }
   }
 }

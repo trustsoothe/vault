@@ -23,6 +23,8 @@ interface UnstakeAppProps {
     fee: PocketNetworkFee;
     fetchingFee: boolean;
   };
+  hidePasswordInput?: boolean;
+  avoidFeeChecking?: boolean;
 }
 
 export default function UnstakeApp({
@@ -32,7 +34,9 @@ export default function UnstakeApp({
   chainId,
   addTitle,
   addValidation = true,
+  hidePasswordInput = false,
   fee,
+  avoidFeeChecking = false,
 }: UnstakeAppProps) {
   const { app, isSuccess } = useGetApp(fromAddress, chainId);
 
@@ -52,15 +56,20 @@ export default function UnstakeApp({
         />
       ),
     },
-    {
-      type: "divider",
-    },
-    {
-      type: "row",
-      label: "Fee",
-      value: `${fee.fee?.value || 0} ${coinSymbol}`,
-    },
   ];
+
+  if (fee) {
+    rows.push(
+      {
+        type: "divider",
+      },
+      {
+        type: "row",
+        label: "Fee",
+        value: `${fee.fee?.value || 0} ${coinSymbol}`,
+      }
+    );
+  }
 
   if (memo) {
     rows.push({
@@ -89,6 +98,7 @@ export default function UnstakeApp({
       )}
 
       <SummaryValidator
+        avoidFeeChecking={avoidFeeChecking}
         fromAddress={fromAddress}
         chainId={chainId}
         customValidation={() => {
@@ -110,8 +120,12 @@ export default function UnstakeApp({
         {summaryComponent}
       </SummaryValidator>
       {canEditMemo && <MemoInput />}
-      <CheckInput />
-      <VaultPasswordInput />
+      {!hidePasswordInput && (
+        <>
+          <CheckInput />
+          <VaultPasswordInput />
+        </>
+      )}
     </>
   );
 }

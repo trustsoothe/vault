@@ -6,7 +6,7 @@ import VaultPasswordInput from "../../Transaction/VaultPasswordInput";
 import { AmountWithUsd } from "../../Transaction/BaseSummary";
 import SummaryValidator from "../SummaryValidator";
 import useUsdPrice from "../../hooks/useUsdPrice";
-import Summary from "../../components/Summary";
+import Summary, { SummaryProps } from "../../components/Summary";
 import ChainsSummary from "../ChainsSummary";
 import CheckInput from "../CheckInput";
 import useGetApp from "../useGetApp";
@@ -22,6 +22,8 @@ interface StakeAppSummaryProps {
     fetchingFee: boolean;
   };
   addValidation?: boolean;
+  hidePasswordInput?: boolean;
+  avoidFeeChecking?: boolean;
 }
 
 export default function StakeAppSummary({
@@ -32,6 +34,8 @@ export default function StakeAppSummary({
   chains,
   memo,
   addValidation = true,
+  hidePasswordInput = false,
+  avoidFeeChecking = false,
 }: StakeAppSummaryProps): JSX.Element {
   const { coinSymbol, usdPrice, isLoading } = useUsdPrice({
     protocol: SupportedProtocols.Pocket,
@@ -39,30 +43,33 @@ export default function StakeAppSummary({
   });
   const { app, isSuccess } = useGetApp(appAddress, chainId);
 
+  const summaryRows: SummaryProps["rows"] = [
+    {
+      type: "row",
+      label: "Stake Amount",
+      value: (
+        <AmountWithUsd
+          balance={amount}
+          decimals={6}
+          symbol={coinSymbol}
+          usdBalance={usdPrice * amount}
+          isLoadingUsdPrice={isLoading}
+        />
+      ),
+    },
+  ];
+
+  if (fee) {
+    summaryRows.push({
+      type: "row",
+      label: "Fee",
+      value: `${fee.fee?.value || 0} ${coinSymbol}`,
+    });
+  }
+
   const summaryComponent = (
     <Stack overflow={"auto"}>
-      <Summary
-        rows={[
-          {
-            type: "row",
-            label: "Stake Amount",
-            value: (
-              <AmountWithUsd
-                balance={amount}
-                decimals={6}
-                symbol={coinSymbol}
-                usdBalance={usdPrice * amount}
-                isLoadingUsdPrice={isLoading}
-              />
-            ),
-          },
-          {
-            type: "row",
-            label: "Fee",
-            value: `${fee.fee?.value || 0} ${coinSymbol}`,
-          },
-        ]}
-      />
+      <Summary rows={summaryRows} />
       <ChainsSummary chains={chains} chainId={chainId} />
       {memo && (
         <Summary
@@ -87,6 +94,7 @@ export default function StakeAppSummary({
   ) : (
     <>
       <SummaryValidator
+        avoidFeeChecking={avoidFeeChecking}
         fromAddress={appAddress}
         chainId={chainId}
         amount={amount - Number(app?.staked_tokens || 0) / 1e6}
@@ -104,8 +112,12 @@ export default function StakeAppSummary({
       >
         {summaryComponent}
       </SummaryValidator>
-      <CheckInput />
-      <VaultPasswordInput />
+      {!hidePasswordInput && (
+        <>
+          <CheckInput />
+          <VaultPasswordInput />
+        </>
+      )}
     </>
   );
 }

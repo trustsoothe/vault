@@ -22,7 +22,8 @@ export default function DialogButtons({
       sx={{
         width: 1,
         height: 1,
-        padding: 2.4,
+        paddingX: 1.6,
+        paddingY: 1.2,
         boxSizing: "border-box",
         backgroundColor: "#f7f8f9",
         boxShadow: "0 -1px 0 0 #eff1f4",
@@ -34,6 +35,7 @@ export default function DialogButtons({
           fullWidth
           {...secondaryButtonProps}
           sx={{
+            height: 32,
             color: "#484f59",
             backgroundColor: "#fff",
             boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",

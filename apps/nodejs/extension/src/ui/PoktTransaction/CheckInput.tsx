@@ -6,7 +6,15 @@ import Typography from "@mui/material/Typography";
 import { Controller, useFormContext } from "react-hook-form";
 import { themeColors } from "../theme";
 
-export default function CheckInput() {
+interface CheckInputProps {
+  moreThanOne?: boolean;
+  isSigning?: boolean;
+}
+
+export default function CheckInput({
+  moreThanOne,
+  isSigning,
+}: CheckInputProps) {
   const { control } = useFormContext<PoktTransactionFormValues>();
   return (
     <Controller
@@ -32,7 +40,7 @@ export default function CheckInput() {
               fontSize={12}
               color={error ? themeColors.red : undefined}
             >
-              Confirm Transaction
+              Confirm Transaction{moreThanOne ? "s" : ""}
             </Typography>
             <Switch size={"small"} {...field} checked={field.value} />
           </Stack>
@@ -42,8 +50,9 @@ export default function CheckInput() {
             lineHeight={"13px"}
             color={error ? themeColors.red : undefined}
           >
-            Please confirm before executing this transaction; we are not
-            responsible for any unexpected results.
+            Please confirm before {isSigning ? "signing" : "executing"} this
+            transaction{moreThanOne ? "s" : ""}; we are not responsible for any
+            unexpected results.
           </Typography>
         </>
       )}

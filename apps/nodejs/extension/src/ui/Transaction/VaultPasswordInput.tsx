@@ -14,7 +14,7 @@ export default function VaultPasswordInput() {
 
   return requirePassword ? (
     <>
-      <Typography fontSize={11} marginTop={1.2} lineHeight={"16px"}>
+      <Typography fontSize={11} marginTop={0.8} lineHeight={"16px"}>
         Please enter the vault’s password to proceed:
       </Typography>
       <Controller
@@ -28,7 +28,7 @@ export default function VaultPasswordInput() {
             error={!!error}
             helperText={error?.message}
             sx={{
-              marginTop: 1.2,
+              marginTop: 0.4,
               marginBottom: !!error ? 1 : 0,
               "& .MuiFormHelperText-root": {
                 fontSize: 10,

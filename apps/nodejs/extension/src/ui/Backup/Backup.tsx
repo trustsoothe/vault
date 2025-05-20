@@ -95,29 +95,38 @@ export default function Backup() {
           message: "Vault Backup Failed",
           onRetry: () => onSubmit(data),
         });
+        setStatus("normal");
       } else if (backupData.isPasswordWrong) {
         wrongPasswordSnackbarKey.current = wrongPasswordSnackbar();
         setStatus("normal");
         setTimeout(() => setFocus("vaultPassword"), 0);
       } else {
-        const blob = new Blob([JSON.stringify(backupData.vault)], {
-          type: "application/json",
-        });
-        const filename = `soothe_vault_${new Date()
-          .toISOString()
-          .slice(0, 16)}.json`.replace(/:/g, "_");
+        try {
+          const blob = new Blob([JSON.stringify(backupData.vault)], {
+            type: "application/json",
+          });
+          const filename = `soothe_vault_${new Date()
+            .toISOString()
+            .slice(0, 16)}.json`.replace(/:/g, "_");
 
-        saveAs(blob, filename);
-        closeSnackbars();
-        enqueueSnackbar({
-          variant: "success",
-          message: {
-            title: "Vault Exported",
-            content: "Soothe has been exported successfully.",
-          },
-        });
-        reset(defaultFormValues);
-        setStatus("normal");
+          saveAs(blob, filename);
+          closeSnackbars();
+          enqueueSnackbar({
+            variant: "success",
+            message: {
+              title: "Vault Exported",
+              content: "Soothe has been exported successfully.",
+            },
+          });
+          reset(defaultFormValues);
+          setStatus("normal");
+        } catch (e) {
+          errorSnackbarKey.current = enqueueErrorSnackbar({
+            message: "Vault Backup Failed",
+            onRetry: () => onSubmit(data),
+          });
+          setStatus("normal");
+        }
       }
     });
   };

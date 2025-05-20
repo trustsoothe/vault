@@ -6,6 +6,19 @@ import {
   TEthTransferBody,
   TPocketTransferBody,
 } from "../controllers/communication/Proxy";
+import type {
+  PocketNetworkAppStake,
+  PocketNetworkAppTransfer,
+  PocketNetworkAppUnstake,
+  PocketNetworkGovChangeParam,
+  PocketNetworkGovDAOTransfer,
+  PocketNetworkGovUpgrade,
+  PocketNetworkNodeStake,
+  PocketNetworkNodeUnjail,
+  PocketNetworkNodeUnstake,
+  PocketNetworkSend,
+} from "@soothe/vault";
+import { SignTransactionBodyShannon } from "./communications/transactions";
 
 interface AccountRequest {
   method:
@@ -92,104 +105,186 @@ interface SignMessageRequest {
   params: [{ address: string; message: string }];
 }
 
+interface BulkSignMessageRequest {
+  method: typeof PocketNetworkMethod.BULK_SIGN_MESSAGE;
+  params: Array<{ id?: string; address: string; message: string }>;
+}
+
+interface StakeNodeBody {
+  amount: string;
+  chains: string[];
+  serviceURL: string;
+  address: string;
+  operatorPublicKey?: string;
+  rewardDelegators?: Record<string, number>;
+}
+
 interface StakeNodeRequest {
   method: typeof PocketNetworkMethod.STAKE_NODE;
-  params: [
-    {
-      amount: string;
-      chains: string[];
-      serviceURL: string;
-      address: string;
-      operatorPublicKey?: string;
-      rewardDelegators?: Record<string, number>;
-    }
-  ];
+  params: [StakeNodeBody];
+}
+
+interface UnstakeAndUnjailNodeBody {
+  nodeAddress: string;
+  address: string;
 }
 
 interface UnstakeNodeRequest {
   method: typeof PocketNetworkMethod.UNSTAKE_NODE;
-  params: [
-    {
-      nodeAddress: string;
-      address: string;
-    }
-  ];
+  params: [UnstakeAndUnjailNodeBody];
 }
 
 interface UnjailNodeRequest {
   method: typeof PocketNetworkMethod.UNJAIL_NODE;
-  params: [
-    {
-      nodeAddress: string;
-      address: string;
-    }
-  ];
+  params: [UnstakeAndUnjailNodeBody];
+}
+
+interface StakeAppBody {
+  address: string;
+  amount: string;
+  chains: string[];
 }
 
 interface StakeAppRequest {
   method: typeof PocketNetworkMethod.STAKE_APP;
-  params: [
-    {
-      address: string;
-      amount: string;
-      chains: string[];
-    }
-  ];
+  params: [StakeAppBody];
+}
+
+interface TransferAppBody {
+  address: string;
+  newAppPublicKey: string;
 }
 
 interface TransferAppRequest {
   method: typeof PocketNetworkMethod.TRANSFER_APP;
-  params: [
-    {
-      address: string;
-      newAppPublicKey: string;
-    }
-  ];
+  params: [TransferAppBody];
+}
+
+interface UnstakeAppBody {
+  address: string;
 }
 
 interface UnstakeAppRequest {
   method: typeof PocketNetworkMethod.UNSTAKE_APP;
-  params: [
-    {
-      address: string;
-    }
-  ];
+  params: [UnstakeAppBody];
+}
+
+interface ChangeParamBody {
+  address: string;
+  paramKey: string;
+  paramValue: string;
+  overrideGovParamsWhitelistValidation: boolean;
 }
 
 interface ChangeParamRequest {
   method: typeof PocketNetworkMethod.CHANGE_PARAM;
-  params: [
-    {
-      address: string;
-      paramKey: string;
-      paramValue: string;
-      overrideGovParamsWhitelistValidation: boolean;
-    }
-  ];
+  params: [];
+}
+
+interface DaoTransferBody {
+  address: string;
+  to: string;
+  amount: string;
+  daoAction: string;
 }
 
 interface DaoTransferRequest {
   method: typeof PocketNetworkMethod.DAO_TRANSFER;
-  params: [
-    {
-      address: string;
-      to: string;
-      amount: string;
-      daoAction: string;
-    }
-  ];
+  params: [DaoTransferBody];
+}
+
+interface UpgradeBody {
+  address: string;
+  height: number;
+  version: string;
+  features: string[];
 }
 
 interface UpgradeRequest {
   method: typeof PocketNetworkMethod.UPGRADE;
-  params: [
-    {
-      address: string;
-      height: number;
-      version: string;
-      features: string[];
-    }
-  ];
+  params: [UpgradeBody];
+}
+
+interface SignAppStakeBody {
+  type: typeof PocketNetworkAppStake;
+  transaction: StakeAppBody;
+}
+
+interface SignAppTransferBody {
+  type: typeof PocketNetworkAppTransfer;
+  transaction: TransferAppBody;
+}
+
+interface SignAppUnstakeBody {
+  type: typeof PocketNetworkAppUnstake;
+  transaction: UnstakeAppBody;
+}
+
+interface SignGovChangeParamBody {
+  type: typeof PocketNetworkGovChangeParam;
+  transaction: ChangeParamBody;
+}
+
+interface SignGovDAOTransferBody {
+  type: typeof PocketNetworkGovDAOTransfer;
+  transaction: DaoTransferBody;
+}
+
+interface SignGovUpgradeBody {
+  type: typeof PocketNetworkGovUpgrade;
+  transaction: UpgradeBody;
+}
+
+interface SignNodeStakeBody {
+  type: typeof PocketNetworkNodeStake;
+  transaction: StakeNodeBody;
+}
+
+interface SignNodeUnjailBody {
+  type: typeof PocketNetworkNodeUnjail;
+  transaction: UnstakeAndUnjailNodeBody;
+}
+
+interface SignNodeUnstakeBody {
+  type: typeof PocketNetworkNodeUnstake;
+  transaction: UnstakeAndUnjailNodeBody;
+}
+
+interface SignSendBody {
+  type: typeof PocketNetworkSend;
+  transaction: TPocketTransferBody;
+}
+
+type SignTransactionBodyMorse =
+  | SignAppStakeBody
+  | SignAppTransferBody
+  | SignAppUnstakeBody
+  | SignGovChangeParamBody
+  | SignGovDAOTransferBody
+  | SignGovUpgradeBody
+  | SignNodeStakeBody
+  | SignNodeUnjailBody
+  | SignNodeUnstakeBody
+  | SignSendBody;
+
+interface SignTransactionRequestMorse {
+  method: typeof PocketNetworkMethod.SIGN_TRANSACTION;
+  params: [SignTransactionBodyMorse];
+}
+
+interface BulkSignTransactionRequestMorse {
+  method: typeof PocketNetworkMethod.BULK_SIGN_TRANSACTION;
+  params: Array<SignTransactionBodyMorse>;
+}
+
+interface SignTransactionRequestShannon {
+  method: typeof PocketNetworkMethod.SIGN_TRANSACTION;
+  params: [SignTransactionBodyShannon];
+}
+
+interface BulkSignTransactionRequestShannon {
+  method: typeof PocketNetworkMethod.BULK_SIGN_TRANSACTION;
+  params: Array<SignTransactionBodyShannon>;
 }
 
 export type Method =
@@ -205,6 +300,7 @@ export type Method =
   | SignTypedDataRequest
   | PersonalSignRequest
   | SignMessageRequest
+  | BulkSignMessageRequest
   | StakeNodeRequest
   | UnstakeNodeRequest
   | UnjailNodeRequest
@@ -214,7 +310,11 @@ export type Method =
   | ChangeParamRequest
   | DaoTransferRequest
   | UpgradeRequest
-  | PublicKeyRequest;
+  | PublicKeyRequest
+  | SignTransactionRequestShannon
+  | BulkSignTransactionRequestShannon
+  | SignTransactionRequestMorse
+  | BulkSignTransactionRequestMorse;
 
 export type SuccessfulCallback = (error: null, res: unknown) => unknown;
 export type ErrorCallback = (error: unknown, res: null) => unknown;

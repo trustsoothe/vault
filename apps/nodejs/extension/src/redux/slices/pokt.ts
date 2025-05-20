@@ -6,6 +6,7 @@ import {
 import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import { setNetworksWithErrors } from "./app";
 import { isValidAddress, runWithNetworks } from "../../utils/networkOperations";
+import { RootState } from "../store";
 
 export interface AllParams {
   app_params: ParamKeyValue[];
@@ -52,6 +53,36 @@ export interface App {
   status: number;
   unstaking_time: string;
 }
+
+export type MorseClaimableAccount = {
+  morseClaimableAccount: {
+    shannon_dest_address: string;
+    morse_src_address: string;
+    unstaked_balance: {
+      denom: string;
+      amount: string;
+    };
+    supplier_stake: {
+      denom: string;
+      amount: string;
+    };
+    application_stake: {
+      denom: string;
+      amount: string;
+    };
+    claimed_at_height: string;
+  };
+};
+
+export type CosmosAccount = {
+  account: {
+    "@type": string;
+    address: string;
+    pub_key: any;
+    account_number: string;
+    sequence: string;
+  };
+};
 
 const poktService = new PocketNetworkProtocolService(
   new WebEncryptionService()
@@ -158,6 +189,68 @@ export const poktApi = createApi({
         }
       },
     }),
+    getMorseClaimableAccount: builder.query({
+      queryFn: async (arg: { address: string; chainId: string }, api) => {
+        try {
+          const { address, chainId } = arg;
+          const {
+            app: { networks },
+          } = api.getState() as any;
+
+          const apiUrl = networks.find(
+            (n) =>
+              n.protocol === SupportedProtocols.Cosmos && n.chainId === chainId
+          )?.apiUrl;
+
+          if (!apiUrl) {
+            throw new Error(`apiUrl not found for chainId ${chainId}`);
+          }
+
+          const data: MorseClaimableAccount = await fetch(
+            `${apiUrl}/pokt-network/poktroll/migration/morse_claimable_account/${address.toUpperCase()}`
+          ).then((res) =>
+            res.status === 404 ? { morseClaimableAccount: null } : res.json()
+          );
+
+          return {
+            data: data.morseClaimableAccount,
+          };
+        } catch (e) {
+          return { error: e };
+        }
+      },
+    }),
+    getShannonAccount: builder.query({
+      queryFn: async (arg: { address: string; chainId: string }, api) => {
+        try {
+          const { address, chainId } = arg;
+          const {
+            app: { networks },
+          } = api.getState() as any;
+
+          const apiUrl = networks.find(
+            (n) =>
+              n.protocol === SupportedProtocols.Cosmos && n.chainId === chainId
+          )?.apiUrl;
+
+          if (!apiUrl) {
+            throw new Error(`apiUrl not found for chainId ${chainId}`);
+          }
+
+          const data: CosmosAccount = await fetch(
+            `${apiUrl}/cosmos/auth/v1beta1/accounts/${address}`
+          ).then((res) =>
+            res.status === 404 ? { account: null } : res.json()
+          );
+
+          return {
+            data: data.account,
+          };
+        } catch (e) {
+          return { error: e };
+        }
+      },
+    }),
     getApp: builder.query({
       queryFn: async (arg: { address: string; chainId: string }, api) => {
         try {
@@ -205,4 +298,7 @@ export const {
   useGetAppQuery,
   useGetChainsMapQuery,
   useGetNodeQuery,
+  useGetMorseClaimableAccountQuery,
+  useLazyGetMorseClaimableAccountQuery,
+  useLazyGetShannonAccountQuery,
 } = poktApi;

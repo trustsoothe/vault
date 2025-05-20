@@ -37,7 +37,7 @@ export const headerHeight = 64;
 
 export const HeaderContainer = styled(Stack)<StackProps>(() => ({
   width: "100%",
-  padding: "16px",
+  padding: "10px 12px",
   flexDirection: "row",
   height: headerHeight,
   alignItems: "center",

@@ -70,6 +70,10 @@ export const RequestPersonalSignExists = createError(
   -32602,
   "There is a pending personal sign request from this origin and protocol."
 );
+export const RequestBulkPersonalSignExists = createError(
+  -32602,
+  "There is a pending bulk personal sign request from this origin and protocol."
+);
 
 export const RequestStakeNodeExists = createError(
   -32602,
@@ -111,6 +115,14 @@ export const RequestDaoTransferExists = createError(
 export const RequestUpgradeExists = createError(
   -32602,
   "There is a pending upgrade transaction request from this origin and protocol."
+);
+export const RequestSignTransactionExists = createError(
+  -32602,
+  "There is a pending sign transaction request from this origin and protocol."
+);
+export const SignTransactionOnlyAcceptsOne = createError(
+  -32602,
+  "The request `pokt_signTransaction` only accepts one transaction at a time, please use `pokt_bulkSignTransaction` instead."
 );
 export const RequestPublicKeyExists = createError(
   -32602,

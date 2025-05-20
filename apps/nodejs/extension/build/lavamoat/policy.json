@@ -1,5 +1,17 @@
 {
   "resources": {
+    "@soothe/vault>@bufbuild/protobuf": {
+      "globals": {
+        "AsyncIterator": true,
+        "TextDecoder": true,
+        "TextEncoder": true,
+        "__values": true,
+        "process": true
+      },
+      "packages": {
+        "process": true
+      }
+    },
     "@soothe/vault>@cosmjs/amino": {
       "packages": {
         "@soothe/vault>@cosmjs/crypto": true,
@@ -22,6 +34,16 @@
         "crypto-browserify": true,
         "@soothe/vault>@cosmjs/crypto>elliptic": true,
         "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo": true
+      }
+    },
+    "@poktscan/vault-siwp>@cosmjs/encoding": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true
+      },
+      "packages": {
+        "buffer>base64-js": true,
+        "@soothe/vault>@cosmjs/encoding>bech32": true
       }
     },
     "@soothe/vault>@cosmjs/encoding": {
@@ -390,6 +412,14 @@
         "react": true
       }
     },
+    "@poktscan/vault-siwp>@noble/curves": {
+      "globals": {
+        "TextEncoder": true
+      },
+      "packages": {
+        "@poktscan/vault-siwp>@noble/hashes": true
+      }
+    },
     "ethereum-cryptography>@noble/curves": {
       "globals": {
         "TextEncoder": true
@@ -410,6 +440,13 @@
         "crypto": true
       }
     },
+    "@poktscan/vault-siwp>@noble/hashes": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
     "@scure/bip39>@noble/hashes": {
       "globals": {
         "TextEncoder": true,
@@ -426,6 +463,23 @@
       "globals": {
         "TextEncoder": true,
         "crypto": true
+      }
+    },
+    "@poktscan/vault-siwp": {
+      "globals": {
+        "Buffer.from": true,
+        "TextEncoder": true,
+        "console.error": true,
+        "console.log": true,
+        "crypto.subtle.digest": true
+      },
+      "packages": {
+        "@poktscan/vault-siwp>@cosmjs/encoding": true,
+        "@poktscan/vault-siwp>@noble/curves": true,
+        "@poktscan/vault-siwp>@noble/hashes": true,
+        "@poktscan/vault-siwp>apg-js": true,
+        "buffer": true,
+        "@poktscan/vault-siwp>valid-url": true
       }
     },
     "@mui/base>@popperjs/core": {
@@ -511,10 +565,12 @@
         "atob": true,
         "btoa": true,
         "console.error": true,
+        "console.log": true,
         "crypto": true,
         "fetch": true
       },
       "packages": {
+        "@soothe/vault>@bufbuild/protobuf": true,
         "@soothe/vault>@cosmjs/amino": true,
         "@soothe/vault>@cosmjs/crypto": true,
         "@soothe/vault>@cosmjs/encoding": true,
@@ -557,6 +613,11 @@
       "packages": {
         "@soothe/vault": true,
         "webextension-polyfill": true
+      }
+    },
+    "@poktscan/vault-siwp>apg-js": {
+      "packages": {
+        "buffer": true
       }
     },
     "crypto-browserify>public-encrypt>parse-asn1>asn1.js": {

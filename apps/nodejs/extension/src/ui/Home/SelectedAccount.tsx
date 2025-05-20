@@ -26,6 +26,7 @@ import { ACTIVITY_PAGE } from "../../constants/routes";
 import SendCoinsModal from "../Transaction/SendCoinsModal";
 import useDidMountEffect from "../hooks/useDidMountEffect";
 import useBalanceAndUsdPrice from "../hooks/useBalanceAndUsdPrice";
+import MigrateAccountDialog from "../Migration/MigrateAccount/MigrateAccountDialog";
 
 export default function SelectedAccount() {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ export default function SelectedAccount() {
   const selectedAsset = useSelectedAsset();
   const [isSwapping, setIsSwapping] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showMigrateModal, setShowMigrateModal] = useState(false);
   const {
     balance,
     usdBalance,
@@ -79,6 +81,10 @@ export default function SelectedAccount() {
     setShowSendModal(true);
   };
 
+  const openMigrateModal = () => setShowMigrateModal(true);
+
+  const closeMigrateModal = () => setShowMigrateModal(false);
+
   const closeSendModal = () => {
     setShowSendModal(false);
 
@@ -103,6 +109,10 @@ export default function SelectedAccount() {
         open={showSendModal}
         onClose={closeSendModal}
         isSwapping={isSwapping}
+      />
+      <MigrateAccountDialog
+        open={showMigrateModal}
+        onClose={closeMigrateModal}
       />
       <GrayContainer>
         {isLoadingBalance ? (
@@ -191,9 +201,9 @@ export default function SelectedAccount() {
             <SendIcon />
           </Button>
           {(selectedAccount?.protocol === SupportedProtocols.Pocket ||
-            selectedAsset?.symbol === "WPOKT") && (
-            <Button disabled={isSwapDisabled} onClick={initSwap}>
-              <span>Swap</span>
+            selectedAccount?.protocol === SupportedProtocols.Cosmos) && (
+            <Button onClick={openMigrateModal}>
+              <span>Migrate</span>
               <SwapIcon />
             </Button>
           )}

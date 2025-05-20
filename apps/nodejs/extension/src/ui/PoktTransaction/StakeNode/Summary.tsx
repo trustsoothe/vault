@@ -33,6 +33,8 @@ interface StakeNodeSummaryProps {
     fetchingFee: boolean;
   };
   addValidation?: boolean;
+  hidePasswordInput?: boolean;
+  avoidFeeChecking?: boolean;
 }
 
 export default function StakeNodeSummary({
@@ -48,13 +50,17 @@ export default function StakeNodeSummary({
   outputAddress,
   memo,
   addValidation = true,
+  hidePasswordInput = false,
+  avoidFeeChecking = false,
 }: StakeNodeSummaryProps) {
   const { coinSymbol, usdPrice, isLoading } = useUsdPrice({
     protocol: SupportedProtocols.Pocket,
     chainId,
   });
 
-  const [nodeAddress, setNodeAddress] = useState(nodeAddressFromProps || "");
+  const [nodeAddress, setNodeAddress] = useState(
+    nodeAddressFromProps || fromAddress
+  );
 
   const { node, isSuccess } = useGetNode(nodeAddress, chainId);
 
@@ -88,28 +94,34 @@ export default function StakeNodeSummary({
           },
         },
       },
-      {
-        type: "row",
-        label: "Fee",
-        value: `${fee.fee?.value || 0} ${coinSymbol}`,
-      },
-      {
-        type: "row",
-        label: "Service URL",
-        value: serviceURL,
-      },
-      {
-        type: "row",
-        label: "Node Address",
-        value: (
-          <AccountInfoFromAddress
-            address={nodeAddress}
-            protocol={SupportedProtocols.Pocket}
-          />
-        ),
-      },
     ],
   };
+
+  if (fee) {
+    firstSummary.rows.push({
+      type: "row",
+      label: "Fee",
+      value: `${fee.fee?.value || 0} ${coinSymbol}`,
+    });
+  }
+
+  firstSummary.rows.push(
+    {
+      type: "row",
+      label: "Service URL",
+      value: serviceURL,
+    },
+    {
+      type: "row",
+      label: "Node Address",
+      value: (
+        <AccountInfoFromAddress
+          address={nodeAddress}
+          protocol={SupportedProtocols.Pocket}
+        />
+      ),
+    }
+  );
 
   if (outputAddress || fromAddress !== nodeAddress) {
     firstSummary.rows.push({
@@ -233,6 +245,7 @@ export default function StakeNodeSummary({
       <SummaryValidator
         chainId={chainId}
         fromAddress={fromAddress}
+        avoidFeeChecking={avoidFeeChecking}
         amount={amount - Number(node?.tokens || 0) / 1e6}
         customValidation={() => {
           if (!node && !isSuccess) {
@@ -248,8 +261,12 @@ export default function StakeNodeSummary({
       >
         {summaryComponent}
       </SummaryValidator>
-      <CheckInput />
-      <VaultPasswordInput />
+      {!hidePasswordInput && (
+        <>
+          <CheckInput />
+          <VaultPasswordInput />
+        </>
+      )}
     </>
   );
 }

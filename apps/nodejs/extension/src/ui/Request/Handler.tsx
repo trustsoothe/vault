@@ -12,6 +12,8 @@ import { useAppSelector } from "../hooks/redux";
 import BackButton from "../Header/BackButton";
 import { WIDTH } from "../../constants/ui";
 import {
+  BULK_PERSONAL_SIGN_REQUEST,
+  BULK_SIGN_TRANSACTION_REQUEST,
   CHANGE_PARAM_REQUEST,
   CONNECTION_REQUEST_MESSAGE,
   DAO_TRANSFER_REQUEST,
@@ -30,10 +32,12 @@ import {
 } from "../../constants/communication";
 import RequestHeader from "./Header";
 import {
+  BULK_PERSONAL_SIGN_PAGE,
   CHANGE_SELECTED_CHAIN_PAGE,
   PERSONAL_SIGN_PAGE,
   POKT_TRANSACTION_PAGE,
   REQUEST_CONNECTION_PAGE,
+  SIGN_TRANSACTIONS_PAGE,
   SIGN_TYPED_DATA_PAGE,
   TRANSFER_PAGE,
 } from "../../constants/routes";
@@ -78,6 +82,10 @@ export default function Handler() {
         }
         case PERSONAL_SIGN_REQUEST: {
           navigate(PERSONAL_SIGN_PAGE, { state: currentRequest });
+          break;
+        }
+        case BULK_PERSONAL_SIGN_REQUEST: {
+          navigate(BULK_PERSONAL_SIGN_PAGE, { state: currentRequest });
           break;
         }
         case STAKE_NODE_REQUEST:
@@ -135,6 +143,10 @@ export default function Handler() {
             state: state,
           });
 
+          break;
+        }
+        case BULK_SIGN_TRANSACTION_REQUEST: {
+          navigate(SIGN_TRANSACTIONS_PAGE, { state: currentRequest });
           break;
         }
       }

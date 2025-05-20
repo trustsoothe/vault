@@ -13,6 +13,8 @@ import type {
   AnswerNewAccountRes,
 } from "../../types/communications/newAccount";
 import type {
+  AnswerBulkPersonalSignReq,
+  AnswerBulkPersonalSignRes,
   AnswerPersonalSignReq,
   AnswerPersonalSignRes,
 } from "../../types/communications/personalSign";
@@ -69,6 +71,8 @@ import type {
   ImportHdWalletRes,
 } from "../../types/communications/hdWallet";
 import type {
+  AnswerBulkSignTransactionReq,
+  AnswerBulkSignTransactionRes,
   AnswerChangeParamReq,
   AnswerChangeParamRes,
   AnswerDaoTransferReq,
@@ -93,9 +97,12 @@ import type {
 import type { AnswerPublicKeyReq } from "../../types/communications/publicKey";
 import browser from "webextension-polyfill";
 import {
+  ANSWER_BULK_PERSONAL_SIGN_REQUEST,
+  ANSWER_BULK_SIGN_TRANSACTION_REQUEST,
   ANSWER_CHANGE_PARAM_REQUEST,
   ANSWER_CONNECTION_REQUEST,
   ANSWER_DAO_TRANSFER_REQUEST,
+  ANSWER_MIGRATE_MORSE_ACCOUNT_REQUEST,
   ANSWER_NEW_ACCOUNT_REQUEST,
   ANSWER_PERSONAL_SIGN_REQUEST,
   ANSWER_PUBLIC_KEY_REQUEST,
@@ -131,6 +138,10 @@ import {
   UPDATE_ACCOUNT_REQUEST,
   UPDATE_RECOVERY_PHRASE_REQUEST,
 } from "../../constants/communication";
+import {
+  AnswerMigrateMorseAccountReq,
+  AnswerMigrateMorseAccountRes,
+} from "../../types/communications/migration";
 
 export default class AppToBackground {
   static async answerConnection(
@@ -301,6 +312,17 @@ export default class AppToBackground {
     return browser.runtime.sendMessage(message);
   }
 
+  static async answerBulkPersonalSign(
+    data: AnswerBulkPersonalSignReq["data"]
+  ): Promise<AnswerBulkPersonalSignRes> {
+    const message: AnswerBulkPersonalSignReq = {
+      data,
+      type: ANSWER_BULK_PERSONAL_SIGN_REQUEST,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
   static async exportVault(
     data: ExportVaultReq["data"]
   ): Promise<ExportVaultRes> {
@@ -391,6 +413,17 @@ export default class AppToBackground {
   ): Promise<GetRecoveryPhraseIdRes> {
     const message: GetRecoveryPhraseIdReq = {
       type: GET_RECOVERY_PHRASE_ID_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async migrateMorseAccount(
+    data: AnswerMigrateMorseAccountReq["data"]
+  ): Promise<AnswerMigrateMorseAccountRes> {
+    const message: AnswerMigrateMorseAccountReq = {
+      type: ANSWER_MIGRATE_MORSE_ACCOUNT_REQUEST,
       data,
     };
 
@@ -490,6 +523,17 @@ export default class AppToBackground {
   ): Promise<AnswerUpgradeRes> {
     const message: AnswerUpgradeReq = {
       type: ANSWER_UPGRADE_REQUEST,
+      data,
+    };
+
+    return browser.runtime.sendMessage(message);
+  }
+
+  static async signTransactions(
+    data: AnswerBulkSignTransactionReq["data"]
+  ): Promise<AnswerBulkSignTransactionRes> {
+    const message: AnswerBulkSignTransactionReq = {
+      type: ANSWER_BULK_SIGN_TRANSACTION_REQUEST,
       data,
     };
 

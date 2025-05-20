@@ -1,22 +1,23 @@
-import { afterEach, describe, expect, test, beforeAll, afterAll } from 'vitest'
+import {afterAll, afterEach, beforeAll, describe, expect, test} from 'vitest'
 import {
   AccountReference,
   ArgumentError,
-  IEncryptionService,
-  INetwork,
   CosmosProtocolService,
   CosmosProtocolTransaction,
-  CosmosTransactionTypes, SignPersonalDataRequest,
+  CosmosTransactionTypes,
+  IEncryptionService,
+  INetwork,
+  SignPersonalDataRequest,
   SupportedProtocols,
 } from '@soothe/vault'
-import { WebEncryptionService } from '@soothe/vault-encryption-web'
+import {WebEncryptionService} from '@soothe/vault-encryption-web'
 import ProtocolServiceSpecFactory from '../IProtocolService.specFactory'
-import { setupServer } from 'msw/node'
+import {setupServer} from 'msw/node'
 import {
-  sendTransactionHandlerFactory,
-  queryStatusHandlerFactory,
   queryAccountHandlerFactory,
+  queryStatusHandlerFactory,
   queryTransactionHandlerFactory,
+  sendTransactionHandlerFactory,
 } from '../../../../../mocks/cosmos'
 
 describe('CosmosProtocolService', () => {
@@ -83,15 +84,20 @@ describe('CosmosProtocolService', () => {
         const transaction: CosmosProtocolTransaction = {
           protocol: SupportedProtocols.Cosmos,
           transactionType: CosmosTransactionTypes.Send,
-          from: accountImport.address,
-          to: account.address,
+          from: '',
+          to: '',
+          amount: '',
+          messages: [
+            {
+              type: CosmosTransactionTypes.Send,
+              payload: {
+                fromAddress: accountImport.address,
+                toAddress: account.address,
+                amount: "1",
+              },
+            }
+          ],
           privateKey: accountImport.privateKey,
-          amount: '100',
-          fee: {
-            protocol: SupportedProtocols.Cosmos,
-            value: 0,
-            denom: 'upokt',
-          },
         }
 
         const result = await protocolService.sendTransaction(network, transaction)

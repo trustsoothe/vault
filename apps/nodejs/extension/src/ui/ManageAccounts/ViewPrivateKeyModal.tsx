@@ -177,7 +177,7 @@ export default function ViewPrivateKeyModal({
               )}
             />
           </DialogContent>
-          <DialogActions sx={{ height: 85, padding: 0 }}>
+          <DialogActions sx={{ padding: 0, height: 56 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Reveal",
@@ -276,7 +276,7 @@ export default function ViewPrivateKeyModal({
               </Stack>
             </Stack>
           </DialogContent>
-          <DialogActions sx={{ height: 85, padding: 0 }}>
+          <DialogActions sx={{ padding: 0, height: 56 }}>
             <DialogButtons
               primaryButtonProps={{
                 children: "Done",

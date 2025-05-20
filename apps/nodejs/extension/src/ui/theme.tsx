@@ -9,6 +9,7 @@ export const themeColors = Object.freeze({
   primary: "#3739b9",
   dark_primary: "#242689",
   bgLightGray: "#f7f8f9",
+  bgLightGray2: "#fafafa",
   borderLightGray: "#eff1f4",
   white: "#ffffff",
   black: "#11161c",
@@ -213,7 +214,7 @@ const theme = createTheme({
             backgroundColor: themeColors.borderLightGray,
             "& path": {
               fill: themeColors.gray,
-            }
+            },
           },
         },
         contained: {
