@@ -33,11 +33,11 @@ import useSelectedAsset from "../Home/hooks/useSelectedAsset";
 import ConnectionStatus from "./ConnectionStatus";
 import Menu from "./Menu";
 
-export const headerHeight = 64;
+export const headerHeight = 48;
 
 export const HeaderContainer = styled(Stack)<StackProps>(() => ({
   width: "100%",
-  padding: "10px 12px",
+  padding: "0px 12px",
   flexDirection: "row",
   height: headerHeight,
   alignItems: "center",

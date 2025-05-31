@@ -170,7 +170,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
     ]);
 
     const selectedProtocol =
-      response[SELECTED_NETWORK_KEY] || SupportedProtocols.Pocket;
+      response[SELECTED_NETWORK_KEY] || SupportedProtocols.Cosmos;
     const selectedAccountByProtocol = {
       ...(response[SELECTED_ACCOUNTS_KEY] || {}),
     };
@@ -186,6 +186,7 @@ export const loadSelectedNetworkAndAccount = createAsyncThunk(
     const selectedChainByProtocol = {
       [SupportedProtocols.Pocket]: "mainnet",
       [SupportedProtocols.Ethereum]: "1",
+      [SupportedProtocols.Cosmos]: "pocket",
     };
     const savedSelectedChain = response[SELECTED_CHAINS_KEY] || {};
     const sessionMaxAge =

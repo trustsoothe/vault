@@ -63,13 +63,13 @@ export default function RequestInfo({
   title,
   description,
   origin,
-  paddingBottom = 1.2,
+  paddingBottom = 0.8,
   paddingTop = 0.4,
 }: RequestInfoProps) {
   return (
     <Stack
-      paddingTop={title || description ? paddingTop : paddingTop + 0.6}
-      paddingX={1.6}
+      paddingTop={title || description ? paddingTop : paddingTop + 0.4}
+      paddingX={1.2}
       paddingBottom={paddingBottom}
       bgcolor={themeColors.bgLightGray}
       borderBottom={`1px solid ${themeColors.borderLightGray}`}
