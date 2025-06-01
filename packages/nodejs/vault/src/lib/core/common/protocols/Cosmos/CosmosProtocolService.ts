@@ -32,7 +32,7 @@ import {
   PocketShannonProtocolNetworkSchema,
   PocketShannonRpcCanSendTransactionResponseSchema,
 } from './schemas'
-import { calculateFee, SigningStargateClient, StargateClient, TimeoutError } from '@cosmjs/stargate'
+import { calculateFee, SigningStargateClient, StargateClient, TimeoutError, setupBankExtension, QueryClient } from '@cosmjs/stargate'
 import { makeCosmoshubPath } from '@cosmjs/amino'
 import { validateMnemonic } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english'
@@ -45,6 +45,7 @@ import { CosmosFeeRequestOption } from './CosmosFeeRequestOption'
 import { Buffer } from 'buffer'
 import { GeneratedType } from '@cosmjs/proto-signing/build/registry'
 import { MsgClaimMorseAccount, MsgClaimMorseSupplier } from './pocket/client/pocket/migration/tx'
+import {Comet38Client} from "@cosmjs/tendermint-rpc";
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos> {
@@ -188,22 +189,36 @@ export class CosmosProtocolService
     return account.address
   }
 
-  async getBalance(account: AccountReference, network: INetwork, asset?: IAsset): Promise<number> {
-    this.validateNetwork(network)
+  async getBalance(
+    account: AccountReference,
+    network: INetwork,
+    asset?: IAsset
+  ): Promise<number> {
+    this.validateNetwork(network);
 
     try {
-      const client = await StargateClient.connect(network.rpcUrl)
-      const balances = await client.getAllBalances(account.address)
-      const upoktBalance = balances.find((balance) => balance.denom === 'upokt')
+      const rpcEndpoint = network.rpcUrl.replace(/\/+$/, "");
+      const tmClient = await Comet38Client.connect(rpcEndpoint);
 
-      if (!upoktBalance) {
-        return 0
-      }
+      const queryClient = QueryClient.withExtensions(
+        tmClient,
+        setupBankExtension
+      );
 
-      return parseInt(upoktBalance.amount)
+      const balResponse = await queryClient.bank.allBalances(
+        account.address
+      );
+
+      const upokt = balResponse.find(
+        (b: { denom: string }) => b.denom === "upokt"
+      );
+
+      tmClient.disconnect();
+
+      return upokt ? parseInt(upokt.amount, 10) : 0;
     } catch (err) {
-      console.error(err)
-      throw new NetworkRequestError('Failed to fetch balance')
+      console.error(err);
+      throw new NetworkRequestError("Failed to fetch balance");
     }
   }
 
