@@ -32,7 +32,15 @@ import {
   PocketShannonProtocolNetworkSchema,
   PocketShannonRpcCanSendTransactionResponseSchema,
 } from './schemas'
-import { calculateFee, SigningStargateClient, StargateClient, TimeoutError, setupBankExtension, QueryClient } from '@cosmjs/stargate'
+import {
+  calculateFee,
+  SigningStargateClient,
+  StargateClient,
+  TimeoutError,
+  setupBankExtension,
+  QueryClient,
+  setupAuthExtension
+} from '@cosmjs/stargate'
 import { makeCosmoshubPath } from '@cosmjs/amino'
 import { validateMnemonic } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english'
@@ -45,7 +53,8 @@ import { CosmosFeeRequestOption } from './CosmosFeeRequestOption'
 import { Buffer } from 'buffer'
 import { GeneratedType } from '@cosmjs/proto-signing/build/registry'
 import { MsgClaimMorseAccount, MsgClaimMorseSupplier } from './pocket/client/pocket/migration/tx'
-import {Comet38Client} from "@cosmjs/tendermint-rpc";
+import {Comet38Client, GenesisResponse} from "@cosmjs/tendermint-rpc";
+import {BaseAccount} from "./pocket/client/cosmos/auth/v1beta1/auth";
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos> {
@@ -428,76 +437,119 @@ export class CosmosProtocolService
 
   async signTransaction(
     network: INetwork,
-    transaction: CosmosProtocolTransaction,
+    transaction: CosmosProtocolTransaction
   ): Promise<SignTransactionResult> {
     if (!network) {
-      throw new ArgumentError('network')
+      throw new ArgumentError("network");
     }
-
     if (!transaction) {
-      throw new ArgumentError('transaction')
+      throw new ArgumentError("transaction");
     }
-
-    const { success } = CosmosProtocolTransactionSchema.safeParse(transaction)
-
+    const { success } = CosmosProtocolTransactionSchema.safeParse(transaction);
     if (!success) {
-      throw new ArgumentError('transaction')
+      throw new ArgumentError("transaction");
     }
 
     try {
-      const { privateKey } = transaction
-
-      const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), 'pokt')
-
-      const [{ address: signerAddress, pubkey: signerPublicKey }] = await wallet.getAccounts()
-
+      const { privateKey } = transaction;
+      const wallet = await DirectSecp256k1Wallet.fromKey(
+        fromHex(privateKey),
+        "pokt" // your prefix
+      );
+      const [{ address: signerAddress, pubkey: signerPublicKey }] = await wallet.getAccounts();
       const expectedSignerOnMessages = transaction.messages.map(({ type, payload }) => {
         switch (type) {
           case CosmosTransactionTypes.Send:
-            return MsgSendSchema.parse(payload).fromAddress
+            return MsgSendSchema.parse(payload).fromAddress;
           case CosmosTransactionTypes.StakeSupplier:
-            return MsgStakeSupplierSchema.parse(payload).signer
+            return MsgStakeSupplierSchema.parse(payload).signer;
           case CosmosTransactionTypes.UnstakeSupplier:
-            return MsgUnstakeSupplierSchema.parse(payload).signer
+            return MsgUnstakeSupplierSchema.parse(payload).signer;
           case CosmosTransactionTypes.ClaimSupplier:
-            return MsgClaimSupplierSchema.parse(payload).shannonSigningAddress
+            return MsgClaimSupplierSchema.parse(payload).shannonSigningAddress;
           case CosmosTransactionTypes.ClaimAccount:
-            return MsgClaimAccountSchema.parse(payload).shannonSigningAddress
+            return MsgClaimAccountSchema.parse(payload).shannonSigningAddress;
         }
-      })
-
-      if (expectedSignerOnMessages.some(signer => signer !== signerAddress)) {
-        throw new Error(`The provided private key does not match one or more of the expected message signers. Derived: ${signerAddress}, Provided List: ${expectedSignerOnMessages.join(', ')}`)
+      });
+      if (expectedSignerOnMessages.some((s) => s !== signerAddress)) {
+        throw new Error(
+          `The provided private key does not match one or more of the expected message signers. Derived: ${signerAddress}, Provided List: ${expectedSignerOnMessages.join(
+            ", "
+          )}`
+        );
       }
 
-      const client = await this.getSigningClient(network.rpcUrl, wallet)
+      const rpcEndpoint = network.rpcUrl.replace(/\/+$/, "");
+      const tmClient = await Comet38Client.connect(rpcEndpoint);
+      const queryClient = QueryClient.withExtensions(tmClient, setupAuthExtension)
+      const accountResponse = await queryClient.auth.account(signerAddress);
 
-      const messages = this.buildMessages(transaction)
+      if (!accountResponse) {
+        throw new Error(`Account ${signerAddress} does not exist on-chain.`);
+      }
+
+      if (accountResponse.typeUrl !== "/cosmos.auth.v1beta1.BaseAccount") {
+        throw new Error(
+          `Unsupported account type: ${accountResponse.typeUrl}. Expected BaseAccount.`
+        );
+      }
+
+      const baseAccount = BaseAccount.decode(accountResponse.value);
+      const accountNumber = Number(baseAccount.accountNumber);
+      const sequence = Number(baseAccount.sequence);
+      const genesis: GenesisResponse = await tmClient.genesis();
+      const chainId = genesis.chainId;
+
+      const messages = this.buildMessages(transaction);
 
       const { estimatedGas, gasAdjustmentUsed, gasPriceUsed } = await this.getFee(network, {
         protocol: SupportedProtocols.Cosmos,
         transaction,
-      })
+      });
 
-      const fee = calculateFee(Math.ceil(estimatedGas * gasAdjustmentUsed), `${gasPriceUsed}upokt`)
+      const fee = calculateFee(
+        Math.ceil(estimatedGas * gasAdjustmentUsed),
+        `${gasPriceUsed}upokt`
+      );
 
-      const txRaw = await client.sign(signerAddress, messages, fee, transaction.memo ?? '')
+      const messagesRegistry = this.getMessagesRegistry();
 
-      const txBytes = TxRaw.encode(txRaw).finish()
+      const offlineClient = await SigningStargateClient.offline(wallet, {
+        registry: new Registry(messagesRegistry),
+      });
 
+      const signerData = {
+        accountNumber,
+        sequence,
+        chainId,
+      };
+      
+      const txRaw = await offlineClient.sign(
+        signerAddress,
+        messages,
+        fee,
+        transaction.memo ?? "",
+        signerData
+      );
+
+      tmClient.disconnect();
+
+      const txBytes = TxRaw.encode(txRaw).finish();
+      
       return {
-        transactionHex: Buffer.from(txBytes).toString('hex'),
-        publicKey: Buffer.from(signerPublicKey).toString('hex'),
+        transactionHex: Buffer.from(txBytes).toString("hex"),
+        publicKey: Buffer.from(signerPublicKey).toString("hex"),
         signature: Buffer.concat(txRaw.signatures),
         fee: Math.ceil(Math.ceil(estimatedGas * gasAdjustmentUsed) * gasPriceUsed).toString(),
         rawTx: this._getRawTxJson(txRaw),
-      }
+      };
     } catch (err) {
-      console.log('There has been an error while signing the transaction')
-      console.error(err)
-      throw err
+      console.log("There has been an error while signing the transaction");
+      console.error(err);
+      throw err;
     }
   }
+
 
   async validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.Cosmos>, network: INetwork): Promise<ValidateTransactionResult> {
     return new ValidateTransactionResult([])
@@ -531,18 +583,21 @@ export class CosmosProtocolService
   }
 
   private async getSigningClient(rpcUrl: string, wallet: DirectSecp256k1Wallet): Promise<SigningStargateClient> {
+    const registry = this.getMessagesRegistry();
+    return SigningStargateClient.connectWithSigner(rpcUrl, wallet, {
+      registry: new Registry(registry),
+    })
+  }
+
+  private getMessagesRegistry() {
     // we mark this as unknown as GeneratedType because those types are auto generated, and it is not worth to fix the type issue right now
-    const registry: Array<[string, GeneratedType]> = [
+    return [
       ['/cosmos.bank.v1beta1.MsgSend', MsgSend as unknown as GeneratedType],
       ['/pocket.supplier.MsgStakeSupplier', MsgStakeSupplier as unknown as GeneratedType],
       ['/pocket.supplier.MsgUnstakeSupplier', MsgUnstakeSupplier as unknown as GeneratedType],
       ['/pocket.migration.MsgClaimMorseSupplier', MsgClaimMorseSupplier as unknown as GeneratedType],
       ['/pocket.migration.MsgClaimMorseAccount', MsgClaimMorseAccount as unknown as GeneratedType],
-    ]
-
-    return SigningStargateClient.connectWithSigner(rpcUrl, wallet, {
-      registry: new Registry(registry),
-    })
+    ] as Array<[string, GeneratedType]>;
   }
 
   private _getRawTxJson(txRaw: TxRaw): string {

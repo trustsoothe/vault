@@ -9,6 +9,7 @@ inputs:
     types:
       - cosmos.tx.v1beta1
       - cosmos.bank.v1beta1.MsgSend
+      - cosmos.auth.v1beta1.BaseAccount
   - git_repo: https://github.com/pokt-network/poktroll.git
     branch: main
     subdir: proto
