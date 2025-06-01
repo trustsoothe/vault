@@ -42,6 +42,7 @@ import {
   TRANSFER_PAGE,
 } from "../../constants/routes";
 import AppToBackground from "../../controllers/communication/AppToBackground";
+import { SupportedProtocols } from "@soothe/vault";
 
 export default function Handler() {
   const navigate = useNavigate();
@@ -206,10 +207,25 @@ export default function Handler() {
       chainId = currentRequest.transactionData.chainId;
       break;
     }
+    case BULK_PERSONAL_SIGN_REQUEST:
     case PERSONAL_SIGN_REQUEST:
     case SIGN_TYPED_DATA_REQUEST: {
       address = currentRequest.address;
       break;
+    }
+    case BULK_SIGN_TRANSACTION_REQUEST: {
+      const tx = currentRequest.data.transactions.at(0);
+
+      if (tx.protocol === SupportedProtocols.Cosmos) {
+        address = tx.address;
+      } else if (tx.protocol === SupportedProtocols.Pocket) {
+        address =
+          "from" in tx.transaction
+            ? tx.transaction.from
+            : "address" in tx.transaction
+            ? tx.transaction.address
+            : undefined;
+      }
     }
   }
 

@@ -173,10 +173,19 @@ export default function PersonalSign() {
         label: "Website URL",
         value: siwpMessage.uri,
       },
-      {
-        type: "divider",
-      },
     ];
+
+    if (
+      siwpMessage.resources ||
+      siwpMessage.requestId ||
+      siwpMessage.issuedAt ||
+      siwpMessage.expirationTime ||
+      siwpMessage.notBefore
+    ) {
+      summaryRows.push({
+        type: "divider",
+      });
+    }
 
     if (siwpMessage.resources) {
       summaryRows.push({
@@ -252,28 +261,6 @@ export default function PersonalSign() {
         ),
       });
     }
-
-    summaryRows.push({
-      containerProps: {
-        alignItems: "flex-start",
-      },
-      type: "row",
-      label: "Nonce",
-      value: (
-        <Typography
-          width={280}
-          fontSize={11}
-          color={"black"}
-          marginTop={0.2}
-          textAlign={"right"}
-          sx={{
-            wordBreak: "break-all",
-          }}
-        >
-          {siwpMessage.nonce}
-        </Typography>
-      ),
-    });
 
     content = (
       <>
