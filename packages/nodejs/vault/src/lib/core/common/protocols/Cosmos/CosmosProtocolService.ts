@@ -39,9 +39,10 @@ import {
   TimeoutError,
   setupBankExtension,
   QueryClient,
-  setupAuthExtension
+  setupAuthExtension,
+  setupTxExtension,
 } from '@cosmjs/stargate'
-import { makeCosmoshubPath } from '@cosmjs/amino'
+import {encodeSecp256k1Pubkey, makeCosmoshubPath, Pubkey} from '@cosmjs/amino'
 import { validateMnemonic } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english'
 import { AuthInfo, TxBody, TxRaw } from './pocket/client/cosmos/tx/v1beta1/tx'
@@ -55,11 +56,11 @@ import { GeneratedType } from '@cosmjs/proto-signing/build/registry'
 import { MsgClaimMorseAccount, MsgClaimMorseSupplier } from './pocket/client/pocket/migration/tx'
 import {Comet38Client, GenesisResponse} from "@cosmjs/tendermint-rpc";
 import {BaseAccount} from "./pocket/client/cosmos/auth/v1beta1/auth";
+import {PubKey} from "./pocket/client/cosmos/crypto/secp256k1/keys";
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos> {
-  constructor(private encryptionService: IEncryptionService) {
-  }
+  constructor(private encryptionService: IEncryptionService) {}
 
   async createAccount(options: CreateAccountOptions): Promise<Account> {
     const privateKey = Random.getBytes(32)
@@ -211,7 +212,7 @@ export class CosmosProtocolService
 
       const queryClient = QueryClient.withExtensions(
         tmClient,
-        setupBankExtension
+        setupBankExtension,
       );
 
       const balResponse = await queryClient.bank.allBalances(
@@ -232,36 +233,76 @@ export class CosmosProtocolService
   }
 
   async getFee(network: INetwork, options: CosmosFeeRequestOption): Promise<CosmosFee> {
-    const { transaction } = options
+    const { transaction } = options;
 
     if (!network) {
-      throw new ArgumentError('network')
+      throw new ArgumentError("network");
     }
-
     if (!transaction) {
-      throw new ArgumentError('transaction')
+      throw new ArgumentError("transaction");
     }
 
-    let estimatedGas = 80000
-    let gasAdjustmentUsed = transaction.gasAdjustment ?? 1.5
-    let gasPriceUsed = Number(transaction.gasPrice ?? 0.001)
-    let value = 0
+    let estimatedGas = 80000;
+    let gasAdjustmentUsed = transaction.gasAdjustment ?? 1.5;
+    let gasPriceUsed = Number(transaction.gasPrice ?? 0.001);
+    let value = 0;
 
     try {
-      const privateKey = transaction.privateKey ?? Buffer.from(Random.getBytes(32)).toString('hex')
-      const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privateKey), 'pokt')
+      const rpcEndpoint = network.rpcUrl.replace(/\/+$/, "");
+      const tmClient = await Comet38Client.connect(rpcEndpoint);
 
-      const [{ address: signerAddress }] = await wallet.getAccounts()
+      const queryClient = QueryClient.withExtensions(
+        tmClient,
+        setupAuthExtension,
+        setupTxExtension
+      );
 
-      const client = await this.getSigningClient(network.rpcUrl, wallet)
+      const messages = this.buildMessages(transaction);
 
-      const messages = this.buildMessages(transaction)
+      let signerAddress = this.extractSignerAddressFromMessages(messages);
 
-      estimatedGas = await client.simulate(signerAddress, messages, transaction.memo ?? '')
+      if (!signerAddress) {
+        throw new Error('Could not determine signer address from transaction');
+      }
 
-      const amountInUpokt = Math.ceil(Math.ceil(estimatedGas * gasAdjustmentUsed) * gasPriceUsed)
+      const accountAny = await queryClient.auth.account(signerAddress);
 
-      value = (amountInUpokt / 1e6)
+      if (!accountAny || accountAny.typeUrl !== "/cosmos.auth.v1beta1.BaseAccount") {
+        throw new Error(`Cannot fetch BaseAccount for ${signerAddress}`);
+      }
+
+      const baseAccount = BaseAccount.decode(accountAny.value);
+
+      const sequence = Number(baseAccount.sequence);
+
+      if (!baseAccount?.pubKey) {
+        throw new Error(`Cannot fetch public key for ${signerAddress}`);
+      }
+
+      const rawProtobufPubKeyBytes = baseAccount?.pubKey.value;
+      const decodedPubKey = PubKey.decode(rawProtobufPubKeyBytes);
+      const aminoPubkey: Pubkey = encodeSecp256k1Pubkey(decodedPubKey.key);
+      const registryEntries: Array<[string, GeneratedType]> = this.getMessagesRegistry();
+      const protoRegistry = new Registry(registryEntries);
+      const encodedMsgs = messages.map((msg) => protoRegistry.encodeAsAny(msg));
+
+      const simulateResponse = await queryClient.tx.simulate(
+        encodedMsgs,
+        transaction.memo ?? "",
+        aminoPubkey,
+        sequence
+      );
+
+      if (simulateResponse.gasInfo?.gasUsed) {
+        estimatedGas = Number(simulateResponse.gasInfo.gasUsed);
+      }
+
+      const amountInUpokt = Math.ceil(
+        Math.ceil(estimatedGas * gasAdjustmentUsed) * gasPriceUsed
+      );
+      value = amountInUpokt / 1e6;
+
+      tmClient.disconnect();
 
       return {
         protocol: SupportedProtocols.Cosmos,
@@ -269,18 +310,18 @@ export class CosmosProtocolService
         gasAdjustmentUsed,
         gasPriceUsed,
         value,
-      }
+      };
     } catch (err) {
-      console.error(err)
-      const amountInUpokt = Math.ceil(estimatedGas * Number(gasPriceUsed))
-      const value = (amountInUpokt / 1e6)
+      console.error(err);
+      const amountInUpokt = Math.ceil(estimatedGas * gasPriceUsed);
+      const fallbackValue = amountInUpokt / 1e6;
       return {
         protocol: SupportedProtocols.Cosmos,
         estimatedGas,
         gasAdjustmentUsed,
         gasPriceUsed,
-        value,
-      }
+        value: fallbackValue,
+      };
     }
   }
 
@@ -384,49 +425,6 @@ export class CosmosProtocolService
     }
   }
 
-  private buildMessages(transaction: CosmosProtocolTransaction) {
-    return transaction.messages.map(({ type, payload }) => {
-      switch (type) {
-        case CosmosTransactionTypes.Send:
-          return {
-            typeUrl: CosmosTransactionTypeUrlMap[type],
-            value: MsgSend.fromJSON({
-              ...MsgSendSchema.parse(payload),
-            }),
-          }
-        case CosmosTransactionTypes.StakeSupplier:
-          return {
-            typeUrl: CosmosTransactionTypeUrlMap[type],
-            value: MsgStakeSupplier.fromJSON({
-              ...MsgStakeSupplierSchema.parse(payload),
-            }),
-          }
-        case CosmosTransactionTypes.UnstakeSupplier:
-          return {
-            typeUrl: CosmosTransactionTypeUrlMap[type],
-            value: MsgUnstakeSupplier.fromJSON({
-              ...MsgUnstakeSupplierSchema.parse(payload),
-            }),
-          }
-        case CosmosTransactionTypes.ClaimSupplier:
-          return {
-            typeUrl: CosmosTransactionTypeUrlMap[type],
-            value: MsgClaimMorseSupplier.fromJSON({
-              ...MsgClaimSupplierSchema.parse(payload),
-            }),
-          }
-        case CosmosTransactionTypes.ClaimAccount: {
-          return {
-            typeUrl: CosmosTransactionTypeUrlMap[type],
-            value: MsgClaimMorseAccount.fromJSON({
-              ...MsgClaimAccountSchema.parse(payload),
-            }),
-          }
-        }
-      }
-    })
-  }
-
   async signPersonalData(request: SignPersonalDataRequest): Promise<string> {
     const { privateKey, challenge } = request
     const privateKeyBytes = fromHex(privateKey)
@@ -471,6 +469,7 @@ export class CosmosProtocolService
             return MsgClaimAccountSchema.parse(payload).shannonSigningAddress;
         }
       });
+
       if (expectedSignerOnMessages.some((s) => s !== signerAddress)) {
         throw new Error(
           `The provided private key does not match one or more of the expected message signers. Derived: ${signerAddress}, Provided List: ${expectedSignerOnMessages.join(
@@ -550,7 +549,6 @@ export class CosmosProtocolService
     }
   }
 
-
   async validateTransaction(transaction: ProtocolTransaction<SupportedProtocols.Cosmos>, network: INetwork): Promise<ValidateTransactionResult> {
     return new ValidateTransactionResult([])
   }
@@ -580,13 +578,6 @@ export class CosmosProtocolService
       console.error(error)
       throw new ArgumentError('network')
     }
-  }
-
-  private async getSigningClient(rpcUrl: string, wallet: DirectSecp256k1Wallet): Promise<SigningStargateClient> {
-    const registry = this.getMessagesRegistry();
-    return SigningStargateClient.connectWithSigner(rpcUrl, wallet, {
-      registry: new Registry(registry),
-    })
   }
 
   private getMessagesRegistry() {
@@ -647,6 +638,79 @@ export class CosmosProtocolService
         return MsgClaimMorseAccount.decode(message.value)
       default:
         throw new Error(`Unknown message type: ${message.typeUrl}`)
+    }
+  }
+
+  private buildMessages(transaction: CosmosProtocolTransaction) {
+    return transaction.messages.map(({ type, payload }) => {
+      switch (type) {
+        case CosmosTransactionTypes.Send:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgSend.fromJSON({
+              ...MsgSendSchema.parse(payload),
+            }),
+          }
+        case CosmosTransactionTypes.StakeSupplier:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgStakeSupplier.fromJSON({
+              ...MsgStakeSupplierSchema.parse(payload),
+            }),
+          }
+        case CosmosTransactionTypes.UnstakeSupplier:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgUnstakeSupplier.fromJSON({
+              ...MsgUnstakeSupplierSchema.parse(payload),
+            }),
+          }
+        case CosmosTransactionTypes.ClaimSupplier:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgClaimMorseSupplier.fromJSON({
+              ...MsgClaimSupplierSchema.parse(payload),
+            }),
+          }
+        case CosmosTransactionTypes.ClaimAccount: {
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgClaimMorseAccount.fromJSON({
+              ...MsgClaimAccountSchema.parse(payload),
+            }),
+          }
+        }
+      }
+    })
+  }
+
+  private extractSignerAddressFromMessages(messages: { typeUrl: string; value: any }[]) {
+    for (const message of messages) {
+      const signerAddress = this.extractSignerAddressFromMessage(message)
+      if (signerAddress) {
+        return signerAddress
+      }
+    }
+  }
+
+  private extractSignerAddressFromMessage(
+    message: { typeUrl: string; value: any }
+  ): string {
+    const { typeUrl, value } = message;
+
+    switch (typeUrl) {
+      case CosmosTransactionTypeUrlMap[CosmosTransactionTypes.Send]:
+        return (value as MsgSend).fromAddress;
+      case CosmosTransactionTypeUrlMap[CosmosTransactionTypes.StakeSupplier]:
+        return (value as MsgStakeSupplier).signer;
+      case CosmosTransactionTypeUrlMap[CosmosTransactionTypes.UnstakeSupplier]:
+        return (value as MsgUnstakeSupplier).signer;
+      case CosmosTransactionTypeUrlMap[CosmosTransactionTypes.ClaimSupplier]:
+        return (value as MsgClaimMorseSupplier).shannonSigningAddress;
+      case CosmosTransactionTypeUrlMap[CosmosTransactionTypes.ClaimAccount]:
+        return (value as MsgClaimMorseAccount).shannonSigningAddress;
+      default:
+        return '';
     }
   }
 }
