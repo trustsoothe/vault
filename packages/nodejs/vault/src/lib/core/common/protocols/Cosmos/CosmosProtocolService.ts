@@ -35,7 +35,6 @@ import {
 import {
   calculateFee,
   SigningStargateClient,
-  StargateClient,
   TimeoutError,
   setupBankExtension,
   QueryClient,
@@ -403,25 +402,38 @@ export class CosmosProtocolService
     )
   }
 
-  async sendTransaction(network: INetwork, transaction: CosmosProtocolTransaction): Promise<IProtocolTransactionResult<SupportedProtocols.Cosmos>> {
+  async sendTransaction(
+    network: INetwork,
+    transaction: CosmosProtocolTransaction
+  ): Promise<IProtocolTransactionResult<SupportedProtocols.Cosmos>> {
     try {
-      const { transactionHex } = await this.signTransaction(network, transaction)
-      const client = await StargateClient.connect(network.rpcUrl)
-      const txBytes = Buffer.from(transactionHex, 'hex')
-      const transactionHash = await client.broadcastTxSync(txBytes)
+      const { transactionHex } = await this.signTransaction(network, transaction);
+
+      const rpcEndpoint = network.rpcUrl.replace(/\/+$/, "");
+      const tmClient = await Comet38Client.connect(rpcEndpoint);
+
+      const txBytes = Uint8Array.from(Buffer.from(transactionHex, "hex"));
+
+      const {hash}  = await tmClient.broadcastTxAsync({
+        tx: txBytes,
+      });
+
+      const transactionHash = Buffer.from(hash).toString("hex").toUpperCase();
+
+      tmClient.disconnect();
+
       return {
         protocol: SupportedProtocols.Cosmos,
         transactionHash,
-      }
+      };
     } catch (err) {
       if (err instanceof TimeoutError) {
         return {
           protocol: SupportedProtocols.Cosmos,
           transactionHash: err.txId,
-        }
+        };
       }
-
-      throw err
+      throw err;
     }
   }
 
