@@ -3,4 +3,5 @@
 "@soothe/extension": minor
 ---
 
-Updates the getFee functionality to use tendermint-rpc. Get fee has been updated not to depend on a private key. Update the send transaction to use tendermint-rpc.
+- Implemented @cosmjs/tendermint-rpc to replace @cosmjs/stargate which is using websockets
+- Improved the `getFee` functionality to not depened on the private key. It extracts the signer address from the messages.
