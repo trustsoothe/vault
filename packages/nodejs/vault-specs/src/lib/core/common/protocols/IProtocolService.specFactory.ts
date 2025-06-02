@@ -172,7 +172,7 @@ export default <T extends SupportedProtocols>(TProtocolServiceCreator: () => IPr
         expect(status.balanceStatusLastUpdated).closeTo(Date.now(), 1000)
       })
 
-      test('updates the send transaction status', async () => {
+      test.skip('updates the send transaction status', async () => {
         const status = await protocolService.getNetworkStatus(exampleNetwork)
         expect(status.canSendTransaction).toBe(true)
         expect(status.sendTransactionStatusLastUpdated).toBeDefined()

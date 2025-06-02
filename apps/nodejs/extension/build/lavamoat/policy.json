@@ -36,16 +36,6 @@
         "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo": true
       }
     },
-    "@poktscan/vault-siwp>@cosmjs/encoding": {
-      "globals": {
-        "TextDecoder": true,
-        "TextEncoder": true
-      },
-      "packages": {
-        "buffer>base64-js": true,
-        "@soothe/vault>@cosmjs/encoding>bech32": true
-      }
-    },
     "@soothe/vault>@cosmjs/encoding": {
       "globals": {
         "TextDecoder": true,
@@ -56,7 +46,7 @@
         "@soothe/vault>@cosmjs/encoding>bech32": true
       }
     },
-    "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/json-rpc": {
+    "@soothe/vault>@cosmjs/tendermint-rpc>@cosmjs/json-rpc": {
       "packages": {
         "@soothe/vault>@cosmjs/stargate>@cosmjs/stream": true
       }
@@ -80,7 +70,7 @@
         "@soothe/vault>@cosmjs/stargate>cosmjs-types": true
       }
     },
-    "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket": {
+    "@soothe/vault>@cosmjs/tendermint-rpc>@cosmjs/socket": {
       "globals": {
         "clearTimeout": true,
         "process": true,
@@ -88,9 +78,9 @@
       },
       "packages": {
         "@soothe/vault>@cosmjs/stargate>@cosmjs/stream": true,
-        "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket>isomorphic-ws": true,
+        "@soothe/vault>@cosmjs/tendermint-rpc>@cosmjs/socket>isomorphic-ws": true,
         "process": true,
-        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream": true
+        "@soothe/vault>@cosmjs/tendermint-rpc>xstream": true
       }
     },
     "@soothe/vault>@cosmjs/stargate": {
@@ -103,7 +93,7 @@
         "@soothe/vault>@cosmjs/encoding": true,
         "@soothe/vault>@cosmjs/amino>@cosmjs/math": true,
         "@soothe/vault>@cosmjs/proto-signing": true,
-        "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc": true,
+        "@soothe/vault>@cosmjs/tendermint-rpc": true,
         "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true,
         "@soothe/vault>@cosmjs/stargate>cosmjs-types": true
       }
@@ -113,10 +103,10 @@
         "setTimeout": true
       },
       "packages": {
-        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream": true
+        "@soothe/vault>@cosmjs/tendermint-rpc>xstream": true
       }
     },
-    "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc": {
+    "@soothe/vault>@cosmjs/tendermint-rpc": {
       "globals": {
         "clearInterval": true,
         "fetch": true,
@@ -125,13 +115,13 @@
       "packages": {
         "@soothe/vault>@cosmjs/crypto": true,
         "@soothe/vault>@cosmjs/encoding": true,
-        "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/json-rpc": true,
+        "@soothe/vault>@cosmjs/tendermint-rpc>@cosmjs/json-rpc": true,
         "@soothe/vault>@cosmjs/amino>@cosmjs/math": true,
-        "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket": true,
+        "@soothe/vault>@cosmjs/tendermint-rpc>@cosmjs/socket": true,
         "@soothe/vault>@cosmjs/stargate>@cosmjs/stream": true,
         "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true,
-        "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>axios": true,
-        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream": true
+        "@soothe/vault>@cosmjs/tendermint-rpc>axios": true,
+        "@soothe/vault>@cosmjs/tendermint-rpc>xstream": true
       }
     },
     "@soothe/vault>@cosmjs/amino>@cosmjs/utils": {
@@ -474,7 +464,7 @@
         "crypto.subtle.digest": true
       },
       "packages": {
-        "@poktscan/vault-siwp>@cosmjs/encoding": true,
+        "@soothe/vault>@cosmjs/encoding": true,
         "@poktscan/vault-siwp>@noble/curves": true,
         "@poktscan/vault-siwp>@noble/hashes": true,
         "@poktscan/vault-siwp>apg-js": true,
@@ -576,6 +566,7 @@
         "@soothe/vault>@cosmjs/encoding": true,
         "@soothe/vault>@cosmjs/proto-signing": true,
         "@soothe/vault>@cosmjs/stargate": true,
+        "@soothe/vault>@cosmjs/tendermint-rpc": true,
         "@soothe/vault>@metamask/eth-sig-util": true,
         "@soothe/vault>@pokt-foundation/pocketjs-types": true,
         "@scure/bip39": true,
@@ -643,7 +634,7 @@
         "assert>util": true
       }
     },
-    "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>axios": {
+    "@soothe/vault>@cosmjs/tendermint-rpc>axios": {
       "globals": {
         "AbortController": true,
         "Blob": true,
@@ -1054,7 +1045,7 @@
         "assert>call-bind>get-intrinsic>hasown": true
       }
     },
-    "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream>globalthis": {
+    "@soothe/vault>@cosmjs/tendermint-rpc>xstream>globalthis": {
       "packages": {
         "assert>is-nan>define-properties": true,
         "assert>util>which-typed-array>gopd": true
@@ -1160,7 +1151,7 @@
         "assert>util>which-typed-array": true
       }
     },
-    "@soothe/vault>@cosmjs/stargate>@cosmjs/tendermint-rpc>@cosmjs/socket>isomorphic-ws": {
+    "@soothe/vault>@cosmjs/tendermint-rpc>@cosmjs/socket>isomorphic-ws": {
       "globals": {
         "MozWebSocket": true,
         "WebSocket": true
@@ -1938,7 +1929,7 @@
         "assert>util>is-arguments>has-tostringtag": true
       }
     },
-    "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream": {
+    "@soothe/vault>@cosmjs/tendermint-rpc>xstream": {
       "globals": {
         "clearInterval": true,
         "clearTimeout": true,
@@ -1947,8 +1938,8 @@
         "setTimeout": true
       },
       "packages": {
-        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream>globalthis": true,
-        "@soothe/vault>@cosmjs/stargate>@cosmjs/stream>xstream>symbol-observable": true
+        "@soothe/vault>@cosmjs/tendermint-rpc>xstream>globalthis": true,
+        "@soothe/vault>@cosmjs/tendermint-rpc>xstream>symbol-observable": true
       }
     },
     "zod": {

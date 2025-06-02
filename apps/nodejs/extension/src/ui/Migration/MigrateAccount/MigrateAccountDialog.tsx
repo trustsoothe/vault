@@ -71,7 +71,7 @@ function getDefaultValues(
       morseAddress: currentSelectedAccount,
       shannonAddress: "",
       vaultPassword: "",
-      shannonChainId: "",
+      shannonChainId: "pocket",
     };
   }
 
@@ -232,6 +232,7 @@ function AccountsVerification({
   fetchShannonAccount,
   shannonChainId,
 }: AccountsVerificationProps) {
+  const networks = useAppSelector(networksSelector);
   const morseAccount = morseAccountProps.currentData;
   const isLoadingMorseAccount =
     morseAccountProps.isLoading ||
@@ -319,7 +320,7 @@ function AccountsVerification({
               Your Morse account cannot be migrated.
             </Typography>
           </Stack>
-          <Typography fontSize={11}>Its has already been migrated.</Typography>
+          <Typography fontSize={11}>It's has already been migrated.</Typography>
         </Stack>
       );
     } else if (morseAccount.application_stake.amount !== "0") {
@@ -333,7 +334,7 @@ function AccountsVerification({
             </Typography>
           </Stack>
           <Typography fontSize={11}>
-            Its staked as an application with{" "}
+            It's staked as an application with{" "}
             {convertToPokt(morseAccount.application_stake.amount)} POKT
           </Typography>
         </Stack>
@@ -349,7 +350,7 @@ function AccountsVerification({
             </Typography>
           </Stack>
           <Typography fontSize={11}>
-            Its staked as a supplier with{" "}
+            It's staked as a supplier with{" "}
             {convertToPokt(morseAccount.supplier_stake.amount)} POKT
           </Typography>
         </Stack>
@@ -417,12 +418,11 @@ function AccountsVerification({
     );
   } else {
     if (!shannonAccount) {
-      let faucet: string;
-
-      if (shannonChainId === "pocket-beta") {
-        faucet = "https://faucet.beta.testnet.pokt.network/";
-      } else if (shannonChainId === "pocket") {
-      }
+      const faucet = networks.find(
+        (n) =>
+          n.protocol === SupportedProtocols.Cosmos &&
+          n.chainId === shannonChainId
+      )?.faucet;
 
       cantProceed = true;
       shannonAccountRow = (
@@ -676,29 +676,50 @@ export default function MigrateAccountDialog({
   const isCosmos = currentProtocol === SupportedProtocols.Cosmos;
 
   if (status === "info") {
+    const faucet = networks.find(
+      (n) =>
+        n.protocol === SupportedProtocols.Cosmos &&
+        // here we want to show the mainnet faucet when starting the migration from morse side
+        n.chainId === (!isCosmos ? "pocket" : shannonChainId)
+    )?.faucet;
+
     content = (
       <>
         <Typography>
           You're about to migrate your tokens from Morse to Shannon.
         </Typography>
-        <Typography>Before you continue, please make sure:</Typography>
+        <Typography marginTop={-0.6}>
+          Before you continue, please make sure:
+        </Typography>
         <Stack
           component={"ul"}
           sx={{
             paddingLeft: 2,
-            marginY: 0,
+            marginBottom: 0,
+            marginTop: -0.4,
           }}
         >
           <Typography component={"li"}>
-            Your Morse account was included in the Morse-to-Shannon snapshot and
-            only holds liquid (unstaked) tokens.
+            Your Morse account is included in the official Morse-to-Shannon
+            snapshot.
           </Typography>
           <Typography component={"li"}>
-            It hasn't already been migrated.
+            Your Morse account is only a wallet. Node/Application accounts are
+            not allowed to be migrated this way.
           </Typography>
           <Typography component={"li"}>
-            Your Shannon account needs to exists in the network. To exists, it
-            needs to have balance (like MACT or POKT).
+            Your Morse account has not been migrated in a previous attempt or
+            process.
+          </Typography>
+          <Typography component={"li"}>
+            Your corresponding Shannon account exists on the network. This will
+            be accomplished by having POKT or minting a MACT token{" "}
+            {faucet && (
+              <a href={faucet} target={"_blank"}>
+                here
+              </a>
+            )}
+            .
           </Typography>
         </Stack>
 
@@ -875,10 +896,11 @@ export default function MigrateAccountDialog({
         id={"migrate-form"}
         onSubmit={handleSubmit(onSubmit)}
         sx={{
-          overflowY: "auto",
+          overflowY: status === "info" ? "hidden" : "auto",
           height: "100%",
           gap: status === "info" ? 1.2 : 1.6,
-          padding: 1.6,
+          paddingX: 1.6,
+          paddingY: status === "info" ? 0.8 : 1.6,
         }}
       >
         <FormProvider {...methods}>{content}</FormProvider>

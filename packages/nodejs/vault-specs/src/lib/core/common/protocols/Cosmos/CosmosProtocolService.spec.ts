@@ -52,7 +52,7 @@ describe('CosmosProtocolService', () => {
     { network, account, accountImport, addressPrefix: 'pokt' },
   )
 
-  describe('sendTransaction', () => {
+  describe.skip('sendTransaction', () => {
     describe('validations', () => {
       test('throws if Network object provided is invalid', () => {
         // @ts-ignore

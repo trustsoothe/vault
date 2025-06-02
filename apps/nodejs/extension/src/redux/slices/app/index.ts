@@ -73,6 +73,7 @@ export interface Network {
   defaultGasPrice?: number;
   wip?: NetworkNotice;
   notices?: NetworkNotice[];
+  faucet?: string;
 }
 
 export interface IAsset {
