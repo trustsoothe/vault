@@ -8,19 +8,20 @@ jobs:
   create-pre-release:
     runs-on: ubuntu-latest
     environment: stage
-    env:
-      LAVAMOAT_AUTO_POLICY: ${{ vars.LAVAMOAT_AUTO_POLICY }}
-      PROVIDER_INFO_NAME: ${{ vars.PROVIDER_INFO_NAME }}
-      PROVIDER_INFO_ICON: ${{ vars.PROVIDER_INFO_ICON }}
-      PROVIDER_INFO_RDNS: ${{ vars.PROVIDER_INFO_RDNS }}
-      WPOKT_TESTNET_API_BASE_URL: ${{ vars.WPOKT_TESTNET_API_BASE_URL }}
-      WPOKT_MAINNET_API_BASE_URL: ${{ vars.WPOKT_MAINNET_API_BASE_URL }}
-      PRICE_API_BASE_URL: ${{ vars.PRICE_API_BASE_URL }}
-      NETWORKS_CDN_URL: ${{ vars.NETWORKS_CDN_URL }}
-      ASSETS_CDN_URL: ${{ vars.ASSETS_CDN_URL }}
-      POKT_MAINNET_CHAIN_MAPS_URL: ${{ vars.POKT_MAINNET_CHAIN_MAPS_URL }}
-      POKT_TESTNET_CHAIN_MAPS_URL: ${{ vars.POKT_TESTNET_CHAIN_MAPS_URL }}
-      CHAIN_IMAGES_CDN_URL: ${{ vars.CHAIN_IMAGES_CDN_URL }}
+# NOTE: Remove once Load Env Files job is tested.
+#    env:
+#      LAVAMOAT_AUTO_POLICY: ${{ vars.LAVAMOAT_AUTO_POLICY }}
+#      PROVIDER_INFO_NAME: ${{ vars.PROVIDER_INFO_NAME }}
+#      PROVIDER_INFO_ICON: ${{ vars.PROVIDER_INFO_ICON }}
+#      PROVIDER_INFO_RDNS: ${{ vars.PROVIDER_INFO_RDNS }}
+#      WPOKT_TESTNET_API_BASE_URL: ${{ vars.WPOKT_TESTNET_API_BASE_URL }}
+#      WPOKT_MAINNET_API_BASE_URL: ${{ vars.WPOKT_MAINNET_API_BASE_URL }}
+#      PRICE_API_BASE_URL: ${{ vars.PRICE_API_BASE_URL }}
+#      NETWORKS_CDN_URL: ${{ vars.NETWORKS_CDN_URL }}
+#      ASSETS_CDN_URL: ${{ vars.ASSETS_CDN_URL }}
+#      POKT_MAINNET_CHAIN_MAPS_URL: ${{ vars.POKT_MAINNET_CHAIN_MAPS_URL }}
+#      POKT_TESTNET_CHAIN_MAPS_URL: ${{ vars.POKT_TESTNET_CHAIN_MAPS_URL }}
+#      CHAIN_IMAGES_CDN_URL: ${{ vars.CHAIN_IMAGES_CDN_URL }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -32,6 +33,9 @@ jobs:
         run: yarn
       - name: Version Packages
         run: yarn changeset version
+      - name: Load env file
+        run: |
+          echo "${vars.ENV_FILE}" > apps/nodejs/extension/.env
       - name: Build Extension Dependencies
         run: yarn turbo run build --filter=\!@soothe/extension
       - name: Prepare Chromium Release Asset
