@@ -18,6 +18,7 @@ import {
   changeActiveTab,
   loadSelectedNetworkAndAccount,
   setAppIsReadyStatus,
+  updateAvailable,
 } from "../redux/slices/app";
 import { getVault } from "../utils";
 import {
@@ -47,6 +48,12 @@ export default class BackgroundController {
     browser.runtime.onInstalled.addListener(
       this._onExtensionInstalled.bind(this)
     );
+
+    browser.runtime.onUpdateAvailable.addListener(function(details) {
+      store.dispatch(
+        updateAvailable(details.version),
+      );
+    });
   }
 
   /** To keep the service worker (or background script in Firefox) active */

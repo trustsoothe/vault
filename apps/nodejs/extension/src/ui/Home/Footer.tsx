@@ -12,7 +12,7 @@ import {
 } from "../../redux/selectors/network";
 import useSelectedAsset from "./hooks/useSelectedAsset";
 
-export default function PriceFooter() {
+export default function Footer() {
   const selectedChain = useAppSelector(selectedChainSelector);
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedAsset = useSelectedAsset();
@@ -36,12 +36,17 @@ export default function PriceFooter() {
       justifyContent={"space-between"}
       borderTop={`1px solid ${themeColors.borderLightGray}`}
     >
-      <Typography color={themeColors.gray}>{coinSymbol} Price</Typography>
-      {isLoading ? (
-        <Skeleton width={70} height={20} variant={"rectangular"} />
-      ) : (
-        <Typography>$ {roundAndSeparate(usdPrice, 5, "0.00")}</Typography>
-      )}
+      <Stack alignItems={"left"}>
+        <Typography color={themeColors.gray}>v{process.env.APP_VERSION}</Typography>
+      </Stack>
+      <Stack direction={"row"} alignItems={"center"} gap={0.6}>
+        <Typography color={themeColors.gray}>{coinSymbol} Price </Typography>
+        {isLoading ? (
+          <Skeleton width={70} height={20} variant={"rectangular"} />
+        ) : (
+          <Typography>$ {roundAndSeparate(usdPrice, 5, "0.00")}</Typography>
+        )}
+      </Stack>
     </Stack>
   );
 }

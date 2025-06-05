@@ -274,11 +274,18 @@ type Message =
 export const enqueueSnackbar = <V extends VariantType>(
   options: OptionsWithExtraProps<V> & {
     message?: Message;
+    buttonLabel?: string;
+    buttonWidth?: number;
+    onButtonClick?: () => void;
   } & object
 ): SnackbarKey => {
   let snackbarKey: SnackbarKey;
 
   const onClickClose = () => {
+    if (options.onButtonClick) {
+      options.onButtonClick();
+    }
+
     if (snackbarKey) {
       closeSnackbar(snackbarKey);
     }
@@ -328,6 +335,7 @@ export const enqueueSnackbar = <V extends VariantType>(
             fontWeight={500}
             color={themeColors.bgLightGray}
             flexGrow={1}
+            marginLeft="-10px!important"
           >
             {message}
           </Typography>
@@ -335,7 +343,7 @@ export const enqueueSnackbar = <V extends VariantType>(
 
         <Button
           sx={{
-            width: 40,
+            width: options.buttonWidth || 40,
             height: 27,
             minWidth: 40,
             borderRadius: "6px",
@@ -348,7 +356,7 @@ export const enqueueSnackbar = <V extends VariantType>(
           className={"okay-button"}
           onClick={onClickClose}
         >
-          Ok
+          {options.buttonLabel || 'Ok'}
         </Button>
       </Stack>
     ),
