@@ -21,6 +21,9 @@ yarn-error.log*
 # local env files
 .env
 .env\.(?!example)
+# useful to be included on source to delivery source code for firefox release
+# which require the exact same result for the extension.
+.env\.(?!release)
 
 # turbo
 .turbo

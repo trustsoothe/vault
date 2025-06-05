@@ -22,6 +22,7 @@ jobs:
       - name: Load env file
         run: |
           echo "${{vars.ENV_FILE}}" > apps/nodejs/extension/.env
+          echo "${{vars.ENV_FILE}}" > apps/nodejs/extension/.env.release
       - name: Build Extension Dependencies
         run: yarn turbo run build --filter=\!@soothe/extension
       - name: Prepare Chromium Release Asset
