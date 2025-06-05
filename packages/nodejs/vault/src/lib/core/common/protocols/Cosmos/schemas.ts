@@ -2,11 +2,12 @@ import { z } from 'zod'
 import { COSMOS_PROTOCOL } from '../../values'
 import { CosmosTransactionTypes } from './CosmosTransactionTypes'
 import { SupportedProtocols } from '../../values'
-import { ConfigOptions, RPCType, SupplierServiceConfig } from './pocket/client/pocket/shared/service'
+import { ConfigOptions, RPCType } from './pocket/client/pocket/shared/service'
 import { coins } from '@cosmjs/proto-signing'
+import Decimal from 'decimal.js'
 
 function poktToUPoktCoin(amount: string) {
-  const amountInUpokt = (parseInt(amount) * 1e6).toString()
+  const amountInUpokt = new Decimal(amount).mul(1e6).toString()
   return coins(amountInUpokt, 'upokt')
 }
 

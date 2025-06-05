@@ -134,7 +134,8 @@ export default function BaseTransaction({
     }
 
     if (
-      protocol === SupportedProtocols.Ethereum &&
+      (protocol === SupportedProtocols.Ethereum ||
+        protocol === SupportedProtocols.Cosmos) &&
       !isValidAddress(feeOptions?.to || getValues("recipientAddress"), protocol)
     ) {
       setValue("fee", null);
@@ -208,7 +209,9 @@ export default function BaseTransaction({
     status,
     protocol,
     chainId,
-    protocol === SupportedProtocols.Ethereum ? recipientAddress : null,
+    [SupportedProtocols.Ethereum, SupportedProtocols.Cosmos].includes(protocol)
+      ? recipientAddress
+      : null,
   ]);
 
   const onSubmit = async (data: TransactionFormValues) => {

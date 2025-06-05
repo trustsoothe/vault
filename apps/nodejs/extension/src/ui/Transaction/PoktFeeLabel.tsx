@@ -1,4 +1,4 @@
-import type { PocketNetworkFee } from "@soothe/vault";
+import { PocketNetworkFee, SupportedProtocols } from "@soothe/vault";
 import type { TransactionFormValues } from "./BaseTransaction";
 import React from "react";
 import Stack from "@mui/material/Stack";
@@ -14,7 +14,12 @@ interface PoktFeeLabelProps {
 export default function PoktFeeLabel({ marginTop }: PoktFeeLabelProps) {
   const { watch } = useFormContext<TransactionFormValues>();
 
-  const [networkFee, fetchingFee] = watch(["fee", "fetchingFee"]);
+  const [networkFee, fetchingFee, protocol, recipientAddress] = watch([
+    "fee",
+    "fetchingFee",
+    "protocol",
+    "recipientAddress",
+  ]);
 
   return (
     // todo: create component
@@ -49,11 +54,13 @@ export default function PoktFeeLabel({ marginTop }: PoktFeeLabelProps) {
             minWidth={0}
             textAlign={"right"}
           >
-            {roundAndSeparate(
-              (networkFee as PocketNetworkFee)?.value,
-              6,
-              "0.00"
-            )}
+            {protocol === SupportedProtocols.Cosmos && !recipientAddress
+              ? "-"
+              : roundAndSeparate(
+                  (networkFee as PocketNetworkFee)?.value,
+                  6,
+                  "0.00"
+                )}
           </Typography>
           <Typography>POKT</Typography>
         </Stack>

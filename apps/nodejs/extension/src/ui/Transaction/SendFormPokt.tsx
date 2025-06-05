@@ -22,7 +22,8 @@ export default function SendFormPokt({ isWrapping }: SendFormPoktProps) {
           Send Wrapped POKT to an Ethereum address.
         </Typography>
       )}
-      <AmountInput marginTop={isWrapping ? 1.2 : 1.6} />
+      {/*minAmount is 1 upokt*/}
+      <AmountInput marginTop={isWrapping ? 1.2 : 1.6} minAmount={1 / 1e6} />
       <BalanceLabel marginTop={0.8} />
       <PoktFeeLabel marginTop={0.4} />
       {!isWrapping && <MemoInput />}
