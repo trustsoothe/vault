@@ -571,6 +571,7 @@
         "@soothe/vault>@pokt-foundation/pocketjs-types": true,
         "@scure/bip39": true,
         "buffer": true,
+        "decimal.js": true,
         "@soothe/vault>ed25519-hd-key": true,
         "@soothe/vault>ethereumjs-util": true,
         "@soothe/vault>hdkey": true,
@@ -902,7 +903,9 @@
     },
     "decimal.js": {
       "globals": {
-        "crypto": true
+        "crypto": true,
+        "define": true,
+        "self": true
       }
     },
     "assert>is-nan>define-properties>define-data-property": {
