@@ -5,6 +5,9 @@ const path = require("path");
 const Dotenv = require("dotenv-webpack");
 const CopyPlugin = require("copy-webpack-plugin");
 const getManifest = require("../manifest");
+const packageJson = require('../../package.json');
+
+process.env.APP_VERSION = packageJson.version || 'v0.0.0';
 
 // Its immediate because we only need to run it once.
 (function checkEnvs() {

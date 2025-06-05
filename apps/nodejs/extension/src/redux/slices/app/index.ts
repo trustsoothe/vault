@@ -136,6 +136,7 @@ export interface GeneralAppSlice {
   accountsImported: string[];
   transactions: Array<Transaction>;
   isDevMode?: boolean;
+  updateVersion?: string;
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -642,6 +643,7 @@ const initialState: GeneralAppSlice = {
   requirePasswordForSensitiveOpts: false,
   accountsImported: [],
   transactions: [],
+  updateVersion: null,
 };
 
 const generalAppSlice = createSlice({
@@ -717,6 +719,9 @@ const generalAppSlice = createSlice({
     },
     activateDevMode: (state, _: PayloadAction) => {
       state.isDevMode = true;
+    },
+    updateAvailable: (state, action: PayloadAction<string>) => {
+      state.updateVersion = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -866,6 +871,7 @@ export const {
   addTransaction,
   setNetworksWithErrors,
   activateDevMode,
+  updateAvailable,
 } = generalAppSlice.actions;
 
 export default generalAppSlice.reducer;

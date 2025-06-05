@@ -37,6 +37,7 @@ import { RouterProvider } from "react-router-dom";
 import { requestRouter, router } from "./router";
 import useCtrlAltShiftKeyCombination from "./hooks/useCtrlAltShiftKeyCombination";
 import { activateDevMode } from "../redux/slices/app";
+import { updateAvailableSelector } from '../redux/selectors/app'
 
 export default function App() {
   const isPopup = useIsPopup();
@@ -81,11 +82,25 @@ export default function App() {
     };
   }, []);
 
+  const updateVersion = useAppSelector(updateAvailableSelector);
   const externalRequests = useAppSelector(externalRequestsSelector);
   const initializeStatus = useAppSelector(initializeStatusSelector);
   const vaultSessionExists = useAppSelector(vaultSessionExistsSelector);
   const appStatus = useAppSelector((state) => state.app.isReadyStatus);
   const isDevMode = useAppSelector((state) => state.app.isDevMode);
+
+  useEffect(() => {
+    if(!updateVersion) return;
+    enqueueSnackbar({
+      persist: true,
+      buttonLabel: "Update!",
+      buttonWidth: 80,
+      onButtonClick: () => {
+        browser.runtime.reload();
+      },
+      message: `🚀 New version available! v${updateVersion}`,
+    });
+  }, [updateVersion])
 
   useEffect(() => {
     const interval = setInterval(async () => {

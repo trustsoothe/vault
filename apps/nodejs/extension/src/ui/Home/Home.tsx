@@ -7,7 +7,7 @@ import { changeSelectedAccountOfNetwork } from "../../redux/slices/app";
 import { selectedProtocolSelector } from "../../redux/selectors/network";
 import SelectedAccount from "./SelectedAccount";
 import AccountActions from "./AccountActions";
-import PriceFooter from "./PriceFooter";
+import Footer from "./Footer";
 import NoAccounts from "./NoAccounts";
 import {
   accountsSelector,
@@ -46,7 +46,7 @@ export default function Home() {
         <>
           <SelectedAccount />
           <AccountActions />
-          <PriceFooter />
+          <Footer />
         </>
       )}
     </Stack>
