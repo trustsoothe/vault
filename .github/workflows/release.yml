@@ -19,6 +19,9 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
+      - name: List source with env file list
+        run: |
+          git ls-files > tar-include.txt
       - name: Setup Node.js 20
         uses: actions/setup-node@v3
         with:
@@ -28,6 +31,7 @@ jobs:
       - name: Load env file
         run: |
           echo "${{vars.ENV_FILE}}" > apps/nodejs/extension/.env
+          echo "apps/nodejs/extension/.env" >> tar-include.txt
       - name: Build Extension Dependencies
         run: yarn turbo run build --filter=\!@soothe/extension
       - name: Prepare Chromium Release Asset
@@ -39,11 +43,8 @@ jobs:
         id: version
         with:
           cmd: 'jq .version apps/nodejs/extension/package.json -r'
-      # source code attached to release will never have untracked files
       - name: Archive source with env files
         run: |
-          git ls-files > tar-include.txt
-          echo "apps/nodejs/extension/.env" >> tar-include.txt
           tar -czf source-with-envs-${{ steps.version.outputs.value }}.tar.gz -T tar-include.txt
       - name: Create Release
         uses: softprops/action-gh-release@v2
