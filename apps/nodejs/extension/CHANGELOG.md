@@ -1,5 +1,13 @@
 # @soothe/extension
 
+## 0.5.2
+
+### Patch Changes
+
+- 2f81eae: Switch broadcast method from async to sync in Cosmos service
+- 0941648: \* Added Cosmos transaction support in vault import
+  - Improved snackbar UI handling
+
 ## 0.5.1
 
 ### Patch Changes
