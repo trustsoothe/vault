@@ -1,5 +1,11 @@
 # @soothe/extension
 
+## 0.5.1
+
+### Patch Changes
+
+- 4372d2c: Display app version and handle browser available updates.
+
 ## 0.5.0
 
 ### Minor Changes
