@@ -414,13 +414,17 @@ export class CosmosProtocolService
 
       const txBytes = Uint8Array.from(Buffer.from(transactionHex, "hex"));
 
-      const {hash}  = await tmClient.broadcastTxAsync({
+      const {hash, code, log, codespace}  = await tmClient.broadcastTxSync({
         tx: txBytes,
       });
 
-      const transactionHash = Buffer.from(hash).toString("hex").toUpperCase();
-
       tmClient.disconnect();
+
+      if (code !== 0) {
+        throw new Error(`Transaction failed. Details: ${JSON.stringify({ hash, code, log, codespace })}`);
+      }
+
+      const transactionHash = Buffer.from(hash).toString("hex").toUpperCase();
 
       return {
         protocol: SupportedProtocols.Cosmos,
