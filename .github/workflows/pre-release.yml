@@ -13,14 +13,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-      - name: Install Dependencies
-        run: yarn
-      - name: Version Packages
-        run: yarn changeset version
       - name: Load env file
         run: |
           echo "${{vars.ENV_FILE}}" > apps/nodejs/extension/.env
@@ -30,6 +22,14 @@ jobs:
           git ls-files > tar-include.txt
           echo "apps/nodejs/extension/.env" >> tar-include.txt
           tar -czf source-with-envs-${{ steps.version.outputs.value }}.tar.gz -T tar-include.txt
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - name: Install Dependencies
+        run: yarn
+      - name: Version Packages
+        run: yarn changeset version
       - name: Build Extension Dependencies
         run: yarn turbo run build --filter=\!@soothe/extension
       - name: Prepare Chromium Release Asset
