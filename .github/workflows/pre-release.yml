@@ -11,9 +11,6 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
-      - name: List source with env file list
-        run: |
-          git ls-files > tar-include.txt
       - name: Setup Node.js 20
         uses: actions/setup-node@v3
         with:
@@ -22,6 +19,9 @@ jobs:
         run: yarn
       - name: Version Packages
         run: yarn changeset version
+      - name: List source with env file list
+        run: |
+          git ls-files > tar-include.txt
       - name: Load env file
         run: |
           echo "${{vars.ENV_FILE}}" > apps/nodejs/extension/.env
