@@ -414,7 +414,7 @@ export class CosmosProtocolService
 
       const txBytes = Uint8Array.from(Buffer.from(transactionHex, "hex"));
 
-      const {hash}  = await tmClient.broadcastTxAsync({
+      const {hash}  = await tmClient.broadcastTxSync({
         tx: txBytes,
       });
 
