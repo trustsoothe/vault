@@ -18,6 +18,7 @@ import {
 import { getVault } from "../../../utils";
 import TransactionDatasource, {
   EthTransaction,
+  PoktShannonTransaction,
   PoktTransaction,
 } from "../../../controllers/datasource/Transaction";
 
@@ -102,6 +103,9 @@ export const SettingsSchema = z.object({
                 break;
               case "Ethereum":
                 EthTransaction.parse(decodedTx);
+                break;
+              case "Cosmos":
+                PoktShannonTransaction.parse(decodedTx);
                 break;
               default:
                 throw new Error("Unsupported protocol");

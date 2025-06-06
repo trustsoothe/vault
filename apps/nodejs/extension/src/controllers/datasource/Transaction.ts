@@ -267,6 +267,8 @@ export default class TransactionDatasource {
           return PoktTransaction.parse(t);
         case "Ethereum":
           return EthTransaction.parse(t);
+        case "Cosmos":
+          return PoktShannonTransaction.parse(t);
         default:
           throw new Error("Unsupported protocol");
       }

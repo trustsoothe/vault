@@ -335,7 +335,7 @@ export const enqueueSnackbar = <V extends VariantType>(
             fontWeight={500}
             color={themeColors.bgLightGray}
             flexGrow={1}
-            marginLeft="-10px!important"
+            marginLeft={options.variant ? undefined : "-10px!important"}
           >
             {message}
           </Typography>
@@ -356,7 +356,7 @@ export const enqueueSnackbar = <V extends VariantType>(
           className={"okay-button"}
           onClick={onClickClose}
         >
-          {options.buttonLabel || 'Ok'}
+          {options.buttonLabel || "Ok"}
         </Button>
       </Stack>
     ),
