@@ -19,19 +19,19 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
-      - name: List source with env file list
+      - name: Prepare source with envs
         run: |
           git ls-files > tar-include.txt
+          echo "${{vars.ENV_FILE}}" > apps/nodejs/extension/.env
+          echo "apps/nodejs/extension/.env" >> tar-include.txt
+          # required by firefox on releases
+          tar -czf source-with-envs.tar.gz -T tar-include.txt
       - name: Setup Node.js 20
         uses: actions/setup-node@v3
         with:
           node-version: 20
       - name: Install Dependencies
         run: yarn
-      - name: Load env file
-        run: |
-          echo "${{vars.ENV_FILE}}" > apps/nodejs/extension/.env
-          echo "apps/nodejs/extension/.env" >> tar-include.txt
       - name: Build Extension Dependencies
         run: yarn turbo run build --filter=\!@soothe/extension
       - name: Prepare Chromium Release Asset
@@ -43,9 +43,10 @@ jobs:
         id: version
         with:
           cmd: 'jq .version apps/nodejs/extension/package.json -r'
-      - name: Archive source with env files
+      - name: Rename source-with-envs to include version
         run: |
-          tar -czf source-with-envs-${{ steps.version.outputs.value }}.tar.gz -T tar-include.txt
+          # rename to include version
+          mv source-with-envs.tar.gz source-with-envs-${{ steps.version.outputs.value }}.tar.gz
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
