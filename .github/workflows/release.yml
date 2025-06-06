@@ -19,16 +19,21 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
+      - name: Load env file
+        run: |
+          echo "${{vars.ENV_FILE}}" > apps/nodejs/extension/.env
+      # source code attached to release will never have untracked files
+      - name: Archive source with env files
+        run: |
+          git ls-files > tar-include.txt
+          echo "apps/nodejs/extension/.env" >> tar-include.txt
+          tar -czf source-with-envs-${{ steps.version.outputs.value }}.tar.gz -T tar-include.txt
       - name: Setup Node.js 20
         uses: actions/setup-node@v3
         with:
           node-version: 20
       - name: Install Dependencies
         run: yarn
-      - name: Load env file
-        run: |
-          echo "${{vars.ENV_FILE}}" > apps/nodejs/extension/.env
-          echo "${{vars.ENV_FILE}}" > apps/nodejs/extension/.env.release
       - name: Build Extension Dependencies
         run: yarn turbo run build --filter=\!@soothe/extension
       - name: Prepare Chromium Release Asset
@@ -54,3 +59,4 @@ jobs:
           files: |
             apps/nodejs/extension/releases/soothe-vault-chromium-${{ steps.version.outputs.value }}.zip
             apps/nodejs/extension/releases/soothe-vault-firefox-${{ steps.version.outputs.value }}.zip
+            source-with-envs-${{ steps.version.outputs.value }}.tar.gz
