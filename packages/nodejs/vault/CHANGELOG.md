@@ -1,5 +1,11 @@
 # @soothe/vault
 
+## 0.4.1
+
+### Patch Changes
+
+- 2f81eae: Switch broadcast method from async to sync in Cosmos service
+
 ## 0.4.0
 
 ### Minor Changes
