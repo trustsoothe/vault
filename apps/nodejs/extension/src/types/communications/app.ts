@@ -25,6 +25,9 @@ export interface NetworkFeeReq {
     gasLimit?: number;
     maxFeePerGas?: string;
     maxPriorityFeePerGas?: string;
+    defaultGasPrice?: number;
+    defaultGasAdjustmentFactor?: number;
+    defaultGasEstimation?: number;
   };
 }
 

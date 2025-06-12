@@ -71,6 +71,8 @@ export interface Network {
   addressPrefix?: string;
   isProtocolDefault?: boolean;
   defaultGasPrice?: number;
+  defaultGasAdjustmentFactor?: number;
+  defaultGasEstimation?: number;
   wip?: NetworkNotice;
   notices?: NetworkNotice[];
   faucet?: string;
@@ -98,6 +100,9 @@ export interface CustomRPC {
   chainId: string;
   url: string;
   isPreferred?: boolean;
+  defaultGasPrice?: number;
+  defaultGasAdjustmentFactor?: number;
+  defaultGasEstimation?: number;
 }
 
 export type NetworkCanBeSelectedMap = {

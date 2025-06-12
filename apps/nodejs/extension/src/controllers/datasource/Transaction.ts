@@ -56,7 +56,6 @@ export type SwapTo = BaseTransaction["swapTo"];
 
 export const PoktShannonTransaction = BaseTransaction.extend({
   protocol: z.literal(SupportedProtocols.Cosmos),
-  fee: z.number(),
   memo: z.string().optional(),
   to: z.string().optional(),
   type: z
@@ -64,7 +63,8 @@ export const PoktShannonTransaction = BaseTransaction.extend({
     .default(CosmosTransactionTypes.Send),
   transactionParams: z
     .object({
-      maxFeePerGas: z.number(),
+      gasPrice: z.number().optional(),
+      gasEstimation: z.number().optional(),
       memo: z.string().optional(),
     })
     .optional(),

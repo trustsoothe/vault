@@ -287,6 +287,9 @@ export async function runWithNetworks<T>(
     .map((item) => ({
       id: item.id,
       url: item.url,
+      defaultGasPrice: item.defaultGasPrice,
+      defaultGasAdjustmentFactor: item.defaultGasAdjustmentFactor,
+      defaultGasEstimation: item.defaultGasEstimation,
     }));
 
   const defaultNetwork = networks.find(
@@ -296,11 +299,14 @@ export async function runWithNetworks<T>(
   const rpcWithError: Array<string> = [];
   let result: T, rpcUrl: string;
 
-  for (const { url, id } of [
+  for (const { url, id, defaultGasPrice, defaultGasAdjustmentFactor, defaultGasEstimation } of [
     ...rpcUrls,
     {
       id: defaultNetwork.id,
       url: defaultNetwork.rpcUrl,
+      defaultGasPrice: defaultNetwork.defaultGasPrice,
+      defaultGasAdjustmentFactor: defaultNetwork.defaultGasAdjustmentFactor,
+      defaultGasEstimation: defaultNetwork.defaultGasEstimation,
     },
   ]) {
     try {
@@ -308,6 +314,9 @@ export async function runWithNetworks<T>(
         protocol,
         chainID: chainId,
         rpcUrl: url,
+        defaultGasPrice: defaultGasPrice,
+        defaultGasAdjustmentFactor: defaultGasAdjustmentFactor,
+        defaultGasEstimation: defaultGasEstimation,
       });
       rpcUrl = url;
       break;
