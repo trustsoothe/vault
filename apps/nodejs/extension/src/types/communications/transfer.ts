@@ -31,6 +31,7 @@ import {
   TRANSFER_REQUEST,
   TRANSFER_RESPONSE,
 } from "../../constants/communication";
+import type { TransactionStatus } from "../../controllers/datasource/Transaction";
 
 export interface ProxyTransferReq extends BaseProxyRequest {
   type: typeof TRANSFER_REQUEST;
@@ -125,6 +126,8 @@ export interface AnswerTransferReq {
 type AnswerTransferResponseData = BaseData & {
   hash: string;
   isPasswordWrong?: boolean;
+  details?: object;
+  status: TransactionStatus;
 };
 
 export type AnswerTransferRes = BaseResponse<

@@ -222,7 +222,7 @@ export default function UnlockVault() {
   const isLoading = status === "loading";
 
   return (
-    <Stack width={WIDTH} height={HEIGHT}>
+    <Stack width={WIDTH} height={HEIGHT} position={"relative"}>
       {isRequesting && (
         <HeaderContainer>
           <RequestOrigin origin={currentRequest.origin} />
@@ -338,6 +338,14 @@ export default function UnlockVault() {
           </Button>
         </Stack>
       </Box>
+      <Typography
+        color={themeColors.dark_gray1}
+        position={"absolute"}
+        bottom={10}
+        left={24}
+      >
+        v{process.env.APP_VERSION}
+      </Typography>
     </Stack>
   );
 }

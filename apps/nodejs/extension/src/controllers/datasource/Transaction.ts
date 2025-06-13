@@ -12,6 +12,11 @@ import {
 } from "../../utils/networkOperations";
 import { getSchemaFromParamKey } from "../../ui/PoktTransaction/ChangeParam/schemas";
 
+export enum TransactionStatus {
+  Successful,
+  Invalid,
+}
+
 export const SwapSchema = z
   .object({
     address: z.string(),
@@ -38,6 +43,11 @@ export const BaseTransaction = z.object({
   requestedBy: z.string().url().optional(),
   swapTo: SwapSchema,
   swapFrom: SwapSchema,
+  status: z
+    .nativeEnum(TransactionStatus)
+    .optional()
+    .default(TransactionStatus.Successful),
+  code: z.number().optional().default(0),
 });
 
 export type BaseTransaction = z.infer<typeof BaseTransaction>;
@@ -58,6 +68,8 @@ export const PoktShannonTransaction = BaseTransaction.extend({
       memo: z.string().optional(),
     })
     .optional(),
+  codespace: z.string().optional(),
+  log: z.string().optional(),
 });
 
 export const PoktTransaction = BaseTransaction.extend({

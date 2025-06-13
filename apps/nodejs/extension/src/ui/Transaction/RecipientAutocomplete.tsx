@@ -6,8 +6,8 @@ import type {
 import type { AutocompleteInputChangeReason } from "@mui/base/useAutocomplete/useAutocomplete";
 import type { TransactionFormValues } from "./BaseTransaction";
 import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
 import React, { useMemo, useState } from "react";
-import IconButton from "@mui/material/IconButton";
 import Autocomplete from "@mui/material/Autocomplete";
 import { AccountType, SupportedProtocols } from "@soothe/vault";
 import AccountInfo, { AccountAvatar } from "../components/AccountInfo";
@@ -19,7 +19,6 @@ import {
   isValidPublicKey,
 } from "../../utils/networkOperations";
 import { Controller, useFormContext } from "react-hook-form";
-import CloseIcon from "../assets/img/rounded_close_icon.svg";
 import { useAppSelector } from "../hooks/redux";
 import { themeColors } from "../theme";
 
@@ -76,10 +75,11 @@ export default function RecipientAutocomplete({
   protocol: protocolFromProps,
 }: RecipientAutocompleteProps) {
   const { control, watch } = useFormContext<TransactionFormValues>();
-  const [txProtocol, fromAddress, recipientProtocol] = watch([
+  const [txProtocol, fromAddress, recipientProtocol, selectedAddress] = watch([
     "protocol",
     "fromAddress",
     "recipientProtocol",
+    "recipientAddress",
   ]);
   const protocol = protocolFromProps || recipientProtocol || txProtocol;
 
@@ -195,6 +195,11 @@ export default function RecipientAutocomplete({
     return isValidAddress(value, protocol);
   };
 
+  const invalidValue =
+    !!inputValue &&
+    optionsMap[selectedAddress]?.name !== inputValue &&
+    !isValid(inputValue);
+
   return (
     <Controller
       name={fieldName as any}
@@ -229,7 +234,6 @@ export default function RecipientAutocomplete({
         field: { onChange, value, ...otherProps },
         fieldState: { error },
       }) => {
-        const invalidValue = !!value && !isValid(value);
         const optionSelected = optionsMap[value];
 
         return (
@@ -301,6 +305,22 @@ export default function RecipientAutocomplete({
                 padding: 0,
               },
             }}
+            clearIcon={
+              <Button
+                onClick={() => {
+                  setInputValue("");
+                }}
+                sx={{
+                  height: 28,
+                  minWidth: 60,
+                  width: 60,
+                  marginTop: "-1px!important",
+                  marginRight: -0.6,
+                }}
+              >
+                Clear
+              </Button>
+            }
             // disabled={disabled}
             renderInput={(params) => (
               <TextFieldWithPaste
@@ -313,17 +333,19 @@ export default function RecipientAutocomplete({
                   ...(!!inputValue &&
                     !value && {
                       endAdornment: (
-                        <IconButton
+                        <Button
                           onClick={() => {
                             setInputValue("");
                           }}
                           sx={{
-                            path: { fill: themeColors.primary },
-                            marginRight: -2.2,
+                            height: 28,
+                            minWidth: 60,
+                            width: 60,
+                            marginRight: -3,
                           }}
                         >
-                          <CloseIcon />
-                        </IconButton>
+                          Clear
+                        </Button>
                       ),
                     }),
                   startAdornment:
@@ -365,10 +387,22 @@ export default function RecipientAutocomplete({
                   },
                   "& input": {
                     fontSize: "12px!important",
+                    paddingRight: "24px!important",
                   },
                   "& .MuiButton-textPrimary": {
                     marginTop: -0.2,
                   },
+                  ...(invalidValue && {
+                    "& fieldset": {
+                      borderColor: themeColors.red + "!important",
+                    },
+                  }),
+                  ...(!invalidValue &&
+                    inputValue && {
+                      "& fieldset": {
+                        borderColor: themeColors.success + "!important",
+                      },
+                    }),
                   ...textFieldProps?.sx,
                 }}
               />

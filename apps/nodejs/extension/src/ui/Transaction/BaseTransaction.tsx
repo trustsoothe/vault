@@ -17,13 +17,18 @@ import { isValidAddress } from "../../utils/networkOperations";
 import useDidMountEffect from "../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
 import { CosmosFeeRequestOption } from "@soothe/vault/dist/lib/core/common/protocols/Cosmos/CosmosFeeRequestOption";
+import { TransactionStatus } from "../../controllers/datasource/Transaction";
 
 export interface TransactionFormValues {
   memo?: string;
   amount: string;
   chainId: string;
   fromAddress: string;
-  txResultHash?: string;
+  txResponse?: {
+    hash: string;
+    status: TransactionStatus;
+    details?: object;
+  };
   vaultPassword?: string;
   recipientAddress?: string;
   protocol: SupportedProtocols;
@@ -84,7 +89,7 @@ export default function BaseTransaction({
       protocol,
       amount: "",
       fromAddress,
-      txResultHash: "",
+      txResponse: null,
       recipientAddress: "",
       ...defaultFormValue,
     },
@@ -114,7 +119,7 @@ export default function BaseTransaction({
       protocol,
       amount: "",
       fromAddress,
-      txResultHash: "",
+      txResponse: null,
       recipientAddress: "",
       ...defaultFormValue,
       txSpeed: defaultFormValue?.txSpeed,
@@ -246,7 +251,11 @@ export default function BaseTransaction({
         } else {
           closeSnackbars();
           if (success) {
-            setValue("txResultHash", response.data.hash);
+            setValue("txResponse", {
+              hash: response.data.hash,
+              details: response.data.details,
+              status: response.data.status,
+            });
 
             setStatus("success");
           }
