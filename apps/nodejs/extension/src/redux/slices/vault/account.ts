@@ -1428,7 +1428,6 @@ export const migrateMorseAccount = createAsyncThunk(
           chainId: selectedChainByProtocol[SupportedProtocols.Pocket] || "",
         },
       },
-      fee: 0,
       type: CosmosTransactionTypes.ClaimAccount,
     };
 
