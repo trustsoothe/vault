@@ -69,7 +69,6 @@ export default function SendPoktShannon({ onCancel }: SendPoktProps) {
             // TODO: Refactor here to use a UI input value when we decide to make this configurable.
             maxFeePerGas: selectedNetwork.defaultGasPrice,
             memo: data.memo || undefined,
-            fee: (data.fee as CosmosFee).value,
           },
         };
       }}

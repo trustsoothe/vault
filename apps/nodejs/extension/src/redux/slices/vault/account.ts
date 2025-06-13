@@ -308,6 +308,8 @@ export interface SendTransactionParams
     fee?: number;
     memo?: string;
     gasLimit?: number;
+    gasPrice?: number;
+    gasEstimation?: number;
   };
   isRawTransaction?: boolean;
   metadata?: {
@@ -479,10 +481,11 @@ export const sendTransfer = createAsyncThunk<
     tx = {
       ...baseTx,
       protocol: SupportedProtocols.Cosmos,
-      fee:
-        transferOptions.transactionParams.maxFeePerGas ||
-        transferOptions.transactionParams.fee,
       memo: transferOptions.transactionParams.memo,
+      transactionParams: {
+        gasPrice: transferOptions.transactionParams.gasPrice,
+        gasEstimation: transferOptions.transactionParams.gasEstimation,
+      },
       codespace: failDetails?.codespace,
       log: failDetails?.log,
     };
@@ -1425,7 +1428,6 @@ export const migrateMorseAccount = createAsyncThunk(
           chainId: selectedChainByProtocol[SupportedProtocols.Pocket] || "",
         },
       },
-      fee: 0,
       type: CosmosTransactionTypes.ClaimAccount,
     };
 

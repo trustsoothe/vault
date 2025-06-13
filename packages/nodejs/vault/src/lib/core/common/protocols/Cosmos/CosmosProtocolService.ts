@@ -248,10 +248,10 @@ export class CosmosProtocolService
       throw new ArgumentError('transaction')
     }
 
-    let estimatedGas = 80000
-    let gasAdjustmentUsed = transaction.gasAdjustment ?? 1.5
-    let gasPriceUsed = Number(transaction.gasPrice ?? 0.001)
-    let value = 0
+    let estimatedGas = transaction.gasEstimation ?? network.defaultGasEstimation ?? 200000;
+    let gasAdjustmentUsed = network.defaultGasAdjustmentFactor ?? 1.5;
+    let gasPriceUsed = transaction.gasPrice ?? network.defaultGasPrice ?? 0.001;
+    let value = 0;
 
     try {
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')

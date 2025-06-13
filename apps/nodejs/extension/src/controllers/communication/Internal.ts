@@ -2334,7 +2334,8 @@ class InternalCommunicationController implements ICommunicationController {
                         },
                       },
                     ],
-                    gasPrice: optionProps.maxFeePerGas,
+                    gasPrice: optionProps.defaultGasPrice,
+                    gasEstimation: optionProps.defaultGasEstimation,
                   },
                 }
               : undefined
