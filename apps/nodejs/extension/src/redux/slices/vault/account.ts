@@ -6,6 +6,7 @@ import TransactionDatasource, {
   PoktTransaction,
   SwapTo,
   Transaction,
+  TransactionStatus,
 } from "../../../controllers/datasource/Transaction";
 import { createAsyncThunk, SerializedError } from "@reduxjs/toolkit";
 import set from "lodash/set";
@@ -40,6 +41,8 @@ import {
   SupportedProtocols,
   SupportedTransferDestinations,
   SupportedTransferOrigins,
+  TransactionSentButInvalidError,
+  TransactionSentButInvalidErrorName,
   TransferOptions,
   VaultRestoreErrorName,
 } from "@soothe/vault";
@@ -315,31 +318,53 @@ export interface SendTransactionParams
   };
 }
 
-export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
-  "vault/sendTransfer",
-  async ({ metadata, ...transferOptions }, context) => {
-    const state = context.getState() as RootState;
-    const sessionId = state.vault.vaultSession.id;
+export const sendTransfer = createAsyncThunk<
+  {
+    hash: string;
+    status: TransactionStatus;
+    failDetails?: object;
+  },
+  SendTransactionParams
+>("vault/sendTransfer", async ({ metadata, ...transferOptions }, context) => {
+  const state = context.getState() as RootState;
+  const sessionId = state.vault.vaultSession.id;
 
-    const transactionArg: TransferOptions = {
-      ...transferOptions,
-      network: null,
-      transactionParams: {
-        from: "",
-        to: "",
-        amount: "",
-        ...transferOptions.transactionParams,
-      },
-    };
+  const transactionArg: TransferOptions = {
+    ...transferOptions,
+    network: null,
+    transactionParams: {
+      from: "",
+      to: "",
+      amount: "",
+      ...transferOptions.transactionParams,
+    },
+  };
 
-    if (
-      !state.app.requirePasswordForSensitiveOpts &&
-      !transferOptions.from.passphrase
-    ) {
-      set(transactionArg, "from.passphrase", await getVaultPassword(sessionId));
-    }
+  if (
+    !state.app.requirePasswordForSensitiveOpts &&
+    !transferOptions.from.passphrase
+  ) {
+    set(transactionArg, "from.passphrase", await getVaultPassword(sessionId));
+  }
 
-    const { result, rpcWithErrors, rpcUrl } = await runWithNetworks(
+  let hash: string,
+    rpcUrl: string,
+    status: TransactionStatus,
+    failDetails: {
+      hash: string;
+      rpcUrl: string;
+      code: number;
+      codespace?: string;
+      log?: string;
+    },
+    code = 0;
+
+  try {
+    const {
+      result,
+      rpcWithErrors,
+      rpcUrl: rpcUrlOfTx,
+    } = await runWithNetworks(
       {
         protocol: transferOptions.network.protocol,
         chainId: transferOptions.network.chainID,
@@ -367,82 +392,112 @@ export const sendTransfer = createAsyncThunk<string, SendTransactionParams>(
       await context.dispatch(setNetworksWithErrors(rpcWithErrors));
     }
 
-    let fromAddress: string;
+    hash = result.transactionHash;
+    rpcUrl = rpcUrlOfTx;
+    status = TransactionStatus.Successful;
+  } catch (e) {
+    if (e?.name === TransactionSentButInvalidErrorName) {
+      const error = e as TransactionSentButInvalidError;
 
-    if (transferOptions.from.type === SupportedTransferOrigins.VaultAccountId) {
-      fromAddress = state.vault.accounts.find(
-        (account) => account.id === transferOptions.from.value
-      )?.address;
+      const details = error.details as {
+        hash: string;
+        rpcUrl: string;
+        code: number;
+      };
+
+      hash = details.hash;
+      rpcUrl = details.rpcUrl;
+      code = details.code;
+      status = TransactionStatus.Invalid;
+      failDetails = details;
     } else {
-      fromAddress = await getAddressFromPrivateKey(
-        transferOptions.from.value,
-        transferOptions.network.protocol,
-        transferOptions.network.addressPrefix
-      );
+      throw e;
     }
-
-    const baseTx: BaseTransaction = {
-      hash: result.transactionHash,
-      from: fromAddress,
-      chainId: transferOptions.network.chainID,
-      requestedBy: metadata?.requestedBy,
-      swapTo: metadata?.swapTo,
-      amount: transferOptions.amount,
-      to: transferOptions.to.value,
-      rpcUrl,
-      timestamp: Date.now(),
-    };
-
-    let tx: Transaction;
-
-    if (transferOptions.network.protocol === SupportedProtocols.Ethereum) {
-      tx = {
-        ...baseTx,
-        protocol: SupportedProtocols.Ethereum,
-        assetId: transferOptions.asset
-          ? state.app.assets.find(
-              (asset) =>
-                asset.chainId === transferOptions.asset.chainID &&
-                asset.protocol === transferOptions.asset.protocol &&
-                asset.contractAddress === transferOptions.asset.contractAddress
-            )?.id
-          : undefined,
-        data: transferOptions.transactionParams.data,
-        isRawTransaction: transferOptions.isRawTransaction || false,
-        maxFeePerGas: transferOptions.transactionParams.maxFeePerGas,
-        maxPriorityFeePerGas:
-          transferOptions.transactionParams.maxPriorityFeePerGas,
-        gasLimit: transferOptions.transactionParams.gasLimit,
-        maxFeeAmount: metadata?.maxFeeAmount || 0,
-        amount: transferOptions.isRawTransaction
-          ? metadata.amountToSave || transferOptions.amount
-          : transferOptions.amount,
-      };
-    } else if (transferOptions.network.protocol === SupportedProtocols.Pocket) {
-      tx = {
-        ...baseTx,
-        protocol: SupportedProtocols.Pocket,
-        fee: transferOptions.transactionParams.fee,
-        memo: transferOptions.transactionParams.memo,
-      };
-    } else if (transferOptions.network.protocol === SupportedProtocols.Cosmos) {
-      tx = {
-        ...baseTx,
-        protocol: SupportedProtocols.Cosmos,
-        fee:
-          transferOptions.transactionParams.maxFeePerGas ||
-          transferOptions.transactionParams.fee,
-        memo: transferOptions.transactionParams.memo,
-      };
-    }
-
-    await TransactionDatasource.save(tx);
-
-    context.dispatch(addTransaction(tx));
-
-    return result.transactionHash;
   }
-);
+
+  let fromAddress: string;
+
+  if (transferOptions.from.type === SupportedTransferOrigins.VaultAccountId) {
+    fromAddress = state.vault.accounts.find(
+      (account) => account.id === transferOptions.from.value
+    )?.address;
+  } else {
+    fromAddress = await getAddressFromPrivateKey(
+      transferOptions.from.value,
+      transferOptions.network.protocol,
+      transferOptions.network.addressPrefix
+    );
+  }
+
+  const baseTx: BaseTransaction = {
+    hash,
+    from: fromAddress,
+    chainId: transferOptions.network.chainID,
+    requestedBy: metadata?.requestedBy,
+    swapTo: metadata?.swapTo,
+    amount: transferOptions.amount,
+    to: transferOptions.to.value,
+    rpcUrl,
+    timestamp: Date.now(),
+    status,
+    code,
+  };
+
+  let tx: Transaction;
+
+  if (transferOptions.network.protocol === SupportedProtocols.Ethereum) {
+    tx = {
+      ...baseTx,
+      protocol: SupportedProtocols.Ethereum,
+      assetId: transferOptions.asset
+        ? state.app.assets.find(
+            (asset) =>
+              asset.chainId === transferOptions.asset.chainID &&
+              asset.protocol === transferOptions.asset.protocol &&
+              asset.contractAddress === transferOptions.asset.contractAddress
+          )?.id
+        : undefined,
+      data: transferOptions.transactionParams.data,
+      isRawTransaction: transferOptions.isRawTransaction || false,
+      maxFeePerGas: transferOptions.transactionParams.maxFeePerGas,
+      maxPriorityFeePerGas:
+        transferOptions.transactionParams.maxPriorityFeePerGas,
+      gasLimit: transferOptions.transactionParams.gasLimit,
+      maxFeeAmount: metadata?.maxFeeAmount || 0,
+      amount: transferOptions.isRawTransaction
+        ? metadata.amountToSave || transferOptions.amount
+        : transferOptions.amount,
+    };
+  } else if (transferOptions.network.protocol === SupportedProtocols.Pocket) {
+    tx = {
+      ...baseTx,
+      protocol: SupportedProtocols.Pocket,
+      fee: transferOptions.transactionParams.fee,
+      memo: transferOptions.transactionParams.memo,
+    };
+  } else if (transferOptions.network.protocol === SupportedProtocols.Cosmos) {
+    tx = {
+      ...baseTx,
+      protocol: SupportedProtocols.Cosmos,
+      fee:
+        transferOptions.transactionParams.maxFeePerGas ||
+        transferOptions.transactionParams.fee,
+      memo: transferOptions.transactionParams.memo,
+      codespace: failDetails?.codespace,
+      log: failDetails?.log,
+    };
+  }
+
+  await TransactionDatasource.save(tx);
+
+  context.dispatch(addTransaction(tx));
+
+  return {
+    hash,
+    status,
+    failDetails,
+  };
+});
 
 export const getPoktTxFromRequest = async ({
   state,

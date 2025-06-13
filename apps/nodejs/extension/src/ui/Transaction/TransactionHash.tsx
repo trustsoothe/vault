@@ -76,11 +76,11 @@ export function Hash({ hash, protocol, chainId }: HashProps) {
 
 export default function TransactionHash() {
   const { watch } = useFormContext<TransactionFormValues>();
-  const [hash, protocol, chainId] = watch([
-    "txResultHash",
+  const [txResponse, protocol, chainId] = watch([
+    "txResponse",
     "protocol",
     "chainId",
   ]);
 
-  return <Hash protocol={protocol} chainId={chainId} hash={hash} />;
+  return <Hash protocol={protocol} chainId={chainId} hash={txResponse.hash} />;
 }

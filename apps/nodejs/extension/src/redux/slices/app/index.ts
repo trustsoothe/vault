@@ -74,6 +74,7 @@ export interface Network {
   wip?: NetworkNotice;
   notices?: NetworkNotice[];
   faucet?: string;
+  memoMaxLength?: number;
 }
 
 export interface IAsset {

@@ -285,6 +285,7 @@ import {
   AnswerMigrateMorseAccountReq,
   AnswerMigrateMorseAccountRes,
 } from "../../types/communications/migration";
+import { TransactionStatus } from "../datasource/Transaction";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -1472,7 +1473,9 @@ class InternalCommunicationController implements ICommunicationController {
     try {
       const { rejected, request, transferData } = message?.data || {};
 
-      let hash: string | null = null;
+      let hash: string | null = null,
+        failDetails: object | null = null,
+        status: TransactionStatus | null = null;
       let response: InternalTransferRes;
 
       if (typeof rejected === "boolean" && rejected && request) {
@@ -1512,13 +1515,20 @@ class InternalCommunicationController implements ICommunicationController {
                 answered: true,
                 hash: null,
                 isPasswordWrong: true,
+                status: null,
               },
               error: null,
             };
           }
         }
 
-        hash = await store.dispatch(sendTransfer(transferData)).unwrap();
+        const sendResponse = await store
+          .dispatch(sendTransfer(transferData))
+          .unwrap();
+
+        hash = sendResponse.hash;
+        failDetails = sendResponse.failDetails;
+        status = sendResponse.status;
 
         if (request) {
           response = {
@@ -1526,7 +1536,7 @@ class InternalCommunicationController implements ICommunicationController {
             requestId: request.requestId,
             data: {
               rejected: false,
-              hash,
+              hash: sendResponse.hash,
               protocol: transferData.network.protocol,
             },
             error: null,
@@ -1553,6 +1563,8 @@ class InternalCommunicationController implements ICommunicationController {
         data: {
           answered: true,
           hash,
+          details: failDetails,
+          status,
         },
         error: null,
       };
@@ -1564,6 +1576,7 @@ class InternalCommunicationController implements ICommunicationController {
             answered: true,
             isPasswordWrong: true,
             hash: null,
+            status: null,
           },
           error: null,
         };

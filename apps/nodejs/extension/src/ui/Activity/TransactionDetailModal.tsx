@@ -1,6 +1,7 @@
-import type {
+import {
   PoktTransaction,
   Transaction,
+  TransactionStatus,
 } from "../../controllers/datasource/Transaction";
 import Decimal from "decimal.js";
 import Stack from "@mui/material/Stack";
@@ -38,6 +39,66 @@ import DaoTransferSummary from "../PoktTransaction/DaoTransfer/Summary";
 import { getTransactionTypeLabel } from "../Request/PoktTransactionRequest";
 import AccountInfo, { AccountInfoFromAddress } from "../components/AccountInfo";
 import UnstakeUnjailNodeSummary from "../PoktTransaction/UnstakeUnjailNode/Summary";
+import Typography from "@mui/material/Typography";
+import { themeColors } from "../theme";
+import FailedActionBanner from "../components/FailedActionBanner";
+
+function getTxSummaryRows(transaction: Transaction) {
+  const txSummaryItems: Array<SummaryRowItem> = [
+    {
+      type: "row",
+      label: "Tx. Hash",
+      value: (
+        <Hash
+          hash={transaction.hash}
+          protocol={transaction.protocol}
+          chainId={transaction.chainId}
+        />
+      ),
+    },
+  ];
+
+  if (transaction.status === TransactionStatus.Invalid) {
+    txSummaryItems.push({
+      type: "row",
+      label: "Code",
+      value: transaction.code?.toString() || "0",
+    });
+
+    if ("codespace" in transaction) {
+      txSummaryItems.push({
+        type: "row",
+        label: "Codespace",
+        value: transaction.codespace,
+      });
+    }
+
+    if ("log" in transaction) {
+      txSummaryItems.push({
+        type: "row",
+        label: "Raw Log",
+        containerProps: {
+          sx: {
+            alignItems: "flex-start",
+          },
+        },
+        value: (
+          <Stack width={1} marginLeft={-9} marginTop={2.8}>
+            <Typography
+              fontSize={11}
+              marginLeft={0.6}
+              color={themeColors.black}
+            >
+              {transaction.log}
+            </Typography>
+          </Stack>
+        ),
+      });
+    }
+  }
+
+  return txSummaryItems;
+}
 
 interface PoktTxDetailProps {
   transaction: Transaction;
@@ -200,6 +261,11 @@ function PoktTransactionDetailModal(props: PoktTxDetailProps) {
     }
   }
 
+  const ActionBanner =
+    props.transaction.status === TransactionStatus.Invalid
+      ? FailedActionBanner
+      : SuccessActionBanner;
+
   return (
     <DialogContent
       sx={{
@@ -209,8 +275,12 @@ function PoktTransactionDetailModal(props: PoktTxDetailProps) {
         flexDirection: "column",
       }}
     >
-      <SuccessActionBanner
-        label={`${getTransactionTypeLabel(poktTx.type)} Transaction Sent`}
+      <ActionBanner
+        label={`${getTransactionTypeLabel(poktTx.type)} Transaction Sent${
+          props.transaction.status === TransactionStatus.Invalid
+            ? " but Failed"
+            : ""
+        }`}
       />
       <Summary
         rows={[
@@ -239,21 +309,7 @@ function PoktTransactionDetailModal(props: PoktTxDetailProps) {
       >
         {summaryComponent}
       </Stack>
-      <Summary
-        rows={[
-          {
-            type: "row",
-            label: "Tx. Hash",
-            value: (
-              <Hash
-                hash={poktTx.hash}
-                protocol={poktTx.protocol}
-                chainId={poktTx.chainId}
-              />
-            ),
-          },
-        ]}
-      />
+      <Summary rows={getTxSummaryRows(props.transaction)} />
     </DialogContent>
   );
 }
@@ -414,6 +470,11 @@ function Content({ transaction }: ContentProps) {
     });
   }
 
+  const ActionBanner =
+    transaction.status === TransactionStatus.Invalid
+      ? FailedActionBanner
+      : SuccessActionBanner;
+
   return (
     <DialogContent
       sx={{
@@ -423,26 +484,14 @@ function Content({ transaction }: ContentProps) {
         flexDirection: "column",
       }}
     >
-      <SuccessActionBanner
-        label={`Transaction ${wasReceived ? "Received" : "Sent"}`}
+      <ActionBanner
+        label={`Transaction ${wasReceived ? "Received" : "Sent"}${
+          transaction.status === TransactionStatus.Invalid ? " but Failed" : ""
+        }`}
       />
       <Summary rows={firstSummaryRow} />
       <Summary rows={rows} />
-      <Summary
-        rows={[
-          {
-            type: "row",
-            label: "Tx. Hash",
-            value: (
-              <Hash
-                hash={transaction.hash}
-                protocol={transaction.protocol}
-                chainId={transaction.chainId}
-              />
-            ),
-          },
-        ]}
-      />
+      <Summary rows={getTxSummaryRows(transaction)} />
     </DialogContent>
   );
 }

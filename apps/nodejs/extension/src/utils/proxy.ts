@@ -18,7 +18,7 @@ export function isPocketAddress(address: string): boolean {
 }
 
 export function isShannonAddress(address: string) {
-  return /^pokt[ac-hj-np-z0-9]{39}$/.test(address);
+  return /^pokt[ac-hj-np-z0-9]{39}$/.test(address) && address.length === 43;
 }
 
 export const isValidAddress = (

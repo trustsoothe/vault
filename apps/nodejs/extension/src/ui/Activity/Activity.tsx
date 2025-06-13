@@ -17,6 +17,7 @@ import { enqueueErrorSnackbar, roundAndSeparate } from "../../utils/ui";
 import {
   PoktTransaction,
   Transaction,
+  TransactionStatus,
 } from "../../controllers/datasource/Transaction";
 import MintTransactionModal from "../Transaction/MintTransactionModal";
 import { AccountInfoFromAddress } from "../components/AccountInfo";
@@ -86,6 +87,19 @@ function TransactionItem({
     "status" in fullTransaction &&
     fullTransaction.status === TxStatus.SIGNED;
 
+  let transactionLabel =
+    "protocol" in fullTransaction &&
+    fullTransaction.protocol === SupportedProtocols.Cosmos &&
+    fullTransaction.type === CosmosTransactionTypes.ClaimAccount
+      ? "Migration"
+      : wasReceived
+      ? "Received"
+      : "Sent";
+
+  if (fullTransaction.status === TransactionStatus.Invalid) {
+    transactionLabel = `Failed ${transactionLabel}`;
+  }
+
   return (
     <Button
       sx={{
@@ -152,19 +166,12 @@ function TransactionItem({
               variant={"subtitle2"}
               color={themeColors.black}
             >
-              {"protocol" in fullTransaction &&
-              fullTransaction.protocol === SupportedProtocols.Cosmos &&
-              fullTransaction.type === CosmosTransactionTypes.ClaimAccount
-                ? "Migration"
-                : wasReceived
-                ? "Received"
-                : "Sent"}
+              {transactionLabel}
             </Typography>
             <Stack
               direction={"row"}
               alignItems={"center"}
               spacing={0.5}
-              width={212}
               justifyContent={"flex-end"}
             >
               <Typography
@@ -476,6 +483,9 @@ function PoktTransactionItem({
               variant={"subtitle2"}
               color={themeColors.black}
             >
+              {transaction.status === TransactionStatus.Invalid
+                ? "Failed "
+                : ""}
               {getTransactionTypeLabel(transaction.type)}
             </Typography>
             {components[0]}
