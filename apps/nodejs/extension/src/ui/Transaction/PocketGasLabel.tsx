@@ -1,4 +1,4 @@
-import { PocketNetworkFee, SupportedProtocols } from "@soothe/vault";
+import {CosmosFee} from "@soothe/vault";
 import type { TransactionFormValues } from "./BaseTransaction";
 import React from "react";
 import Stack from "@mui/material/Stack";
@@ -7,20 +7,22 @@ import { useFormContext } from "react-hook-form";
 import Typography from "@mui/material/Typography";
 import { roundAndSeparate } from "../../utils/ui";
 
-export interface PoktFeeLabelProps {
+export interface PocketGasLabelProps {
   marginTop?: string | number;
   onClick?: () => void;
 }
 
-export default function PoktFeeLabel({ marginTop, onClick }: PoktFeeLabelProps) {
+export default function PocketGasLabel({ marginTop, onClick }: Readonly<PocketGasLabelProps>) {
   const { watch } = useFormContext<TransactionFormValues>();
 
-  const [networkFee, fetchingFee, protocol, recipientAddress] = watch([
+  const [networkFee, fetchingFee, recipientAddress] = watch([
     "fee",
     "fetchingFee",
     "protocol",
     "recipientAddress",
   ]);
+
+  const {estimatedGas, gasAdjustmentUsed} = networkFee as CosmosFee ?? {};
 
   return (
     // todo: create component
@@ -38,7 +40,7 @@ export default function PoktFeeLabel({ marginTop, onClick }: PoktFeeLabelProps) 
         },
       }}
     >
-      <Typography>Fee</Typography>
+      <Typography>Gas Estimate</Typography>
 
       {fetchingFee ? (
         <Skeleton width={48} height={16} variant={"rectangular"} />
@@ -56,15 +58,11 @@ export default function PoktFeeLabel({ marginTop, onClick }: PoktFeeLabelProps) 
             minWidth={0}
             textAlign={"right"}
           >
-            {protocol === SupportedProtocols.Cosmos && !recipientAddress
+            {(!recipientAddress || !estimatedGas  || !gasAdjustmentUsed)
               ? "-"
-              : roundAndSeparate(
-                  (networkFee as PocketNetworkFee)?.value,
-                  6,
-                  "0.00"
-                )}
+              : Math.ceil(estimatedGas * gasAdjustmentUsed)
+            }
           </Typography>
-          <Typography>POKT</Typography>
         </Stack>
       )}
     </Stack>

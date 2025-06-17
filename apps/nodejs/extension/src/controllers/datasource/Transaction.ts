@@ -65,7 +65,8 @@ export const PoktShannonTransaction = BaseTransaction.extend({
   transactionParams: z
     .object({
       gasPrice: z.number().optional(),
-      gasEstimation: z.number().optional(),
+      gas: z.union([z.literal("auto"), z.number()]).optional().default("auto"),
+      gasAdjustment: z.number().optional().default(1.1),
       memo: z.string().optional(),
     })
     .optional(),

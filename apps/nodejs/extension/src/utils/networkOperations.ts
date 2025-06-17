@@ -288,7 +288,8 @@ export async function runWithNetworks<T>(
       id: item.id,
       url: item.url,
       defaultGasPrice: item.defaultGasPrice,
-      defaultGasAdjustmentFactor: item.defaultGasAdjustmentFactor,
+      defaultGasUsed: item.defaultGasUsed,
+      defaultGasAdjustment: item.defaultGasAdjustment,
       defaultGasEstimation: item.defaultGasEstimation,
     }));
 
@@ -299,13 +300,14 @@ export async function runWithNetworks<T>(
   const rpcWithError: Array<string> = [];
   let result: T, rpcUrl: string;
 
-  for (const { url, id, defaultGasPrice, defaultGasAdjustmentFactor, defaultGasEstimation } of [
+  for (const { url, id, defaultGasPrice, defaultGasAdjustment, defaultGasEstimation, defaultGasUsed } of [
     ...rpcUrls,
     {
       id: defaultNetwork.id,
       url: defaultNetwork.rpcUrl,
       defaultGasPrice: defaultNetwork.defaultGasPrice,
-      defaultGasAdjustmentFactor: defaultNetwork.defaultGasAdjustmentFactor,
+      defaultGasUsed: defaultNetwork.defaultGasUsed,
+      defaultGasAdjustment: defaultNetwork.defaultGasAdjustment,
       defaultGasEstimation: defaultNetwork.defaultGasEstimation,
     },
   ]) {
@@ -315,7 +317,8 @@ export async function runWithNetworks<T>(
         chainID: chainId,
         rpcUrl: url,
         defaultGasPrice: defaultGasPrice,
-        defaultGasAdjustmentFactor: defaultGasAdjustmentFactor,
+        defaultGasUsed: defaultGasUsed,
+        defaultGasAdjustment: defaultGasAdjustment,
         defaultGasEstimation: defaultGasEstimation,
       });
       rpcUrl = url;

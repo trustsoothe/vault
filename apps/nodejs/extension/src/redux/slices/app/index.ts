@@ -49,6 +49,14 @@ export interface NetworkNotice {
   disables?: NetworkFeature[];
 }
 
+export interface PocketFeePreset {
+  id: string;
+  name: string;
+  gasPrice?: number;
+  gasAdjustment?: number;
+  gasUsed?: 'auto' | number;
+}
+
 export interface Network {
   id: string;
   label: string;
@@ -71,8 +79,10 @@ export interface Network {
   addressPrefix?: string;
   isProtocolDefault?: boolean;
   defaultGasPrice?: number;
-  defaultGasAdjustmentFactor?: number;
+  defaultGasAdjustment?: number;
+  defaultGasUsed?: 'auto' | number;
   defaultGasEstimation?: number;
+  pocketFeePresets?: PocketFeePreset[];
   wip?: NetworkNotice;
   notices?: NetworkNotice[];
   faucet?: string;
@@ -101,7 +111,8 @@ export interface CustomRPC {
   url: string;
   isPreferred?: boolean;
   defaultGasPrice?: number;
-  defaultGasAdjustmentFactor?: number;
+  defaultGasUsed?: 'auto' | number;
+  defaultGasAdjustment?: number;
   defaultGasEstimation?: number;
 }
 

@@ -142,6 +142,7 @@ import {
   AnswerMigrateMorseAccountReq,
   AnswerMigrateMorseAccountRes,
 } from "../../types/communications/migration";
+import {SupportedProtocols} from "@soothe/vault";
 
 export default class AppToBackground {
   static async answerConnection(

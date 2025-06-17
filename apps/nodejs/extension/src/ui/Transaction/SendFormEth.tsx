@@ -10,7 +10,7 @@ interface SendFormEthProps {
   isUnwrapping?: boolean;
 }
 
-export default function SendFormEth({ isUnwrapping }) {
+export default function SendFormEth({ isUnwrapping }: Readonly<SendFormEthProps>) {
   return (
     <DialogContent
       sx={{ paddingTop: "20px!important", paddingX: 2.4, paddingBottom: 2 }}

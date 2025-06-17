@@ -195,13 +195,15 @@ export default function PoktTransactionRequest() {
       setValue("fetchingFee", true);
     }
 
+    console.log('debug: calling network fee');
+
     AppToBackground.getNetworkFee({
       chainId: transactionRequest.transactionData.chainId,
       protocol: SupportedProtocols.Pocket,
       toAddress: transactionRequest.transactionData.address,
       from: transactionRequest.transactionData.address,
       defaultGasPrice: selectedNetwork?.defaultGasPrice,
-      defaultGasAdjustmentFactor: selectedNetwork?.defaultGasAdjustmentFactor,
+      defaultGasAdjustment: selectedNetwork?.defaultGasAdjustment,
       defaultGasEstimation: selectedNetwork?.defaultGasEstimation,
     })
       .then((res) => {

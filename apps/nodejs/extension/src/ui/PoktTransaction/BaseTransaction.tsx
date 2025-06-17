@@ -208,6 +208,8 @@ export default function BaseTransaction({
       setValue("fetchingFee", true);
     }
 
+    console.log('debug: calling network fee');
+
     AppToBackground.getNetworkFee({
       chainId,
       protocol: SupportedProtocols.Pocket,

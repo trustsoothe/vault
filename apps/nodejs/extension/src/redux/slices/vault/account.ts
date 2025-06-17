@@ -309,7 +309,8 @@ export interface SendTransactionParams
     memo?: string;
     gasLimit?: number;
     gasPrice?: number;
-    gasEstimation?: number;
+    gas?: 'auto' | number;
+    gasAdjustment?: number;
   };
   isRawTransaction?: boolean;
   metadata?: {
@@ -484,7 +485,8 @@ export const sendTransfer = createAsyncThunk<
       memo: transferOptions.transactionParams.memo,
       transactionParams: {
         gasPrice: transferOptions.transactionParams.gasPrice,
-        gasEstimation: transferOptions.transactionParams.gasEstimation,
+        gas: transferOptions.transactionParams.gas,
+        gasAdjustment: transferOptions.transactionParams.gasAdjustment,
       },
       codespace: failDetails?.codespace,
       log: failDetails?.log,

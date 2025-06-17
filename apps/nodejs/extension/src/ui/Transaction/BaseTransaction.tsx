@@ -3,7 +3,7 @@ import type { SendTransactionParams } from "../../redux/slices/vault/account";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogActions from "@mui/material/DialogActions";
 import { FormProvider, useForm } from "react-hook-form";
-import React, { useEffect, useRef, useState } from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import {
   CosmosFee,
   EthereumNetworkFee,
@@ -18,6 +18,7 @@ import useDidMountEffect from "../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
 import { CosmosFeeRequestOption } from "@soothe/vault/dist/lib/core/common/protocols/Cosmos/CosmosFeeRequestOption";
 import { TransactionStatus } from "../../controllers/datasource/Transaction";
+import {debounce} from "lodash";
 
 export interface TransactionFormValues {
   memo?: string;
@@ -36,6 +37,11 @@ export interface TransactionFormValues {
   txSpeed?: "medium" | "low" | "high" | "site";
   fee?: PocketNetworkFee | EthereumNetworkFee | CosmosFee;
   fetchingFee?: boolean;
+  pocketGasAuto: boolean;
+  pocketGasInput: number;
+  pocketGasPrice: number;
+  pocketFeePreset?: string;
+  pocketGasAdjustment: number;
 }
 
 interface BaseTransactionProps {
@@ -44,7 +50,7 @@ interface BaseTransactionProps {
   fromAddress: string;
   getFeeOptions?: (
     data: TransactionFormValues
-  ) => Partial<EthereumNetworkFeeRequestOptions>;
+  ) => Partial<EthereumNetworkFeeRequestOptions | CosmosFeeRequestOption>;
   getTransaction: (data: TransactionFormValues) => SendTransactionParams;
   defaultFormValue: Partial<TransactionFormValues>;
   form?: React.ReactNode;
@@ -132,16 +138,22 @@ export default function BaseTransaction({
   }, [protocol, chainId, fromAddress]);
 
   const getFee = () => {
-    let feeOptions: Partial<EthereumNetworkFeeRequestOptions>;
+    let feeOptions: Partial<EthereumNetworkFeeRequestOptions | CosmosFeeRequestOption>;
 
     if (getFeeOptions) {
       feeOptions = getFeeOptions(getValues());
     }
 
-    if (
-      (protocol === SupportedProtocols.Ethereum ||
-        protocol === SupportedProtocols.Cosmos) &&
-      !isValidAddress(feeOptions?.to || getValues("recipientAddress"), protocol)
+    const ethereumOptions = feeOptions?.protocol === SupportedProtocols.Ethereum && feeOptions as EthereumNetworkFeeRequestOptions;
+    const cosmosOptions = feeOptions?.protocol === SupportedProtocols.Cosmos && feeOptions as CosmosFeeRequestOption;
+
+    if (protocol === SupportedProtocols.Ethereum && !isValidAddress(ethereumOptions?.to || getValues("recipientAddress"), protocol)
+    ) {
+      setValue("fee", null);
+      return;
+    }
+
+    if (protocol === SupportedProtocols.Cosmos && !isValidAddress(cosmosOptions?.transaction.to || getValues("recipientAddress"), protocol)
     ) {
       setValue("fee", null);
       return;
@@ -156,26 +168,28 @@ export default function BaseTransaction({
       protocol,
       ...(protocol === SupportedProtocols.Ethereum && {
         from: fromAddress,
-        data: feeOptions?.data,
-        gasLimit: feeOptions?.gasLimit,
-        maxFeePerGas: feeOptions?.maxFeePerGas,
-        toAddress: feeOptions?.to || getValues("recipientAddress"),
-        maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas,
+        data: ethereumOptions?.data,
+        gasLimit: ethereumOptions?.gasLimit,
+        maxFeePerGas: ethereumOptions?.maxFeePerGas,
+        toAddress: ethereumOptions?.to || getValues("recipientAddress"),
+        maxPriorityFeePerGas: ethereumOptions?.maxPriorityFeePerGas,
         // @ts-ignore todo: change asset type of getNetworkFee
         asset: feeOptions?.asset
           ? {
-              contractAddress: feeOptions.asset.contractAddress,
-              decimals: feeOptions.asset.decimals,
-              protocol,
-              // @ts-ignore
-              chainID: chainId,
-            }
+            contractAddress: ethereumOptions.asset.contractAddress,
+            decimals: ethereumOptions.asset.decimals,
+            protocol,
+            // @ts-ignore
+            chainID: chainId,
+          }
           : undefined,
       }),
       ...(protocol === SupportedProtocols.Cosmos && {
         from: fromAddress,
-        toAddress: feeOptions?.to || getValues("recipientAddress"),
-        maxFeePerGas: feeOptions?.maxFeePerGas,
+        toAddress: cosmosOptions?.transaction.to || getValues("recipientAddress"),
+        pocketGasUsed: cosmosOptions.transaction.gas,
+        pocketGasPrice: cosmosOptions.transaction.gasPrice,
+        pocketGasAdjustment: cosmosOptions.transaction.gasAdjustment,
       }),
     })
       .then((res) => {
@@ -195,12 +209,21 @@ export default function BaseTransaction({
       .finally(() => setValue("fetchingFee", false));
   };
 
-  const [recipientAddress, fee] = watch(["recipientAddress", "fee"]);
+  const debouncedGetFee = useCallback(
+    debounce(() => {
+      getFee();
+    }, 500),
+    [],
+  );
+
+
+  const [recipientAddress, fee, pocketGasAuto, pocketGasInput, pocketGasPrice, pocketGasAdjustment] = watch(["recipientAddress", "fee", "pocketGasAuto", "pocketGasInput", "pocketGasPrice", "pocketGasAdjustment"]);
 
   useEffect(() => {
     if (status === "success") return;
 
-    getFee();
+    debouncedGetFee();
+
     let interval: NodeJS.Timeout | null = null;
     if (protocol === SupportedProtocols.Ethereum) {
       interval = setInterval(getFee, 30000);
@@ -214,6 +237,11 @@ export default function BaseTransaction({
     status,
     protocol,
     chainId,
+    pocketGasAuto,
+    pocketGasInput,
+    pocketGasPrice,
+    pocketGasAdjustment,
+    debouncedGetFee,
     [SupportedProtocols.Ethereum, SupportedProtocols.Cosmos].includes(protocol)
       ? recipientAddress
       : null,
