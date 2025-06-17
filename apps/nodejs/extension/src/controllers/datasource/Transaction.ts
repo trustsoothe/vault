@@ -58,7 +58,7 @@ export const PoktShannonTransaction = BaseTransaction.extend({
   protocol: z.literal(SupportedProtocols.Cosmos),
   memo: z.string().optional(),
   to: z.string().optional(),
-  fee: z.number(),
+  fee: z.number().optional(),
   type: z
     .nativeEnum(CosmosTransactionTypes)
     .default(CosmosTransactionTypes.Send),

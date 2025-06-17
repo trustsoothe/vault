@@ -80,8 +80,9 @@ export default function SendPoktShannon({ onCancel }: SendPoktProps) {
           },
           amount: Number(data.amount),
           transactionParams: {
-            // TODO: Refactor here to use a UI input value when we decide to make this configurable.
-            maxFeePerGas: selectedNetwork.defaultGasPrice,
+            gas: data.pocketGasAuto ? 'auto' : data.pocketGasInput ?? selectedNetwork.defaultGasEstimation,
+            gasPrice: data.pocketGasPrice,
+            gasAdjustment: data.pocketGasAdjustment,
             memo: data.memo || undefined,
           },
         };
