@@ -2357,7 +2357,6 @@ class InternalCommunicationController implements ICommunicationController {
         error: null,
       };
     } catch (e) {
-      console.log('debug: an error ocurred while trying to retrieve fee.');
       console.error(e);
       return {
         type: NETWORK_FEE_RESPONSE,

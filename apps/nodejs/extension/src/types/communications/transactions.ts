@@ -555,6 +555,9 @@ type ShannonMessages =
 
 export type SignTransactionBodyShannon = {
   address: string;
+  gas?: 'auto' | number;
+  gasPrice?: number;
+  gasAdjustment?: number;
   memo?: string;
   id?: string;
   messages: Array<ShannonMessages>;

@@ -1219,8 +1219,9 @@ export const signTransactions = createAsyncThunk(
         transaction = {
           protocol: SupportedProtocols.Cosmos,
           messages,
-          // gasPrice: baseTransaction.gasPrice,
-          // gasLimit: baseTransaction.gasLimit,
+          gas: baseTransaction.gas,
+          gasPrice: baseTransaction.gasPrice,
+          gasAdjustment: baseTransaction.gasAdjustment,
           memo: baseTransaction.memo,
           transactionType: null,
           from: null,
@@ -1298,7 +1299,6 @@ export const signTransactions = createAsyncThunk(
     if (rpcWithErrors.length) {
       await context.dispatch(setNetworksWithErrors(rpcWithErrors));
     }
-
     return result;
   }
 );

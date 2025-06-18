@@ -568,6 +568,9 @@ export class CosmosProtocolService
         publicKey: Buffer.from(signerPublicKey).toString('hex'),
         signature: Buffer.concat(txRaw.signatures),
         fee: Math.ceil(Math.ceil(estimatedGas * gasAdjustmentUsed) * gasPriceUsed).toString(),
+        estimatedGas,
+        gasAdjustment: gasAdjustmentUsed,
+        gasPrice: gasPriceUsed,
         rawTx: this._getRawTxJson(txRaw),
       }
     } catch (err) {
