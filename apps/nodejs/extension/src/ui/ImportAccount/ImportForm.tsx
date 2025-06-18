@@ -13,6 +13,7 @@ import SelectFile from "../components/SelectFile";
 import { useAppSelector } from "../hooks/redux";
 import { readFile } from "../../utils/ui";
 import { themeColors } from "../theme";
+import {SupportedProtocols} from "@soothe/vault";
 
 const INVALID_PPK_MESSAGE = "File is not valid";
 
@@ -32,6 +33,8 @@ export default function ImportForm({
   const { control, setValue, clearErrors, register, watch } =
     useFormContext<ImportAccountFormValues>();
   const [type] = watch(["import_type"]);
+
+  const userSelectedProtocol = watch("protocol");
 
   const pastePrivateKey = () => {
     navigator.clipboard.readText().then((pk) => {
@@ -83,7 +86,9 @@ export default function ImportForm({
             }}
           >
             <MenuItem value={"private_key"}>Private Key</MenuItem>
-            <MenuItem value={"json_file"}>Portable Wallet</MenuItem>
+            {userSelectedProtocol !== SupportedProtocols.Cosmos && (
+                <MenuItem value={"json_file"}>Portable Wallet</MenuItem>
+            )}
           </TextField>
         )}
       />
@@ -101,7 +106,7 @@ export default function ImportForm({
           name={"private_key"}
           rules={{
             validate: async (value, formValues) => {
-              const selectedNetwork =  formValues.protocol && networks.find((n) => n.id === formValues.protocol);
+              const selectedNetwork =  formValues.protocol && networks.find((n) => n.protocol === formValues.protocol && n.isProtocolDefault);
 
               if (formValues.import_type === "private_key") {
                 if (!value) {

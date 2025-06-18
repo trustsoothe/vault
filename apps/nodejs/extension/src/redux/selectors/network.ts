@@ -1,3 +1,4 @@
+import orderBy from "lodash/orderBy";
 import type { RootState } from "../store";
 import { CustomRPC, Network, NetworkFeature } from "../slices/app";
 import {
@@ -5,6 +6,7 @@ import {
   SerializedAccountReference,
   SupportedProtocols,
 } from "@soothe/vault";
+import { createSelector } from 'reselect';
 
 export const networksSelector = (state: RootState) => state.app.networks;
 export const showTestNetworkSelector = (state: RootState) =>
@@ -30,6 +32,35 @@ export const selectedNetworkSelector = (state: RootState) => {
       network.protocol === selectedProtocol && network.chainId === selectedChain
   );
 };
+
+export const selectableNetworksSelector = createSelector(
+  [networksSelector, showTestNetworkSelector, networksCanBeSelectedSelector],
+  (networks, showTestNetworks, networksCanBeSelected) => {
+    const networkFiltered = [];
+
+    for (const network of networks) {
+      if (
+        network.isDefault ||
+        networksCanBeSelected[network.protocol].includes(network.chainId)
+      ) {
+        if (showTestNetworks) {
+          networkFiltered.push(network);
+        } else if (!network.isTestnet) {
+          networkFiltered.push(network);
+        }
+      }
+    }
+
+    return orderBy(
+      networkFiltered.map((network) => ({
+        ...network,
+        rank: network.isTestnet ? 2 : 1,
+      })),
+      ["rank"],
+      ["asc"]
+    );
+  }
+);
 
 export const defaultSelectableProtocolSelector =
   (protocol?: SupportedProtocols) => (state: RootState) => {

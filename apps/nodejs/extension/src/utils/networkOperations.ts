@@ -241,10 +241,12 @@ export const getPortableWalletContent = async (
       null,
       2
     );
-  } else {
+  } else if (protocol === SupportedProtocols.Ethereum) {
     const keyStore = await encrypt(privateKey, password);
 
     return JSON.stringify(keyStore);
+  } else if (protocol === SupportedProtocols.Cosmos) {
+
   }
 };
 

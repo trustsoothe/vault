@@ -29,11 +29,15 @@ interface CustomRPCItemProps {
 function CustomRPCItem({ customRpc, openSaveModal }: CustomRPCItemProps) {
   const dispatch = useAppDispatch();
   const networks = useAppSelector(networksSelector);
+
+  // Added additional network find by ID for cases where the custom rpc is corrupted by:
+  // https://github.com/trustsoothe/vault/issues/155
   const networkOfRpc = networks.find(
     (network) =>
       network.protocol === customRpc.protocol &&
       network.chainId === customRpc.chainId
-  );
+  ) ?? networks.find((network) => network.id === customRpc.protocol);
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -67,14 +71,14 @@ function CustomRPCItem({ customRpc, openSaveModal }: CustomRPCItemProps) {
         <img
           height={15}
           width={15}
-          src={networkOfRpc.iconUrl}
-          alt={`${networkOfRpc.protocol}-${networkOfRpc.chainId}-icon`}
+          src={networkOfRpc?.iconUrl}
+          alt={`${networkOfRpc?.protocol}-${networkOfRpc?.chainId}-icon`}
         />
         <Stack spacing={0.4} flexGrow={1}>
           <Typography variant={"subtitle2"} lineHeight={"16px"}>
-            {labelByProtocolMap[customRpc.protocol]}{" "}
+            {labelByProtocolMap[customRpc?.protocol]}{" "}
             <span style={{ color: themeColors.gray }}>
-              ({networkOfRpc.chainIdLabel})
+              ({networkOfRpc?.chainIdLabel})
             </span>
           </Typography>
           <Typography

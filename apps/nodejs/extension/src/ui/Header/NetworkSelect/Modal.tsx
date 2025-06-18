@@ -1,5 +1,5 @@
 import orderBy from "lodash/orderBy";
-import React, {useMemo, useState} from "react";
+import React, {useState} from "react";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
@@ -13,15 +13,16 @@ import { NETWORKS_PAGE } from "../../../constants/routes";
 import BaseDialog from "../../components/BaseDialog";
 import { NetworkOption } from "./NetworkSelect";
 import {
-  networksCanBeSelectedSelector,
-  selectedChainSelector,
-  selectedProtocolSelector,
-  showTestNetworkSelector,
+    networksCanBeSelectedSelector,
+    selectableNetworksSelector,
+    selectedChainSelector,
+    selectedProtocolSelector,
+    showTestNetworkSelector,
 } from "../../../redux/selectors/network";
 import {
-  changeSelectedNetwork,
-  toggleShowTestNetworks,
-  NetworkNotice as NetworkTagType,
+    changeSelectedNetwork,
+    toggleShowTestNetworks,
+    NetworkNotice as NetworkTagType, Network,
 } from "../../../redux/slices/app";
 import { themeColors } from "../../theme";
 import NetworkNoticeTag from "./NetworkNoticeTag";
@@ -42,8 +43,6 @@ export default function NetworkSelectModal({
   const [currentSnackbarKey, setCurrentSnackbarKey] = useState(null);
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedChain = useAppSelector(selectedChainSelector);
-  const networks = useAppSelector((state) => state.app.networks);
-  const networksCanBeSelected = useAppSelector(networksCanBeSelectedSelector);
   const showTestNetworks = useAppSelector(showTestNetworkSelector);
 
   const onClickAddNetwork = () => {
@@ -82,31 +81,7 @@ export default function NetworkSelectModal({
     setCurrentSnackbarKey(newKey);
   }
 
-  const optionsToShow: typeof networks = useMemo(() => {
-    const networkFiltered = [];
-
-    for (const network of networks) {
-      if (
-        network.isDefault ||
-        networksCanBeSelected[network.protocol].includes(network.chainId)
-      ) {
-        if (showTestNetworks) {
-          networkFiltered.push(network);
-        } else if (!network.isTestnet) {
-          networkFiltered.push(network);
-        }
-      }
-    }
-
-    return orderBy(
-      networkFiltered.map((network) => ({
-        ...network,
-        rank: network.isTestnet ? 2 : 1,
-      })),
-      ["rank"],
-      ["asc"]
-    );
-  }, [showTestNetworks, networksCanBeSelected, networks]);
+  const optionsToShow: Network[] = useAppSelector(selectableNetworksSelector);
 
   return (
     <BaseDialog open={open} onClose={onClose} title={"Select Network"}>
