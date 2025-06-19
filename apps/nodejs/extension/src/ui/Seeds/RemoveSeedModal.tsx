@@ -114,6 +114,12 @@ export default function RemoveSeedModal({
     };
   }, [recoveryPhrase]);
 
+  useEffect(() => {
+    if (phrase) {
+      setValue('phraseSize', phrase.length);
+    }
+  }, [phrase]);
+
   const closeSnackbars = () => {
     if (wrongPasswordSnackbarKey.current) {
       closeSnackbar(wrongPasswordSnackbarKey.current);

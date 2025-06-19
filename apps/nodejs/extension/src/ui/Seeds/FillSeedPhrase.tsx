@@ -31,24 +31,27 @@ export default function FillSeedPhrase({
   ]);
 
   const pastePhrase = (phrase: string, index?: number) => {
-    const words = phrase.split(" ");
+    const cleanedPhrase = phrase.replace(/\s+/g, ' ').trim();
+    const words = cleanedPhrase.split(' ');
+    
+    const filteredWords = words.filter(word => word.length > 0);
 
-    if ([12, 15, 18, 21, 24].includes(words.length)) {
-      setValue("phraseSize", words.length.toString() as "12");
+    if ([12, 15, 18, 21, 24].includes(filteredWords.length)) {
+      setValue("phraseSize", filteredWords.length.toString() as "12");
 
       // setTimeout is required here to update the state after the phraseSize has been updated
       setTimeout(() => {
-        for (let i = 0; i < words.length; i++) {
-          setValue(`wordList.${i}.word`, words[i]);
+        for (let i = 0; i < filteredWords.length; i++) {
+          setValue(`wordList.${i}.word`, filteredWords[i]);
         }
       }, 0);
     } else if (typeof index === "number") {
-      if (words.length > 1) {
+      if (filteredWords.length > 1) {
         const phraseSizeNum = Number(phraseSize);
 
         for (let i = index; i < phraseSizeNum; i++) {
           const wordsIndex = i - index;
-          const word = words[wordsIndex];
+          const word = filteredWords[wordsIndex];
 
           if (word) setValue(`wordList.${i}.word`, word);
         }
