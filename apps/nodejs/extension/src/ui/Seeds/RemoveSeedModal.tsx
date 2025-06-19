@@ -116,7 +116,12 @@ export default function RemoveSeedModal({
 
   useEffect(() => {
     if (phrase) {
-      setValue('phraseSize', phrase.length);
+      const lengthStr = String(phrase.length);
+      const validLengths = ["12", "15", "18", "21", "24"];
+      setValue(
+        'phraseSize', 
+        validLengths.includes(lengthStr) ? lengthStr as "12" | "15" | "18" | "21" | "24" : "12"
+      );
     }
   }, [phrase]);
 
