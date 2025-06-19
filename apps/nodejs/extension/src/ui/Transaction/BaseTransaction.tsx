@@ -18,7 +18,7 @@ import useDidMountEffect from "../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
 import { CosmosFeeRequestOption } from "@soothe/vault/dist/lib/core/common/protocols/Cosmos/CosmosFeeRequestOption";
 import { TransactionStatus } from "../../controllers/datasource/Transaction";
-import {debounce} from "lodash";
+import debounce from "lodash/debounce";
 
 export interface TransactionFormValues {
   memo?: string;

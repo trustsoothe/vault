@@ -64,6 +64,7 @@ export const PoktShannonTransaction = BaseTransaction.extend({
     .default(CosmosTransactionTypes.Send),
   transactionParams: z
     .object({
+      maxFeePerGas: z.number().optional(),
       gasPrice: z.number().optional(),
       gas: z.union([z.literal("auto"), z.number()]).optional().default("auto"),
       gasAdjustment: z.number().optional().default(1.1),

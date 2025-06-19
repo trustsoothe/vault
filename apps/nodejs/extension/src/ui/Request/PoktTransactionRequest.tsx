@@ -195,8 +195,6 @@ export default function PoktTransactionRequest() {
       setValue("fetchingFee", true);
     }
 
-    console.log('debug: calling network fee');
-
     AppToBackground.getNetworkFee({
       chainId: transactionRequest.transactionData.chainId,
       protocol: SupportedProtocols.Pocket,

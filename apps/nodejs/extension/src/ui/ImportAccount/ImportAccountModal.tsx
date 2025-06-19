@@ -102,7 +102,7 @@ export default function ImportAccountModal({
     reset,
   } = methods;
 
-  const [type, file_password] = watch(["import_type", "file_password"]);
+  const [type, file_password, protocol] = watch(["import_type", "file_password", "protocol"]);
 
   useDidMountEffect(() => {
     setValue("private_key", "");
@@ -175,14 +175,14 @@ export default function ImportAccountModal({
   }, [open]);
 
   const isCreateAccountDisabled = useMemo(() => {
-    const selectedNetwork = networks.find((n) => n.protocol === watch("protocol") && n.isProtocolDefault);
+    const selectedNetwork = networks.find((n) => n.protocol === protocol && n.isProtocolDefault);
     return !!selectedNetwork?.notices?.find((notice) =>
       notice.disables?.includes(NetworkFeature.CreateAccount)
     );
-  }, [watch("protocol"), networks]);
+  }, [protocol, networks]);
 
   const createAccountDisablingNotice = useMemo(() => {
-    const selectedNetwork = networks.find((n) => n.protocol === watch("protocol") && n.isProtocolDefault);
+    const selectedNetwork = networks.find((n) => n.protocol === protocol && n.isProtocolDefault);
     return selectedNetwork?.notices?.find((notice) =>
       notice.disables?.includes(NetworkFeature.CreateAccount)
     );
