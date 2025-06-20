@@ -225,7 +225,7 @@ export default function BaseTransaction({
     debouncedGetFee();
 
     let interval: NodeJS.Timeout | null = null;
-    if (protocol === SupportedProtocols.Ethereum) {
+    if ([SupportedProtocols.Ethereum, SupportedProtocols.Cosmos].includes(protocol)) {
       interval = setInterval(getFee, 30000);
     }
     return () => {

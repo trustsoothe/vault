@@ -246,7 +246,7 @@ export const getPortableWalletContent = async (
 
     return JSON.stringify(keyStore);
   } else if (protocol === SupportedProtocols.Cosmos) {
-
+    // TODO: Implement keyFile generation. See: https://github.com/trustsoothe/vault/issues/156
   }
 };
 

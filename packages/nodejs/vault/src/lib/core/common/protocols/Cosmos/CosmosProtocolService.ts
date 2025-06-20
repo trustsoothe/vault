@@ -249,22 +249,21 @@ export class CosmosProtocolService
       throw new ArgumentError('transaction')
     }
 
-    if (transaction.gas !== 'auto' && !Number.isInteger(transaction.gas)) {
+    if (transaction.gas && (transaction.gas !== 'auto' && !Number.isInteger(transaction.gas))) {
       throw new ArgumentError('transaction.gas');
     }
 
-    let gasAdjustment = transaction.gasAdjustment ?? network.defaultGasAdjustment ?? 1.1;
-    let gasPrice = transaction.gasPrice ?? network.defaultGasPrice ?? 0.001;
+    let estimatedGas = transaction.gas ?? network.defaultGasUsed ?? network.defaultGasEstimation ?? 200000;
+    const gasAdjustment = transaction.gasAdjustment ?? network.defaultGasAdjustment ?? 1.1;
+    const gasPrice = transaction.gasPrice ?? network.defaultGasPrice ?? 0.001;
 
-    if (transaction.gas !== 'auto') {
+    if (estimatedGas !== 'auto') {
       return this.calculateFee({
-        gas: Number(transaction.gas),
+        gas: Number(estimatedGas),
         gasAdjustment,
         gasPrice,
       });
     }
-
-    let estimatedGas = Number(transaction.gas) ?? network.defaultGasEstimation ?? 200000;
 
     try {
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')
@@ -319,14 +318,14 @@ export class CosmosProtocolService
       }
 
       return this.calculateFee({
-        gas: estimatedGas,
+        gas: Number(estimatedGas),
         gasAdjustment,
         gasPrice,
       });
     } catch (err) {
       console.error(err)
       return this.calculateFee({
-        gas: estimatedGas,
+        gas: Number(estimatedGas),
         gasAdjustment,
         gasPrice,
       });
