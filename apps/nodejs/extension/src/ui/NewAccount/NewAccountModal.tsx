@@ -93,14 +93,14 @@ export default function NewAccountModal({
   const selectableNetwork = useAppSelector(
     defaultSelectableProtocolSelector(protocolFromProps)
   );
-  const selectedProtocol = selectableNetwork?.id;
+  const selectedProtocol = selectableNetwork?.protocol;
 
   const { reset, control, handleSubmit, setValue, getValues } =
     useForm<FormValues>({
       defaultValues: {
         account_name: "",
         protocol: selectedProtocol,
-        type: "",
+        type: "standalone",
       },
     });
 
@@ -120,7 +120,7 @@ export default function NewAccountModal({
       reset({
         account_name: "",
         protocol: selectedProtocol,
-        type: "",
+        type: "standalone",
       });
       setStatus("normal");
     }, 150);
@@ -134,7 +134,7 @@ export default function NewAccountModal({
 
   const isCreateAccountDisabled = useMemo(() => {
     const selectedNetwork = networks.find(
-      (n) => n.id === getValues("protocol")
+      (n) => n.protocol === getValues("protocol") && n.isProtocolDefault
     );
     return !!selectedNetwork?.notices?.find((notice) =>
       notice.disables?.includes(NetworkFeature.CreateAccount)
@@ -143,7 +143,7 @@ export default function NewAccountModal({
 
   const createAccountDisablingNotice = useMemo(() => {
     const selectedNetwork = networks.find(
-      (n) => n.id === getValues("protocol")
+        (n) => n.protocol === getValues("protocol") && n.isProtocolDefault
     );
     return selectedNetwork?.notices?.find((notice) =>
       notice.disables?.includes(NetworkFeature.CreateAccount)
@@ -152,7 +152,7 @@ export default function NewAccountModal({
 
   const onSubmit = async (data: FormValues) => {
     setStatus("loading");
-    const selectedNetwork = networks.find((n) => n.id === data.protocol);
+    const selectedNetwork = networks.find((n) => n.protocol === data.protocol && n.isProtocolDefault);
 
     const updateSelection = (address: string) => {
       return Promise.all([

@@ -2334,7 +2334,9 @@ class InternalCommunicationController implements ICommunicationController {
                         },
                       },
                     ],
-                    gasPrice: optionProps.maxFeePerGas,
+                    gas: optionProps.pocketGasUsed || network.defaultGasUsed,
+                    gasPrice:  optionProps.pocketGasPrice || network.defaultGasPrice,
+                    gasAdjustment: optionProps.pocketGasAdjustment || network.defaultGasAdjustment,
                   },
                 }
               : undefined
@@ -2355,6 +2357,7 @@ class InternalCommunicationController implements ICommunicationController {
         error: null,
       };
     } catch (e) {
+      console.error(e);
       return {
         type: NETWORK_FEE_RESPONSE,
         data: null,

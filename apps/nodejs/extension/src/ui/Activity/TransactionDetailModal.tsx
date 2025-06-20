@@ -276,7 +276,7 @@ function PoktTransactionDetailModal(props: PoktTxDetailProps) {
       }}
     >
       <ActionBanner
-        label={`${getTransactionTypeLabel(poktTx.type)} Transaction Sent${
+        label={`${getTransactionTypeLabel(poktTx.type)} Transaction Successful${
           props.transaction.status === TransactionStatus.Invalid
             ? " but Failed"
             : ""

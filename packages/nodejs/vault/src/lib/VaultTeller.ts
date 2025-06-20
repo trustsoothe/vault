@@ -76,6 +76,9 @@ export interface TransferOptions {
     data?: string;
     fee?: number;
     memo?: string;
+    gasPrice?: number;
+    gas?: 'auto' | number;
+    gasAdjustment?: number;
   };
   asset?: IAsset;
 }
@@ -579,7 +582,9 @@ export class VaultTeller {
               },
             },
           ],
-          gasPrice: options.transactionParams.maxFeePerGas,
+          gasPrice: options.transactionParams.gasPrice,
+          gasAdjustment: options.transactionParams.gasAdjustment,
+          gas: options.transactionParams.gas,
           memo: options.transactionParams.memo ?? '',
           privateKey,
           // TODO: Refactor the transaction when morse is sunset to remove this fields.
@@ -646,7 +651,9 @@ export class VaultTeller {
               },
             },
           ],
-          gasPrice: options.transactionParams.maxFeePerGas,
+          gasPrice: options.transactionParams.gasPrice,
+          gasAdjustment: options.transactionParams.gasAdjustment,
+          gas: options.transactionParams.gas,
           memo: options.transactionParams.memo ?? '',
           privateKey,
           // TODO: Refactor the transaction when morse is sunset to remove this fields.

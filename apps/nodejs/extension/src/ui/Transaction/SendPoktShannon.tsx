@@ -1,23 +1,18 @@
 import React from "react";
 import {
-  CosmosFee,
+  CosmosTransactionTypes,
+  SupportedProtocols,
   SupportedTransferDestinations,
   SupportedTransferOrigins,
+  CosmosFeeRequestOption,
 } from "@soothe/vault";
 import Summary from "./Summary";
 import Submitted from "./Submitted";
-import {
-  accountsSelector,
-  selectedAccountAddressSelector,
-} from "../../redux/selectors/account";
-import {
-  selectedChainSelector,
-  selectedNetworkSelector,
-  selectedProtocolSelector,
-} from "../../redux/selectors/network";
-import SendFormPokt from "./SendFormPokt";
-import BaseTransaction, { TransactionFormValues } from "./BaseTransaction";
-import { useAppSelector } from "../hooks/redux";
+import {accountsSelector, selectedAccountAddressSelector,} from "../../redux/selectors/account";
+import {selectedChainSelector, selectedNetworkSelector, selectedProtocolSelector,} from "../../redux/selectors/network";
+import BaseTransaction, {TransactionFormValues} from "./BaseTransaction";
+import {useAppSelector} from "../hooks/redux";
+import SendFormPocket from "./SendFormPocket";
 
 interface SendPoktProps {
   onCancel: () => void;
@@ -30,11 +25,30 @@ export default function SendPoktShannon({ onCancel }: SendPoktProps) {
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const selectedAccountAddress = useAppSelector(selectedAccountAddressSelector);
 
-  const getFeeOptions = (data: TransactionFormValues) => {
+  const getFeeOptions = (data: TransactionFormValues) : CosmosFeeRequestOption => {
     return {
-      maxFeePerGas: (selectedNetwork?.defaultGasPrice ?? 0.001).toString(),
-      toAddress: data.recipientAddress ?? "",
-      fromAddress: data.fromAddress ?? "",
+      protocol: SupportedProtocols.Cosmos,
+      transaction: {
+        protocol: SupportedProtocols.Cosmos,
+        transactionType: CosmosTransactionTypes.Send,
+        amount: '1',
+        privateKey: "",
+        to: data.recipientAddress ?? "",
+        from: data.fromAddress ?? "",
+        gas: data.pocketGasAuto ? 'auto' : data.pocketGasInput ?? selectedNetwork.defaultGasEstimation,
+        gasPrice: data.pocketGasPrice,
+        gasAdjustment: data.pocketGasAdjustment,
+        messages: [
+          {
+            type: CosmosTransactionTypes.Send,
+            payload: {
+              amount: '1',
+              toAddress: data.recipientAddress ?? "",
+              fromAddress: data.fromAddress ?? "",
+            }
+          }
+        ]
+      },
     };
   };
 
@@ -66,17 +80,19 @@ export default function SendPoktShannon({ onCancel }: SendPoktProps) {
           },
           amount: Number(data.amount),
           transactionParams: {
-            // TODO: Refactor here to use a UI input value when we decide to make this configurable.
-            maxFeePerGas: selectedNetwork.defaultGasPrice,
+            gas: data.pocketGasAuto ? 'auto' : data.pocketGasInput ?? selectedNetwork.defaultGasEstimation,
+            gasPrice: data.pocketGasPrice,
+            gasAdjustment: data.pocketGasAdjustment,
             memo: data.memo || undefined,
-            fee: (data.fee as CosmosFee).value,
           },
         };
       }}
       defaultFormValue={{
         memo: "",
+        pocketGasAuto: selectedNetwork.defaultGasUsed === "auto",
+        pocketGasInput: selectedNetwork.defaultGasUsed && selectedNetwork.defaultGasUsed !== "auto" ? selectedNetwork.defaultGasUsed : undefined,
       }}
-      form={<SendFormPokt />}
+      form={<SendFormPocket />}
       summary={<Summary />}
       success={<Submitted onCancel={onCancel} />}
       onCancel={onCancel}

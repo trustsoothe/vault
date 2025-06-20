@@ -244,14 +244,26 @@ export class CosmosProtocolService
     if (!network) {
       throw new ArgumentError('network')
     }
+
     if (!transaction) {
       throw new ArgumentError('transaction')
     }
 
-    let estimatedGas = 80000
-    let gasAdjustmentUsed = transaction.gasAdjustment ?? 1.5
-    let gasPriceUsed = Number(transaction.gasPrice ?? 0.001)
-    let value = 0
+    if (transaction.gas && (transaction.gas !== 'auto' && !Number.isInteger(transaction.gas))) {
+      throw new ArgumentError('transaction.gas');
+    }
+
+    let estimatedGas = transaction.gas ?? network.defaultGasUsed ?? network.defaultGasEstimation ?? 200000;
+    const gasAdjustment = transaction.gasAdjustment ?? network.defaultGasAdjustment ?? 1.1;
+    const gasPrice = transaction.gasPrice ?? network.defaultGasPrice ?? 0.001;
+
+    if (estimatedGas !== 'auto') {
+      return this.calculateFee({
+        gas: Number(estimatedGas),
+        gasAdjustment,
+        gasPrice,
+      });
+    }
 
     try {
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')
@@ -299,35 +311,24 @@ export class CosmosProtocolService
         sequence,
       )
 
+      tmClient.disconnect();
+
       if (simulateResponse.gasInfo?.gasUsed) {
         estimatedGas = Number(simulateResponse.gasInfo.gasUsed)
       }
 
-      const amountInUpokt = Math.ceil(
-        Math.ceil(estimatedGas * gasAdjustmentUsed) * gasPriceUsed,
-      )
-      value = amountInUpokt / 1e6
-
-      tmClient.disconnect()
-
-      return {
-        protocol: SupportedProtocols.Cosmos,
-        estimatedGas,
-        gasAdjustmentUsed,
-        gasPriceUsed,
-        value,
-      }
+      return this.calculateFee({
+        gas: Number(estimatedGas),
+        gasAdjustment,
+        gasPrice,
+      });
     } catch (err) {
       console.error(err)
-      const amountInUpokt = Math.ceil(estimatedGas * gasPriceUsed)
-      const fallbackValue = amountInUpokt / 1e6
-      return {
-        protocol: SupportedProtocols.Cosmos,
-        estimatedGas,
-        gasAdjustmentUsed,
-        gasPriceUsed,
-        value: fallbackValue,
-      }
+      return this.calculateFee({
+        gas: Number(estimatedGas),
+        gasAdjustment,
+        gasPrice,
+      });
     }
   }
 
@@ -478,7 +479,7 @@ export class CosmosProtocolService
       const { privateKey } = transaction
       const wallet = await DirectSecp256k1Wallet.fromKey(
         fromHex(privateKey),
-        'pokt', // your prefix
+        'pokt',
       )
       const [{ address: signerAddress, pubkey: signerPublicKey }] = await wallet.getAccounts()
       const expectedSignerOnMessages = transaction.messages.map(({ type, payload }) => {
@@ -566,6 +567,9 @@ export class CosmosProtocolService
         publicKey: Buffer.from(signerPublicKey).toString('hex'),
         signature: Buffer.concat(txRaw.signatures),
         fee: Math.ceil(Math.ceil(estimatedGas * gasAdjustmentUsed) * gasPriceUsed).toString(),
+        estimatedGas,
+        gasAdjustment: gasAdjustmentUsed,
+        gasPrice: gasPriceUsed,
         rawTx: this._getRawTxJson(txRaw),
       }
     } catch (err) {
@@ -595,6 +599,20 @@ export class CosmosProtocolService
     }
 
     return true
+  }
+
+  private calculateFee({ gas, gasAdjustment, gasPrice }: { gas: number, gasAdjustment: number, gasPrice: number }) : CosmosFee {
+    const amountInUpokt = Math.ceil(
+      Math.ceil(gas * gasAdjustment) * gasPrice,
+    )
+
+    return {
+      protocol: SupportedProtocols.Cosmos,
+      estimatedGas: gas,
+      gasAdjustmentUsed: gasAdjustment,
+      gasPriceUsed: gasPrice,
+      value: amountInUpokt / 1e6,
+    }
   }
 
   private validateNetwork(network: INetwork) {

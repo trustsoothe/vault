@@ -1,4 +1,4 @@
-import { PocketNetworkFee, SupportedProtocols } from "@soothe/vault";
+import {CosmosFee, PocketNetworkFee, SupportedProtocols} from "@soothe/vault";
 import type { TransactionFormValues } from "./BaseTransaction";
 import React from "react";
 import Stack from "@mui/material/Stack";
@@ -7,12 +7,11 @@ import { useFormContext } from "react-hook-form";
 import Typography from "@mui/material/Typography";
 import { roundAndSeparate } from "../../utils/ui";
 
-export interface PoktFeeLabelProps {
+export interface PocketFeeLabelProps {
   marginTop?: string | number;
-  onClick?: () => void;
 }
 
-export default function PoktFeeLabel({ marginTop, onClick }: PoktFeeLabelProps) {
+export default function PocketFeeLabel({ marginTop }: Readonly<PocketFeeLabelProps>) {
   const { watch } = useFormContext<TransactionFormValues>();
 
   const [networkFee, fetchingFee, protocol, recipientAddress] = watch([
@@ -30,7 +29,6 @@ export default function PoktFeeLabel({ marginTop, onClick }: PoktFeeLabelProps) 
       marginTop={marginTop}
       alignItems={"center"}
       justifyContent={"space-between"}
-      onClick={() => onClick?.()}
       sx={{
         "& p": {
           fontSize: 11,
@@ -59,10 +57,10 @@ export default function PoktFeeLabel({ marginTop, onClick }: PoktFeeLabelProps) 
             {protocol === SupportedProtocols.Cosmos && !recipientAddress
               ? "-"
               : roundAndSeparate(
-                  (networkFee as PocketNetworkFee)?.value,
-                  6,
-                  "0.00"
-                )}
+                (networkFee as CosmosFee)?.value,
+                6,
+                "0.00"
+              )}
           </Typography>
           <Typography>POKT</Typography>
         </Stack>

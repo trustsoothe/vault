@@ -200,7 +200,9 @@ export default function PoktTransactionRequest() {
       protocol: SupportedProtocols.Pocket,
       toAddress: transactionRequest.transactionData.address,
       from: transactionRequest.transactionData.address,
-      maxFeePerGas: (selectedNetwork?.defaultGasPrice ?? 0.001).toString(),
+      pocketGasPrice: selectedNetwork?.defaultGasPrice,
+      pocketGasAdjustment: selectedNetwork?.defaultGasAdjustment,
+      pocketGasEstimation: selectedNetwork?.defaultGasEstimation,
     })
       .then((res) => {
         if (res.error) {

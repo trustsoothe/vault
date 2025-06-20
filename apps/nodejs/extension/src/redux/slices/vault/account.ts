@@ -308,6 +308,9 @@ export interface SendTransactionParams
     fee?: number;
     memo?: string;
     gasLimit?: number;
+    gasPrice?: number;
+    gas?: 'auto' | number;
+    gasAdjustment?: number;
   };
   isRawTransaction?: boolean;
   metadata?: {
@@ -479,10 +482,12 @@ export const sendTransfer = createAsyncThunk<
     tx = {
       ...baseTx,
       protocol: SupportedProtocols.Cosmos,
-      fee:
-        transferOptions.transactionParams.maxFeePerGas ||
-        transferOptions.transactionParams.fee,
       memo: transferOptions.transactionParams.memo,
+      transactionParams: {
+        gasPrice: transferOptions.transactionParams.gasPrice,
+        gas: transferOptions.transactionParams.gas,
+        gasAdjustment: transferOptions.transactionParams.gasAdjustment,
+      },
       codespace: failDetails?.codespace,
       log: failDetails?.log,
     };
@@ -1214,8 +1219,9 @@ export const signTransactions = createAsyncThunk(
         transaction = {
           protocol: SupportedProtocols.Cosmos,
           messages,
-          // gasPrice: baseTransaction.gasPrice,
-          // gasLimit: baseTransaction.gasLimit,
+          gas: baseTransaction.gas,
+          gasPrice: baseTransaction.gasPrice,
+          gasAdjustment: baseTransaction.gasAdjustment,
           memo: baseTransaction.memo,
           transactionType: null,
           from: null,
@@ -1293,7 +1299,6 @@ export const signTransactions = createAsyncThunk(
     if (rpcWithErrors.length) {
       await context.dispatch(setNetworksWithErrors(rpcWithErrors));
     }
-
     return result;
   }
 );
@@ -1425,7 +1430,6 @@ export const migrateMorseAccount = createAsyncThunk(
           chainId: selectedChainByProtocol[SupportedProtocols.Pocket] || "",
         },
       },
-      fee: 0,
       type: CosmosTransactionTypes.ClaimAccount,
     };
 

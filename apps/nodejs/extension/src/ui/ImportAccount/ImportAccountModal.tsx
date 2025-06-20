@@ -80,7 +80,7 @@ export default function ImportAccountModal({
     useState<SerializedAccountReference>(null);
   const networks = useAppSelector(networksSelector);
   const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector());
-  const selectableProtocolId = selectableNetwork?.id;
+  const selectableProtocolId = selectableNetwork?.protocol;
 
   const methods = useForm<ImportAccountFormValues>({
     defaultValues: {
@@ -102,7 +102,7 @@ export default function ImportAccountModal({
     reset,
   } = methods;
 
-  const [type, file_password] = watch(["import_type", "file_password"]);
+  const [type, file_password, protocol] = watch(["import_type", "file_password", "protocol"]);
 
   useDidMountEffect(() => {
     setValue("private_key", "");
@@ -175,14 +175,14 @@ export default function ImportAccountModal({
   }, [open]);
 
   const isCreateAccountDisabled = useMemo(() => {
-    const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
+    const selectedNetwork = networks.find((n) => n.protocol === protocol && n.isProtocolDefault);
     return !!selectedNetwork?.notices?.find((notice) =>
       notice.disables?.includes(NetworkFeature.CreateAccount)
     );
-  }, [watch("protocol"), networks]);
+  }, [protocol, networks]);
 
   const createAccountDisablingNotice = useMemo(() => {
-    const selectedNetwork = networks.find((n) => n.id === watch("protocol"));
+    const selectedNetwork = networks.find((n) => n.protocol === protocol && n.isProtocolDefault);
     return selectedNetwork?.notices?.find((notice) =>
       notice.disables?.includes(NetworkFeature.CreateAccount)
     );
@@ -190,7 +190,7 @@ export default function ImportAccountModal({
 
   const onSubmit = async (data: ImportAccountFormValues) => {
     setStatus("loading");
-    const selectedNetwork = networks.find((n) => n.id === data.protocol);
+    const selectedNetwork = networks.find((n) => n.protocol === data.protocol && n.isProtocolDefault);
 
     let privateKey: string;
     try {

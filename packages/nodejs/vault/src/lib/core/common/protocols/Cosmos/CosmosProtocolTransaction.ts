@@ -17,7 +17,7 @@ export interface CosmosProtocolTransaction
   protocol: SupportedProtocols.Cosmos;
   messages: CosmosProtocolTransactionMessage[];
   gasPrice?: number;
-  gasLimit?: number;
+  gas?: 'auto' | number;
   gasAdjustment?: number;
   memo?: string;
 }

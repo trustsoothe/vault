@@ -241,10 +241,12 @@ export const getPortableWalletContent = async (
       null,
       2
     );
-  } else {
+  } else if (protocol === SupportedProtocols.Ethereum) {
     const keyStore = await encrypt(privateKey, password);
 
     return JSON.stringify(keyStore);
+  } else if (protocol === SupportedProtocols.Cosmos) {
+    // TODO: Implement keyFile generation. See: https://github.com/trustsoothe/vault/issues/156
   }
 };
 
@@ -287,6 +289,10 @@ export async function runWithNetworks<T>(
     .map((item) => ({
       id: item.id,
       url: item.url,
+      defaultGasPrice: item.defaultGasPrice,
+      defaultGasUsed: item.defaultGasUsed,
+      defaultGasAdjustment: item.defaultGasAdjustment,
+      defaultGasEstimation: item.defaultGasEstimation,
     }));
 
   const defaultNetwork = networks.find(
@@ -296,11 +302,15 @@ export async function runWithNetworks<T>(
   const rpcWithError: Array<string> = [];
   let result: T, rpcUrl: string;
 
-  for (const { url, id } of [
+  for (const { url, id, defaultGasPrice, defaultGasAdjustment, defaultGasEstimation, defaultGasUsed } of [
     ...rpcUrls,
     {
       id: defaultNetwork.id,
       url: defaultNetwork.rpcUrl,
+      defaultGasPrice: defaultNetwork.defaultGasPrice,
+      defaultGasUsed: defaultNetwork.defaultGasUsed,
+      defaultGasAdjustment: defaultNetwork.defaultGasAdjustment,
+      defaultGasEstimation: defaultNetwork.defaultGasEstimation,
     },
   ]) {
     try {
@@ -308,6 +318,10 @@ export async function runWithNetworks<T>(
         protocol,
         chainID: chainId,
         rpcUrl: url,
+        defaultGasPrice: defaultGasPrice,
+        defaultGasUsed: defaultGasUsed,
+        defaultGasAdjustment: defaultGasAdjustment,
+        defaultGasEstimation: defaultGasEstimation,
       });
       rpcUrl = url;
       break;

@@ -1,4 +1,4 @@
-import type { SerializedAccountReference } from "@soothe/vault";
+import {SerializedAccountReference, SupportedProtocols} from "@soothe/vault";
 import { saveAs } from "file-saver";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
@@ -263,16 +263,18 @@ export default function ViewPrivateKeyModal({
 
               <Stack direction={"row"} spacing={1.2} alignItems={"center"}>
                 <CopyButton label={"Copy"} textToCopy={privateKey} />
-                <Button
-                  fullWidth
-                  onClick={exportPortableWallet}
-                  sx={{
-                    backgroundColor: themeColors.white,
-                    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
-                  }}
-                >
-                  Download
-                </Button>
+                  {(account || lastRevealedPkAccountRef.current)?.protocol !== SupportedProtocols.Cosmos && (
+                      <Button
+                          fullWidth
+                          onClick={exportPortableWallet}
+                          sx={{
+                              backgroundColor: themeColors.white,
+                              boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+                          }}
+                      >
+                          Download
+                      </Button>
+                  )}
               </Stack>
             </Stack>
           </DialogContent>

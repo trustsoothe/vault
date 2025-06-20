@@ -23,8 +23,8 @@ import CustomRPCFeedback from "./CustomRPCFeedback";
 import BaseDialog from "../components/BaseDialog";
 import {
   defaultSelectableProtocolSelector,
-  networksSelector,
   selectedChainSelector,
+  selectedProtocolSelector,
 } from "../../redux/selectors/network";
 import { themeColors } from "../theme";
 
@@ -63,15 +63,14 @@ export default function SaveCustomRPCModal({
 
   const allNetworks = useAppSelector((state) => state.app.networks);
   const selectedChainOnApp = useAppSelector(selectedChainSelector);
-  const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector());
-  const selectableNetworkId = selectableNetwork?.id;
-  const networks = useAppSelector(networksSelector);
+  const selectedProtocolOnApp = useAppSelector(selectedProtocolSelector);
+  const selectableNetwork = useAppSelector(defaultSelectableProtocolSelector(selectedProtocolOnApp));
 
   const { handleSubmit, control, reset, watch, clearErrors, setValue } =
     useForm<SaveRpcFormValues>({
       defaultValues: {
         ...defaultFormValues,
-        protocol: selectableNetworkId,
+        protocol: selectableNetwork.protocol,
         chainId: selectedChainOnApp,
         ...(rpcToUpdate && {
           url: rpcToUpdate.url,
@@ -104,7 +103,7 @@ export default function SaveCustomRPCModal({
     const timeout = setTimeout(() => {
       reset({
         ...defaultFormValues,
-        protocol: selectableNetworkId,
+        protocol: selectableNetwork.protocol,
         chainId: selectedChainOnApp,
         ...(rpcToUpdate && {
           url: rpcToUpdate.url,
@@ -127,11 +126,9 @@ export default function SaveCustomRPCModal({
   const onSubmit = async (data: SaveRpcFormValues) => {
     setStatus("loading");
 
-    const selectedNetwork = networks.find((n) => n.id === data.protocol);
-
     if (!rpcToUpdate || (rpcToUpdate && rpcToUpdate.url !== data.url)) {
       const healthResult = await isNetworkUrlHealthy({
-        protocol: selectedNetwork.protocol,
+        protocol: data.protocol,
         chainID: data.chainId as any,
         rpcUrl: data.url,
       });

@@ -25,6 +25,10 @@ export interface NetworkFeeReq {
     gasLimit?: number;
     maxFeePerGas?: string;
     maxPriorityFeePerGas?: string;
+    pocketGasPrice?: number;
+    pocketGasUsed?: 'auto' | number;
+    pocketGasAdjustment?: number;
+    pocketGasEstimation?: number;
   };
 }
 

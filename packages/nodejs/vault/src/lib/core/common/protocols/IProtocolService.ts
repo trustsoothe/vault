@@ -47,6 +47,9 @@ export interface SignTransactionResult {
   publicKey: string;
   transactionHex: string;
   fee?: string
+  estimatedGas?: number;
+  gasAdjustment?: number;
+  gasPrice?: number;
   rawTx?: string
 }
 
