@@ -1,5 +1,13 @@
 # @soothe/extension
 
+## 0.6.1
+
+### Patch Changes
+
+- e3aec2a: - Removes requirement for balance when migrating morse accounts.
+  - Uses default gas estimation value in cases where 'auto' was requested but there is not public key on chain
+- e3aec2a: Refactor `ImportForm` to use `Controller` for `PasswordInput` binding with `useFormContext`
+
 ## 0.6.0
 
 ### Minor Changes
