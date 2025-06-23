@@ -79,7 +79,7 @@ export default function RecipientAutocomplete({
     "protocol",
     "fromAddress",
     "recipientProtocol",
-    "recipientAddress",
+    fieldName as keyof TransactionFormValues,
   ]);
   const protocol = protocolFromProps || recipientProtocol || txProtocol;
 
@@ -192,13 +192,14 @@ export default function RecipientAutocomplete({
       return isValidPublicKey(value) || savedAddresses.includes(value);
     }
 
-    return isValidAddress(value, protocol);
+    return isValidAddress(value, protocol as SupportedProtocols);
   };
 
-  const invalidValue =
-    !!inputValue &&
-    optionsMap[selectedAddress]?.name !== inputValue &&
+  const invalidValue = useMemo(() => {
+    return !!inputValue &&
+    optionsMap[selectedAddress as string]?.name !== inputValue &&
     !isValid(inputValue);
+  }, [inputValue, optionsMap, selectedAddress]);
 
   return (
     <Controller

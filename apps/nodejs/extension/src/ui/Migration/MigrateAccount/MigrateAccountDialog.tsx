@@ -663,7 +663,6 @@ export default function MigrateAccountDialog({
         !!shannonAccount &&
         !!morseAccount &&
         morseAccount.shannon_dest_address === "" &&
-        morseAccount.unstaked_balance.amount !== "0" &&
         morseAccount.application_stake.amount === "0" &&
         morseAccount.supplier_stake.amount === "0"
       );

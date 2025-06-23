@@ -30,7 +30,7 @@ export default function ImportForm({
 }: ImportFormProps) {
   const selectedProtocol = useAppSelector(selectedProtocolSelector);
   const networks = useAppSelector(networksSelector);
-  const { control, setValue, clearErrors, register, watch } =
+  const { control, setValue, clearErrors, watch } =
     useFormContext<ImportAccountFormValues>();
   const [type] = watch(["import_type"]);
 
@@ -163,7 +163,7 @@ export default function ImportForm({
             name={"json_file"}
             rules={{
               validate: async (value, formValues) => {
-                const selectedNetwork =  formValues.protocol && networks.find((n) => n.id === formValues.protocol);
+                const selectedNetwork =  formValues.protocol && networks.find((n) => n.protocol === formValues.protocol && n.isProtocolDefault);
                 if (formValues.import_type === "json_file") {
                   if (!value) {
                     return "Required";
@@ -235,16 +235,22 @@ export default function ImportForm({
               </Stack>
             )}
           />
-          <PasswordInput
-            disabled={disableInputs}
-            placeholder={"File's Password (Optional)"}
-            canShowPassword={false}
-            error={wrongFilePassword}
-            helperText={wrongFilePassword ? "Invalid password" : undefined}
-            sx={{
-              marginTop: 2,
-            }}
-            {...register("file_password")}
+          <Controller
+              control={control}
+              name={"file_password"}
+              render={({ field }) => (
+                  <PasswordInput
+                      disabled={disableInputs}
+                      placeholder={"File's Password (Optional)"}
+                      canShowPassword={false}
+                      error={wrongFilePassword}
+                      helperText={wrongFilePassword ? "Invalid password" : undefined}
+                      sx={{
+                        marginTop: 2,
+                      }}
+                      {...field}
+                  />
+              )}
           />
         </>
       )}

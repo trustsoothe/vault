@@ -325,7 +325,7 @@ export class CosmosProtocolService
     } catch (err) {
       console.error(err)
       return this.calculateFee({
-        gas: Number(estimatedGas),
+        gas: Number.isInteger(estimatedGas) ? Number(estimatedGas) : network.defaultGasEstimation ?? 200000,
         gasAdjustment,
         gasPrice,
       });
