@@ -109,9 +109,8 @@ export default function ImportAccountModal({
     setValue("json_file", null);
     setValue("file_password", "");
     clearErrors(["private_key", "json_file"]);
-    setValue("protocol", selectableProtocolId);
     setWrongFilePassword(false);
-  }, [type, selectableProtocolId]);
+  }, [type]);
 
   useDidMountEffect(() => {
     if (isPopup && type === "json_file") {
