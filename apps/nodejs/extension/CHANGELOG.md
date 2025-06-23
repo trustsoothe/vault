@@ -1,5 +1,11 @@
 # @soothe/extension
 
+## 0.6.2
+
+### Patch Changes
+
+- 800163e: Resolves a bug where the protocol selection is reverted to current app protocol when the import type changed.
+
 ## 0.6.1
 
 ### Patch Changes
