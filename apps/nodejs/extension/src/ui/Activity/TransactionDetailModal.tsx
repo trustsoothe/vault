@@ -371,10 +371,6 @@ function Content({ transaction }: ContentProps) {
     asset?.decimals || transaction.protocol === SupportedProtocols.Pocket
       ? 6
       : 18;
-  const fee =
-    transaction.protocol === SupportedProtocols.Ethereum
-      ? transaction.maxFeeAmount || 0
-      : transaction.fee;
 
   const firstSummaryRow: Array<SummaryRowItem> = [
     {
@@ -435,40 +431,7 @@ function Content({ transaction }: ContentProps) {
         />
       ),
     },
-    {
-      type: "row",
-      label: "Fee",
-      value: (
-        <AmountWithUsd
-          symbol={network.currencySymbol}
-          balance={fee}
-          usdBalance={usdPrice * fee}
-          isLoadingUsdPrice={isLoading}
-          decimals={decimals}
-        />
-      ),
-    },
   ];
-
-  if (!asset) {
-    const total = new Decimal(transaction.amount)
-      .add(new Decimal(fee))
-      .toNumber();
-
-    rows.push({
-      type: "row",
-      label: "Total",
-      value: (
-        <AmountWithUsd
-          symbol={coinSymbol}
-          balance={total}
-          usdBalance={usdPrice * total}
-          isLoadingUsdPrice={isLoading}
-          decimals={decimals}
-        />
-      ),
-    });
-  }
 
   const ActionBanner =
     transaction.status === TransactionStatus.Invalid
