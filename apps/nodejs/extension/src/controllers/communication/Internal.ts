@@ -937,7 +937,7 @@ class InternalCommunicationController implements ICommunicationController {
           originReference
         );
 
-        const [session, tabs] = await Promise.all([
+        const [session, allTabs] = await Promise.all([
           store
             .dispatch(
               authorizeExternalSession({
@@ -946,7 +946,7 @@ class InternalCommunicationController implements ICommunicationController {
               })
             )
             .unwrap(),
-          browser.tabs.query({ url: `${origin}/*` }),
+          browser.tabs.query({}),
         ]);
 
         if (session) {
@@ -985,10 +985,11 @@ class InternalCommunicationController implements ICommunicationController {
             },
             error: null,
           };
+
           promises.push(
-            ...tabs.map((tab) =>
-              browser.tabs.sendMessage(tab.id, responseToProxy)
-            )
+            ...allTabs
+              .filter((t) => (t.url ? t.url.startsWith(request.origin) : false))
+              .map((tab) => browser.tabs.sendMessage(tab.id, responseToProxy))
           );
         }
       }
@@ -1001,6 +1002,7 @@ class InternalCommunicationController implements ICommunicationController {
 
       await Promise.all(promises);
       const activeTabs = await browser.tabs.query({ active: true });
+
       if (activeTabs.length) {
         const activeTab = activeTabs[0];
 
