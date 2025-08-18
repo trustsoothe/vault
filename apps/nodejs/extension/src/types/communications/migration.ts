@@ -3,6 +3,7 @@ import {
   ANSWER_MIGRATE_MORSE_ACCOUNT_RESPONSE,
 } from "../../constants/communication";
 import { UnknownError } from "../../errors/communication";
+import type { TransactionStatus } from "../../controllers/datasource/Transaction";
 
 export type AnswerMigrateMorseAccountReq = {
   type: typeof ANSWER_MIGRATE_MORSE_ACCOUNT_REQUEST;
@@ -19,6 +20,8 @@ export type AnswerMigrateMorseAccountRes = {
   data: {
     isPasswordWrong?: boolean;
     hash?: string;
+    details?: object;
+    status: TransactionStatus;
   };
   error: null | typeof UnknownError;
 };

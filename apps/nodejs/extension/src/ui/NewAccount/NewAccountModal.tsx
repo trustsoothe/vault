@@ -57,6 +57,10 @@ export const nameRules = {
       return "Required";
     }
 
+    if (value.includes(".")) {
+      return "Dots are not allowed";
+    }
+
     return true;
   },
 };
@@ -143,7 +147,7 @@ export default function NewAccountModal({
 
   const createAccountDisablingNotice = useMemo(() => {
     const selectedNetwork = networks.find(
-        (n) => n.protocol === getValues("protocol") && n.isProtocolDefault
+      (n) => n.protocol === getValues("protocol") && n.isProtocolDefault
     );
     return selectedNetwork?.notices?.find((notice) =>
       notice.disables?.includes(NetworkFeature.CreateAccount)
@@ -152,7 +156,9 @@ export default function NewAccountModal({
 
   const onSubmit = async (data: FormValues) => {
     setStatus("loading");
-    const selectedNetwork = networks.find((n) => n.protocol === data.protocol && n.isProtocolDefault);
+    const selectedNetwork = networks.find(
+      (n) => n.protocol === data.protocol && n.isProtocolDefault
+    );
 
     const updateSelection = (address: string) => {
       return Promise.all([

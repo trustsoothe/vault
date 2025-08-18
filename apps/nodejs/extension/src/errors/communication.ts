@@ -14,6 +14,11 @@ export const UnknownError = createError(
   0,
   "An unhandled error occur trying to process your request."
 );
+export const getUnknownErrorWithOriginal = (originalError: unknown) =>
+  Object.freeze({
+    ...UnknownError,
+    originalError,
+  });
 
 export const UnauthorizedError = createError(
   4100,

@@ -5,10 +5,16 @@ import { pricesApi } from "../redux/slices/prices";
 import { wpoktApi } from "../redux/slices/wpokt";
 import { poktApi } from "../redux/slices/pokt";
 
+let store: Store;
+
 export default function getStore() {
-  const store = new Store();
+  if (store) {
+    return store;
+  }
+
+  const newStore = new Store();
   const storeWithMiddleware = applyMiddleware(
-    store,
+    newStore,
     thunkMiddleware,
     // this middleware is a fix for firefox and the rtk queries, because Store complains about not being able to clone objects
     (_) => (next) => (action) => {
@@ -26,5 +32,5 @@ export default function getStore() {
     subscribe: storeWithMiddleware.subscribe.bind(storeWithMiddleware),
   });
 
-  return storeWithMiddleware;
+  return (store = storeWithMiddleware);
 }

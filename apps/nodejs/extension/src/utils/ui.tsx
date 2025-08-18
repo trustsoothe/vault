@@ -369,6 +369,7 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
   options: OptionsWithExtraProps<V> & {
     message?: Message;
     onRetry: () => void;
+    addCloseButton?: boolean;
   } & object
 ): SnackbarKey => {
   let snackbarKey: SnackbarKey;
@@ -382,7 +383,7 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
   };
 
   let message: React.ReactNode,
-    addCloseButton = false;
+    addCloseButton = options.addCloseButton || false;
 
   if (typeof options.message === "function") {
     message = options.message(onClickClose);
@@ -441,7 +442,9 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
           className={"retry-button"}
           alignItems={"center"}
           spacing={1}
+          mt={"4px!important"}
         >
+          {retryButton}
           <Button
             sx={{
               width: 60,
@@ -464,7 +467,6 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
           >
             Close
           </Button>
-          {retryButton}
         </Stack>
       </Stack>
     ) : (
@@ -484,6 +486,137 @@ export const enqueueErrorSnackbar = <V extends VariantType>(
           {message}
         </Typography>
         {retryButton}
+      </Stack>
+    ),
+  });
+
+  return snackbarKey;
+};
+
+export const enqueueErrorReportSnackbar = <V extends VariantType>(
+  options: OptionsWithExtraProps<V> & {
+    message?: Message;
+    onRetry: () => void;
+    onReport: () => void;
+  } & object
+): SnackbarKey => {
+  let snackbarKey: SnackbarKey;
+
+  const onClickClose = () => {
+    if (snackbarKey) {
+      closeSnackbar(snackbarKey);
+      snackbarKey = null;
+    }
+  };
+
+  let message: React.ReactNode;
+
+  if (typeof options.message === "function") {
+    message = options.message(onClickClose);
+  } else if (
+    typeof options.message === "object" &&
+    "title" in options.message
+  ) {
+    message = (
+      <Stack className={"title-with-content"}>
+        <Typography color={themeColors.bgLightGray} fontWeight={500}>
+          {options.message.title}
+        </Typography>
+        <Typography
+          color={themeColors.light_gray2}
+          whiteSpace={"pre-line"}
+          marginBottom={1.2}
+        >
+          {options.message.content}
+        </Typography>
+      </Stack>
+    );
+  } else {
+    message =
+      typeof options.message === "string" ? (
+        <Typography
+          fontWeight={500}
+          color={themeColors.bgLightGray}
+          flexGrow={1}
+        >
+          {options.message}
+        </Typography>
+      ) : (
+        options.message
+      );
+  }
+
+  snackbarKey = enqueueSnackbarNotistack({
+    autoHideDuration: 4000,
+    ...options,
+    variant: options.variant || "error",
+    message: (
+      <Stack marginX={0.9} spacing={1} width={1}>
+        {message}
+        <Stack
+          direction={"row"}
+          className={"retry-button"}
+          alignItems={"center"}
+          justifyContent={"space-between"}
+          spacing={1}
+          mt={"4px!important"}
+        >
+          <Stack direction={"row"} alignItems={"center"} spacing={1}>
+            <Button
+              sx={{
+                width: 60,
+                height: 27,
+                minWidth: 60,
+                borderRadius: "6px",
+                backgroundColor: themeColors.white,
+                boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+                "&:hover": {
+                  backgroundColor: themeColors.light_gray,
+                },
+              }}
+              className={"retry-button"}
+              onClick={() => {
+                onClickClose();
+                options.onRetry();
+              }}
+            >
+              Retry
+            </Button>
+            <Button
+              sx={{
+                width: 60,
+                height: 27,
+                minWidth: 60,
+                borderRadius: "6px",
+                backgroundColor: themeColors.white,
+                boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.08)",
+                "&:hover": {
+                  backgroundColor: themeColors.light_gray,
+                },
+              }}
+              className={"retry-button"}
+              onClick={() => {
+                onClickClose();
+                options.onReport();
+              }}
+            >
+              Report
+            </Button>
+          </Stack>
+          <Button
+            variant={"text"}
+            sx={{
+              width: 60,
+              height: 27,
+              minWidth: 60,
+              color: themeColors.white,
+            }}
+            className={"retry-button"}
+            onClick={onClickClose}
+          >
+            Close
+          </Button>
+        </Stack>
       </Stack>
     ),
   });

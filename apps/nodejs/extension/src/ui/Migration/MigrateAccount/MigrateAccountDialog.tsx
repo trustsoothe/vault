@@ -1,10 +1,15 @@
+import type { ReportBugMetadata } from "../../ReportBug/ReportBug";
 import BaseDialog from "../../components/BaseDialog";
+import { useNavigate } from "react-router-dom";
 import DialogActions from "@mui/material/DialogActions";
 import DialogButtons from "../../components/DialogButtons";
 import React, { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useAppSelector } from "../../hooks/redux";
-import { selectedAccountAddressSelector } from "../../../redux/selectors/account";
+import {
+  accountsSelector,
+  selectedAccountAddressSelector,
+} from "../../../redux/selectors/account";
 import { SupportedProtocols } from "@soothe/vault";
 import {
   networksSelector,
@@ -25,7 +30,7 @@ import SuccessIcon from "../../assets/img/success_icon.svg";
 import ErrorIcon from "../../assets/img/error_icon.svg";
 import Button from "@mui/material/Button";
 import {
-  enqueueErrorSnackbar,
+  enqueueErrorReportSnackbar,
   roundAndSeparate,
   wrongPasswordSnackbar,
 } from "../../../utils/ui";
@@ -36,8 +41,11 @@ import Summary, { SummaryRowItem } from "../../components/Summary";
 import { Network } from "../../../redux/slices/app";
 import CircularProgress from "@mui/material/CircularProgress";
 import { requirePasswordForSensitiveOptsSelector } from "../../../redux/selectors/preferences";
+import { TransactionStatus } from "../../../controllers/datasource/Transaction";
 import VaultPasswordInput from "../../Transaction/VaultPasswordInput";
+import FailedActionBanner from "../../components/FailedActionBanner";
 import { AmountWithUsd } from "../../Transaction/BaseSummary";
+import { REPORT_BUG_PAGE } from "../../../constants/routes";
 import useUsdPrice from "../../hooks/useUsdPrice";
 import SuccessActionBanner from "../../components/SuccessActionBanner";
 import { Hash } from "../../Transaction/TransactionHash";
@@ -528,6 +536,8 @@ export default function MigrateAccountDialog({
   open,
   onClose,
 }: MigrateAccountDialogProps) {
+  const navigate = useNavigate();
+
   const errorSnackbarKey = useRef<SnackbarKey>(null);
   const wrongPasswordSnackbarKey = useRef<SnackbarKey>(null);
 
@@ -543,6 +553,7 @@ export default function MigrateAccountDialog({
     }
   };
 
+  const accounts = useAppSelector(accountsSelector);
   const networks = useAppSelector(networksSelector);
   const currentProtocol = useAppSelector(selectedProtocolSelector);
   const currentAccount = useAppSelector(selectedAccountAddressSelector);
@@ -588,7 +599,11 @@ export default function MigrateAccountDialog({
   const [status, setStatus] = useState<"info" | "form" | "success" | "loading">(
     "info"
   );
-  const [hash, setHash] = useState("");
+  const [txResponse, setTxResponse] = useState<{
+    hash: string;
+    status: TransactionStatus;
+    details?: object;
+  }>(null);
 
   useDidMountEffect(() => {
     onClose();
@@ -633,17 +648,65 @@ export default function MigrateAccountDialog({
       const response = await AppToBackground.migrateMorseAccount(data);
 
       if (response.error) {
-        errorSnackbarKey.current = enqueueErrorSnackbar({
+        errorSnackbarKey.current = enqueueErrorReportSnackbar({
           message: "Transaction Failed",
           onRetry: () => onSubmit(data),
+          onReport: () => {
+            const txData = { ...data };
+            let morsePublicKey = "",
+              shannonPublicKey = "";
+
+            for (const account of accounts) {
+              if (
+                account.address === txData.morseAddress &&
+                account.protocol === SupportedProtocols.Pocket
+              ) {
+                morsePublicKey = account.publicKey;
+              }
+
+              if (
+                account.address === txData.shannonAddress &&
+                account.protocol === SupportedProtocols.Cosmos
+              ) {
+                shannonPublicKey = account.publicKey;
+              }
+
+              if (morsePublicKey !== "" && shannonPublicKey !== "") {
+                break;
+              }
+            }
+
+            delete txData.vaultPassword;
+
+            const bugMetadata: ReportBugMetadata = {
+              address: txData.shannonAddress,
+              publicKey: shannonPublicKey,
+              protocol: currentProtocol,
+              chainId: currentChain,
+              transactionType: "Migration",
+              error: response.error,
+              transactionData: {
+                ...txData,
+                morsePublicKey,
+              },
+            };
+
+            navigate(REPORT_BUG_PAGE, {
+              state: bugMetadata,
+            });
+          },
         });
         setStatus("form");
       } else if (response.data.isPasswordWrong) {
         wrongPasswordSnackbarKey.current = wrongPasswordSnackbar();
         setStatus("form");
       } else if (response.data.hash) {
+        setTxResponse({
+          status: response.data.status,
+          hash: response.data.hash,
+          details: response.data.details,
+        });
         setStatus("success");
-        setHash(response.data.hash);
       }
     }
 
@@ -795,9 +858,80 @@ export default function MigrateAccountDialog({
       Number(morseAccountQueryResult.currentData!.unstaked_balance.amount) /
       1e6;
 
+    let actionBanner: React.ReactNode;
+
+    if (txResponse?.status === TransactionStatus.Successful) {
+      actionBanner = <SuccessActionBanner label={"Transaction Sent"} />;
+    } else {
+      actionBanner = (
+        <FailedActionBanner label={"Transaction Sent with Errors"} />
+      );
+    }
+
+    const txSummaryItems: Array<SummaryRowItem> = [
+      {
+        type: "row",
+        label: "Tx. Hash",
+        value: (
+          <Hash
+            protocol={SupportedProtocols.Cosmos}
+            chainId={shannonChainId}
+            hash={txResponse.hash}
+          />
+        ),
+      },
+    ];
+
+    const details = txResponse?.details as {
+      hash: string;
+      rpcUrl: string;
+      code: number;
+      codespace?: string;
+      log?: string;
+    };
+
+    if (txResponse?.status === TransactionStatus.Invalid) {
+      txSummaryItems.push({
+        type: "row",
+        label: "Code",
+        value: details?.code?.toString() || "0",
+      });
+
+      if (details?.codespace) {
+        txSummaryItems.push({
+          type: "row",
+          label: "Codespace",
+          value: details?.codespace || "0",
+        });
+      }
+
+      if (details?.log) {
+        txSummaryItems.push({
+          type: "row",
+          label: "Raw Log",
+          containerProps: {
+            sx: {
+              alignItems: "flex-start",
+            },
+          },
+          value: (
+            <Stack width={1} marginLeft={-9} marginTop={2.8}>
+              <Typography
+                fontSize={11}
+                marginLeft={0.6}
+                color={themeColors.black}
+              >
+                {details?.log}
+              </Typography>
+            </Stack>
+          ),
+        });
+      }
+    }
+
     content = (
       <>
-        <SuccessActionBanner label={"Transaction Sent"} />
+        {actionBanner}
         <Summary
           rows={[
             ...rows,
@@ -806,7 +940,10 @@ export default function MigrateAccountDialog({
             },
             {
               type: "row",
-              label: "Migrated",
+              label:
+                txResponse.status === TransactionStatus.Successful
+                  ? "Migrated"
+                  : "Tried Migrating",
               value: (
                 <AmountWithUsd
                   symbol={coinSymbol}
@@ -819,21 +956,7 @@ export default function MigrateAccountDialog({
             },
           ]}
         />
-        <Summary
-          rows={[
-            {
-              type: "row",
-              label: "Tx. Hash",
-              value: (
-                <Hash
-                  protocol={SupportedProtocols.Cosmos}
-                  chainId={shannonChainId}
-                  hash={hash}
-                />
-              ),
-            },
-          ]}
-        />
+        <Summary rows={txSummaryItems} />
       </>
     );
   } else {
