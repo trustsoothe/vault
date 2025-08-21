@@ -53,6 +53,8 @@ import { closeSnackbar, SnackbarKey } from "notistack";
 import AppToBackground from "../../../controllers/communication/AppToBackground";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
+import { getTransactionFailedMessage } from "../../Transaction/BaseTransaction";
+import { getUnknownErrorWithOriginal } from "../../../errors/communication";
 
 function convertToPokt(upokt: string | number): string {
   return roundAndSeparate(Number(upokt) / 1e6, 2);
@@ -649,7 +651,12 @@ export default function MigrateAccountDialog({
 
       if (response.error) {
         errorSnackbarKey.current = enqueueErrorReportSnackbar({
-          message: "Transaction Failed",
+          message: {
+            title: "Transaction Failed",
+            content: getTransactionFailedMessage(
+              response.error as ReturnType<typeof getUnknownErrorWithOriginal>
+            ),
+          },
           onRetry: () => onSubmit(data),
           onReport: () => {
             const txData = { ...data };

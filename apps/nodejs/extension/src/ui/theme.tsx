@@ -7,6 +7,7 @@ import TooltipArrowIcon from "./assets/img/tooltip_arrow.svg";
 
 export const themeColors = Object.freeze({
   primary: "#3739b9",
+  light_primary: "#7679ff",
   dark_primary: "#242689",
   bgLightGray: "#f7f8f9",
   bgLightGray2: "#fafafa",
@@ -23,6 +24,7 @@ export const themeColors = Object.freeze({
   successLight: "#ebf5de",
   warning: "#d47702",
   warningLight: "#ffeed6",
+  warningYellow: "#ffd200",
   red: "#a31c2a",
   intense_red: "#b23232",
 });

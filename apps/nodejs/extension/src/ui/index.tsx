@@ -4,6 +4,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import { SnackbarProvider } from "notistack";
 import GlobalStyles from "@mui/material/GlobalStyles";
+import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 import { APP_CONTAINER_ID, HEIGHT, WIDTH } from "../constants/ui";
 import useIsPopup from "./hooks/useIsPopup";
 import ThemeProvider, { themeColors } from "./theme";
@@ -23,7 +24,6 @@ import {
   MINUTES_ALLOWED_FOR_REQ,
 } from "../constants/communication";
 import SuccessIcon from "./assets/img/success_icon.svg";
-import WarningIcon from "./assets/img/rounded_close_icon.svg";
 import RequestOriginsPermission from "./RequestOriginPermission/RequestOriginPermission";
 import {
   closeCurrentWindow,
@@ -59,6 +59,21 @@ function RouteChecker() {
   }, []);
 
   return null;
+}
+
+function WarningIcon() {
+  return (
+    <WarningRoundedIcon
+      sx={{
+        fontSize: 30,
+        marginLeft: -0.6,
+        marginRight: -0.2,
+        marginTop: 0.2,
+        alignSelf: "flex-start",
+        color: themeColors.warningYellow,
+      }}
+    />
+  );
 }
 
 export default function App() {
@@ -297,7 +312,7 @@ export default function App() {
               backgroundColor: `${themeColors.black}!important`,
               borderRadius: "6px",
               paddingLeft: "14px!important",
-              svg: {
+              "svg.success_icon_svg__success": {
                 width: 18,
                 minWidth: 17,
                 height: 18,

@@ -1,4 +1,5 @@
 import type { QueryState } from "@reduxjs/toolkit/dist/query/core/apiState";
+import Stack from "@mui/material/Stack";
 import { shallowEqual } from "react-redux";
 import Typography from "@mui/material/Typography";
 import type { SupportedProtocols } from "@soothe/vault";
@@ -48,9 +49,17 @@ function AccountsWithBalanceError() {
   }, [accountsWithError]);
 
   return (
-    <Typography color={themeColors.bgLightGray} fontWeight={500}>
-      {num} accounts have balance error.
-    </Typography>
+    <Stack marginBottom={"4px!important"}>
+      <Typography color={themeColors.white} fontWeight={500}>
+        Balance fetch failed
+      </Typography>
+      <Typography color={themeColors.bgLightGray} fontSize={11}>
+        We couldn't fetch balances for{" "}
+        <strong>
+          {num} account{num > 1 && "s"}
+        </strong>
+      </Typography>
+    </Stack>
   );
 }
 
@@ -152,8 +161,6 @@ export default function useGetBalance({
           key: snackbarKey,
           onRetry: refetchFailedBalances,
           variant: "error",
-          autoHideDuration: 6000,
-          addCloseButton: true,
           persist: true,
           onClose: () => {
             lastSnackbarKeyRef.current = null;

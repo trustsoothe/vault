@@ -28,6 +28,21 @@ import { accountsSelector } from "../../redux/selectors/account";
 import { CosmosFeeRequestOption } from "@soothe/vault/dist/lib/core/common/protocols/Cosmos/CosmosFeeRequestOption";
 import { TransactionStatus } from "../../controllers/datasource/Transaction";
 import debounce from "lodash/debounce";
+import { getUnknownErrorWithOriginal } from "../../errors/communication";
+
+export function getTransactionFailedMessage(
+  error: ReturnType<typeof getUnknownErrorWithOriginal>
+) {
+  const originalError = error.originalError as Error;
+  if (
+    originalError?.message?.toLowerCase()?.includes("network") ||
+    originalError?.name?.toLowerCase()?.includes("network")
+  ) {
+    return "There was en error sending your transaction.";
+  }
+
+  return "There was an error building your transaction.";
+}
 
 export interface TransactionFormValues {
   memo?: string;
@@ -315,7 +330,12 @@ export default function BaseTransaction({
 
       if (response.error) {
         errorSnackbarKey.current = enqueueErrorReportSnackbar({
-          message: "Transaction Failed",
+          message: {
+            title: "Transaction Failed",
+            content: getTransactionFailedMessage(
+              response.error as ReturnType<typeof getUnknownErrorWithOriginal>
+            ),
+          },
           persist: true,
           onRetry: () => onSubmit(data),
           onReport: () => {
