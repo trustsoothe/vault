@@ -271,7 +271,9 @@ export default function AccountActions() {
               </Typography>
               <Typography fontSize={11}>Open {domain}</Typography>
             </Stack>
-            {protocol === SupportedProtocols.Pocket && (
+            {[SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(
+              protocol
+            ) && (
               <Stack alignItems={"center"} justifyContent={"center"}>
                 <PoktscanLogo />
               </Stack>

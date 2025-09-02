@@ -14,6 +14,7 @@ import {
   PERSONAL_SIGN_PAGE,
   POKT_TRANSACTION_PAGE,
   PREFERENCES_PAGE,
+  REPORT_BUG_PAGE,
   REQUEST_CONNECTION_PAGE,
   SEEDS_PAGE,
   SIGN_TRANSACTIONS_PAGE,
@@ -32,6 +33,8 @@ import PoktTransactionRequest from "./Request/PoktTransactionRequest";
 import SiteConnections from "./SiteConnections/SiteConnections";
 import TransactionRequest from "./Request/TransactionRequest";
 import ConnectionRequest from "./Request/ConnectionRequest";
+import ErrorFallback from "./components/ErrorBoundary";
+import { ReportBugPage } from "./ReportBug/ReportBug";
 import SwitchNetwork from "./Request/SwitchNetwork";
 import SignTypedData from "./Request/SignTypedData";
 import PersonalSign from "./Request/PersonalSign";
@@ -45,6 +48,7 @@ import BulkPersonalSign from "./Request/BulkPersonalSign";
 export const router = createHashRouter([
   {
     path: "",
+    errorElement: <ErrorFallback isRequestRouter={false} />,
     element: <Header />,
     children: [
       {
@@ -91,6 +95,10 @@ export const router = createHashRouter([
         path: ACTIVITY_PAGE,
         element: <Activity />,
       },
+      {
+        path: REPORT_BUG_PAGE,
+        element: <ReportBugPage />,
+      },
     ],
   },
 ]);
@@ -99,6 +107,7 @@ export const requestRouter = createHashRouter([
   {
     path: "",
     element: <Handler />,
+    errorElement: <ErrorFallback isRequestRouter={true} />,
     children: [
       {
         path: REQUEST_CONNECTION_PAGE,

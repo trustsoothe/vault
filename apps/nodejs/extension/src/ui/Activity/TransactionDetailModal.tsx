@@ -371,10 +371,11 @@ function Content({ transaction }: ContentProps) {
     asset?.decimals || transaction.protocol === SupportedProtocols.Pocket
       ? 6
       : 18;
+
   const fee =
     transaction.protocol === SupportedProtocols.Ethereum
       ? transaction.maxFeeAmount || 0
-      : transaction.fee;
+      : transaction.fee || 0;
 
   const firstSummaryRow: Array<SummaryRowItem> = [
     {

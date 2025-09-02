@@ -268,7 +268,11 @@ import {
   revokeAllExternalSessions,
   revokeSession,
 } from "../../redux/slices/vault/session";
-import { OperationRejected, UnknownError } from "../../errors/communication";
+import {
+  getUnknownErrorWithOriginal,
+  OperationRejected,
+  UnknownError,
+} from "../../errors/communication";
 import { runWithNetworks } from "../../utils/networkOperations";
 import { getVault } from "../../utils";
 import {
@@ -937,7 +941,7 @@ class InternalCommunicationController implements ICommunicationController {
           originReference
         );
 
-        const [session, tabs] = await Promise.all([
+        const [session, allTabs] = await Promise.all([
           store
             .dispatch(
               authorizeExternalSession({
@@ -946,7 +950,7 @@ class InternalCommunicationController implements ICommunicationController {
               })
             )
             .unwrap(),
-          browser.tabs.query({ url: `${origin}/*` }),
+          browser.tabs.query({}),
         ]);
 
         if (session) {
@@ -985,10 +989,11 @@ class InternalCommunicationController implements ICommunicationController {
             },
             error: null,
           };
+
           promises.push(
-            ...tabs.map((tab) =>
-              browser.tabs.sendMessage(tab.id, responseToProxy)
-            )
+            ...allTabs
+              .filter((t) => (t.url ? t.url.startsWith(request.origin) : false))
+              .map((tab) => browser.tabs.sendMessage(tab.id, responseToProxy))
           );
         }
       }
@@ -1001,6 +1006,7 @@ class InternalCommunicationController implements ICommunicationController {
 
       await Promise.all(promises);
       const activeTabs = await browser.tabs.query({ active: true });
+
       if (activeTabs.length) {
         const activeTab = activeTabs[0];
 
@@ -1599,7 +1605,7 @@ class InternalCommunicationController implements ICommunicationController {
       return {
         type: ANSWER_TRANSFER_RESPONSE,
         data: null,
-        error: UnknownError,
+        error: getUnknownErrorWithOriginal(error),
       };
     }
   }
@@ -1749,14 +1755,16 @@ class InternalCommunicationController implements ICommunicationController {
     message: AnswerMigrateMorseAccountReq
   ): Promise<AnswerMigrateMorseAccountRes> {
     try {
-      const hash = await store
+      const response = await store
         .dispatch(migrateMorseAccount(message.data))
         .unwrap();
 
       return {
         type: ANSWER_MIGRATE_MORSE_ACCOUNT_RESPONSE,
         data: {
-          hash,
+          hash: response.hash,
+          details: response.failDetails,
+          status: response.status,
         },
         error: null,
       };
@@ -1771,6 +1779,8 @@ class InternalCommunicationController implements ICommunicationController {
           data: {
             isPasswordWrong: true,
             hash: null,
+            status: null,
+            details: null,
           },
           error: null,
         };
@@ -1778,7 +1788,7 @@ class InternalCommunicationController implements ICommunicationController {
       return {
         type: ANSWER_MIGRATE_MORSE_ACCOUNT_RESPONSE,
         data: null,
-        error: UnknownError,
+        error: getUnknownErrorWithOriginal(e),
       };
     }
   }

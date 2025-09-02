@@ -56,6 +56,7 @@ import {
   setNetworksWithErrors,
 } from "../app";
 import {
+  convertErrorToJson,
   getAddressFromPrivateKey,
   isValidAddress,
   isValidPublicKey,
@@ -309,7 +310,7 @@ export interface SendTransactionParams
     memo?: string;
     gasLimit?: number;
     gasPrice?: number;
-    gas?: 'auto' | number;
+    gas?: "auto" | number;
     gasAdjustment?: number;
   };
   isRawTransaction?: boolean;
@@ -414,7 +415,11 @@ export const sendTransfer = createAsyncThunk<
       status = TransactionStatus.Invalid;
       failDetails = details;
     } else {
-      throw e;
+      const error = convertErrorToJson(e);
+      return context.rejectWithValue({
+        rpcUrl: transactionArg.network.rpcUrl,
+        ...(typeof error === "string" ? { message: error } : { ...error }),
+      });
     }
   }
 
@@ -1395,24 +1400,67 @@ export const migrateMorseAccount = createAsyncThunk(
       amount: null,
     };
 
-    const { result, rpcWithErrors, rpcUrl } = await runWithNetworks(
-      {
-        protocol: SupportedProtocols.Cosmos,
-        chainId: shannonChainId,
-        customRpcs,
-        networks,
-        errorsPreferredNetwork,
+    let hash: string,
+      rpcUrl: string,
+      status: TransactionStatus,
+      failDetails: {
+        hash: string;
+        rpcUrl: string;
+        code: number;
+        codespace?: string;
+        log?: string;
       },
-      async (network) => {
-        return shannonService.sendTransaction(network, transaction);
+      code = 0;
+
+    try {
+      const {
+        result,
+        rpcWithErrors,
+        rpcUrl: rpcUrlOfTx,
+      } = await runWithNetworks(
+        {
+          protocol: SupportedProtocols.Cosmos,
+          chainId: shannonChainId,
+          customRpcs,
+          networks,
+          errorsPreferredNetwork,
+        },
+        async (network) => {
+          rpcUrl = network.rpcUrl;
+          return shannonService.sendTransaction(network, transaction);
+        }
+      );
+
+      hash = result.transactionHash;
+      rpcUrl = rpcUrlOfTx;
+      status = TransactionStatus.Successful;
+
+      if (rpcWithErrors.length) {
+        await context.dispatch(setNetworksWithErrors(rpcWithErrors));
       }
-    );
+    } catch (e) {
+      if (e?.name === TransactionSentButInvalidErrorName) {
+        const error = e as TransactionSentButInvalidError;
 
-    if (rpcWithErrors.length) {
-      await context.dispatch(setNetworksWithErrors(rpcWithErrors));
+        const details = error.details as {
+          hash: string;
+          rpcUrl: string;
+          code: number;
+        };
+
+        hash = details.hash;
+        rpcUrl = details.rpcUrl;
+        code = details.code;
+        status = TransactionStatus.Invalid;
+        failDetails = details;
+      } else {
+        const error = convertErrorToJson(e);
+        return context.rejectWithValue({
+          rpcUrl,
+          ...(typeof error === "string" ? { message: error } : { ...error }),
+        });
+      }
     }
-
-    const hash = result.transactionHash;
 
     const transactionToSave: PoktShannonTransaction = {
       protocol: SupportedProtocols.Cosmos,
@@ -1431,12 +1479,20 @@ export const migrateMorseAccount = createAsyncThunk(
         },
       },
       type: CosmosTransactionTypes.ClaimAccount,
+      status,
+      code,
+      codespace: failDetails?.codespace,
+      log: failDetails?.log,
     };
 
     await TransactionDatasource.save(transactionToSave);
     context.dispatch(addTransaction(transactionToSave));
 
-    return hash;
+    return {
+      hash,
+      status,
+      failDetails,
+    };
   }
 );
 

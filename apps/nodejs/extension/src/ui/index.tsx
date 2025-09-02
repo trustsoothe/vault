@@ -4,6 +4,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import { SnackbarProvider } from "notistack";
 import GlobalStyles from "@mui/material/GlobalStyles";
+import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 import { APP_CONTAINER_ID, HEIGHT, WIDTH } from "../constants/ui";
 import useIsPopup from "./hooks/useIsPopup";
 import ThemeProvider, { themeColors } from "./theme";
@@ -23,7 +24,6 @@ import {
   MINUTES_ALLOWED_FOR_REQ,
 } from "../constants/communication";
 import SuccessIcon from "./assets/img/success_icon.svg";
-import WarningIcon from "./assets/img/rounded_close_icon.svg";
 import RequestOriginsPermission from "./RequestOriginPermission/RequestOriginPermission";
 import {
   closeCurrentWindow,
@@ -37,7 +37,44 @@ import { RouterProvider } from "react-router-dom";
 import { requestRouter, router } from "./router";
 import useCtrlAltShiftKeyCombination from "./hooks/useCtrlAltShiftKeyCombination";
 import { activateDevMode } from "../redux/slices/app";
-import { updateAvailableSelector } from '../redux/selectors/app'
+import { updateAvailableSelector } from "../redux/selectors/app";
+
+// function to change route when router changes from
+// Request router and App router to navigate home
+function RouteChecker() {
+  useEffect(() => {
+    let path = location.hash.substring(1);
+
+    const queryIndex = path.indexOf("?");
+
+    if (queryIndex !== -1) {
+      path = path.substring(0, queryIndex);
+    }
+
+    if (
+      requestRouter.routes.at(0)?.children?.some((route) => route.path === path)
+    ) {
+      window.location.hash = "#/";
+    }
+  }, []);
+
+  return null;
+}
+
+function WarningIcon() {
+  return (
+    <WarningRoundedIcon
+      sx={{
+        fontSize: 30,
+        marginLeft: -0.6,
+        marginRight: -0.2,
+        marginTop: 0.2,
+        alignSelf: "flex-start",
+        color: themeColors.warningYellow,
+      }}
+    />
+  );
+}
 
 export default function App() {
   const isPopup = useIsPopup();
@@ -90,7 +127,7 @@ export default function App() {
   const isDevMode = useAppSelector((state) => state.app.isDevMode);
 
   useEffect(() => {
-    if(!updateVersion) return;
+    if (!updateVersion) return;
     enqueueSnackbar({
       persist: true,
       buttonLabel: "Update!",
@@ -100,9 +137,14 @@ export default function App() {
       },
       message: `🚀 New version available! v${updateVersion}`,
     });
-  }, [updateVersion])
+  }, [updateVersion]);
 
   useEffect(() => {
+    if (externalRequests.length === 0 && view === "session-request") {
+      closeCurrentWindow();
+      return;
+    }
+
     const interval = setInterval(async () => {
       const length = externalRequests.length;
       let requestsRemoved = 0;
@@ -128,7 +170,7 @@ export default function App() {
       if (view === "session-request" && length - requestsRemoved === 0) {
         await closeCurrentWindow();
       }
-    }, 10000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [externalRequests, dispatch, view]);
@@ -150,6 +192,9 @@ export default function App() {
   }, [isDevMode, dispatch]);
 
   useCtrlAltShiftKeyCombination("d", activateDevModeCallback);
+
+  const shouldShowRequestUI =
+    externalRequests.length && (isPopup || view === "session-request");
 
   const content = useMemo(() => {
     if (
@@ -178,13 +223,16 @@ export default function App() {
     }
 
     if (vaultSessionExists) {
-      return (
-        <Stack flexGrow={1}>
-          <RouterProvider
-            router={view === "session-request" ? requestRouter : router}
-          />
-        </Stack>
+      const routerProvider = shouldShowRequestUI ? (
+        <RouterProvider router={requestRouter} />
+      ) : (
+        <>
+          <RouterProvider router={router} />
+          <RouteChecker />
+        </>
       );
+
+      return <Stack flexGrow={1}>{routerProvider}</Stack>;
     }
 
     return <UnlockVault />;
@@ -195,6 +243,7 @@ export default function App() {
     appStatus,
     retryInitExtension,
     hasOriginPermissionsStatus,
+    shouldShowRequestUI,
   ]);
 
   return (
@@ -240,7 +289,8 @@ export default function App() {
             display: "flex",
             "& .notistack-SnackbarContainer": {
               rowGap: 1.5,
-              bottom: 12,
+              bottom: externalRequests.length ? "unset!important" : 12,
+              top: externalRequests.length ? "60px" : undefined,
               left: 12,
               position: "absolute",
               minHeight: 45,
@@ -262,7 +312,7 @@ export default function App() {
               backgroundColor: `${themeColors.black}!important`,
               borderRadius: "6px",
               paddingLeft: "14px!important",
-              svg: {
+              "svg.success_icon_svg__success": {
                 width: 18,
                 minWidth: 17,
                 height: 18,
@@ -295,7 +345,11 @@ export default function App() {
               minWidth: "376px!important",
               maxWidth: "376px!important",
             }}
-            maxSnack={6}
+            anchorOrigin={{
+              horizontal: "left",
+              vertical: shouldShowRequestUI ? "top" : "bottom",
+            }}
+            maxSnack={3}
             autoHideDuration={6000}
             preventDuplicate={true}
             iconVariant={{

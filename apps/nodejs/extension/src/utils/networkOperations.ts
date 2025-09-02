@@ -17,6 +17,44 @@ import {
 import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import { isPocketAddress, isShannonAddress } from "./proxy";
 
+export function convertErrorToJson(error: unknown) {
+  if (error instanceof Error) {
+    const result: Record<string, any> = {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause,
+    };
+
+    // Copy all enumerable properties
+    for (const key in error) {
+      if (error.hasOwnProperty(key)) {
+        result[key] = (error as any)[key];
+      }
+    }
+
+    // Also check for specific known properties that might be non-enumerable
+    if ("rpcUrl" in error) {
+      result.rpcUrl = (error as any).rpcUrl;
+    }
+    if ("originalError" in error) {
+      result.originalError = (error as any).originalError;
+    }
+
+    return result;
+  }
+
+  if (typeof error === "object" && error !== null) {
+    try {
+      return error; // Return the object directly, let the outer JSON.stringify handle it
+    } catch {
+      return String(error);
+    }
+  }
+
+  return String(error);
+}
+
 export const isValidAddress = (
   address: string,
   protocol: SupportedProtocols
@@ -302,7 +340,14 @@ export async function runWithNetworks<T>(
   const rpcWithError: Array<string> = [];
   let result: T, rpcUrl: string;
 
-  for (const { url, id, defaultGasPrice, defaultGasAdjustment, defaultGasEstimation, defaultGasUsed } of [
+  for (const {
+    url,
+    id,
+    defaultGasPrice,
+    defaultGasAdjustment,
+    defaultGasEstimation,
+    defaultGasUsed,
+  } of [
     ...rpcUrls,
     {
       id: defaultNetwork.id,

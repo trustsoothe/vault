@@ -23,6 +23,7 @@ import {
   NETWORKS_PAGE,
   NEW_SEEDS_PAGE,
   PREFERENCES_PAGE,
+  REPORT_BUG_PAGE,
   SEEDS_PAGE,
   SITES_PAGE,
 } from "../../constants/routes";
@@ -78,12 +79,19 @@ function getLabelByRoute(pathname: string) {
     case ACTIVITY_PAGE:
       return "Activity";
 
+    case REPORT_BUG_PAGE:
+      return "Report Bug";
+
     default:
       return "Unknown";
   }
 }
 
-export default function Header() {
+interface HeaderProps {
+  children?: React.ReactNode;
+}
+
+export default function Header({ children }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setURLSearchParams] = useSearchParams();
@@ -154,13 +162,15 @@ export default function Header() {
             <Menu />
           </HeaderContainer>
         )}
-        <Stack
-          flexGrow={1}
-          height={`calc(100% - ${headerHeight}px)`}
-          position={"relative"}
-        >
-          <Outlet />
-        </Stack>
+        {children || (
+          <Stack
+            flexGrow={1}
+            height={`calc(100% - ${headerHeight}px)`}
+            position={"relative"}
+          >
+            <Outlet />
+          </Stack>
+        )}
       </Stack>
     </AccountDialogsProvider>
   );

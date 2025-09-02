@@ -1,9 +1,11 @@
+import type { ReportBugMetadata } from "../ReportBug/ReportBug";
 import type { AnswerTransferReq } from "../../types/communications/transfer";
 import type { SendTransactionParams } from "../../redux/slices/vault/account";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import DialogActions from "@mui/material/DialogActions";
 import { FormProvider, useForm } from "react-hook-form";
-import React, {useCallback, useEffect, useRef, useState} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CosmosFee,
   EthereumNetworkFee,
@@ -11,14 +13,36 @@ import {
   PocketNetworkFee,
   SupportedProtocols,
 } from "@soothe/vault";
-import { enqueueErrorSnackbar, wrongPasswordSnackbar } from "../../utils/ui";
+import {
+  enqueueErrorReportSnackbar,
+  enqueueErrorSnackbar,
+  wrongPasswordSnackbar,
+} from "../../utils/ui";
 import AppToBackground from "../../controllers/communication/AppToBackground";
 import { isValidAddress } from "../../utils/networkOperations";
 import useDidMountEffect from "../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
+import { useAppSelector } from "../hooks/redux";
+import { REPORT_BUG_PAGE } from "../../constants/routes";
+import { accountsSelector } from "../../redux/selectors/account";
 import { CosmosFeeRequestOption } from "@soothe/vault/dist/lib/core/common/protocols/Cosmos/CosmosFeeRequestOption";
 import { TransactionStatus } from "../../controllers/datasource/Transaction";
 import debounce from "lodash/debounce";
+import { getUnknownErrorWithOriginal } from "../../errors/communication";
+
+export function getTransactionFailedMessage(
+  error: ReturnType<typeof getUnknownErrorWithOriginal>
+) {
+  const originalError = error.originalError as Error;
+  if (
+    originalError?.message?.toLowerCase()?.includes("network") ||
+    originalError?.name?.toLowerCase()?.includes("network")
+  ) {
+    return "There was en error sending your transaction.";
+  }
+
+  return "There was an error building your transaction.";
+}
 
 export interface TransactionFormValues {
   memo?: string;
@@ -89,6 +113,8 @@ export default function BaseTransaction({
     form ? "form" : "summary"
   );
 
+  const accounts = useAppSelector(accountsSelector);
+  const navigate = useNavigate();
   const methods = useForm<TransactionFormValues>({
     defaultValues: {
       chainId,
@@ -138,22 +164,38 @@ export default function BaseTransaction({
   }, [protocol, chainId, fromAddress]);
 
   const getFee = () => {
-    let feeOptions: Partial<EthereumNetworkFeeRequestOptions | CosmosFeeRequestOption>;
+    let feeOptions: Partial<
+      EthereumNetworkFeeRequestOptions | CosmosFeeRequestOption
+    >;
 
     if (getFeeOptions) {
       feeOptions = getFeeOptions(getValues());
     }
 
-    const ethereumOptions = feeOptions?.protocol === SupportedProtocols.Ethereum && feeOptions as EthereumNetworkFeeRequestOptions;
-    const cosmosOptions = feeOptions?.protocol === SupportedProtocols.Cosmos && feeOptions as CosmosFeeRequestOption;
+    const ethereumOptions =
+      feeOptions?.protocol === SupportedProtocols.Ethereum &&
+      (feeOptions as EthereumNetworkFeeRequestOptions);
+    const cosmosOptions =
+      feeOptions?.protocol === SupportedProtocols.Cosmos &&
+      (feeOptions as CosmosFeeRequestOption);
 
-    if (protocol === SupportedProtocols.Ethereum && !isValidAddress(ethereumOptions?.to || getValues("recipientAddress"), protocol)
+    if (
+      protocol === SupportedProtocols.Ethereum &&
+      !isValidAddress(
+        ethereumOptions?.to || getValues("recipientAddress"),
+        protocol
+      )
     ) {
       setValue("fee", null);
       return;
     }
 
-    if (protocol === SupportedProtocols.Cosmos && !isValidAddress(cosmosOptions?.transaction.to || getValues("recipientAddress"), protocol)
+    if (
+      protocol === SupportedProtocols.Cosmos &&
+      !isValidAddress(
+        cosmosOptions?.transaction.to || getValues("recipientAddress"),
+        protocol
+      )
     ) {
       setValue("fee", null);
       return;
@@ -176,17 +218,18 @@ export default function BaseTransaction({
         // @ts-ignore todo: change asset type of getNetworkFee
         asset: feeOptions?.asset
           ? {
-            contractAddress: ethereumOptions.asset.contractAddress,
-            decimals: ethereumOptions.asset.decimals,
-            protocol,
-            // @ts-ignore
-            chainID: chainId,
-          }
+              contractAddress: ethereumOptions.asset.contractAddress,
+              decimals: ethereumOptions.asset.decimals,
+              protocol,
+              // @ts-ignore
+              chainID: chainId,
+            }
           : undefined,
       }),
       ...(protocol === SupportedProtocols.Cosmos && {
         from: fromAddress,
-        toAddress: cosmosOptions?.transaction.to || getValues("recipientAddress"),
+        toAddress:
+          cosmosOptions?.transaction.to || getValues("recipientAddress"),
         pocketGasUsed: cosmosOptions.transaction.gas,
         pocketGasPrice: cosmosOptions.transaction.gasPrice,
         pocketGasAdjustment: cosmosOptions.transaction.gasAdjustment,
@@ -213,11 +256,24 @@ export default function BaseTransaction({
     debounce(() => {
       getFee();
     }, 500),
-    [],
+    []
   );
 
-
-  const [recipientAddress, fee, pocketGasAuto, pocketGasInput, pocketGasPrice, pocketGasAdjustment] = watch(["recipientAddress", "fee", "pocketGasAuto", "pocketGasInput", "pocketGasPrice", "pocketGasAdjustment"]);
+  const [
+    recipientAddress,
+    fee,
+    pocketGasAuto,
+    pocketGasInput,
+    pocketGasPrice,
+    pocketGasAdjustment,
+  ] = watch([
+    "recipientAddress",
+    "fee",
+    "pocketGasAuto",
+    "pocketGasInput",
+    "pocketGasPrice",
+    "pocketGasAdjustment",
+  ]);
 
   useEffect(() => {
     if (status === "success") return;
@@ -225,7 +281,11 @@ export default function BaseTransaction({
     debouncedGetFee();
 
     let interval: NodeJS.Timeout | null = null;
-    if ([SupportedProtocols.Ethereum, SupportedProtocols.Cosmos].includes(protocol)) {
+    if (
+      [SupportedProtocols.Ethereum, SupportedProtocols.Cosmos].includes(
+        protocol
+      )
+    ) {
       interval = setInterval(getFee, 30000);
     }
     return () => {
@@ -269,9 +329,44 @@ export default function BaseTransaction({
       });
 
       if (response.error) {
-        errorSnackbarKey.current = enqueueErrorSnackbar({
-          message: "Transaction Failed",
+        errorSnackbarKey.current = enqueueErrorReportSnackbar({
+          message: {
+            title: "Transaction Failed",
+            content: getTransactionFailedMessage(
+              response.error as ReturnType<typeof getUnknownErrorWithOriginal>
+            ),
+          },
+          persist: true,
           onRetry: () => onSubmit(data),
+          onReport: () => {
+            const account = accounts.find(
+              (account) => account.id === transaction.from.value
+            );
+
+            const tx = {
+              ...transaction,
+            };
+
+            delete tx.from.passphrase;
+
+            if (tx.from.type === "RawPrivateKey") {
+              delete tx.from.value;
+            }
+
+            const bugMetadata: ReportBugMetadata = {
+              address: account?.address,
+              publicKey: account?.publicKey,
+              protocol: transaction.network.protocol,
+              chainId: transaction.network.chainID,
+              transactionType: "Send",
+              error: response.error,
+              transactionData: tx,
+            };
+
+            navigate(REPORT_BUG_PAGE, {
+              state: bugMetadata,
+            });
+          },
         });
       } else {
         if (response?.data?.isPasswordWrong) {

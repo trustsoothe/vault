@@ -21,6 +21,7 @@ export const PERSONAL_SIGN_PAGE = "/sign/personal";
 export const BULK_PERSONAL_SIGN_PAGE = "/sign/bulk-personal";
 export const POKT_TRANSACTION_PAGE = "/poktTx";
 export const SIGN_TRANSACTIONS_PAGE = "/sign/tx";
+export const REPORT_BUG_PAGE = "/report/bug";
 
 export const CHANGE_SELECTED_CHAIN_PAGE = "/network/change_chain";
 
