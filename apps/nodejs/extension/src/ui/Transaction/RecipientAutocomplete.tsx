@@ -282,12 +282,6 @@ export default function RecipientAutocomplete({
             value={value || null}
             {...otherProps}
             inputValue={inputValue}
-            onBlur={() => {
-              if (!isValid(value)) {
-                onChange(inputValue);
-              }
-              otherProps.onBlur();
-            }}
             sx={{
               marginTop,
               "& .MuiAutocomplete-endAdornment": {
