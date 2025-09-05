@@ -1,5 +1,11 @@
 # @soothe/extension
 
+## 0.7.1
+
+### Patch Changes
+
+- 1c43920: Removed functionality allowing to paste accounts not saved in the vault in the migration process.
+
 ## 0.7.0
 
 ### Minor Changes
