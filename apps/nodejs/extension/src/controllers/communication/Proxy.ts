@@ -335,6 +335,30 @@ const ShannonPocketTransferBody = z.object({
     .regex(/^\d+$/)
     .refine((value) => Number(value) > 0, "amount should be greater than 0"),
   memo: memoSchema,
+  gasPrice: z
+    .string()
+    .optional()
+    .refine((value) => {
+      if (!value) return true;
+
+      const num = Number(value);
+
+      if (isNaN(num) === true) return false;
+
+      return num > 0;
+    }, "gasPrice should be greater than 0"),
+  gasAdjustment: z
+    .string()
+    .optional()
+    .refine((value) => {
+      if (!value) return true;
+
+      const num = Number(value);
+
+      if (isNaN(num) === true) return false;
+
+      return num > 0;
+    }, "gasAdjustment should be greater than 0"),
 });
 
 const PocketTransferBody = z.object({

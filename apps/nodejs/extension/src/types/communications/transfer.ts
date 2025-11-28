@@ -2,6 +2,7 @@ import type { SupportedProtocols } from "@soothe/vault";
 import type {
   TEthTransferBody,
   TPocketTransferBody,
+  TShannonPocketTransferBody,
 } from "../../controllers/communication/Proxy";
 import type {
   BaseData,
@@ -40,7 +41,11 @@ export interface ProxyTransferReq extends BaseProxyRequest {
 
 export interface TransferRequestBody
   extends BaseExternalRequestBodyWithSession {
-  transferData: (TPocketTransferBody | TEthTransferBody) & { chainId?: string };
+  transferData: (
+    | TPocketTransferBody
+    | TEthTransferBody
+    | TShannonPocketTransferBody
+  ) & { chainId?: string };
 }
 
 export interface ExternalTransferReq {

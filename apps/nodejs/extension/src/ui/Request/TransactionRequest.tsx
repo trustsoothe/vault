@@ -34,6 +34,8 @@ export interface ExternalTransferData {
   gasLimit?: string;
   maxFeePerGas?: string;
   maxPriorityFeePerGas?: string;
+  gasPrice?: string;
+  gasAdjustment?: string;
 }
 
 export interface ExternalTransferState {
@@ -90,8 +92,14 @@ export default function TransactionRequest() {
         gas: data.pocketGasAuto
           ? "auto"
           : data.pocketGasInput ?? selectedNetwork.defaultGasEstimation,
-        gasPrice: data.pocketGasPrice,
-        gasAdjustment: data.pocketGasAdjustment,
+        gasPrice:
+          "gasPrice" in transferData
+            ? Number(transferData.gasPrice)
+            : data.pocketGasPrice,
+        gasAdjustment:
+          "gasAdjustment" in transferData
+            ? Number(transferData.gasAdjustment)
+            : data.pocketGasAdjustment,
         messages: [
           {
             type: CosmosTransactionTypes.Send,
@@ -139,8 +147,14 @@ export default function TransactionRequest() {
           gas: data.pocketGasAuto
             ? "auto"
             : data.pocketGasInput ?? selectedNetwork.defaultGasEstimation,
-          gasPrice: data.pocketGasPrice,
-          gasAdjustment: data.pocketGasAdjustment,
+          gasPrice:
+            "gasPrice" in transferData
+              ? Number(transferData.gasPrice)
+              : data.pocketGasPrice,
+          gasAdjustment:
+            "gasAdjustment" in transferData
+              ? Number(transferData.gasAdjustment)
+              : data.pocketGasAdjustment,
           memo: data.memo || undefined,
         },
       };

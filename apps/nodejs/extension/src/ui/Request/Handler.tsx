@@ -113,6 +113,18 @@ export default function Handler() {
               toAddress: dataFromRequest.to,
               memo: dataFromRequest.memo,
             };
+
+            if (currentRequest.protocol === SupportedProtocols.Cosmos) {
+              transferDataState = {
+                ...transferDataState,
+                ...("gasAdjustment" in dataFromRequest && {
+                  gasAdjustment: dataFromRequest.gasAdjustment,
+                }),
+                ...("gasPrice" in dataFromRequest && {
+                  gasPrice: dataFromRequest.gasPrice,
+                }),
+              };
+            }
           } else {
             const transferData = dataFromRequest as TEthTransferBody;
             transferDataState = {
