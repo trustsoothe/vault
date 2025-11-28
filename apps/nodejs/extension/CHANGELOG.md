@@ -1,5 +1,12 @@
 # @soothe/extension
 
+## 0.7.1
+
+### Patch Changes
+
+- be87fdd: Added Shannon Send transaction request
+- 1c43920: Removed functionality allowing to paste accounts not saved in the vault in the migration process.
+
 ## 0.7.0
 
 ### Minor Changes
