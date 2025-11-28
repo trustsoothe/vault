@@ -1,10 +1,12 @@
 import {
   EthereumMethod,
   PocketNetworkMethod,
+  PocketShannonMethod,
 } from "../controllers/providers/base";
 import {
   TEthTransferBody,
   TPocketTransferBody,
+  TShannonPocketTransferBody,
 } from "../controllers/communication/Proxy";
 import type {
   PocketNetworkAppStake,
@@ -50,6 +52,11 @@ interface EthBalanceRequest {
 interface SendTransferRequest {
   method: typeof PocketNetworkMethod.SEND_TRANSACTION;
   params: [TPocketTransferBody];
+}
+
+interface ShannonSendTransferRequest {
+  method: typeof PocketShannonMethod.SEND_TRANSACTION;
+  params: [TShannonPocketTransferBody];
 }
 
 interface SendTransactionRequest {
@@ -294,6 +301,7 @@ export type Method =
   | EthBalanceRequest
   | SendTransferRequest
   | SendTransactionRequest
+  | ShannonSendTransferRequest
   | ListAccountRequest
   | GetPoktTxRequest
   | SwitchChainRequest

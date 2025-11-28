@@ -2,6 +2,8 @@ import React from "react";
 import Stack from "@mui/material/Stack";
 import { useLocation } from "react-router-dom";
 import {
+  CosmosFeeRequestOption,
+  CosmosTransactionTypes,
   EthereumNetworkFee,
   PocketNetworkFee,
   SupportedProtocols,
@@ -32,6 +34,8 @@ export interface ExternalTransferData {
   gasLimit?: string;
   maxFeePerGas?: string;
   maxPriorityFeePerGas?: string;
+  gasPrice?: string;
+  gasAdjustment?: string;
 }
 
 export interface ExternalTransferState {
@@ -55,6 +59,11 @@ export default function TransactionRequest() {
   const { transferData, requestInfo: request }: ExternalTransferState =
     location.state;
 
+  const selectedNetwork = networks.find(
+    (network) =>
+      network.protocol === request.protocol &&
+      network.chainId === request.chainId
+  );
   const isEth = request.protocol === SupportedProtocols.Ethereum;
 
   const getFeeOptions = (_: TransactionFormValues) => {
@@ -65,6 +74,43 @@ export default function TransactionRequest() {
         : undefined,
       maxFeePerGas: transferData.maxFeePerGas,
       maxPriorityFeePerGas: transferData.maxPriorityFeePerGas,
+    };
+  };
+
+  const getShannonFeeOptions = (
+    data: TransactionFormValues
+  ): CosmosFeeRequestOption => {
+    return {
+      protocol: SupportedProtocols.Cosmos,
+      transaction: {
+        protocol: SupportedProtocols.Cosmos,
+        transactionType: CosmosTransactionTypes.Send,
+        amount: "1",
+        privateKey: "",
+        to: data.recipientAddress ?? "",
+        from: data.fromAddress ?? "",
+        gas: data.pocketGasAuto
+          ? "auto"
+          : data.pocketGasInput ?? selectedNetwork.defaultGasEstimation,
+        gasPrice:
+          "gasPrice" in transferData
+            ? Number(transferData.gasPrice)
+            : data.pocketGasPrice,
+        gasAdjustment:
+          "gasAdjustment" in transferData
+            ? Number(transferData.gasAdjustment)
+            : data.pocketGasAdjustment,
+        messages: [
+          {
+            type: CosmosTransactionTypes.Send,
+            payload: {
+              amount: "1",
+              toAddress: data.recipientAddress ?? "",
+              fromAddress: data.fromAddress ?? "",
+            },
+          },
+        ],
+      },
     };
   };
 
@@ -94,15 +140,30 @@ export default function TransactionRequest() {
       transactionParams: {},
     };
 
-    if (isEth) {
-      const feeInfo = (data.fee as EthereumNetworkFee)[data.txSpeed];
-      const network = networks.find(
-        (network) =>
-          network.protocol === data.protocol && network.chainId === data.chainId
-      );
+    if (data.protocol === SupportedProtocols.Cosmos) {
       return {
         ...base,
-        amount: Number(data.amount || "0") * 10 ** network.decimals,
+        transactionParams: {
+          gas: data.pocketGasAuto
+            ? "auto"
+            : data.pocketGasInput ?? selectedNetwork.defaultGasEstimation,
+          gasPrice:
+            "gasPrice" in transferData
+              ? Number(transferData.gasPrice)
+              : data.pocketGasPrice,
+          gasAdjustment:
+            "gasAdjustment" in transferData
+              ? Number(transferData.gasAdjustment)
+              : data.pocketGasAdjustment,
+          memo: data.memo || undefined,
+        },
+      };
+    } else if (isEth) {
+      const feeInfo = (data.fee as EthereumNetworkFee)[data.txSpeed];
+
+      return {
+        ...base,
+        amount: Number(data.amount || "0") * 10 ** selectedNetwork.decimals,
         isRawTransaction: true,
         transactionParams: {
           maxFeePerGas: feeInfo.suggestedMaxFeePerGas,
@@ -149,7 +210,13 @@ export default function TransactionRequest() {
           chainId={request.chainId}
           fromAddress={transferData.fromAddress}
           getTransaction={getTransaction}
-          getFeeOptions={isEth ? getFeeOptions : undefined}
+          getFeeOptions={
+            isEth
+              ? getFeeOptions
+              : request.protocol === SupportedProtocols.Cosmos
+              ? getShannonFeeOptions
+              : undefined
+          }
           defaultFormValue={{
             amount: transferData?.amount || "",
             memo: transferData.memo || undefined,

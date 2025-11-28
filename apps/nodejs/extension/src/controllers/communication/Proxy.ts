@@ -172,6 +172,9 @@ import {
 } from "../../constants/protocols";
 
 export type TPocketTransferBody = z.infer<typeof PocketTransferBody>;
+export type TShannonPocketTransferBody = z.infer<
+  typeof ShannonPocketTransferBody
+>;
 
 const DaoTransferAction = "dao_transfer" as DAOAction.Transfer;
 const DaoBurnAction = "dao_burn" as DAOAction.Burn;
@@ -312,6 +315,51 @@ export const MsgClaimSupplierSchema = z.object({
 });
 
 const memoSchema = z.string().max(75).optional();
+
+const ShannonPocketTransferBody = z.object({
+  from: z
+    .string()
+    .refine(
+      (value) => isValidAddress(value, CosmosProtocol),
+      "from is not a valid address"
+    ),
+  to: z
+    .string()
+    .refine(
+      (value) => isValidAddress(value, CosmosProtocol),
+      "from is not a valid address"
+    ),
+  amount: z
+    .string()
+    .nonempty()
+    .regex(/^\d+$/)
+    .refine((value) => Number(value) > 0, "amount should be greater than 0"),
+  memo: memoSchema,
+  gasPrice: z
+    .string()
+    .optional()
+    .refine((value) => {
+      if (!value) return true;
+
+      const num = Number(value);
+
+      if (isNaN(num) === true) return false;
+
+      return num > 0;
+    }, "gasPrice should be greater than 0"),
+  gasAdjustment: z
+    .string()
+    .optional()
+    .refine((value) => {
+      if (!value) return true;
+
+      const num = Number(value);
+
+      if (isNaN(num) === true) return false;
+
+      return num > 0;
+    }, "gasAdjustment should be greater than 0"),
+});
 
 const PocketTransferBody = z.object({
   from: z
@@ -1116,7 +1164,7 @@ class ProxyCommunicationController {
           );
         }
 
-        if (protocol === PocketProtocol) {
+        if (protocol === PocketProtocol || protocol === CosmosProtocol) {
           if (!(data as TPocketTransferBody)?.amount) {
             return this._sendTransferResponse(
               requestId,
@@ -1129,8 +1177,10 @@ class ProxyCommunicationController {
         try {
           if (protocol === PocketProtocol) {
             transferData = PocketTransferBody.parse(data);
-          } else {
+          } else if (protocol === EthereumProtocol) {
             transferData = EthTransferBody.parse(data);
+          } else {
+            transferData = ShannonPocketTransferBody.parse(data);
           }
         } catch (e) {
           const zodError: ZodError = e;

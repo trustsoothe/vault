@@ -101,6 +101,7 @@ export enum PocketShannonMethod {
   //
   SIGN_MESSAGE = "pokt_signMessage",
 
+  SEND_TRANSACTION = "pokt_sendTransaction",
   SIGN_BULK_TRANSACTION = "pokt_bulkSignTransaction",
   //
   BALANCE = "pokt_balance",
@@ -253,6 +254,7 @@ export default class BaseProvider extends EventEmitter {
         break;
       }
       case EthereumMethod.SEND_TRANSACTION:
+      case PocketShannonMethod.SEND_TRANSACTION:
       case PocketNetworkMethod.SEND_TRANSACTION: {
         sootheRequestType = TRANSFER_REQUEST;
         break;
