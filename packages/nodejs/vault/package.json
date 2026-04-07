@@ -58,7 +58,7 @@
     "ethereumjs-util": "7.1.5",
     "hdkey": "^2.1.0",
     "hex-lite": "1.5.0",
-    "lodash": "4.17.21",
+    "lodash": "4.18.1",
     "protobufjs": "^7.2.1",
     "url-join": "5.0.0",
     "uuid": "9.0.0",
