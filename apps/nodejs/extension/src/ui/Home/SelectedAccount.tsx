@@ -42,6 +42,7 @@ export default function SelectedAccount() {
     isLoadingUsdPrice,
     isLoadingBalance,
     balanceError,
+    isBalanceDisabled,
     usdPriceError,
     coinSymbol,
   } = useBalanceAndUsdPrice({
@@ -125,7 +126,7 @@ export default function SelectedAccount() {
         ) : (
           <Stack direction={"row"} alignItems={"center"} spacing={0.7}>
             <Typography variant={"h1"} noWrap={true} maxWidth={275}>
-              {balanceError
+              {balanceError || isBalanceDisabled
                 ? "-"
                 : roundAndSeparate(
                     balance,
@@ -158,7 +159,7 @@ export default function SelectedAccount() {
           />
         ) : (
           <Typography marginTop={0.8} marginBottom={2}>
-            {balanceError || usdPriceError
+            {balanceError || usdPriceError || isBalanceDisabled
               ? "-"
               : `$ ${roundAndSeparate(usdBalance, 2, "0.00")}`}
           </Typography>

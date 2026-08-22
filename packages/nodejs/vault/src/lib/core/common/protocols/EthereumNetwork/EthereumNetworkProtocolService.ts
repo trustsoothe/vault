@@ -653,7 +653,7 @@ export class EthereumNetworkProtocolService
       const balanceAsBigInt = await ethClient.getBalance(account.address);
       return Number(balanceAsBigInt.toString());
     } catch (e) {
-      throw new NetworkRequestError("Failed to fetch balance");
+      throw new NetworkRequestError("Failed to fetch balance", e as Error);
     }
   }
 

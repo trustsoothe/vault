@@ -16,6 +16,40 @@ export interface GetAccountBalanceArg {
   asset?: { contractAddress: string; decimals: number };
 }
 
+export interface BalanceQueryError {
+  name: string;
+  message: string;
+  protocol: SupportedProtocols;
+  chainId: string;
+}
+
+/**
+ * Errors thrown by the protocol services are class instances; they do not
+ * survive the JSON serialization done when the action travels to the
+ * background store, so we keep a plain object with the useful bits
+ * (including the inner cause when present) to show it to the user.
+ */
+function serializeBalanceError(
+  error: unknown,
+  { protocol, chainId }: Pick<GetAccountBalanceArg, "protocol" | "chainId">
+): BalanceQueryError {
+  const err = error as
+    | { name?: string; message?: string; innerError?: { message?: string } }
+    | undefined;
+  const innerMessage = err?.innerError?.message;
+  const message = err?.message || "Unknown error";
+
+  return {
+    name: err?.name || "Error",
+    message:
+      innerMessage && innerMessage !== message
+        ? `${message}: ${innerMessage}`
+        : message,
+    protocol,
+    chainId,
+  };
+}
+
 export const balanceApi = createApi({
   keepUnusedDataFor: 25,
   refetchOnMountOrArgChange: true,
@@ -93,7 +127,7 @@ export const balanceApi = createApi({
 
           return { data: result };
         } catch (error) {
-          return { error };
+          return { error: serializeBalanceError(error, { protocol, chainId }) };
         }
       },
     }),

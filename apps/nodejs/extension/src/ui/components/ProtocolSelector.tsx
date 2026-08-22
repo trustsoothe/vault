@@ -3,14 +3,12 @@ import type { TextFieldProps } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import { SupportedProtocols } from "@soothe/vault";
-import {
-    selectableNetworksSelector
-} from "../../redux/selectors/network";
+import { selectableNetworksSelector } from "../../redux/selectors/network";
 import SelectedIcon from "../assets/img/check_icon.svg";
 import { useAppSelector } from "../hooks/redux";
 import { themeColors } from "../theme";
 import { labelByProtocolMap } from "../../constants/protocols";
-import {Network} from "../../redux/slices/app";
+import { Network } from "../../redux/slices/app";
 
 export interface ProtocolSelectorValue {
   id: string;
@@ -25,12 +23,30 @@ const ProtocolSelector: React.ForwardRefRenderFunction<
   HTMLInputElement,
   Partial<TextFieldProps>
 > = (props, ref) => {
-  const selectableNetworks: Network[]  = useAppSelector(selectableNetworksSelector);
+  const selectableNetworks: Network[] = useAppSelector(
+    selectableNetworksSelector
+  );
 
-  const valueOptions: ProtocolSelectorValue[] = selectableNetworks.filter((n) => n.isProtocolDefault).map((n) => ({
+  // one option per protocol: the networks config may flag more than one
+  // network of the same protocol as protocol default (e.g. mainnet and a
+  // testnet), so keep only the first non-testnet one per protocol
+  const networkByProtocol = new Map<SupportedProtocols, Network>();
+  for (const network of selectableNetworks) {
+    if (!network.isProtocolDefault) continue;
+    const current = networkByProtocol.get(network.protocol);
+    if (!current || (current.isTestnet && !network.isTestnet)) {
+      networkByProtocol.set(network.protocol, network);
+    }
+  }
+
+  const valueOptions: ProtocolSelectorValue[] = Array.from(
+    networkByProtocol.values()
+  )
+    .map((n) => ({
       ...n,
       label: labelByProtocolMap[n.protocol],
-  })).sort((a, b) => a.label.localeCompare(b.label));
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   return (
     <TextField

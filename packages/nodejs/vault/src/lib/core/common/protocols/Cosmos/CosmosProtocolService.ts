@@ -234,7 +234,7 @@ export class CosmosProtocolService
       return upokt ? parseInt(upokt.amount, 10) : 0
     } catch (err) {
       console.error(err)
-      throw new NetworkRequestError('Failed to fetch balance')
+      throw new NetworkRequestError('Failed to fetch balance', err as Error)
     }
   }
 
