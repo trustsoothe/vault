@@ -32,10 +32,19 @@ const baseManifest = {
 };
 
 
+// 'wasm-unsafe-eval' is required because libsodium (pulled in by @cosmjs/crypto)
+// instantiates a WebAssembly module at load time; without it the browser blocks
+// the module and logs an unhandled CSP rejection on every page load.
+const extensionPagesCsp =
+  "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';";
+
 const baseChromiumManifest = {
   ...baseManifest,
   background: {
     service_worker: "js/background-loader.js"
+  },
+  content_security_policy: {
+    extension_pages: extensionPagesCsp,
   },
   permissions: [...basePermissions, "activeTab", "tabs"],
 };
@@ -46,7 +55,7 @@ const baseFirefoxManifest = {
     page: "background.html",
   },
   content_security_policy: {
-    extension_pages: "script-src 'self'; object-src 'self';",
+    extension_pages: extensionPagesCsp,
   },
   host_permissions: ["http://*/*", "https://*/*"],
   browser_specific_settings: {

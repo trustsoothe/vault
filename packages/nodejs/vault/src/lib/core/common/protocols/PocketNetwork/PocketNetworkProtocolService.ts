@@ -315,7 +315,9 @@ export class PocketNetworkProtocolService
     })
 
     if (!response.ok) {
-      throw new NetworkRequestError('Failed to fetch balance')
+      throw new NetworkRequestError(
+        `Failed to fetch balance (HTTP ${response.status})`,
+      )
     }
 
     const responseRawBody = await response.json()
