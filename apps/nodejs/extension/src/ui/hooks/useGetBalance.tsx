@@ -21,7 +21,7 @@ import {
 import { labelByProtocolMap } from "../../constants/protocols";
 import type { RootState } from "../../redux/store";
 import { themeColors } from "../theme";
-import getStore from "../store";
+import getStore, { STORE_RECONNECTED_EVENT } from "../store";
 import { pendingOutgoingSelector } from "../../redux/selectors/app";
 import {
   PendingOutgoingTransaction,
@@ -240,29 +240,51 @@ export default function useGetBalance({
     });
   };
 
-  const { isLoading, balance, error, isError, isFetching, isUninitialized } =
-    useGetBalanceQuery(
-      {
-        address,
-        chainId,
-        protocol,
-        asset: asset || undefined,
-      },
-      {
-        pollingInterval: interval,
-        skip: isBalanceDisabled,
-        selectFromResult: (args) => ({
-          ...args,
-          balance: args.currentData || 0,
-        }),
-      }
-    );
+  const {
+    isLoading,
+    balance,
+    error,
+    isError,
+    isFetching,
+    isUninitialized,
+    refetch,
+  } = useGetBalanceQuery(
+    {
+      address,
+      chainId,
+      protocol,
+      asset: asset || undefined,
+    },
+    {
+      pollingInterval: interval,
+      skip: isBalanceDisabled,
+      selectFromResult: (args) => ({
+        ...args,
+        balance: args.currentData || 0,
+      }),
+    }
+  );
 
   useEffect(() => {
     if (!isFetching) {
       canShowLoading.current = false;
     }
   }, [isFetching]);
+
+  // after the background store was re-created (service worker restarted) its
+  // query results are gone: fetch again right away instead of waiting for the
+  // next poll
+  useEffect(() => {
+    if (isBalanceDisabled) return;
+
+    const onReconnected = () => {
+      refetch();
+    };
+
+    window.addEventListener(STORE_RECONNECTED_EVENT, onReconnected);
+    return () =>
+      window.removeEventListener(STORE_RECONNECTED_EVENT, onReconnected);
+  }, [refetch, isBalanceDisabled]);
 
   // transactions we sent from this account that the polled balance does not
   // reflect yet: subtract them from the spendable balance and forget them as
