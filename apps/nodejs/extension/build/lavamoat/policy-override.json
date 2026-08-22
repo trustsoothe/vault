@@ -90,11 +90,6 @@
         "addEventListener": true
       }
     },
-    "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo>libsodium-sumo": {
-      "globals": {
-        "crypto": true
-      }
-    },
       "@emotion/react": {
         "globals": {
           "HTMLElement": true,

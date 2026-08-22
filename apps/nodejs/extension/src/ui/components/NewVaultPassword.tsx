@@ -1,8 +1,11 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Controller, Path, useFormContext } from "react-hook-form";
-import PasswordStrengthBar from "./PasswordStrengthBar";
 import { verifyPassword } from "../../utils";
 import PasswordInput from "./PasswordInput";
+
+// the strength meter ships zxcvbn's dictionaries (~800 KB); only load it when
+// a password is being created instead of on every extension page load
+const PasswordStrengthBar = React.lazy(() => import("./PasswordStrengthBar"));
 
 interface NewVaultPasswordProps<T extends {}> {
   passwordName: Path<T>;
@@ -46,7 +49,9 @@ export default function NewVaultPassword<T extends {}>({
               helperText={error?.message}
               disabled={disableInputs}
             />
-            <PasswordStrengthBar password={field.value} />
+            <Suspense fallback={null}>
+              <PasswordStrengthBar password={field.value} />
+            </Suspense>
           </>
         )}
       />

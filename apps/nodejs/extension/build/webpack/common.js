@@ -55,11 +55,6 @@ module.exports = {
           name: "mui",
           chunks: "all",
         },
-        libsodium: {
-          test: /[\\/]node_modules[\\/]libsodium-sumo[\\/]/,
-          name: "libsodium-sumo",
-          chunks: "all",
-        },
         cosmjs: {
           test: /[\\/]node_modules[\\/]@?cosmjs.*[\\/]/,
           name: "cosmjs",
@@ -104,7 +99,14 @@ module.exports = {
   resolve: {
     extensions: [".ts", ".tsx", ".js"],
     alias: {
-      lodash: "lodash-es"
+      lodash: "lodash-es",
+      // @cosmjs/crypto pulls libsodium (~940 KB + WASM) for APIs we never use
+      "libsodium-wrappers-sumo": path.resolve(
+        __dirname,
+        "..",
+        "stubs",
+        "libsodium-wrappers-sumo.js"
+      ),
     },
     fallback: {
       buffer: require.resolve("buffer/"),

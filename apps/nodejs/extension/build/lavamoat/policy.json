@@ -32,8 +32,7 @@
         "@soothe/vault>@cosmjs/crypto>@noble/hashes": true,
         "@soothe/vault>@cosmjs/crypto>bn.js": true,
         "crypto-browserify": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic": true,
-        "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo": true
+        "@soothe/vault>@cosmjs/crypto>elliptic": true
       }
     },
     "@soothe/vault>@cosmjs/encoding": {
@@ -1175,40 +1174,6 @@
       "packages": {
         "buffer": true,
         "stream-http>readable-stream": true
-      }
-    },
-    "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo>libsodium-sumo": {
-      "globals": {
-        "Buffer.from": true,
-        "TextDecoder": true,
-        "URL": true,
-        "WebAssembly.RuntimeError": true,
-        "WebAssembly.instantiate": true,
-        "XMLHttpRequest": true,
-        "__dirname": true,
-        "atob": true,
-        "clearInterval": true,
-        "define": true,
-        "document": true,
-        "importScripts": true,
-        "location.href": true,
-        "process": true,
-        "setTimeout": true
-      },
-      "packages": {
-        "buffer": true,
-        "crypto-browserify": true,
-        "process": true
-      }
-    },
-    "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo": {
-      "globals": {
-        "TextDecoder": true,
-        "TextEncoder": true,
-        "define": true
-      },
-      "packages": {
-        "@soothe/vault>@cosmjs/crypto>libsodium-wrappers-sumo>libsodium-sumo": true
       }
     },
     "lodash-es": {

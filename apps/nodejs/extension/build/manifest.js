@@ -32,9 +32,10 @@ const baseManifest = {
 };
 
 
-// 'wasm-unsafe-eval' is required because libsodium (pulled in by @cosmjs/crypto)
-// instantiates a WebAssembly module at load time; without it the browser blocks
-// the module and logs an unhandled CSP rejection on every page load.
+// 'wasm-unsafe-eval' lets dependencies instantiate WebAssembly modules; the
+// only one we shipped (libsodium, via @cosmjs/crypto) is now stubbed out in
+// webpack, so this is kept so a future dependency does not fail with an
+// unhandled CSP rejection at load time.
 const extensionPagesCsp =
   "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';";
 
