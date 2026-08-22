@@ -671,8 +671,18 @@ export class EthereumNetworkProtocolService
     return Number(calculatedBalance.toFixed(5));
   }
 
+  /** one Eth client per RPC url instead of a new one on every request */
+  private static ethClients = new Map<string, Eth>();
+
   private getEthClient(network: INetwork): Eth {
-    return new Eth(network.rpcUrl);
+    let client = EthereumNetworkProtocolService.ethClients.get(network.rpcUrl);
+
+    if (!client) {
+      client = new Eth(network.rpcUrl);
+      EthereumNetworkProtocolService.ethClients.set(network.rpcUrl, client);
+    }
+
+    return client;
   }
 
   private getEthContractClient(

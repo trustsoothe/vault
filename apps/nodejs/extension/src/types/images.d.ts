@@ -11,7 +11,9 @@ declare module "*.png" {
 }
 
 declare module "*.svg" {
-  const content: React.FC<React.SVGProps<SVGSVGElement>>;
+  const content: React.ForwardRefExoticComponent<
+    React.SVGProps<SVGSVGElement> & React.RefAttributes<SVGSVGElement>
+  >;
   export default content;
 }
 

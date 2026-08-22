@@ -59,12 +59,48 @@ import { CosmosFeeRequestOption } from './CosmosFeeRequestOption'
 import { Buffer } from 'buffer'
 import { GeneratedType } from '@cosmjs/proto-signing/build/registry'
 import { MsgClaimMorseAccount, MsgClaimMorseSupplier } from './pocket/client/pocket/migration/tx'
-import { Comet38Client, GenesisResponse } from '@cosmjs/tendermint-rpc'
+import { Comet38Client } from '@cosmjs/tendermint-rpc'
 import { BaseAccount } from './pocket/client/cosmos/auth/v1beta1/auth'
 import { PubKey } from './pocket/client/cosmos/crypto/secp256k1/keys'
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos> {
+  /**
+   * Comet38Client over HTTP is stateless, so we keep one instance per RPC
+   * endpoint instead of creating (and dropping) one on every request.
+   */
+  private static cometClients = new Map<string, Promise<Comet38Client>>()
+
+  private getCometClient(rpcEndpoint: string): Promise<Comet38Client> {
+    let client = CosmosProtocolService.cometClients.get(rpcEndpoint)
+
+    if (!client) {
+      client = Comet38Client.connect(rpcEndpoint)
+      CosmosProtocolService.cometClients.set(rpcEndpoint, client)
+      client.catch(() => CosmosProtocolService.cometClients.delete(rpcEndpoint))
+    }
+
+    return client
+  }
+
+  /** chain id per RPC endpoint; it does not change for a given endpoint */
+  private static chainIds = new Map<string, string>()
+
+  private async getChainId(
+    rpcEndpoint: string,
+    tmClient: Comet38Client,
+  ): Promise<string> {
+    let chainId = CosmosProtocolService.chainIds.get(rpcEndpoint)
+
+    if (!chainId) {
+      const status = await tmClient.status()
+      chainId = status.nodeInfo.network
+      CosmosProtocolService.chainIds.set(rpcEndpoint, chainId)
+    }
+
+    return chainId
+  }
+
   constructor(private encryptionService: IEncryptionService) {
   }
 
@@ -214,7 +250,7 @@ export class CosmosProtocolService
 
     try {
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')
-      const tmClient = await Comet38Client.connect(rpcEndpoint)
+      const tmClient = await this.getCometClient(rpcEndpoint)
 
       const queryClient = QueryClient.withExtensions(
         tmClient,
@@ -229,7 +265,6 @@ export class CosmosProtocolService
         (b: { denom: string }) => b.denom === 'upokt',
       )
 
-      tmClient.disconnect()
 
       return upokt ? parseInt(upokt.amount, 10) : 0
     } catch (err) {
@@ -267,7 +302,7 @@ export class CosmosProtocolService
 
     try {
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')
-      const tmClient = await Comet38Client.connect(rpcEndpoint)
+      const tmClient = await this.getCometClient(rpcEndpoint)
 
       const queryClient = QueryClient.withExtensions(
         tmClient,
@@ -311,7 +346,6 @@ export class CosmosProtocolService
         sequence,
       )
 
-      tmClient.disconnect();
 
       if (simulateResponse.gasInfo?.gasUsed) {
         estimatedGas = Number(simulateResponse.gasInfo.gasUsed)
@@ -418,7 +452,7 @@ export class CosmosProtocolService
       const { transactionHex } = await this.signTransaction(network, transaction)
 
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')
-      const tmClient = await Comet38Client.connect(rpcEndpoint)
+      const tmClient = await this.getCometClient(rpcEndpoint)
 
       const txBytes = Uint8Array.from(Buffer.from(transactionHex, 'hex'))
 
@@ -426,7 +460,6 @@ export class CosmosProtocolService
         tx: txBytes,
       })
 
-      tmClient.disconnect()
 
       const transactionHash = Buffer.from(hash).toString('hex').toUpperCase()
 
@@ -506,7 +539,7 @@ export class CosmosProtocolService
       }
 
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')
-      const tmClient = await Comet38Client.connect(rpcEndpoint)
+      const tmClient = await this.getCometClient(rpcEndpoint)
       const queryClient = QueryClient.withExtensions(tmClient, setupAuthExtension)
       const accountResponse = await queryClient.auth.account(signerAddress)
 
@@ -523,8 +556,10 @@ export class CosmosProtocolService
       const baseAccount = BaseAccount.decode(accountResponse.value)
       const accountNumber = Number(baseAccount.accountNumber)
       const sequence = Number(baseAccount.sequence)
-      const genesis: GenesisResponse = await tmClient.genesis()
-      const chainId = genesis.chainId
+      // the chain id comes from the node status: fetching the genesis for it
+      // is expensive and nodes with a large genesis reject the `genesis` RPC
+      // ("genesis response is large, please use the genesis_chunked API")
+      const chainId = await this.getChainId(rpcEndpoint, tmClient)
 
       const messages = this.buildMessages(transaction)
 
@@ -558,7 +593,6 @@ export class CosmosProtocolService
         signerData,
       )
 
-      tmClient.disconnect()
 
       const txBytes = TxRaw.encode(txRaw).finish()
 

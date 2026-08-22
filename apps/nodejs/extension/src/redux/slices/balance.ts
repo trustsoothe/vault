@@ -6,8 +6,12 @@ import {
   ProtocolServiceFactory,
   SupportedProtocols,
 } from "@soothe/vault";
-import { setNetworksWithErrors } from "./app";
-import { runWithNetworks } from "../../utils/networkOperations";
+import { resetErrorOfNetworks, setNetworksWithErrors } from "./app";
+import {
+  READ_RPC_RETRIES,
+  READ_RPC_TIMEOUT_MS,
+  runWithNetworks,
+} from "../../utils/networkOperations";
 
 export interface GetAccountBalanceArg {
   address: string;
@@ -84,45 +88,52 @@ export const balanceApi = createApi({
             new WebEncryptionService()
           );
 
-          const { result, rpcWithErrors } = await runWithNetworks(
-            {
-              protocol,
-              chainId,
-              customRpcs,
-              networks,
-              errorsPreferredNetwork,
-            },
-            async (network) => {
-              const asset: IAsset =
-                protocol === SupportedProtocols.Ethereum && partialAsset
-                  ? {
-                      ...partialAsset,
-                      protocol,
-                      chainID: chainId,
-                    }
-                  : undefined;
-              const balance = await protocolService.getBalance(
-                accountReference,
-                network,
-                asset
-              );
+          const { result, rpcWithErrors, rpcWithSuccess } =
+            await runWithNetworks(
+              {
+                protocol,
+                chainId,
+                customRpcs,
+                networks,
+                errorsPreferredNetwork,
+                timeout: READ_RPC_TIMEOUT_MS,
+                retries: READ_RPC_RETRIES,
+              },
+              async (network) => {
+                const asset: IAsset =
+                  protocol === SupportedProtocols.Ethereum && partialAsset
+                    ? {
+                        ...partialAsset,
+                        protocol,
+                        chainID: chainId,
+                      }
+                    : undefined;
+                const balance = await protocolService.getBalance(
+                  accountReference,
+                  network,
+                  asset
+                );
 
-              return balance
-                ? balance /
-                    ([
-                      SupportedProtocols.Pocket,
-                      SupportedProtocols.Cosmos,
-                    ].includes(protocol)
-                      ? 1e6
-                      : asset
-                      ? 1
-                      : 1e18)
-                : 0;
-            }
-          );
+                return balance
+                  ? balance /
+                      ([
+                        SupportedProtocols.Pocket,
+                        SupportedProtocols.Cosmos,
+                      ].includes(protocol)
+                        ? 1e6
+                        : asset
+                        ? 1
+                        : 1e18)
+                  : 0;
+              }
+            );
 
           if (rpcWithErrors.length) {
             await api.dispatch(setNetworksWithErrors(rpcWithErrors));
+          }
+
+          if (rpcWithSuccess.length) {
+            await api.dispatch(resetErrorOfNetworks(rpcWithSuccess));
           }
 
           return { data: result };

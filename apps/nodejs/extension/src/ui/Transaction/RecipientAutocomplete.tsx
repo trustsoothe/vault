@@ -7,6 +7,7 @@ import type { AutocompleteInputChangeReason } from "@mui/base/useAutocomplete/us
 import type { TransactionFormValues } from "./BaseTransaction";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import React, { useMemo, useState } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import { AccountType, SupportedProtocols } from "@soothe/vault";
@@ -289,6 +290,12 @@ export default function RecipientAutocomplete({
                 height: 30,
                 "& .MuiAutocomplete-clearIndicator": {
                   visibility: "visible",
+                  height: 28,
+                  minWidth: 60,
+                  width: 60,
+                  borderRadius: "6px",
+                  marginTop: "-1px!important",
+                  marginRight: -0.6,
                 },
               },
               // ...autocompleteSxProps,
@@ -300,21 +307,17 @@ export default function RecipientAutocomplete({
                 padding: 0,
               },
             }}
+            // the clear indicator is already a button (IconButton) that clears
+            // the value and the input, so the icon must not be another button
             clearIcon={
-              <Button
-                onClick={() => {
-                  setInputValue("");
-                }}
-                sx={{
-                  height: 28,
-                  minWidth: 60,
-                  width: 60,
-                  marginTop: "-1px!important",
-                  marginRight: -0.6,
-                }}
+              <Typography
+                component={"span"}
+                fontSize={13}
+                fontWeight={500}
+                color={themeColors.primary}
               >
                 Clear
-              </Button>
+              </Typography>
             }
             // disabled={disabled}
             renderInput={(params) => (

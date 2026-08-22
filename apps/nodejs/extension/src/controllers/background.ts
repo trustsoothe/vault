@@ -19,6 +19,7 @@ import {
   loadSelectedNetworkAndAccount,
   setAppIsReadyStatus,
   updateAvailable,
+  resetAllErrorsOfNetworks,
 } from "../redux/slices/app";
 import { getVault } from "../utils";
 import {
@@ -233,6 +234,13 @@ export default class BackgroundController {
       await store.dispatch(loadSelectedNetworkAndAccount());
       // every 20 minutes
     }, 1000 * 60 * 20);
+
+    // preferred custom RPCs that failed too many times are skipped; give them
+    // a new chance periodically instead of until the user edits them
+    setInterval(() => {
+      store.dispatch(resetAllErrorsOfNetworks());
+      // every 10 minutes
+    }, 1000 * 60 * 10);
 
     // check if vault session is still valid
     setInterval(async () => {
