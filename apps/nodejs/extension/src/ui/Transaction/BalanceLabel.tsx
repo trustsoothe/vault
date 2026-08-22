@@ -27,28 +27,30 @@ export default function BalanceLabel({
     "chainId",
   ]);
 
-  const { isLoadingBalance, balance, coinSymbol } = useBalanceAndUsdPrice({
+  const {
+    isLoadingBalance,
+    balance,
+    spendableBalance,
+    pendingOutgoingAmount,
+    coinSymbol,
+  } = useBalanceAndUsdPrice({
     address: fromAddress,
     protocol,
     chainId,
     asset: considerAsset ? asset : undefined,
   });
 
-  return (
+  const decimals = protocol === SupportedProtocols.Pocket ? 6 : 18;
+
+  const renderRow = (label: string, value: number, tooltip?: string) => (
     <Stack
       spacing={1}
       direction={"row"}
-      marginTop={marginTop}
       alignItems={"center"}
       justifyContent={"space-between"}
-      sx={{
-        "& p": {
-          fontSize: 11,
-          lineHeight: "16px",
-        },
-      }}
+      title={tooltip}
     >
-      <Typography>Balance</Typography>
+      <Typography>{label}</Typography>
 
       {isLoadingBalance ? (
         <Skeleton width={48} height={16} variant={"rectangular"} />
@@ -66,15 +68,37 @@ export default function BalanceLabel({
             minWidth={0}
             textAlign={"right"}
           >
-            {roundAndSeparate(
-              balance,
-              protocol === SupportedProtocols.Pocket ? 6 : 18,
-              "0.00"
-            )}
+            {roundAndSeparate(value, decimals, "0.00")}
           </Typography>
           <Typography>{coinSymbol}</Typography>
         </Stack>
       )}
+    </Stack>
+  );
+
+  return (
+    <Stack
+      marginTop={marginTop}
+      spacing={0.4}
+      sx={{
+        "& p": {
+          fontSize: 11,
+          lineHeight: "16px",
+        },
+      }}
+    >
+      {renderRow("Balance", balance)}
+      {pendingOutgoingAmount > 0 &&
+        !isLoadingBalance &&
+        renderRow(
+          "Available",
+          spendableBalance,
+          `${roundAndSeparate(
+            pendingOutgoingAmount,
+            decimals,
+            "0"
+          )} ${coinSymbol} pending in transactions you just sent`
+        )}
     </Stack>
   );
 }

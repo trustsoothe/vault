@@ -22,6 +22,11 @@ import { labelByProtocolMap } from "../../constants/protocols";
 import type { RootState } from "../../redux/store";
 import { themeColors } from "../theme";
 import getStore from "../store";
+import { pendingOutgoingSelector } from "../../redux/selectors/app";
+import {
+  PendingOutgoingTransaction,
+  removePendingOutgoing,
+} from "../../redux/slices/app";
 
 const snackbarKey = "fetch_balance_failed";
 
@@ -133,6 +138,58 @@ function AccountsWithBalanceError() {
   );
 }
 
+/** a pending outgoing transaction is forgotten after this time no matter what */
+const PENDING_OUTGOING_TTL_MS = 1000 * 60 * 10;
+// tolerance when comparing balances (float arithmetic on coin units)
+const BALANCE_EPSILON = 1e-9;
+
+/** whether a pending outgoing transaction affects the balance of this query */
+function appliesToBalance(
+  tx: PendingOutgoingTransaction,
+  {
+    address,
+    chainId,
+    protocol,
+    asset,
+  }: Pick<UseGetBalance, "address" | "chainId" | "protocol" | "asset">
+) {
+  if (
+    tx.address !== address ||
+    tx.chainId !== chainId ||
+    tx.protocol !== protocol
+  ) {
+    return false;
+  }
+
+  // asset balance: only transfers of that asset count
+  if (asset) {
+    return tx.assetContractAddress === asset.contractAddress;
+  }
+
+  // native balance: native transfers (amount + fee) and fees of asset transfers
+  return true;
+}
+
+/** amount a pending outgoing transaction takes from the balance of this query */
+function pendingAmountOf(tx: PendingOutgoingTransaction, isAsset: boolean) {
+  if (isAsset) return tx.amount;
+  return tx.assetContractAddress ? tx.fee : tx.amount + tx.fee;
+}
+
+/**
+ * A pending outgoing transaction is over once the balance it was debited from
+ * dropped (the transaction was applied) or it is too old.
+ */
+function isPendingOutgoingDone(
+  tx: PendingOutgoingTransaction,
+  currentBalance: number | undefined,
+  now: number
+) {
+  if (now - tx.createdAt > PENDING_OUTGOING_TTL_MS) return true;
+  if (currentBalance === undefined) return false;
+  return currentBalance < tx.balanceAtSend - BALANCE_EPSILON;
+}
+
 export interface UseGetBalance {
   address: string;
   chainId: string;
@@ -207,6 +264,41 @@ export default function useGetBalance({
     }
   }, [isFetching]);
 
+  // transactions we sent from this account that the polled balance does not
+  // reflect yet: subtract them from the spendable balance and forget them as
+  // soon as the balance drops (or they get too old)
+  const pendingOutgoing = useAppSelector(pendingOutgoingSelector, shallowEqual);
+  const hasBalanceData = !isUninitialized && !isError && !isLoading;
+  const pendingForThisBalance = useMemo(
+    () =>
+      pendingOutgoing.filter((tx) =>
+        appliesToBalance(tx, { address, chainId, protocol, asset })
+      ),
+    [pendingOutgoing, address, chainId, protocol, asset]
+  );
+
+  useEffect(() => {
+    if (!pendingForThisBalance.length || !hasBalanceData) return;
+
+    const now = Date.now();
+    const done = pendingForThisBalance
+      .filter((tx) => isPendingOutgoingDone(tx, balance, now))
+      .map((tx) => tx.id);
+
+    if (done.length) {
+      dispatch(removePendingOutgoing(done));
+    }
+  }, [pendingForThisBalance, balance, hasBalanceData]);
+
+  const pendingOutgoingAmount = useMemo(() => {
+    const now = Date.now();
+    return pendingForThisBalance
+      .filter((tx) => !isPendingOutgoingDone(tx, balance, now))
+      .reduce((sum, tx) => sum + pendingAmountOf(tx, !!asset), 0);
+  }, [pendingForThisBalance, balance, asset]);
+
+  const spendableBalance = Math.max((balance || 0) - pendingOutgoingAmount, 0);
+
   useEffect(() => {
     canShowLoading.current = true;
 
@@ -243,6 +335,9 @@ export default function useGetBalance({
   return {
     error: isError,
     balance,
+    /** balance minus the outgoing transactions not yet reflected in it */
+    spendableBalance,
+    pendingOutgoingAmount,
     isBalanceDisabled,
     isLoading: isBalanceDisabled
       ? false

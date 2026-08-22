@@ -39,6 +39,7 @@ export default function SelectedAccount() {
   const {
     balance,
     usdBalance,
+    pendingOutgoingAmount,
     isLoadingUsdPrice,
     isLoadingBalance,
     balanceError,
@@ -162,6 +163,18 @@ export default function SelectedAccount() {
             {balanceError || usdPriceError || isBalanceDisabled
               ? "-"
               : `$ ${roundAndSeparate(usdBalance, 2, "0.00")}`}
+          </Typography>
+        )}
+
+        {pendingOutgoingAmount > 0 && !isLoadingBalance && (
+          <Typography
+            fontSize={11}
+            marginTop={-1.4}
+            marginBottom={1.6}
+            color={themeColors.textSecondary}
+          >
+            {roundAndSeparate(pendingOutgoingAmount, 6, "0")} {coinSymbol}{" "}
+            pending in sent transactions
           </Typography>
         )}
 
