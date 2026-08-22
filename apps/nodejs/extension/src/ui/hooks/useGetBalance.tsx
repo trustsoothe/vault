@@ -1,4 +1,5 @@
 import type { QueryState } from "@reduxjs/toolkit/dist/query/core/apiState";
+import { defaultSerializeQueryArgs } from "@reduxjs/toolkit/query";
 import Stack from "@mui/material/Stack";
 import { shallowEqual } from "react-redux";
 import Typography from "@mui/material/Typography";
@@ -138,6 +139,15 @@ function AccountsWithBalanceError() {
   );
 }
 
+/**
+ * A balance query that has been "fetching" for longer than this is considered
+ * stuck (a request that never returned, or a result that never made it back
+ * from the background store). RTK Query never re-runs a query while it is
+ * pending, so every poll would be skipped and the last value shown forever;
+ * we drop the stuck entry and start the query again.
+ */
+const STUCK_FETCH_MS = 1000 * 90;
+
 /** a pending outgoing transaction is forgotten after this time no matter what */
 const PENDING_OUTGOING_TTL_MS = 1000 * 60 * 10;
 // tolerance when comparing balances (float arithmetic on coin units)
@@ -247,6 +257,7 @@ export default function useGetBalance({
     isError,
     isFetching,
     isUninitialized,
+    startedTimeStamp,
     refetch,
   } = useGetBalanceQuery(
     {
@@ -270,6 +281,55 @@ export default function useGetBalance({
       canShowLoading.current = false;
     }
   }, [isFetching]);
+
+  // watchdog for queries stuck in "pending" (see STUCK_FETCH_MS)
+  useEffect(() => {
+    if (!isFetching || !startedTimeStamp || isBalanceDisabled) return;
+
+    const elapsed = Date.now() - startedTimeStamp;
+    const timer = setTimeout(() => {
+      const queryArgs: GetAccountBalanceArg = {
+        address,
+        chainId,
+        protocol,
+        asset: asset || undefined,
+      };
+      const queryCacheKey = defaultSerializeQueryArgs({
+        endpointName: "getBalance",
+        queryArgs,
+        endpointDefinition: balanceApi.endpoints.getBalance as any,
+      });
+
+      console.warn(
+        `Balance query ${queryCacheKey} stuck for ${Math.round(
+          (Date.now() - startedTimeStamp) / 1000
+        )}s, restarting it`
+      );
+
+      dispatch(
+        balanceApi.internalActions.removeQueryResult({
+          queryCacheKey: queryCacheKey as any,
+        })
+      );
+      dispatch(
+        balanceApi.endpoints.getBalance.initiate(queryArgs, {
+          subscribe: false,
+          forceRefetch: true,
+        })
+      );
+    }, Math.max(STUCK_FETCH_MS - elapsed, 0));
+
+    return () => clearTimeout(timer);
+  }, [
+    isFetching,
+    startedTimeStamp,
+    isBalanceDisabled,
+    address,
+    chainId,
+    protocol,
+    asset?.contractAddress,
+    asset?.decimals,
+  ]);
 
   // after the background store was re-created (service worker restarted) its
   // query results are gone: fetch again right away instead of waiting for the
