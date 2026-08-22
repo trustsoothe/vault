@@ -32,10 +32,20 @@ const baseManifest = {
 };
 
 
+// 'wasm-unsafe-eval' lets dependencies instantiate WebAssembly modules; the
+// only one we shipped (libsodium, via @cosmjs/crypto) is now stubbed out in
+// webpack, so this is kept so a future dependency does not fail with an
+// unhandled CSP rejection at load time.
+const extensionPagesCsp =
+  "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';";
+
 const baseChromiumManifest = {
   ...baseManifest,
   background: {
     service_worker: "js/background-loader.js"
+  },
+  content_security_policy: {
+    extension_pages: extensionPagesCsp,
   },
   permissions: [...basePermissions, "activeTab", "tabs"],
 };
@@ -46,7 +56,7 @@ const baseFirefoxManifest = {
     page: "background.html",
   },
   content_security_policy: {
-    extension_pages: "script-src 'self'; object-src 'self';",
+    extension_pages: extensionPagesCsp,
   },
   host_permissions: ["http://*/*", "https://*/*"],
   browser_specific_settings: {

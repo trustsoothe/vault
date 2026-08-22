@@ -273,7 +273,11 @@ import {
   OperationRejected,
   UnknownError,
 } from "../../errors/communication";
-import { runWithNetworks } from "../../utils/networkOperations";
+import {
+  READ_RPC_RETRIES,
+  READ_RPC_TIMEOUT_MS,
+  runWithNetworks,
+} from "../../utils/networkOperations";
 import { getVault } from "../../utils";
 import {
   exportVault,
@@ -2314,6 +2318,8 @@ class InternalCommunicationController implements ICommunicationController {
           customRpcs,
           networks,
           errorsPreferredNetwork,
+          timeout: READ_RPC_TIMEOUT_MS,
+          retries: READ_RPC_RETRIES,
         },
         async (network) => {
           return protocolService.getFee(

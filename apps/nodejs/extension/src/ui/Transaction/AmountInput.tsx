@@ -42,7 +42,13 @@ export default function AmountInput({
     "fee",
   ]);
 
-  const { isLoadingBalance, balance, coinSymbol } = useBalanceAndUsdPrice({
+  const {
+    isLoadingBalance,
+    balance,
+    spendableBalance,
+    pendingOutgoingAmount,
+    coinSymbol,
+  } = useBalanceAndUsdPrice({
     address: fromAddress,
     protocol,
     chainId,
@@ -78,8 +84,8 @@ export default function AmountInput({
     }
 
     const transferFromBalance = asset
-      ? balance
-      : new Decimal(balance)
+      ? spendableBalance
+      : new Decimal(spendableBalance)
           .add(new Decimal(amountToSumOnMax))
           .minus(new Decimal(fee))
           .toNumber();
@@ -132,9 +138,17 @@ export default function AmountInput({
             .minus(new Decimal(amountToReduce))
             .toDecimalPlaces(decimals);
 
-          return total.gt(new Decimal(balance).toDecimalPlaces(decimals))
-            ? "Insufficient balance"
-            : true;
+          if (
+            total.gt(new Decimal(spendableBalance).toDecimalPlaces(decimals))
+          ) {
+            // the balance label below the input shows the available amount
+            // (balance minus pending transactions) when it differs
+            return pendingOutgoingAmount > 0
+              ? "Insufficient available balance"
+              : "Insufficient balance";
+          }
+
+          return true;
         },
       }}
       render={({ field, fieldState: { error } }) => (

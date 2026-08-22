@@ -13,6 +13,7 @@ interface PasswordInputProps
 
 function PasswordInput(
   { canShowPassword = true, ...props }: PasswordInputProps,
+  ref: React.ForwardedRef<HTMLInputElement>
 ) {
   const [showText, setShowText] = useState(false);
   const isCapsLockOn = useCapsLock();
@@ -25,6 +26,7 @@ function PasswordInput(
     <Stack flexDirection={'column'} alignItems={'center'} width={'100%'}>
       <TextField
         type={showText && canShowPassword ? "text" : "password"}
+        inputRef={ref}
         {...props}
         InputProps={{
           endAdornment: canShowPassword && (

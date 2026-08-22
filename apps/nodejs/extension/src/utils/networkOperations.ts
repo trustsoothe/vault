@@ -304,8 +304,70 @@ interface RunWithNetworksParam {
   customRpcs?: Array<CustomRPC>;
   networks: Array<Network>;
   errorsPreferredNetwork: ErrorsByNetwork;
+  /**
+   * max time (ms) to wait for a single RPC attempt; 0 (default) waits
+   * indefinitely. Only use it for read operations: a timed out transaction
+   * broadcast may still have gone through.
+   */
+  timeout?: number;
+  /**
+   * extra attempts per RPC when the call fails; 0 (default) means no retry.
+   * Only use it for idempotent read operations.
+   */
+  retries?: number;
 }
 
+export interface RunWithNetworksResult<T> {
+  /** ids of the preferred custom RPCs that failed before one succeeded */
+  rpcWithErrors: Array<string>;
+  /** ids of the preferred custom RPCs that succeeded (to reset their error count) */
+  rpcWithSuccess: Array<string>;
+  result: T;
+  rpcUrl: string;
+}
+
+/** a preferred custom RPC is skipped once it accumulated more errors than this */
+export const MAX_PREFERRED_RPC_ERRORS = 5;
+/** suggested values for read operations (balances, fees, queries) */
+export const READ_RPC_TIMEOUT_MS = 20000;
+export const READ_RPC_RETRIES = 1;
+const RETRY_DELAY_MS = 750;
+
+export class RpcTimeoutError extends Error {
+  constructor(rpcUrl: string, timeout: number) {
+    super(`Request to ${rpcUrl} timed out after ${timeout / 1000}s`);
+    this.name = "RpcTimeoutError";
+  }
+}
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeout: number,
+  rpcUrl: string
+): Promise<T> {
+  if (!timeout || timeout <= 0) return promise;
+
+  let timer: ReturnType<typeof setTimeout>;
+
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new RpcTimeoutError(rpcUrl, timeout)),
+        timeout
+      );
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
+const delay = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Runs the callback against the preferred custom RPCs of the network (if any)
+ * and then the default RPC, returning the first successful result. Optionally
+ * every attempt is bounded by `timeout` and retried `retries` extra times.
+ */
 export async function runWithNetworks<T>(
   {
     protocol,
@@ -313,16 +375,18 @@ export async function runWithNetworks<T>(
     customRpcs,
     networks,
     errorsPreferredNetwork,
+    timeout = 0,
+    retries = 0,
   }: RunWithNetworksParam,
   callback: (network: INetwork) => Promise<T>
-): Promise<{ rpcWithErrors: Array<string>; result: T; rpcUrl: string }> {
-  const rpcUrls = customRpcs
+): Promise<RunWithNetworksResult<T>> {
+  const rpcUrls = (customRpcs || [])
     .filter(
       (item) =>
         item.protocol === protocol &&
         item.chainId === chainId &&
         item.isPreferred &&
-        (errorsPreferredNetwork[item.id] || 0) <= 5
+        (errorsPreferredNetwork[item.id] || 0) <= MAX_PREFERRED_RPC_ERRORS
     )
     .map((item) => ({
       id: item.id,
@@ -337,8 +401,17 @@ export async function runWithNetworks<T>(
     (item) => item.chainId === chainId && item.protocol === protocol
   );
 
+  if (!defaultNetwork) {
+    throw new Error(
+      `Network not found for protocol ${protocol} and chain ${chainId}`
+    );
+  }
+
   const rpcWithError: Array<string> = [];
+  const rpcWithSuccess: Array<string> = [];
   let result: T, rpcUrl: string;
+  // network-level settings that also apply when a custom RPC is used
+  const { unorderedTransactions } = defaultNetwork;
 
   for (const {
     url,
@@ -358,26 +431,47 @@ export async function runWithNetworks<T>(
       defaultGasEstimation: defaultNetwork.defaultGasEstimation,
     },
   ]) {
-    try {
-      result = await callback({
-        protocol,
-        chainID: chainId,
-        rpcUrl: url,
-        defaultGasPrice: defaultGasPrice,
-        defaultGasUsed: defaultGasUsed,
-        defaultGasAdjustment: defaultGasAdjustment,
-        defaultGasEstimation: defaultGasEstimation,
-      });
-      rpcUrl = url;
-      break;
-    } catch (e) {
-      if (defaultNetwork.id !== id) {
-        rpcWithError.push(id);
-      } else {
-        throw e;
+    const network: INetwork = {
+      protocol,
+      chainID: chainId,
+      rpcUrl: url,
+      defaultGasPrice: defaultGasPrice,
+      defaultGasUsed: defaultGasUsed,
+      defaultGasAdjustment: defaultGasAdjustment,
+      defaultGasEstimation: defaultGasEstimation,
+      unorderedTransactions,
+    };
+
+    let lastError: unknown;
+    let succeeded = false;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        result = await withTimeout(callback(network), timeout, url);
+        rpcUrl = url;
+        succeeded = true;
+        break;
+      } catch (e) {
+        lastError = e;
+        if (attempt < retries) {
+          await delay(RETRY_DELAY_MS);
+        }
       }
+    }
+
+    if (succeeded) {
+      if (defaultNetwork.id !== id) {
+        rpcWithSuccess.push(id);
+      }
+      break;
+    }
+
+    if (defaultNetwork.id !== id) {
+      rpcWithError.push(id);
+    } else {
+      throw lastError;
     }
   }
 
-  return { rpcWithErrors: rpcWithError, result, rpcUrl };
+  return { rpcWithErrors: rpcWithError, rpcWithSuccess, result, rpcUrl };
 }

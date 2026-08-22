@@ -7,6 +7,7 @@ import { useGetPricesQuery } from "../../redux/slices/prices";
 import useDidMountEffect from "./useDidMountEffect";
 import { enqueueErrorSnackbar } from "../../utils/ui";
 import { useAppSelector } from "./redux";
+import { STORE_RECONNECTED_EVENT } from "../store";
 import {
   assetsIdByAccountSelector,
   assetsSelector,
@@ -90,6 +91,18 @@ export default function useUsdPrice({
       refetch();
     }
   }, []);
+
+  // the background store was re-created (service worker restarted): its query
+  // results are gone, fetch again instead of waiting for the next poll
+  useEffect(() => {
+    const onReconnected = () => {
+      refetch();
+    };
+
+    window.addEventListener(STORE_RECONNECTED_EVENT, onReconnected);
+    return () =>
+      window.removeEventListener(STORE_RECONNECTED_EVENT, onReconnected);
+  }, [refetch]);
 
   useDidMountEffect(() => {
     if (isError) {

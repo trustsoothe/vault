@@ -55,11 +55,6 @@ module.exports = {
           name: "mui",
           chunks: "all",
         },
-        libsodium: {
-          test: /[\\/]node_modules[\\/]libsodium-sumo[\\/]/,
-          name: "libsodium-sumo",
-          chunks: "all",
-        },
         cosmjs: {
           test: /[\\/]node_modules[\\/]@?cosmjs.*[\\/]/,
           name: "cosmjs",
@@ -95,14 +90,23 @@ module.exports = {
       },
       {
         test: /\.svg$/,
-        use: ["@svgr/webpack"],
+        // ref: forward refs to the <svg>, needed when an svg is used as a MUI
+        // slot component (e.g. the tooltip arrow) that receives a ref
+        use: [{ loader: "@svgr/webpack", options: { ref: true } }],
       },
     ],
   },
   resolve: {
     extensions: [".ts", ".tsx", ".js"],
     alias: {
-      lodash: "lodash-es"
+      lodash: "lodash-es",
+      // @cosmjs/crypto pulls libsodium (~940 KB + a WebAssembly module
+      // instantiated at load) for Argon2id/Ed25519/XChaCha20, which the vault
+      // never uses (only Secp256k1/Slip10/Bip39/sha256). `false` makes webpack
+      // emit an empty "ignored" module, which LavaMoat does not police; the
+      // consumer only reads `sodium.ready` inside functions that are never
+      // called.
+      "libsodium-wrappers-sumo": false,
     },
     fallback: {
       buffer: require.resolve("buffer/"),

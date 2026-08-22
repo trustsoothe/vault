@@ -5,7 +5,12 @@ import {
 } from "@soothe/vault";
 import { WebEncryptionService } from "@soothe/vault-encryption-web";
 import { setNetworksWithErrors } from "./app";
-import { isValidAddress, runWithNetworks } from "../../utils/networkOperations";
+import {
+  isValidAddress,
+  READ_RPC_RETRIES,
+  READ_RPC_TIMEOUT_MS,
+  runWithNetworks,
+} from "../../utils/networkOperations";
 import { RootState } from "../store";
 
 export interface AllParams {
@@ -111,6 +116,8 @@ export const poktApi = createApi({
               customRpcs,
               networks,
               errorsPreferredNetwork,
+              timeout: READ_RPC_TIMEOUT_MS,
+              retries: READ_RPC_RETRIES,
             },
             async (network) => {
               return {
@@ -166,6 +173,8 @@ export const poktApi = createApi({
               customRpcs,
               networks,
               errorsPreferredNetwork,
+              timeout: READ_RPC_TIMEOUT_MS,
+              retries: READ_RPC_RETRIES,
             },
             async (network) => {
               return {
@@ -267,6 +276,8 @@ export const poktApi = createApi({
               customRpcs,
               networks,
               errorsPreferredNetwork,
+              timeout: READ_RPC_TIMEOUT_MS,
+              retries: READ_RPC_RETRIES,
             },
             async (network) => {
               return {

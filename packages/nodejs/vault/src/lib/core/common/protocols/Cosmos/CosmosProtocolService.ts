@@ -17,15 +17,24 @@ import { IProtocolTransactionResult, ProtocolTransaction } from '../ProtocolTran
 import { Account, AccountType } from '../../../vault'
 import { IEncryptionService } from '../../encryption/IEncryptionService'
 import { CosmosProtocolTransaction } from './CosmosProtocolTransaction'
-import { fromHex, toHex, toUtf8 } from '@cosmjs/encoding'
+import { fromBase64, fromHex, toHex, toUtf8 } from '@cosmjs/encoding'
 import {
   ArgumentError,
   InvalidPrivateKeyError,
   NetworkRequestError,
+  ProtocolTransactionError,
   RecoveryPhraseError,
   TransactionSentButInvalidError,
 } from '../../../../errors'
-import { decodePubkey, DirectSecp256k1HdWallet, DirectSecp256k1Wallet, Registry } from '@cosmjs/proto-signing'
+import {
+  decodePubkey,
+  DirectSecp256k1HdWallet,
+  DirectSecp256k1Wallet,
+  encodePubkey,
+  makeAuthInfoBytes,
+  makeSignDoc,
+  Registry,
+} from '@cosmjs/proto-signing'
 import { Bip39, EnglishMnemonic, Random, Secp256k1, sha256, Slip10, Slip10Curve } from '@cosmjs/crypto'
 import { CosmosFee } from './CosmosFee'
 import {
@@ -40,7 +49,6 @@ import {
 } from './schemas'
 import {
   calculateFee,
-  SigningStargateClient,
   TimeoutError,
   setupBankExtension,
   QueryClient,
@@ -59,12 +67,116 @@ import { CosmosFeeRequestOption } from './CosmosFeeRequestOption'
 import { Buffer } from 'buffer'
 import { GeneratedType } from '@cosmjs/proto-signing/build/registry'
 import { MsgClaimMorseAccount, MsgClaimMorseSupplier } from './pocket/client/pocket/migration/tx'
-import { Comet38Client, GenesisResponse } from '@cosmjs/tendermint-rpc'
+import { Comet38Client } from '@cosmjs/tendermint-rpc'
 import { BaseAccount } from './pocket/client/cosmos/auth/v1beta1/auth'
 import { PubKey } from './pocket/client/cosmos/crypto/secp256k1/keys'
 
 export class CosmosProtocolService
   implements IProtocolService<SupportedProtocols.Cosmos> {
+  /**
+   * Comet38Client over HTTP is stateless, so we keep one instance per RPC
+   * endpoint instead of creating (and dropping) one on every request.
+   */
+  private static cometClients = new Map<string, Promise<Comet38Client>>()
+
+  private getCometClient(rpcEndpoint: string): Promise<Comet38Client> {
+    let client = CosmosProtocolService.cometClients.get(rpcEndpoint)
+
+    if (!client) {
+      client = Comet38Client.connect(rpcEndpoint)
+      CosmosProtocolService.cometClients.set(rpcEndpoint, client)
+      client.catch(() => CosmosProtocolService.cometClients.delete(rpcEndpoint))
+    }
+
+    return client
+  }
+
+  /**
+   * Unordered transactions must carry a timeout timestamp at most 10 minutes
+   * in the future (Cosmos SDK default). We derive it from the latest block
+   * time of the node (instead of the local clock, which may be skewed) plus
+   * this margin; block time lags wall-clock time by at most one block.
+   */
+  private static readonly UNORDERED_TX_TIMEOUT_MS = 7 * 60 * 1000
+
+  /**
+   * The chain identifies an unordered transaction by (sender, timeout
+   * timestamp), so two transactions signed within the same block must not get
+   * the same timestamp: we add a sub-minute component from the local clock and
+   * keep the value strictly increasing within this runtime.
+   */
+  private static readonly UNORDERED_TX_JITTER_WINDOW_MS = 60 * 1000
+  private static lastUnorderedTxTimeout = 0
+
+  /** chain id per RPC endpoint; it does not change for a given endpoint */
+  private static chainIds = new Map<string, string>()
+
+  private async getUnorderedTxTimeoutTimestamp(tmClient: Comet38Client): Promise<Date> {
+    const status = await tmClient.status()
+    const latestBlockTime = status.syncInfo.latestBlockTime
+    // latestBlockTime is a ReadonlyDate; fall back to the local clock if the
+    // node did not report it
+    const base = latestBlockTime ? latestBlockTime.getTime() : Date.now()
+
+    let timeout =
+      base +
+      CosmosProtocolService.UNORDERED_TX_TIMEOUT_MS +
+      (Date.now() % CosmosProtocolService.UNORDERED_TX_JITTER_WINDOW_MS)
+
+    if (timeout <= CosmosProtocolService.lastUnorderedTxTimeout) {
+      timeout = CosmosProtocolService.lastUnorderedTxTimeout + 1
+    }
+    CosmosProtocolService.lastUnorderedTxTimeout = timeout
+
+    return new Date(timeout)
+  }
+
+  /**
+   * Broadcast errors come back as JSON-RPC errors with the reason in `data`;
+   * translate the ones a user can act on into readable messages.
+   */
+  private toBroadcastError(err: unknown): unknown {
+    const message = err instanceof Error ? err.message : String(err)
+
+    if (message.includes('tx already exists in cache')) {
+      return new ProtocolTransactionError(
+        'This exact transaction was already submitted and is waiting to be included in a block.',
+        err as Error,
+      )
+    }
+
+    if (message.includes('account sequence mismatch')) {
+      return new ProtocolTransactionError(
+        'A previous transaction from this account is still pending. Wait for the next block and try again.',
+        err as Error,
+      )
+    }
+
+    if (message.includes('timeout_timestamp') || message.includes('unordered')) {
+      return new ProtocolTransactionError(
+        `The network rejected the transaction: ${message}`,
+        err as Error,
+      )
+    }
+
+    return err
+  }
+
+  private async getChainId(
+    rpcEndpoint: string,
+    tmClient: Comet38Client,
+  ): Promise<string> {
+    let chainId = CosmosProtocolService.chainIds.get(rpcEndpoint)
+
+    if (!chainId) {
+      const status = await tmClient.status()
+      chainId = status.nodeInfo.network
+      CosmosProtocolService.chainIds.set(rpcEndpoint, chainId)
+    }
+
+    return chainId
+  }
+
   constructor(private encryptionService: IEncryptionService) {
   }
 
@@ -214,7 +326,7 @@ export class CosmosProtocolService
 
     try {
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')
-      const tmClient = await Comet38Client.connect(rpcEndpoint)
+      const tmClient = await this.getCometClient(rpcEndpoint)
 
       const queryClient = QueryClient.withExtensions(
         tmClient,
@@ -229,12 +341,11 @@ export class CosmosProtocolService
         (b: { denom: string }) => b.denom === 'upokt',
       )
 
-      tmClient.disconnect()
 
       return upokt ? parseInt(upokt.amount, 10) : 0
     } catch (err) {
       console.error(err)
-      throw new NetworkRequestError('Failed to fetch balance')
+      throw new NetworkRequestError('Failed to fetch balance', err as Error)
     }
   }
 
@@ -267,7 +378,7 @@ export class CosmosProtocolService
 
     try {
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')
-      const tmClient = await Comet38Client.connect(rpcEndpoint)
+      const tmClient = await this.getCometClient(rpcEndpoint)
 
       const queryClient = QueryClient.withExtensions(
         tmClient,
@@ -293,13 +404,21 @@ export class CosmosProtocolService
 
       const sequence = Number(baseAccount.sequence)
 
-      if (!baseAccount?.pubKey) {
+      // the account's public key is only stored on-chain after its first
+      // transaction; when we have the private key (signing flow) derive the
+      // public key locally so brand new accounts can be simulated too
+      let aminoPubkey: Pubkey
+      if (transaction.privateKey) {
+        const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(transaction.privateKey), 'pokt')
+        const [{ pubkey }] = await wallet.getAccounts()
+        aminoPubkey = encodeSecp256k1Pubkey(pubkey)
+      } else if (baseAccount.pubKey) {
+        const decodedPubKey = PubKey.decode(baseAccount.pubKey.value)
+        aminoPubkey = encodeSecp256k1Pubkey(decodedPubKey.key)
+      } else {
         throw new Error(`Cannot fetch public key for ${signerAddress}`)
       }
 
-      const rawProtobufPubKeyBytes = baseAccount?.pubKey.value
-      const decodedPubKey = PubKey.decode(rawProtobufPubKeyBytes)
-      const aminoPubkey: Pubkey = encodeSecp256k1Pubkey(decodedPubKey.key)
       const registryEntries: Array<[string, GeneratedType]> = this.getMessagesRegistry()
       const protoRegistry = new Registry(registryEntries)
       const encodedMsgs = messages.map((msg) => protoRegistry.encodeAsAny(msg))
@@ -311,7 +430,6 @@ export class CosmosProtocolService
         sequence,
       )
 
-      tmClient.disconnect();
 
       if (simulateResponse.gasInfo?.gasUsed) {
         estimatedGas = Number(simulateResponse.gasInfo.gasUsed)
@@ -418,15 +536,16 @@ export class CosmosProtocolService
       const { transactionHex } = await this.signTransaction(network, transaction)
 
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')
-      const tmClient = await Comet38Client.connect(rpcEndpoint)
+      const tmClient = await this.getCometClient(rpcEndpoint)
 
       const txBytes = Uint8Array.from(Buffer.from(transactionHex, 'hex'))
 
-      const { hash, code, log, codespace } = await tmClient.broadcastTxSync({
-        tx: txBytes,
-      })
+      const { hash, code, log, codespace } = await tmClient
+        .broadcastTxSync({ tx: txBytes })
+        .catch((err) => {
+          throw this.toBroadcastError(err)
+        })
 
-      tmClient.disconnect()
 
       const transactionHash = Buffer.from(hash).toString('hex').toUpperCase()
 
@@ -506,7 +625,7 @@ export class CosmosProtocolService
       }
 
       const rpcEndpoint = network.rpcUrl.replace(/\/+$/, '')
-      const tmClient = await Comet38Client.connect(rpcEndpoint)
+      const tmClient = await this.getCometClient(rpcEndpoint)
       const queryClient = QueryClient.withExtensions(tmClient, setupAuthExtension)
       const accountResponse = await queryClient.auth.account(signerAddress)
 
@@ -523,8 +642,10 @@ export class CosmosProtocolService
       const baseAccount = BaseAccount.decode(accountResponse.value)
       const accountNumber = Number(baseAccount.accountNumber)
       const sequence = Number(baseAccount.sequence)
-      const genesis: GenesisResponse = await tmClient.genesis()
-      const chainId = genesis.chainId
+      // the chain id comes from the node status: fetching the genesis for it
+      // is expensive and nodes with a large genesis reject the `genesis` RPC
+      // ("genesis response is large, please use the genesis_chunked API")
+      const chainId = await this.getChainId(rpcEndpoint, tmClient)
 
       const messages = this.buildMessages(transaction)
 
@@ -538,27 +659,46 @@ export class CosmosProtocolService
         `${gasPriceUsed}upokt`,
       )
 
-      const messagesRegistry = this.getMessagesRegistry()
+      const registry = new Registry(this.getMessagesRegistry())
+      const unordered = transaction.unordered ?? network.unorderedTransactions ?? true
 
-      const offlineClient = await SigningStargateClient.offline(wallet, {
-        registry: new Registry(messagesRegistry),
-      })
+      // Unordered transactions (Cosmos SDK >= 0.53) do not use the account
+      // sequence; they are identified by a timeout timestamp instead. This lets
+      // the user send several transactions from the same account within the
+      // same block, which otherwise fail with "account sequence mismatch" or
+      // "tx already exists in cache".
+      const bodyBytes = TxBody.encode(
+        TxBody.fromPartial({
+          messages: messages.map((message) => registry.encodeAsAny(message)),
+          memo: transaction.memo ?? '',
+          unordered,
+          timeoutTimestamp: unordered
+            ? await this.getUnorderedTxTimeoutTimestamp(tmClient)
+            : undefined,
+        }),
+      ).finish()
 
-      const signerData = {
-        accountNumber,
-        sequence,
-        chainId,
-      }
-
-      const txRaw = await offlineClient.sign(
-        signerAddress,
-        messages,
-        fee,
-        transaction.memo ?? '',
-        signerData,
+      const authInfoBytes = makeAuthInfoBytes(
+        [
+          {
+            pubkey: encodePubkey(encodeSecp256k1Pubkey(signerPublicKey)),
+            sequence: unordered ? 0 : sequence,
+          },
+        ],
+        fee.amount,
+        Number(fee.gas),
+        undefined,
+        undefined,
       )
 
-      tmClient.disconnect()
+      const signDoc = makeSignDoc(bodyBytes, authInfoBytes, chainId, accountNumber)
+      const { signed, signature } = await wallet.signDirect(signerAddress, signDoc)
+
+      const txRaw = TxRaw.fromPartial({
+        bodyBytes: signed.bodyBytes,
+        authInfoBytes: signed.authInfoBytes,
+        signatures: [fromBase64(signature.signature)],
+      })
 
       const txBytes = TxRaw.encode(txRaw).finish()
 

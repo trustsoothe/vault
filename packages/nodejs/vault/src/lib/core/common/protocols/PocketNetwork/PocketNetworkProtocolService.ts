@@ -76,6 +76,8 @@ interface CrateAccountFromKeyPairOptions {
   concatPublicKey?: boolean;
 }
 
+const BALANCE_REQUEST_TIMEOUT_MS = 20000
+
 export class PocketNetworkProtocolService
   implements IProtocolService<SupportedProtocols.Pocket> {
   constructor(private encryptionService: IEncryptionService) {
@@ -312,10 +314,13 @@ export class PocketNetworkProtocolService
       body: JSON.stringify({
         address: account.address,
       }),
+      signal: AbortSignal.timeout(BALANCE_REQUEST_TIMEOUT_MS),
     })
 
     if (!response.ok) {
-      throw new NetworkRequestError('Failed to fetch balance')
+      throw new NetworkRequestError(
+        `Failed to fetch balance (HTTP ${response.status})`,
+      )
     }
 
     const responseRawBody = await response.json()

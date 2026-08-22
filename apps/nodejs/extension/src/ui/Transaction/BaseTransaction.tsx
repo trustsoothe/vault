@@ -22,7 +22,10 @@ import AppToBackground from "../../controllers/communication/AppToBackground";
 import { isValidAddress } from "../../utils/networkOperations";
 import useDidMountEffect from "../hooks/useDidMountEffect";
 import DialogButtons from "../components/DialogButtons";
-import { useAppSelector } from "../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
+import useSelectedAsset from "../Home/hooks/useSelectedAsset";
+import useGetBalance from "../hooks/useGetBalance";
+import { addPendingOutgoing } from "../../redux/slices/app";
 import { REPORT_BUG_PAGE } from "../../constants/routes";
 import { accountsSelector } from "../../redux/selectors/account";
 import { CosmosFeeRequestOption } from "@soothe/vault/dist/lib/core/common/protocols/Cosmos/CosmosFeeRequestOption";
@@ -34,6 +37,15 @@ export function getTransactionFailedMessage(
   error: ReturnType<typeof getUnknownErrorWithOriginal>
 ) {
   const originalError = error.originalError as Error;
+
+  // errors the vault already translated into something the user can act on
+  if (
+    originalError?.name === "ProtocolTransactionError" &&
+    originalError?.message
+  ) {
+    return originalError.message;
+  }
+
   if (
     originalError?.message?.toLowerCase()?.includes("network") ||
     originalError?.name?.toLowerCase()?.includes("network")
@@ -115,6 +127,48 @@ export default function BaseTransaction({
 
   const accounts = useAppSelector(accountsSelector);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const selectedAsset = useSelectedAsset();
+  // balance of what is being sent (asset or native coin), used to know when
+  // a sent transaction got reflected in the balance
+  const { balance: balanceOfSentCoin } = useGetBalance({
+    address: fromAddress,
+    chainId,
+    protocol,
+    asset: selectedAsset
+      ? {
+          contractAddress: selectedAsset.contractAddress,
+          decimals: selectedAsset.decimals,
+        }
+      : undefined,
+  });
+
+  const trackPendingOutgoing = (data: TransactionFormValues, hash: string) => {
+    const fee = Number(
+      [SupportedProtocols.Pocket, SupportedProtocols.Cosmos].includes(
+        data.protocol
+      )
+        ? (data.fee as PocketNetworkFee | CosmosFee)?.value
+        : (data.fee as EthereumNetworkFee)?.[data.txSpeed]?.amount
+    );
+    const amount = Number(data.amount);
+
+    if (!hash || isNaN(amount)) return;
+
+    dispatch(
+      addPendingOutgoing({
+        id: hash,
+        address: data.fromAddress,
+        protocol: data.protocol,
+        chainId: data.chainId,
+        assetContractAddress: selectedAsset?.contractAddress,
+        amount,
+        fee: isNaN(fee) ? 0 : fee,
+        balanceAtSend: balanceOfSentCoin || 0,
+        createdAt: Date.now(),
+      })
+    );
+  };
   const methods = useForm<TransactionFormValues>({
     defaultValues: {
       chainId,
@@ -373,6 +427,9 @@ export default function BaseTransaction({
           wrongPasswordSnackbarKey.current = wrongPasswordSnackbar();
         } else {
           closeSnackbars();
+          if (response.data.status === TransactionStatus.Successful) {
+            trackPendingOutgoing(data, response.data.hash);
+          }
           if (success) {
             setValue("txResponse", {
               hash: response.data.hash,

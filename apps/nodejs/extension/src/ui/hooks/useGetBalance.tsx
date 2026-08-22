@@ -1,66 +1,203 @@
 import type { QueryState } from "@reduxjs/toolkit/dist/query/core/apiState";
+import { defaultSerializeQueryArgs } from "@reduxjs/toolkit/query";
 import Stack from "@mui/material/Stack";
 import { shallowEqual } from "react-redux";
 import Typography from "@mui/material/Typography";
 import type { SupportedProtocols } from "@soothe/vault";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useReducer, useRef } from "react";
 import { closeSnackbar, SnackbarKey } from "notistack";
 import useDidMountEffect from "./useDidMountEffect";
 import { enqueueErrorSnackbar } from "../../utils/ui";
 import {
   balanceApi,
+  BalanceQueryError,
   GetAccountBalanceArg,
   useGetBalanceQuery,
 } from "../../redux/slices/balance";
 import { useAppDispatch, useAppSelector } from "./redux";
-import { isBalanceDisabledSelector } from "../../redux/selectors/network";
+import {
+  isBalanceDisabledSelector,
+  networksSelector,
+} from "../../redux/selectors/network";
+import { labelByProtocolMap } from "../../constants/protocols";
+import type { RootState } from "../../redux/store";
 import { themeColors } from "../theme";
-import getStore from "../store";
+import getStore, { STORE_RECONNECTED_EVENT } from "../store";
+import { pendingOutgoingSelector } from "../../redux/selectors/app";
+import {
+  PendingOutgoingTransaction,
+  removePendingOutgoing,
+} from "../../redux/slices/app";
 
 const snackbarKey = "fetch_balance_failed";
 
-// here we want to display the account balances that thrown an error
-// in the last minute
-function AccountsWithBalanceError() {
-  const accountsWithError = useAppSelector((state) => {
-    return Object.values(state.balanceApi.queries).filter((item) => {
-      return (
-        item.status === "rejected" &&
-        item.startedTimeStamp >= Date.now() - 1000 * 60
-      );
-    });
-  }, shallowEqual);
+const ERROR_WINDOW_MS = 1000 * 60;
 
-  const [num, setNum] = useState(accountsWithError.length);
+interface FailedBalanceGroup {
+  key: string;
+  label: string;
+  accounts: number;
+  message?: string;
+}
+
+function getFailedBalanceQueries(state: RootState) {
+  return Object.values(state.balanceApi.queries).filter(
+    (item) =>
+      item.status === "rejected" &&
+      item.startedTimeStamp >= Date.now() - ERROR_WINDOW_MS
+  );
+}
+
+function groupFailedQueriesByNetwork(
+  queries: ReturnType<typeof getFailedBalanceQueries>,
+  networks: RootState["app"]["networks"]
+): Array<FailedBalanceGroup> {
+  const groups = new Map<
+    string,
+    FailedBalanceGroup & { addresses: Set<string> }
+  >();
+
+  for (const query of queries) {
+    const args = query.originalArgs as GetAccountBalanceArg | undefined;
+    if (!args) continue;
+
+    const key = `${args.protocol}-${args.chainId}`;
+    const network = networks.find(
+      (item) => item.protocol === args.protocol && item.chainId === args.chainId
+    );
+    const error = query.error as BalanceQueryError | undefined;
+
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        key,
+        label:
+          network?.label ||
+          `${labelByProtocolMap[args.protocol] || args.protocol} (${
+            args.chainId
+          })`,
+        accounts: 0,
+        message: error?.message,
+        addresses: new Set(),
+      };
+      groups.set(key, group);
+    }
+
+    group.addresses.add(args.address);
+    group.accounts = group.addresses.size;
+    if (!group.message && error?.message) {
+      group.message = error.message;
+    }
+  }
+
+  return Array.from(groups.values()).map(({ addresses, ...group }) => group);
+}
+
+// here we want to display, grouped by network, the account balances that
+// thrown an error in the last minute
+function AccountsWithBalanceError() {
+  const networks = useAppSelector(networksSelector);
+  const failedQueries = useAppSelector(getFailedBalanceQueries, shallowEqual);
+  // the "last minute" window depends on the current time, so we re-evaluate
+  // it periodically even if the store does not change
+  const [, forceRender] = useReducer((x: number) => x + 1, 0);
 
   useEffect(() => {
-    if (accountsWithError.length === 0) {
+    if (failedQueries.length === 0) {
       closeSnackbar(snackbarKey);
       return;
     }
 
-    setNum(accountsWithError.length);
-
-    const interval = setInterval(() => {
-      setNum(accountsWithError.length);
-    }, 1000);
+    const interval = setInterval(forceRender, 1000);
 
     return () => clearInterval(interval);
-  }, [accountsWithError]);
+  }, [failedQueries]);
+
+  const groups = useMemo(
+    () => groupFailedQueriesByNetwork(failedQueries, networks),
+    [failedQueries, networks]
+  );
 
   return (
-    <Stack marginBottom={"4px!important"}>
+    <Stack marginBottom={"4px!important"} spacing={0.25}>
       <Typography color={themeColors.white} fontWeight={500}>
         Balance fetch failed
       </Typography>
-      <Typography color={themeColors.bgLightGray} fontSize={11}>
-        We couldn't fetch balances for{" "}
-        <strong>
-          {num} account{num > 1 && "s"}
-        </strong>
-      </Typography>
+      {groups.map((group) => (
+        <Typography
+          key={group.key}
+          color={themeColors.bgLightGray}
+          fontSize={11}
+          lineHeight={"15px"}
+        >
+          <strong>{group.label}</strong>: {group.accounts} account
+          {group.accounts > 1 && "s"}
+          {group.message ? ` — ${group.message}` : ""}
+        </Typography>
+      ))}
     </Stack>
   );
+}
+
+/**
+ * A balance query that has been "fetching" for longer than this is considered
+ * stuck (a request that never returned, or a result that never made it back
+ * from the background store). RTK Query never re-runs a query while it is
+ * pending, so every poll would be skipped and the last value shown forever;
+ * we drop the stuck entry and start the query again.
+ */
+const STUCK_FETCH_MS = 1000 * 90;
+
+/** a pending outgoing transaction is forgotten after this time no matter what */
+const PENDING_OUTGOING_TTL_MS = 1000 * 60 * 10;
+// tolerance when comparing balances (float arithmetic on coin units)
+const BALANCE_EPSILON = 1e-9;
+
+/** whether a pending outgoing transaction affects the balance of this query */
+function appliesToBalance(
+  tx: PendingOutgoingTransaction,
+  {
+    address,
+    chainId,
+    protocol,
+    asset,
+  }: Pick<UseGetBalance, "address" | "chainId" | "protocol" | "asset">
+) {
+  if (
+    tx.address !== address ||
+    tx.chainId !== chainId ||
+    tx.protocol !== protocol
+  ) {
+    return false;
+  }
+
+  // asset balance: only transfers of that asset count
+  if (asset) {
+    return tx.assetContractAddress === asset.contractAddress;
+  }
+
+  // native balance: native transfers (amount + fee) and fees of asset transfers
+  return true;
+}
+
+/** amount a pending outgoing transaction takes from the balance of this query */
+function pendingAmountOf(tx: PendingOutgoingTransaction, isAsset: boolean) {
+  if (isAsset) return tx.amount;
+  return tx.assetContractAddress ? tx.fee : tx.amount + tx.fee;
+}
+
+/**
+ * A pending outgoing transaction is over once the balance it was debited from
+ * dropped (the transaction was applied) or it is too old.
+ */
+function isPendingOutgoingDone(
+  tx: PendingOutgoingTransaction,
+  currentBalance: number | undefined,
+  now: number
+) {
+  if (now - tx.createdAt > PENDING_OUTGOING_TTL_MS) return true;
+  if (currentBalance === undefined) return false;
+  return currentBalance < tx.balanceAtSend - BALANCE_EPSILON;
 }
 
 export interface UseGetBalance {
@@ -91,7 +228,7 @@ export default function useGetBalance({
       .filter(
         ([, query]) =>
           query.status === "rejected" &&
-          query.startedTimeStamp >= Date.now() - 1000 * 60
+          query.startedTimeStamp >= Date.now() - ERROR_WINDOW_MS
       )
       .map(([queryKey, query]) => ({
         queryKey,
@@ -113,29 +250,136 @@ export default function useGetBalance({
     });
   };
 
-  const { isLoading, balance, error, isError, isFetching, isUninitialized } =
-    useGetBalanceQuery(
-      {
-        address,
-        chainId,
-        protocol,
-        asset: asset || undefined,
-      },
-      {
-        pollingInterval: interval,
-        skip: isBalanceDisabled,
-        selectFromResult: (args) => ({
-          ...args,
-          balance: args.currentData || 0,
-        }),
-      }
-    );
+  const {
+    isLoading,
+    balance,
+    error,
+    isError,
+    isFetching,
+    isUninitialized,
+    startedTimeStamp,
+    refetch,
+  } = useGetBalanceQuery(
+    {
+      address,
+      chainId,
+      protocol,
+      asset: asset || undefined,
+    },
+    {
+      pollingInterval: interval,
+      skip: isBalanceDisabled,
+      selectFromResult: (args) => ({
+        ...args,
+        balance: args.currentData || 0,
+      }),
+    }
+  );
 
   useEffect(() => {
     if (!isFetching) {
       canShowLoading.current = false;
     }
   }, [isFetching]);
+
+  // watchdog for queries stuck in "pending" (see STUCK_FETCH_MS)
+  useEffect(() => {
+    if (!isFetching || !startedTimeStamp || isBalanceDisabled) return;
+
+    const elapsed = Date.now() - startedTimeStamp;
+    const timer = setTimeout(() => {
+      const queryArgs: GetAccountBalanceArg = {
+        address,
+        chainId,
+        protocol,
+        asset: asset || undefined,
+      };
+      const queryCacheKey = defaultSerializeQueryArgs({
+        endpointName: "getBalance",
+        queryArgs,
+        endpointDefinition: balanceApi.endpoints.getBalance as any,
+      });
+
+      console.warn(
+        `Balance query ${queryCacheKey} stuck for ${Math.round(
+          (Date.now() - startedTimeStamp) / 1000
+        )}s, restarting it`
+      );
+
+      dispatch(
+        balanceApi.internalActions.removeQueryResult({
+          queryCacheKey: queryCacheKey as any,
+        })
+      );
+      dispatch(
+        balanceApi.endpoints.getBalance.initiate(queryArgs, {
+          subscribe: false,
+          forceRefetch: true,
+        })
+      );
+    }, Math.max(STUCK_FETCH_MS - elapsed, 0));
+
+    return () => clearTimeout(timer);
+  }, [
+    isFetching,
+    startedTimeStamp,
+    isBalanceDisabled,
+    address,
+    chainId,
+    protocol,
+    asset?.contractAddress,
+    asset?.decimals,
+  ]);
+
+  // after the background store was re-created (service worker restarted) its
+  // query results are gone: fetch again right away instead of waiting for the
+  // next poll
+  useEffect(() => {
+    if (isBalanceDisabled) return;
+
+    const onReconnected = () => {
+      refetch();
+    };
+
+    window.addEventListener(STORE_RECONNECTED_EVENT, onReconnected);
+    return () =>
+      window.removeEventListener(STORE_RECONNECTED_EVENT, onReconnected);
+  }, [refetch, isBalanceDisabled]);
+
+  // transactions we sent from this account that the polled balance does not
+  // reflect yet: subtract them from the spendable balance and forget them as
+  // soon as the balance drops (or they get too old)
+  const pendingOutgoing = useAppSelector(pendingOutgoingSelector, shallowEqual);
+  const hasBalanceData = !isUninitialized && !isError && !isLoading;
+  const pendingForThisBalance = useMemo(
+    () =>
+      pendingOutgoing.filter((tx) =>
+        appliesToBalance(tx, { address, chainId, protocol, asset })
+      ),
+    [pendingOutgoing, address, chainId, protocol, asset]
+  );
+
+  useEffect(() => {
+    if (!pendingForThisBalance.length || !hasBalanceData) return;
+
+    const now = Date.now();
+    const done = pendingForThisBalance
+      .filter((tx) => isPendingOutgoingDone(tx, balance, now))
+      .map((tx) => tx.id);
+
+    if (done.length) {
+      dispatch(removePendingOutgoing(done));
+    }
+  }, [pendingForThisBalance, balance, hasBalanceData]);
+
+  const pendingOutgoingAmount = useMemo(() => {
+    const now = Date.now();
+    return pendingForThisBalance
+      .filter((tx) => !isPendingOutgoingDone(tx, balance, now))
+      .reduce((sum, tx) => sum + pendingAmountOf(tx, !!asset), 0);
+  }, [pendingForThisBalance, balance, asset]);
+
+  const spendableBalance = Math.max((balance || 0) - pendingOutgoingAmount, 0);
 
   useEffect(() => {
     canShowLoading.current = true;
@@ -173,6 +417,10 @@ export default function useGetBalance({
   return {
     error: isError,
     balance,
+    /** balance minus the outgoing transactions not yet reflected in it */
+    spendableBalance,
+    pendingOutgoingAmount,
+    isBalanceDisabled,
     isLoading: isBalanceDisabled
       ? false
       : isUninitialized ||

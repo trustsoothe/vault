@@ -4,8 +4,11 @@ import useUsdPrice from "./useUsdPrice";
 export default function useBalanceAndUsdPrice(props: UseGetBalance) {
   const {
     balance,
+    spendableBalance,
+    pendingOutgoingAmount,
     error: balanceError,
     isLoading: isLoadingBalance,
+    isBalanceDisabled,
   } = useGetBalance(props);
 
   const {
@@ -17,7 +20,10 @@ export default function useBalanceAndUsdPrice(props: UseGetBalance) {
 
   return {
     balance,
+    spendableBalance,
+    pendingOutgoingAmount,
     balanceError,
+    isBalanceDisabled,
     isLoadingBalance,
     usdPrice,
     usdPriceError: balanceError || usdPriceError,
