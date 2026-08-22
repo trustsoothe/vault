@@ -20,4 +20,11 @@ export interface CosmosProtocolTransaction
   gas?: 'auto' | number;
   gasAdjustment?: number;
   memo?: string;
+  /**
+   * Sign the transaction as an unordered transaction (Cosmos SDK >= 0.53):
+   * no account sequence, identified by a timeout timestamp instead, so
+   * several transactions can be sent from the same account within the same
+   * block. Defaults to true.
+   */
+  unordered?: boolean;
 }

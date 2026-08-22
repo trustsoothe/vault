@@ -82,6 +82,8 @@ export interface Network {
   defaultGasAdjustment?: number;
   defaultGasUsed?: 'auto' | number;
   defaultGasEstimation?: number;
+  /** Cosmos only: sign transactions as unordered; absent means true */
+  unorderedTransactions?: boolean;
   pocketFeePresets?: PocketFeePreset[];
   wip?: NetworkNotice;
   notices?: NetworkNotice[];

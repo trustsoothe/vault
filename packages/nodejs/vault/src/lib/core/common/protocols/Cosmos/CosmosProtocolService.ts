@@ -17,15 +17,24 @@ import { IProtocolTransactionResult, ProtocolTransaction } from '../ProtocolTran
 import { Account, AccountType } from '../../../vault'
 import { IEncryptionService } from '../../encryption/IEncryptionService'
 import { CosmosProtocolTransaction } from './CosmosProtocolTransaction'
-import { fromHex, toHex, toUtf8 } from '@cosmjs/encoding'
+import { fromBase64, fromHex, toHex, toUtf8 } from '@cosmjs/encoding'
 import {
   ArgumentError,
   InvalidPrivateKeyError,
   NetworkRequestError,
+  ProtocolTransactionError,
   RecoveryPhraseError,
   TransactionSentButInvalidError,
 } from '../../../../errors'
-import { decodePubkey, DirectSecp256k1HdWallet, DirectSecp256k1Wallet, Registry } from '@cosmjs/proto-signing'
+import {
+  decodePubkey,
+  DirectSecp256k1HdWallet,
+  DirectSecp256k1Wallet,
+  encodePubkey,
+  makeAuthInfoBytes,
+  makeSignDoc,
+  Registry,
+} from '@cosmjs/proto-signing'
 import { Bip39, EnglishMnemonic, Random, Secp256k1, sha256, Slip10, Slip10Curve } from '@cosmjs/crypto'
 import { CosmosFee } from './CosmosFee'
 import {
@@ -40,7 +49,6 @@ import {
 } from './schemas'
 import {
   calculateFee,
-  SigningStargateClient,
   TimeoutError,
   setupBankExtension,
   QueryClient,
@@ -83,8 +91,76 @@ export class CosmosProtocolService
     return client
   }
 
+  /**
+   * Unordered transactions must carry a timeout timestamp at most 10 minutes
+   * in the future (Cosmos SDK default). We derive it from the latest block
+   * time of the node (instead of the local clock, which may be skewed) plus
+   * this margin; block time lags wall-clock time by at most one block.
+   */
+  private static readonly UNORDERED_TX_TIMEOUT_MS = 7 * 60 * 1000
+
+  /**
+   * The chain identifies an unordered transaction by (sender, timeout
+   * timestamp), so two transactions signed within the same block must not get
+   * the same timestamp: we add a sub-minute component from the local clock and
+   * keep the value strictly increasing within this runtime.
+   */
+  private static readonly UNORDERED_TX_JITTER_WINDOW_MS = 60 * 1000
+  private static lastUnorderedTxTimeout = 0
+
   /** chain id per RPC endpoint; it does not change for a given endpoint */
   private static chainIds = new Map<string, string>()
+
+  private async getUnorderedTxTimeoutTimestamp(tmClient: Comet38Client): Promise<Date> {
+    const status = await tmClient.status()
+    const latestBlockTime = status.syncInfo.latestBlockTime
+    // latestBlockTime is a ReadonlyDate; fall back to the local clock if the
+    // node did not report it
+    const base = latestBlockTime ? latestBlockTime.getTime() : Date.now()
+
+    let timeout =
+      base +
+      CosmosProtocolService.UNORDERED_TX_TIMEOUT_MS +
+      (Date.now() % CosmosProtocolService.UNORDERED_TX_JITTER_WINDOW_MS)
+
+    if (timeout <= CosmosProtocolService.lastUnorderedTxTimeout) {
+      timeout = CosmosProtocolService.lastUnorderedTxTimeout + 1
+    }
+    CosmosProtocolService.lastUnorderedTxTimeout = timeout
+
+    return new Date(timeout)
+  }
+
+  /**
+   * Broadcast errors come back as JSON-RPC errors with the reason in `data`;
+   * translate the ones a user can act on into readable messages.
+   */
+  private toBroadcastError(err: unknown): unknown {
+    const message = err instanceof Error ? err.message : String(err)
+
+    if (message.includes('tx already exists in cache')) {
+      return new ProtocolTransactionError(
+        'This exact transaction was already submitted and is waiting to be included in a block.',
+        err as Error,
+      )
+    }
+
+    if (message.includes('account sequence mismatch')) {
+      return new ProtocolTransactionError(
+        'A previous transaction from this account is still pending. Wait for the next block and try again.',
+        err as Error,
+      )
+    }
+
+    if (message.includes('timeout_timestamp') || message.includes('unordered')) {
+      return new ProtocolTransactionError(
+        `The network rejected the transaction: ${message}`,
+        err as Error,
+      )
+    }
+
+    return err
+  }
 
   private async getChainId(
     rpcEndpoint: string,
@@ -328,13 +404,21 @@ export class CosmosProtocolService
 
       const sequence = Number(baseAccount.sequence)
 
-      if (!baseAccount?.pubKey) {
+      // the account's public key is only stored on-chain after its first
+      // transaction; when we have the private key (signing flow) derive the
+      // public key locally so brand new accounts can be simulated too
+      let aminoPubkey: Pubkey
+      if (transaction.privateKey) {
+        const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(transaction.privateKey), 'pokt')
+        const [{ pubkey }] = await wallet.getAccounts()
+        aminoPubkey = encodeSecp256k1Pubkey(pubkey)
+      } else if (baseAccount.pubKey) {
+        const decodedPubKey = PubKey.decode(baseAccount.pubKey.value)
+        aminoPubkey = encodeSecp256k1Pubkey(decodedPubKey.key)
+      } else {
         throw new Error(`Cannot fetch public key for ${signerAddress}`)
       }
 
-      const rawProtobufPubKeyBytes = baseAccount?.pubKey.value
-      const decodedPubKey = PubKey.decode(rawProtobufPubKeyBytes)
-      const aminoPubkey: Pubkey = encodeSecp256k1Pubkey(decodedPubKey.key)
       const registryEntries: Array<[string, GeneratedType]> = this.getMessagesRegistry()
       const protoRegistry = new Registry(registryEntries)
       const encodedMsgs = messages.map((msg) => protoRegistry.encodeAsAny(msg))
@@ -456,9 +540,11 @@ export class CosmosProtocolService
 
       const txBytes = Uint8Array.from(Buffer.from(transactionHex, 'hex'))
 
-      const { hash, code, log, codespace } = await tmClient.broadcastTxSync({
-        tx: txBytes,
-      })
+      const { hash, code, log, codespace } = await tmClient
+        .broadcastTxSync({ tx: txBytes })
+        .catch((err) => {
+          throw this.toBroadcastError(err)
+        })
 
 
       const transactionHash = Buffer.from(hash).toString('hex').toUpperCase()
@@ -573,26 +659,46 @@ export class CosmosProtocolService
         `${gasPriceUsed}upokt`,
       )
 
-      const messagesRegistry = this.getMessagesRegistry()
+      const registry = new Registry(this.getMessagesRegistry())
+      const unordered = transaction.unordered ?? network.unorderedTransactions ?? true
 
-      const offlineClient = await SigningStargateClient.offline(wallet, {
-        registry: new Registry(messagesRegistry),
-      })
+      // Unordered transactions (Cosmos SDK >= 0.53) do not use the account
+      // sequence; they are identified by a timeout timestamp instead. This lets
+      // the user send several transactions from the same account within the
+      // same block, which otherwise fail with "account sequence mismatch" or
+      // "tx already exists in cache".
+      const bodyBytes = TxBody.encode(
+        TxBody.fromPartial({
+          messages: messages.map((message) => registry.encodeAsAny(message)),
+          memo: transaction.memo ?? '',
+          unordered,
+          timeoutTimestamp: unordered
+            ? await this.getUnorderedTxTimeoutTimestamp(tmClient)
+            : undefined,
+        }),
+      ).finish()
 
-      const signerData = {
-        accountNumber,
-        sequence,
-        chainId,
-      }
-
-      const txRaw = await offlineClient.sign(
-        signerAddress,
-        messages,
-        fee,
-        transaction.memo ?? '',
-        signerData,
+      const authInfoBytes = makeAuthInfoBytes(
+        [
+          {
+            pubkey: encodePubkey(encodeSecp256k1Pubkey(signerPublicKey)),
+            sequence: unordered ? 0 : sequence,
+          },
+        ],
+        fee.amount,
+        Number(fee.gas),
+        undefined,
+        undefined,
       )
 
+      const signDoc = makeSignDoc(bodyBytes, authInfoBytes, chainId, accountNumber)
+      const { signed, signature } = await wallet.signDirect(signerAddress, signDoc)
+
+      const txRaw = TxRaw.fromPartial({
+        bodyBytes: signed.bodyBytes,
+        authInfoBytes: signed.authInfoBytes,
+        signatures: [fromBase64(signature.signature)],
+      })
 
       const txBytes = TxRaw.encode(txRaw).finish()
 

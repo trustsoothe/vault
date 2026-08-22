@@ -410,6 +410,8 @@ export async function runWithNetworks<T>(
   const rpcWithError: Array<string> = [];
   const rpcWithSuccess: Array<string> = [];
   let result: T, rpcUrl: string;
+  // network-level settings that also apply when a custom RPC is used
+  const { unorderedTransactions } = defaultNetwork;
 
   for (const {
     url,
@@ -437,6 +439,7 @@ export async function runWithNetworks<T>(
       defaultGasUsed: defaultGasUsed,
       defaultGasAdjustment: defaultGasAdjustment,
       defaultGasEstimation: defaultGasEstimation,
+      unorderedTransactions,
     };
 
     let lastError: unknown;

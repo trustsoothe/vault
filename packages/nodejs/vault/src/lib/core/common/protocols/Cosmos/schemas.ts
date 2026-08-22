@@ -105,4 +105,5 @@ export const CosmosProtocolTransactionSchema = z.object({
   gasPrice: z.coerce.number().optional(),
   gasLimit: z.number().optional(),
   memo: z.string().optional(),
+  unordered: z.boolean().optional(),
 })

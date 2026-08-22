@@ -34,6 +34,15 @@ export function getTransactionFailedMessage(
   error: ReturnType<typeof getUnknownErrorWithOriginal>
 ) {
   const originalError = error.originalError as Error;
+
+  // errors the vault already translated into something the user can act on
+  if (
+    originalError?.name === "ProtocolTransactionError" &&
+    originalError?.message
+  ) {
+    return originalError.message;
+  }
+
   if (
     originalError?.message?.toLowerCase()?.includes("network") ||
     originalError?.name?.toLowerCase()?.includes("network")
