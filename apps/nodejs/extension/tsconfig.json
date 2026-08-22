@@ -8,7 +8,7 @@
       "esnext"
     ],
     "moduleResolution": "node",
-    "module": "es2020",
+    "module": "es6",
     "esModuleInterop": true,
     "sourceMap": false,
     "rootDir": "src",
