@@ -95,7 +95,9 @@ module.exports = {
       },
       {
         test: /\.svg$/,
-        use: ["@svgr/webpack"],
+        // ref: forward refs to the <svg>, needed when an svg is used as a MUI
+        // slot component (e.g. the tooltip arrow) that receives a ref
+        use: [{ loader: "@svgr/webpack", options: { ref: true } }],
       },
     ],
   },

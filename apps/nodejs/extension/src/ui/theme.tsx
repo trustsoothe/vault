@@ -5,6 +5,15 @@ import ExpandIcon from "./assets/img/expand_select_icon.svg";
 import CloseIcon from "./assets/img/rounded_close_icon.svg";
 import TooltipArrowIcon from "./assets/img/tooltip_arrow.svg";
 
+// MUI renders the tooltip arrow slot with a ref (for popper positioning) and
+// an `ownerState` prop; the latter must not reach the DOM element
+const TooltipArrow = React.forwardRef<
+  SVGSVGElement,
+  React.ComponentPropsWithoutRef<"svg"> & { ownerState?: unknown }
+>(function TooltipArrow({ ownerState: _ownerState, ...props }, ref) {
+  return <TooltipArrowIcon ref={ref} {...props} />;
+});
+
 export const themeColors = Object.freeze({
   primary: "#3739b9",
   light_primary: "#7679ff",
@@ -139,7 +148,7 @@ const theme = createTheme({
       defaultProps: {
         arrow: true,
         components: {
-          Arrow: TooltipArrowIcon,
+          Arrow: TooltipArrow,
         },
       },
       styleOverrides: {

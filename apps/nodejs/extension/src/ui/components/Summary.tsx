@@ -38,6 +38,7 @@ export default function Summary({ rows, containerProps }: SummaryProps) {
         if (row.type === "divider") {
           return (
             <Divider
+              key={index}
               sx={{
                 borderColor: themeColors.borderLightGray,
                 marginBottom: index === rows.length - 1 ? 0 : "6px!important",

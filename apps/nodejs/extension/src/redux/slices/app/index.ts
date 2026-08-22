@@ -716,6 +716,17 @@ const generalAppSlice = createSlice({
       const path = ["errorsPreferredNetwork", action.payload];
       set(state, path, 0);
     },
+    resetErrorOfNetworks: (state, action: PayloadAction<Array<string>>) => {
+      for (const networkId of action.payload) {
+        if (state.errorsPreferredNetwork[networkId]) {
+          state.errorsPreferredNetwork[networkId] = 0;
+        }
+      }
+    },
+    /** forget the accumulated errors of every preferred RPC, so they get a new chance */
+    resetAllErrorsOfNetworks: (state) => {
+      state.errorsPreferredNetwork = {};
+    },
     setAppIsReadyStatus: (
       state,
       action: PayloadAction<GeneralAppSlice["isReadyStatus"]>
@@ -883,6 +894,8 @@ export const {
   changeActiveTab,
   increaseErrorOfNetwork,
   resetErrorOfNetwork,
+  resetErrorOfNetworks,
+  resetAllErrorsOfNetworks,
   setAppIsReadyStatus,
   addMintIdSent,
   addTransaction,
