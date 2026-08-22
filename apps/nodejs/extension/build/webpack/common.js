@@ -100,13 +100,13 @@ module.exports = {
     extensions: [".ts", ".tsx", ".js"],
     alias: {
       lodash: "lodash-es",
-      // @cosmjs/crypto pulls libsodium (~940 KB + WASM) for APIs we never use
-      "libsodium-wrappers-sumo": path.resolve(
-        __dirname,
-        "..",
-        "stubs",
-        "libsodium-wrappers-sumo.js"
-      ),
+      // @cosmjs/crypto pulls libsodium (~940 KB + a WebAssembly module
+      // instantiated at load) for Argon2id/Ed25519/XChaCha20, which the vault
+      // never uses (only Secp256k1/Slip10/Bip39/sha256). `false` makes webpack
+      // emit an empty "ignored" module, which LavaMoat does not police; the
+      // consumer only reads `sodium.ready` inside functions that are never
+      // called.
+      "libsodium-wrappers-sumo": false,
     },
     fallback: {
       buffer: require.resolve("buffer/"),
