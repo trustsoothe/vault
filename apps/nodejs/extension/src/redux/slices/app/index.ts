@@ -154,8 +154,30 @@ export interface GeneralAppSlice {
   requirePasswordForSensitiveOpts: boolean;
   accountsImported: string[];
   transactions: Array<Transaction>;
+  /**
+   * transactions we broadcast that are not yet reflected in the polled
+   * balance; used to compute the spendable balance while they are pending
+   */
+  pendingOutgoing: Array<PendingOutgoingTransaction>;
   isDevMode?: boolean;
   updateVersion?: string;
+}
+
+export interface PendingOutgoingTransaction {
+  /** transaction hash */
+  id: string;
+  address: string;
+  protocol: SupportedProtocols;
+  chainId: string;
+  /** set when the transaction moves an asset (ERC20) instead of the native coin */
+  assetContractAddress?: string;
+  /** amount sent, in coin/asset units */
+  amount: number;
+  /** fee paid, in native coin units */
+  fee: number;
+  /** balance (of the coin/asset debited) as seen by the UI when it was sent */
+  balanceAtSend: number;
+  createdAt: number;
 }
 
 const SELECTED_NETWORK_KEY = "SELECTED_NETWORK_KEY";
@@ -662,6 +684,7 @@ const initialState: GeneralAppSlice = {
   requirePasswordForSensitiveOpts: false,
   accountsImported: [],
   transactions: [],
+  pendingOutgoing: [],
   updateVersion: null,
 };
 
@@ -671,6 +694,21 @@ const generalAppSlice = createSlice({
   reducers: {
     addTransaction: (state, action: PayloadAction<Transaction>) => {
       state.transactions.push(action.payload);
+    },
+    addPendingOutgoing: (
+      state,
+      action: PayloadAction<PendingOutgoingTransaction>
+    ) => {
+      if (!state.pendingOutgoing.some((tx) => tx.id === action.payload.id)) {
+        state.pendingOutgoing.push(action.payload);
+      }
+    },
+    removePendingOutgoing: (state, action: PayloadAction<Array<string>>) => {
+      if (action.payload.length) {
+        state.pendingOutgoing = state.pendingOutgoing.filter(
+          (tx) => !action.payload.includes(tx.id)
+        );
+      }
     },
     resetRequestsState: (state) => {
       state.externalRequests = [];
@@ -901,6 +939,8 @@ export const {
   setAppIsReadyStatus,
   addMintIdSent,
   addTransaction,
+  addPendingOutgoing,
+  removePendingOutgoing,
   setNetworksWithErrors,
   activateDevMode,
   updateAvailable,
