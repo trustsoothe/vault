@@ -32,12 +32,12 @@ const baseManifest = {
 };
 
 
-// 'wasm-unsafe-eval' lets dependencies instantiate WebAssembly modules; the
-// only one we shipped (libsodium, via @cosmjs/crypto) is now stubbed out in
-// webpack, so this is kept so a future dependency does not fail with an
-// unhandled CSP rejection at load time.
-const extensionPagesCsp =
-  "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';";
+// Keep the strictest possible CSP: no WebAssembly ('wasm-unsafe-eval') since
+// nothing in the bundle needs it anymore (libsodium is stubbed out; the only
+// remaining WebAssembly.instantiate is protobufjs' long helper, which falls
+// back to plain JS inside a try/catch when blocked). If a future dependency
+// legitimately needs WASM, add 'wasm-unsafe-eval' back deliberately.
+const extensionPagesCsp = "script-src 'self'; object-src 'self';";
 
 const baseChromiumManifest = {
   ...baseManifest,

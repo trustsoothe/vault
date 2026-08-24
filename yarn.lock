@@ -2753,7 +2753,7 @@
 
 "@poktscan/vault-siwp@github:trustsoothe/vault-siwp#shannon":
   version "0.0.1"
-  resolved "https://codeload.github.com/trustsoothe/vault-siwp/tar.gz/6abbf451fd4a0b71dce77e09c05f5892fdad2f4b"
+  resolved "https://codeload.github.com/trustsoothe/vault-siwp/tar.gz/4d1d22e0add91604257424240fce681641c1df14"
   dependencies:
     "@cosmjs/encoding" "^0.33.1"
     "@noble/curves" "^1.6.0"
