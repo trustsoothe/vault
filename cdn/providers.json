@@ -1,8 +1,0 @@
-[
-  {
-    "name": "Tilt Provider",
-    "identity": "02977390eb917b4444c8bf393259da7abd9724ddecf43dd695e656d181171ecb8c",
-    "identityHistory": [],
-    "url": "http://provider.default.svc.cluster.local:3001"
-  }
-]
