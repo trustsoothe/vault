@@ -51,6 +51,13 @@ jobs:
             source-with-envs-*.tar.gz
           fail-if-no-assets: false
           fail-if-no-release: false
+      - name: Point the RC tag at the commit this build came from
+        # The release assets are replaced on every run, but the tag (and with
+        # it GitHub's auto-generated "Source code" archives) stayed on the
+        # commit of the first run. Keep them in sync.
+        run: |
+          git tag -f "${{ steps.version.outputs.value }}-rc"
+          git push -f origin "refs/tags/${{ steps.version.outputs.value }}-rc"
       - name: Create or Update Pre-Release
         uses: softprops/action-gh-release@v2
         with:
