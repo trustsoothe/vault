@@ -209,7 +209,9 @@ export default function AccountActions() {
 
     const url = new URL(explorerAccountLink);
 
-    domain = url.hostname.split(".").slice(-2).join(".");
+    // full hostname so the user sees exactly where the link goes (base-domain
+    // trimming made every *.pocket.network explorer read the same)
+    domain = url.hostname;
   }
 
   const openManageAssetsModal = () => setShowManageAssetsModal(true);
