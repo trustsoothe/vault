@@ -1,5 +1,5 @@
 import type { SxProps } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import { getTruncatedText } from "../../utils/ui";
@@ -18,12 +18,16 @@ export default function CopyAddressButton({
   sxProps,
 }: CopyAddressButtonProps) {
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => () => clearTimeout(timeoutRef.current), []);
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(address).then(() => {
       setShowCopyTooltip(true);
 
-      setTimeout(() => setShowCopyTooltip(false), 1000);
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setShowCopyTooltip(false), 1000);
     });
   };
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import IconButton from "@mui/material/IconButton";
 import DialogTitle from "@mui/material/DialogTitle";
 import Dialog, { DialogProps } from "@mui/material/Dialog";
@@ -12,9 +12,40 @@ interface BaseDialogProps extends Omit<DialogProps, "onClose"> {
 }
 
 export default function BaseDialog({ isLoading, ...props }: BaseDialogProps) {
+  // MUI marks the rest of the app aria-hidden when the dialog opens. Chrome
+  // blocks that while the element that opened the dialog still holds focus, so
+  // the focus is moved out first and restored once the dialog is gone.
+  const elementToRestoreFocus = useRef<HTMLElement | null>(null);
+
+  const onEnter: DialogProps["TransitionProps"]["onEnter"] = (
+    node,
+    isAppearing
+  ) => {
+    const activeElement = document.activeElement;
+
+    if (activeElement instanceof HTMLElement && !node.contains(activeElement)) {
+      elementToRestoreFocus.current = activeElement;
+      activeElement.blur();
+    }
+
+    props.TransitionProps?.onEnter?.(node, isAppearing);
+  };
+
+  const onExited: DialogProps["TransitionProps"]["onExited"] = (node) => {
+    const element = elementToRestoreFocus.current;
+    elementToRestoreFocus.current = null;
+
+    if (element && element.isConnected) {
+      element.focus();
+    }
+
+    props.TransitionProps?.onExited?.(node);
+  };
+
   return (
     <Dialog
       {...props}
+      TransitionProps={{ ...props.TransitionProps, onEnter, onExited }}
       onClose={isLoading ? undefined : props.onClose}
       fullWidth
       container={() => document.getElementById(APP_CONTAINER_ID)}
