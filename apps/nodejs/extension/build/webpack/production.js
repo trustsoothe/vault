@@ -33,6 +33,7 @@ const plugins = [
         "prompt",
         "history",
         "HTMLElement",
+        "ShadowRoot",
         "innerWidth",
         "innerHeight",
         "Element",
