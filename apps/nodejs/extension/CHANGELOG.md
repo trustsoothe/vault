@@ -1,5 +1,53 @@
 # @soothe/extension
 
+## 0.8.0
+
+### Minor Changes
+
+- e72fb85: Shannon (Cosmos) transactions are now sent as unordered transactions (Cosmos SDK >= 0.53): they no longer depend on the account sequence, so several transactions can be sent from the same account within the same block. Previously a second transaction sent before the first one was included (blocks are ~1 minute) failed with "account sequence mismatch" or "tx already exists in cache".
+
+  - The unordered timeout timestamp is derived from the node's latest block time (not the local clock) and is unique per transaction.
+  - `CosmosProtocolTransaction.unordered` (default `true`) can be set to `false` to sign a classic sequence-based transaction.
+  - Fee simulation uses the wallet's own public key when signing, so brand-new accounts (no public key on chain yet) get a real gas estimate instead of the default.
+  - Broadcast rejections such as "tx already exists in cache" and "account sequence mismatch" are reported with a readable message in the transaction error view.
+  - Networks can opt out per chain with `unorderedTransactions: false` in the networks configuration (absent means unordered).
+
+### Patch Changes
+
+- a18bd26: The remote assets the extension fetches at runtime (networks, assets, chain maps and icons) moved from the DigitalOcean Space (being decommissioned) to the version-controlled https://github.com/pokt-network/soothe-assets repository, served through GitHub Pages.
+- e72fb85: - Balance fetch errors are now actionable: the "Balance fetch failed" snackbar groups the failures by network (e.g. "Pocket (Morse Mainnet): 2 accounts — Failed to fetch balance: Failed to fetch") and includes the underlying error message instead of only a count. `@soothe/vault` keeps the original cause when wrapping balance request failures in `NetworkRequestError` (Cosmos/Shannon, EVM) and includes the HTTP status for Morse.
+  - When a network disables balance fetching (network notice), the account header shows `-` instead of a misleading `0` balance.
+  - The protocol selector (new/import account) shows one option per protocol even if the networks config flags more than one network of the same protocol as protocol default.
+  - Added `'wasm-unsafe-eval'` to the extension pages Content Security Policy (Chromium and Firefox): libsodium, pulled in by `@cosmjs/crypto`, instantiates a WebAssembly module at load time and was being blocked, producing an unhandled `SES_UNHANDLED_REJECTION ... WebAssembly.instantiate()` error on every page load.
+  - Opted in to React Router's `v7_startTransition` future flag.
+- e72fb85: More resilient balance, fee and Pocket parameter requests:
+
+  - Read requests (balances, fees, Pocket params/app/node queries) are now bounded by a 20s timeout and retried once before falling back to the next RPC, instead of hanging indefinitely.
+  - Preferred custom RPCs that accumulated too many errors get a new chance: their error count is reset when they answer successfully and, in any case, every 10 minutes (previously only when the RPC was edited).
+  - `@soothe/vault` reuses one Comet38 (Shannon) and one Eth (EVM) client per RPC endpoint instead of creating a new one on every request; the Morse balance request is bounded by a 20s timeout.
+  - Shannon transactions no longer fetch the whole genesis to learn the chain id (nodes with a large genesis, like Pocket Beta, reject that call with "genesis response is large, please use the genesis_chunked API"); the chain id now comes from the node status and is cached per RPC endpoint.
+  - Cleaned up React/MUI development warnings: the recipient autocomplete "Clear" control is no longer a button nested in MUI's clear button, `PasswordInput` forwards its ref to the input, summary dividers have keys, and the tooltip arrow SVG receives its ref without leaking MUI's `ownerState` prop (SVGR now forwards refs).
+
+- e72fb85: Lighter extension pages: libsodium (~940 KB plus a WebAssembly module instantiated on every page load, pulled in by `@cosmjs/crypto` for APIs the vault never uses) is no longer bundled.
+
+  Regenerated the LavaMoat policy for the updated dependency tree: the dependency bumps introduced new transitive packages (`to-buffer`, `typed-array-buffer`, `qs` → `side-channel`, `hash-base` → `readable-stream`, `protobufjs` → `long`, ...) that were missing from the policy, which made production builds fail at startup with `Policy does not allow importing ... from undefined`.
+
+- 3b43922: Dependency maintenance: applied the pending Dependabot security/patch bumps (protobufjs 7.6, lodash/lodash-es 4.18.1, webpack 5.104, axios, follow-redirects, form-data, pbkdf2, sha.js, cipher-base, bn.js, base-x, ajv, minimatch, brace-expansion, picomatch, micromatch, yaml, js-yaml, flatted, svgo, rollup, vite, diff, @babel/runtime, @babel/helpers, @xmldom/xmldom, cross-spawn, express/body-parser/qs/path-to-regexp, secp256k1, ws), bumped react-router-dom to 6.30.6 and uuid to 11.1.1 (dropped @types/uuid).
+- 44a4b19: The Explore card shows the explorer's full hostname (e.g. "Open poktscan.beta.pocket.network") instead of only the base domain, which no longer distinguished the Pocket explorers.
+- e72fb85: The Send form now accounts for transactions that were just sent but are not yet reflected in the balance: their amount and fee are subtracted from the spendable balance (and shown under the account balance), so a second transaction that would fail on-chain with "insufficient funds" is rejected before signing with "Insufficient balance (X pending in previous transactions)". Pending amounts are forgotten as soon as the balance reflects them or after 10 minutes.
+- ece7663: Fixed two UI failures that only appear in production builds.
+
+  Popper (used by every MUI tooltip and popper-based surface) reads `globalThis.ShadowRoot` when the anchor element has no parent node, which happens when the anchor is detached from the DOM while the popper still updates. LavaMoat's scuttling mode did not list `ShadowRoot` as an exception, so that read threw `LavaMoat - property "ShadowRoot" of globalThis is inaccessible under scuttling mode` and broke the copy-address button. `ShadowRoot` is now an exception; the LavaMoat policy already granted it to Popper's module. The copy-address button also clears its "Copied" timeout on unmount, so it no longer updates a detached tooltip.
+
+  Dialogs now move focus off the element that opened them before MUI marks the rest of the app `aria-hidden`, and restore that focus once the dialog closes. Chrome refuses to apply `aria-hidden` to a subtree that still contains the focused element, which left the dialog's background exposed to assistive technology.
+
+- a3d4667: Updated `@poktscan/vault-siwp` to the latest `shannon` commit, which accepts the `pocket-lego-testnet` (Pocket Beta) chain id: Sign-In-with-Pocket requests from websites now work on Pocket Beta.
+- e72fb85: Fixed balances (and any other state) freezing in an open popup or extension tab after the browser terminated the extension's background worker (idle, sleep/wake, memory pressure, extension update): the page now reconnects to the background store when the connection drops, reloads the current state and refetches balances and prices right away. Previously the page kept showing its last snapshot until it was reopened.
+
+  A balance query stuck in "fetching" for more than 90 seconds (a request that never returned, or a result lost while the background restarted) is now restarted automatically; previously it silently stopped polling and the last value stayed on screen until the page was reopened.
+
+- a3d4667: Removed `'wasm-unsafe-eval'` from the extension pages Content Security Policy: nothing in the bundle instantiates WebAssembly anymore (libsodium is no longer shipped; protobufjs' long helper falls back to plain JS when blocked), so the wallet keeps the strictest `script-src 'self'` policy.
+
 ## 0.7.1
 
 ### Patch Changes
