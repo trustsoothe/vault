@@ -11,7 +11,6 @@ import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 import SelectedIcon from "../../assets/img/check_icon.svg";
 import { NETWORKS_PAGE } from "../../../constants/routes";
 import BaseDialog from "../../components/BaseDialog";
-import { NetworkOption } from "./NetworkSelect";
 import {
     networksCanBeSelectedSelector,
     selectableNetworksSelector,
@@ -54,13 +53,23 @@ export default function NetworkSelectModal({
     dispatch(toggleShowTestNetworks());
   };
 
-  const handleChangeNetwork = (option: NetworkOption) => {
+  const handleChangeNetwork = (option: Network) => {
     dispatch(
       changeSelectedNetwork({
         network: option.protocol,
         chainId: option.chainId,
       })
-    );
+    )
+      .unwrap()
+      .catch((error) => {
+        enqueueSnackbar({
+          variant: "error",
+          message: {
+            title: `Could not switch to ${option.label}`,
+            content: String(error?.message || error),
+          },
+        });
+      });
     onClose();
   };
 

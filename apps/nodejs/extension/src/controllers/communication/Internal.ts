@@ -294,6 +294,7 @@ import {
   AnswerMigrateMorseAccountRes,
 } from "../../types/communications/migration";
 import { TransactionStatus } from "../datasource/Transaction";
+import { broadcastToTabs } from "../../utils/tabs";
 
 type MessageSender = Runtime.MessageSender;
 
@@ -994,10 +995,11 @@ class InternalCommunicationController implements ICommunicationController {
             error: null,
           };
 
-          promises.push(
-            ...allTabs
-              .filter((t) => (t.url ? t.url.startsWith(request.origin) : false))
-              .map((tab) => browser.tabs.sendMessage(tab.id, responseToProxy))
+          broadcastToTabs(
+            allTabs.filter((t) =>
+              t.url ? t.url.startsWith(request.origin) : false
+            ),
+            responseToProxy
           );
         }
       }

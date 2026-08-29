@@ -22,6 +22,7 @@ import TransactionDatasource, {
 } from "../../../controllers/datasource/Transaction";
 import { addContactThunksToBuilder, Contact } from "./contact";
 import { ChainChangedMessageToProxy } from "../../../types/communications/chainChanged";
+import { broadcastToTabs } from "../../../utils/tabs";
 
 export type ErrorsByNetwork = Record<string, number>;
 
@@ -313,8 +314,6 @@ export const changeSelectedNetwork = createAsyncThunk(
       [SELECTED_ACCOUNTS_KEY]: newSelectedAccountByProtocol,
     });
 
-    const promises: Promise<any>[] = [];
-
     if (selectedChainByProtocol[protocol] !== chainId) {
       const message: ChainChangedMessageToProxy = {
         type: SELECTED_CHAIN_CHANGED,
@@ -327,13 +326,8 @@ export const changeSelectedNetwork = createAsyncThunk(
         },
       };
 
-      const allTabs = await browser.tabs.query({});
-      for (const tab of allTabs) {
-        promises.push(browser.tabs.sendMessage(tab.id, message));
-      }
+      broadcastToTabs(await browser.tabs.query({}), message);
     }
-
-    await Promise.allSettled(promises);
 
     return {
       selectedProtocol: protocol,
@@ -447,8 +441,6 @@ export const changeSelectedAccountOfNetwork = createAsyncThunk(
 
     const sessions = state.vault.sessions;
 
-    const promises: Promise<any>[] = [];
-
     for (const session of sessions) {
       if (!!session.origin) {
         for (const permission of session.permissions) {
@@ -478,17 +470,13 @@ export const changeSelectedAccountOfNetwork = createAsyncThunk(
                 const tabsWithOrigin = await browser.tabs.query({
                   url: `${session.origin}/*`,
                 });
-                for (const tab of tabsWithOrigin) {
-                  promises.push(browser.tabs.sendMessage(tab.id, message));
-                }
+                broadcastToTabs(tabsWithOrigin, message);
               } catch (e) {}
             }
           }
         }
       }
     }
-
-    await Promise.allSettled(promises);
 
     return newSelectedAccount;
   }

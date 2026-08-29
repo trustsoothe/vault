@@ -11,6 +11,7 @@ import {
 import browser from "webextension-polyfill";
 import { DISCONNECT_RESPONSE } from "../../../constants/communication";
 import { getVault } from "../../../utils";
+import { broadcastToTabs } from "../../../utils/tabs";
 
 type Builder = ActionReducerMapBuilder<VaultSlice>;
 
@@ -61,11 +62,7 @@ export const revokeAllExternalSessions = createAsyncThunk(
           error: null,
         };
 
-        await Promise.allSettled(
-          tabsWithOrigin.map((tab) =>
-            browser.tabs.sendMessage(tab.id, response)
-          )
-        );
+        broadcastToTabs(tabsWithOrigin, response);
       }
     }
 
@@ -117,11 +114,7 @@ export const revokeSession = createAsyncThunk<
           error: null,
         };
 
-        await Promise.allSettled(
-          tabsWithOrigin.map((tab) =>
-            browser.tabs.sendMessage(tab.id, response)
-          )
-        );
+        broadcastToTabs(tabsWithOrigin, response);
       }
     }
   }
