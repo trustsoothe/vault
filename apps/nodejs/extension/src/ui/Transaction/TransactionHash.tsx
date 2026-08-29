@@ -2,7 +2,6 @@ import type { SupportedProtocols } from "@soothe/vault";
 import type { TransactionFormValues } from "./BaseTransaction";
 import React, { useState } from "react";
 import Stack from "@mui/material/Stack";
-import capitalize from "lodash/capitalize";
 import Tooltip from "@mui/material/Tooltip";
 import { useFormContext } from "react-hook-form";
 import Typography from "@mui/material/Typography";
@@ -27,9 +26,9 @@ export function Hash({ hash, protocol, chainId }: HashProps) {
   );
   const link = explorerTransactionUrl?.replace(":hash", hash);
 
-  const url = new URL(link);
-
-  const domain = url.hostname.split(".").at(-2);
+  // full hostname, same as the Explore card, so the user sees exactly where
+  // the link goes
+  const domain = new URL(link).hostname;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(hash).then(() => {
@@ -47,9 +46,7 @@ export function Hash({ hash, protocol, chainId }: HashProps) {
     >
       <Tooltip
         arrow
-        title={`View in ${
-          domain === "poktscan" ? "POKTscan" : capitalize(domain)
-        }`}
+        title={`View in ${domain}`}
         placement={"top"}
       >
         <Typography
