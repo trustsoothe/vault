@@ -39,8 +39,12 @@ import { Bip39, EnglishMnemonic, Random, Secp256k1, sha256, Slip10, Slip10Curve 
 import { CosmosFee } from './CosmosFee'
 import {
   CosmosProtocolTransactionSchema,
+  MsgBeginRedelegateSchema,
   MsgClaimAccountSchema,
   MsgClaimSupplierSchema,
+  MsgDelegateSchema,
+  MsgUndelegateSchema,
+  MsgWithdrawDelegatorRewardSchema,
   MsgSendSchema,
   MsgStakeSupplierSchema,
   MsgUnstakeSupplierSchema,
@@ -67,6 +71,8 @@ import { CosmosFeeRequestOption } from './CosmosFeeRequestOption'
 import { Buffer } from 'buffer'
 import { GeneratedType } from '@cosmjs/proto-signing/build/registry'
 import { MsgClaimMorseAccount, MsgClaimMorseSupplier } from './pocket/client/pocket/migration/tx'
+import { MsgBeginRedelegate, MsgDelegate, MsgUndelegate } from 'cosmjs-types/cosmos/staking/v1beta1/tx'
+import { MsgWithdrawDelegatorReward } from 'cosmjs-types/cosmos/distribution/v1beta1/tx'
 import { Comet38Client } from '@cosmjs/tendermint-rpc'
 import { BaseAccount } from './pocket/client/cosmos/auth/v1beta1/auth'
 import { PubKey } from './pocket/client/cosmos/crypto/secp256k1/keys'
@@ -613,6 +619,14 @@ export class CosmosProtocolService
             return MsgClaimSupplierSchema.parse(payload).shannonSigningAddress
           case CosmosTransactionTypes.ClaimAccount:
             return MsgClaimAccountSchema.parse(payload).shannonSigningAddress
+          case CosmosTransactionTypes.Delegate:
+            return MsgDelegateSchema.parse(payload).delegatorAddress
+          case CosmosTransactionTypes.Undelegate:
+            return MsgUndelegateSchema.parse(payload).delegatorAddress
+          case CosmosTransactionTypes.BeginRedelegate:
+            return MsgBeginRedelegateSchema.parse(payload).delegatorAddress
+          case CosmosTransactionTypes.WithdrawDelegatorReward:
+            return MsgWithdrawDelegatorRewardSchema.parse(payload).delegatorAddress
         }
       })
 
@@ -772,6 +786,10 @@ export class CosmosProtocolService
       ['/pocket.supplier.MsgUnstakeSupplier', MsgUnstakeSupplier as unknown as GeneratedType],
       ['/pocket.migration.MsgClaimMorseSupplier', MsgClaimMorseSupplier as unknown as GeneratedType],
       ['/pocket.migration.MsgClaimMorseAccount', MsgClaimMorseAccount as unknown as GeneratedType],
+      ['/cosmos.staking.v1beta1.MsgDelegate', MsgDelegate as unknown as GeneratedType],
+      ['/cosmos.staking.v1beta1.MsgUndelegate', MsgUndelegate as unknown as GeneratedType],
+      ['/cosmos.staking.v1beta1.MsgBeginRedelegate', MsgBeginRedelegate as unknown as GeneratedType],
+      ['/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward', MsgWithdrawDelegatorReward as unknown as GeneratedType],
     ] as Array<[string, GeneratedType]>
   }
 
@@ -820,6 +838,14 @@ export class CosmosProtocolService
         return MsgClaimMorseSupplier.decode(message.value)
       case '/pocket.migration.MsgClaimMorseAccount':
         return MsgClaimMorseAccount.decode(message.value)
+      case '/cosmos.staking.v1beta1.MsgDelegate':
+        return MsgDelegate.decode(message.value)
+      case '/cosmos.staking.v1beta1.MsgUndelegate':
+        return MsgUndelegate.decode(message.value)
+      case '/cosmos.staking.v1beta1.MsgBeginRedelegate':
+        return MsgBeginRedelegate.decode(message.value)
+      case '/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward':
+        return MsgWithdrawDelegatorReward.decode(message.value)
       default:
         throw new Error(`Unknown message type: ${message.typeUrl}`)
     }
@@ -864,6 +890,26 @@ export class CosmosProtocolService
             }),
           }
         }
+        case CosmosTransactionTypes.Delegate:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgDelegate.fromPartial(MsgDelegateSchema.parse(payload)),
+          }
+        case CosmosTransactionTypes.Undelegate:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgUndelegate.fromPartial(MsgUndelegateSchema.parse(payload)),
+          }
+        case CosmosTransactionTypes.BeginRedelegate:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgBeginRedelegate.fromPartial(MsgBeginRedelegateSchema.parse(payload)),
+          }
+        case CosmosTransactionTypes.WithdrawDelegatorReward:
+          return {
+            typeUrl: CosmosTransactionTypeUrlMap[type],
+            value: MsgWithdrawDelegatorReward.fromPartial(MsgWithdrawDelegatorRewardSchema.parse(payload)),
+          }
       }
     })
   }
@@ -893,6 +939,13 @@ export class CosmosProtocolService
         return (value as MsgClaimMorseSupplier).shannonSigningAddress
       case CosmosTransactionTypeUrlMap[CosmosTransactionTypes.ClaimAccount]:
         return (value as MsgClaimMorseAccount).shannonSigningAddress
+      case CosmosTransactionTypeUrlMap[CosmosTransactionTypes.Delegate]:
+      case CosmosTransactionTypeUrlMap[CosmosTransactionTypes.Undelegate]:
+        return (value as MsgDelegate | MsgUndelegate).delegatorAddress
+      case CosmosTransactionTypeUrlMap[CosmosTransactionTypes.BeginRedelegate]:
+        return (value as MsgBeginRedelegate).delegatorAddress
+      case CosmosTransactionTypeUrlMap[CosmosTransactionTypes.WithdrawDelegatorReward]:
+        return (value as MsgWithdrawDelegatorReward).delegatorAddress
       default:
         return ''
     }

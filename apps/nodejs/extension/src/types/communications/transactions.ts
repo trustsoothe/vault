@@ -547,15 +547,62 @@ export interface MsgClaimMorseSupplier {
   };
 }
 
+export interface MsgDelegate {
+  typeUrl: "/cosmos.staking.v1beta1.MsgDelegate";
+  body: {
+    /** Optional. When present it must equal the transaction address. */
+    delegatorAddress?: string;
+    validatorAddress: string;
+    /** Integer amount in upokt. */
+    amount: string;
+  };
+}
+
+export interface MsgUndelegate {
+  typeUrl: "/cosmos.staking.v1beta1.MsgUndelegate";
+  body: {
+    /** Optional. When present it must equal the transaction address. */
+    delegatorAddress?: string;
+    validatorAddress: string;
+    /** Integer amount in upokt. */
+    amount: string;
+  };
+}
+
+export interface MsgBeginRedelegate {
+  typeUrl: "/cosmos.staking.v1beta1.MsgBeginRedelegate";
+  body: {
+    /** Optional. When present it must equal the transaction address. */
+    delegatorAddress?: string;
+    validatorSrcAddress: string;
+    validatorDstAddress: string;
+    /** Integer amount in upokt. */
+    amount: string;
+  };
+}
+
+export interface MsgWithdrawDelegatorReward {
+  typeUrl: "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward";
+  body: {
+    /** Optional. When present it must equal the transaction address. */
+    delegatorAddress?: string;
+    validatorAddress: string;
+  };
+}
+
 type ShannonMessages =
   | MsgSend
   | MsgStakeSupplier
   | MsgUnstakeSupplier
-  | MsgClaimMorseSupplier;
+  | MsgClaimMorseSupplier
+  | MsgDelegate
+  | MsgUndelegate
+  | MsgBeginRedelegate
+  | MsgWithdrawDelegatorReward;
 
 export type SignTransactionBodyShannon = {
   address: string;
-  gas?: 'auto' | number;
+  gas?: "auto" | number;
   gasPrice?: number;
   gasAdjustment?: number;
   memo?: string;

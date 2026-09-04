@@ -314,6 +314,30 @@ export const MsgClaimSupplierSchema = z.object({
   services: z.array(SupplierServiceConfigSchema),
 });
 
+const upoktAmountSchema = z
+  .string()
+  .regex(/^\d+$/, "amount must be an integer amount of upokt");
+
+export const MsgDelegateSchema = z.object({
+  delegatorAddress: z.string(),
+  validatorAddress: z.string(),
+  amount: upoktAmountSchema,
+});
+
+export const MsgUndelegateSchema = MsgDelegateSchema;
+
+export const MsgBeginRedelegateSchema = z.object({
+  delegatorAddress: z.string(),
+  validatorSrcAddress: z.string(),
+  validatorDstAddress: z.string(),
+  amount: upoktAmountSchema,
+});
+
+export const MsgWithdrawDelegatorRewardSchema = z.object({
+  delegatorAddress: z.string(),
+  validatorAddress: z.string(),
+});
+
 const memoSchema = z.string().max(75).optional();
 
 const ShannonPocketTransferBody = z.object({
@@ -2454,6 +2478,20 @@ class ProxyCommunicationController {
               for (const message of item.messages) {
                 let data;
 
+                // The chain rejects a delegation whose delegator is not the
+                // signer, so fail here instead of silently overriding it.
+                if (
+                  "delegatorAddress" in message.body &&
+                  message.body.delegatorAddress !== undefined &&
+                  message.body.delegatorAddress !== item.address
+                ) {
+                  return this._sendSignTxResponse(
+                    requestId,
+                    null,
+                    propertyIsNotValid("delegatorAddress")
+                  );
+                }
+
                 switch (message.typeUrl) {
                   case "/cosmos.bank.v1beta1.MsgSend":
                     data = MsgSendSchema.parse({
@@ -2490,6 +2528,30 @@ class ProxyCommunicationController {
                         message.body.shannonOperatorAddress ||
                         message.body.shannonOwnerAddress ||
                         item.address,
+                    });
+                    break;
+                  case "/cosmos.staking.v1beta1.MsgDelegate":
+                    data = MsgDelegateSchema.parse({
+                      ...message.body,
+                      delegatorAddress: item.address,
+                    });
+                    break;
+                  case "/cosmos.staking.v1beta1.MsgUndelegate":
+                    data = MsgUndelegateSchema.parse({
+                      ...message.body,
+                      delegatorAddress: item.address,
+                    });
+                    break;
+                  case "/cosmos.staking.v1beta1.MsgBeginRedelegate":
+                    data = MsgBeginRedelegateSchema.parse({
+                      ...message.body,
+                      delegatorAddress: item.address,
+                    });
+                    break;
+                  case "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":
+                    data = MsgWithdrawDelegatorRewardSchema.parse({
+                      ...message.body,
+                      delegatorAddress: item.address,
                     });
                     break;
                   default:

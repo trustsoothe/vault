@@ -86,12 +86,35 @@ export const MsgClaimAccountSchema = z.object({
   morseSignature: z.string(),
 })
 
+export const MsgDelegateSchema = z.object({
+  delegatorAddress: z.string(),
+  validatorAddress: z.string(),
+  amount: z.string().transform((amount) => poktToUPoktCoin(amount).at(0)!),
+})
+
+export const MsgUndelegateSchema = MsgDelegateSchema
+
+export const MsgBeginRedelegateSchema = z.object({
+  delegatorAddress: z.string(),
+  validatorSrcAddress: z.string(),
+  validatorDstAddress: z.string(),
+  amount: z.string().transform((amount) => poktToUPoktCoin(amount).at(0)!),
+})
+
+export const MsgWithdrawDelegatorRewardSchema = z.object({
+  delegatorAddress: z.string(),
+  validatorAddress: z.string(),
+})
+
 export const PayloadUnionSchema = z.union([
   MsgSendSchema,
   MsgStakeSupplierSchema,
   MsgUnstakeSupplierSchema,
   MsgClaimSupplierSchema,
   MsgClaimAccountSchema,
+  MsgDelegateSchema,
+  MsgBeginRedelegateSchema,
+  MsgWithdrawDelegatorRewardSchema,
 ])
 
 export const CosmosProtocolTransactionMessageSchema = z.object({
