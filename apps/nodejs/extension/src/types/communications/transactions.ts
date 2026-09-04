@@ -550,6 +550,8 @@ export interface MsgClaimMorseSupplier {
 export interface MsgDelegate {
   typeUrl: "/cosmos.staking.v1beta1.MsgDelegate";
   body: {
+    /** Optional. When present it must equal the transaction address. */
+    delegatorAddress?: string;
     validatorAddress: string;
     /** Integer amount in upokt. */
     amount: string;
@@ -559,6 +561,8 @@ export interface MsgDelegate {
 export interface MsgUndelegate {
   typeUrl: "/cosmos.staking.v1beta1.MsgUndelegate";
   body: {
+    /** Optional. When present it must equal the transaction address. */
+    delegatorAddress?: string;
     validatorAddress: string;
     /** Integer amount in upokt. */
     amount: string;
@@ -568,6 +572,8 @@ export interface MsgUndelegate {
 export interface MsgBeginRedelegate {
   typeUrl: "/cosmos.staking.v1beta1.MsgBeginRedelegate";
   body: {
+    /** Optional. When present it must equal the transaction address. */
+    delegatorAddress?: string;
     validatorSrcAddress: string;
     validatorDstAddress: string;
     /** Integer amount in upokt. */
@@ -578,6 +584,8 @@ export interface MsgBeginRedelegate {
 export interface MsgWithdrawDelegatorReward {
   typeUrl: "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward";
   body: {
+    /** Optional. When present it must equal the transaction address. */
+    delegatorAddress?: string;
     validatorAddress: string;
   };
 }

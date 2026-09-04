@@ -2478,6 +2478,20 @@ class ProxyCommunicationController {
               for (const message of item.messages) {
                 let data;
 
+                // The chain rejects a delegation whose delegator is not the
+                // signer, so fail here instead of silently overriding it.
+                if (
+                  "delegatorAddress" in message.body &&
+                  message.body.delegatorAddress !== undefined &&
+                  message.body.delegatorAddress !== item.address
+                ) {
+                  return this._sendSignTxResponse(
+                    requestId,
+                    null,
+                    propertyIsNotValid("delegatorAddress")
+                  );
+                }
+
                 switch (message.typeUrl) {
                   case "/cosmos.bank.v1beta1.MsgSend":
                     data = MsgSendSchema.parse({
