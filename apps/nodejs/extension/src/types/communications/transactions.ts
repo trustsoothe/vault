@@ -547,15 +547,54 @@ export interface MsgClaimMorseSupplier {
   };
 }
 
+export interface MsgDelegate {
+  typeUrl: "/cosmos.staking.v1beta1.MsgDelegate";
+  body: {
+    validatorAddress: string;
+    /** Integer amount in upokt. */
+    amount: string;
+  };
+}
+
+export interface MsgUndelegate {
+  typeUrl: "/cosmos.staking.v1beta1.MsgUndelegate";
+  body: {
+    validatorAddress: string;
+    /** Integer amount in upokt. */
+    amount: string;
+  };
+}
+
+export interface MsgBeginRedelegate {
+  typeUrl: "/cosmos.staking.v1beta1.MsgBeginRedelegate";
+  body: {
+    validatorSrcAddress: string;
+    validatorDstAddress: string;
+    /** Integer amount in upokt. */
+    amount: string;
+  };
+}
+
+export interface MsgWithdrawDelegatorReward {
+  typeUrl: "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward";
+  body: {
+    validatorAddress: string;
+  };
+}
+
 type ShannonMessages =
   | MsgSend
   | MsgStakeSupplier
   | MsgUnstakeSupplier
-  | MsgClaimMorseSupplier;
+  | MsgClaimMorseSupplier
+  | MsgDelegate
+  | MsgUndelegate
+  | MsgBeginRedelegate
+  | MsgWithdrawDelegatorReward;
 
 export type SignTransactionBodyShannon = {
   address: string;
-  gas?: 'auto' | number;
+  gas?: "auto" | number;
   gasPrice?: number;
   gasAdjustment?: number;
   memo?: string;

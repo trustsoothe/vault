@@ -1216,6 +1216,46 @@ export const signTransactions = createAsyncThunk(
                 },
               });
               break;
+            case "/cosmos.staking.v1beta1.MsgDelegate":
+              messages.push({
+                type: CosmosTransactionTypes.Delegate,
+                payload: {
+                  delegatorAddress: baseTransaction.address,
+                  validatorAddress: message.body.validatorAddress,
+                  amount: (Number(message.body.amount) / 1e6).toString(),
+                },
+              });
+              break;
+            case "/cosmos.staking.v1beta1.MsgUndelegate":
+              messages.push({
+                type: CosmosTransactionTypes.Undelegate,
+                payload: {
+                  delegatorAddress: baseTransaction.address,
+                  validatorAddress: message.body.validatorAddress,
+                  amount: (Number(message.body.amount) / 1e6).toString(),
+                },
+              });
+              break;
+            case "/cosmos.staking.v1beta1.MsgBeginRedelegate":
+              messages.push({
+                type: CosmosTransactionTypes.BeginRedelegate,
+                payload: {
+                  delegatorAddress: baseTransaction.address,
+                  validatorSrcAddress: message.body.validatorSrcAddress,
+                  validatorDstAddress: message.body.validatorDstAddress,
+                  amount: (Number(message.body.amount) / 1e6).toString(),
+                },
+              });
+              break;
+            case "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":
+              messages.push({
+                type: CosmosTransactionTypes.WithdrawDelegatorReward,
+                payload: {
+                  delegatorAddress: baseTransaction.address,
+                  validatorAddress: message.body.validatorAddress,
+                },
+              });
+              break;
             default:
               throw new Error("Invalid message type");
           }

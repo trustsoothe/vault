@@ -49,6 +49,7 @@ import PoktSignSendSummary from "./PoktSignSendSummary";
 import StakeSupplierSummary from "../PocketShannonTransaction/StakeSupplier/Summary/Summary";
 import UnstakeSupplierSummary from "../PocketShannonTransaction/UnstakeSupplier/Summary";
 import ClaimMorseSupplierSummary from "../PocketShannonTransaction/ClaimMorseSupplier/Summary";
+import PoktSignDelegationSummary from "./PoktSignDelegationSummary";
 
 type Transaction = AppBulkSignTransactionReq["data"]["transactions"][number];
 
@@ -108,6 +109,14 @@ function getMessageLabel(
       return "Unstake Supplier";
     case "/pocket.migration.MsgClaimMorseSupplier":
       return "Claim Morse Supplier";
+    case "/cosmos.staking.v1beta1.MsgDelegate":
+      return "Delegate";
+    case "/cosmos.staking.v1beta1.MsgUndelegate":
+      return "Undelegate";
+    case "/cosmos.staking.v1beta1.MsgBeginRedelegate":
+      return "Redelegate";
+    case "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":
+      return "Withdraw Rewards";
     default:
       return "Unknown";
   }
@@ -359,6 +368,49 @@ function MessageSummary({
           chainId={chainId}
           operatorAddress={message.body.operatorAddress}
           fee={null}
+        />
+      );
+    case "/cosmos.staking.v1beta1.MsgDelegate":
+    case "/cosmos.staking.v1beta1.MsgUndelegate":
+      return (
+        <PoktSignDelegationSummary
+          delegatorAddress={address}
+          chainId={chainId}
+          validators={[
+            { label: "Validator", address: message.body.validatorAddress },
+          ]}
+          amount={Number(message.body.amount) / 1e6}
+          memo={memo}
+        />
+      );
+    case "/cosmos.staking.v1beta1.MsgBeginRedelegate":
+      return (
+        <PoktSignDelegationSummary
+          delegatorAddress={address}
+          chainId={chainId}
+          validators={[
+            {
+              label: "From Validator",
+              address: message.body.validatorSrcAddress,
+            },
+            {
+              label: "To Validator",
+              address: message.body.validatorDstAddress,
+            },
+          ]}
+          amount={Number(message.body.amount) / 1e6}
+          memo={memo}
+        />
+      );
+    case "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":
+      return (
+        <PoktSignDelegationSummary
+          delegatorAddress={address}
+          chainId={chainId}
+          validators={[
+            { label: "Validator", address: message.body.validatorAddress },
+          ]}
+          memo={memo}
         />
       );
     default:
