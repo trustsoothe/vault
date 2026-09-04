@@ -78,7 +78,7 @@
         "Atomics": true
       }
     },
-    "@soothe/vault>@cosmjs/stargate>cosmjs-types": {
+    "@soothe/vault>cosmjs-types": {
       "globals": {
         "atob": true,
         "btoa": true

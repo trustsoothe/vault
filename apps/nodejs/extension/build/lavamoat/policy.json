@@ -66,7 +66,7 @@
         "@soothe/vault>@cosmjs/amino>@cosmjs/math": true,
         "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true,
         "buffer": true,
-        "@soothe/vault>@cosmjs/stargate>cosmjs-types": true
+        "@soothe/vault>cosmjs-types": true
       }
     },
     "@soothe/vault>@cosmjs/tendermint-rpc>@cosmjs/socket": {
@@ -94,7 +94,7 @@
         "@soothe/vault>@cosmjs/proto-signing": true,
         "@soothe/vault>@cosmjs/tendermint-rpc": true,
         "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true,
-        "@soothe/vault>@cosmjs/stargate>cosmjs-types": true
+        "@soothe/vault>cosmjs-types": true
       }
     },
     "@soothe/vault>@cosmjs/stargate>@cosmjs/stream": {
@@ -571,6 +571,7 @@
         "@soothe/vault>@pokt-foundation/pocketjs-types": true,
         "@scure/bip39": true,
         "buffer": true,
+        "@soothe/vault>cosmjs-types": true,
         "decimal.js": true,
         "@soothe/vault>ed25519-hd-key": true,
         "@soothe/vault>ethereumjs-util": true,
@@ -847,7 +848,7 @@
         "buffer": true
       }
     },
-    "@soothe/vault>@cosmjs/stargate>cosmjs-types": {
+    "@soothe/vault>cosmjs-types": {
       "globals": {
         "Buffer.from": true
       },
