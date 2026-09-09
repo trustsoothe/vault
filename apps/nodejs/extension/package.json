@@ -111,7 +111,7 @@
     "stream-browserify": "3.0.0",
     "ts-jest": "29.1.0",
     "typescript": "4.9",
-    "vitest": "0.32.0",
+    "vitest": "4.1.11",
     "web-ext-types": "3.2.1",
     "webpack": "5.104.1",
     "webpack-bundle-analyzer": "^4.10.2",

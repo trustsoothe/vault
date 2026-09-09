@@ -24,6 +24,6 @@
     "@soothe/vault": "*"
   },
   "devDependencies": {
-    "vitest": "0.32.0"
+    "vitest": "4.1.11"
   }
 }
