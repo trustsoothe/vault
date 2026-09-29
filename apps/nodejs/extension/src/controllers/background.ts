@@ -306,7 +306,8 @@ export default class BackgroundController {
         )
         // @ts-ignore
         .unwrap()
-        .catch();
+        // the UI shows price errors itself; this prefetch only warms the cache
+        .catch(() => {});
     }
   }
 }
