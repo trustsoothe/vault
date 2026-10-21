@@ -31,7 +31,7 @@
     "generate:pocket:proto": "buf generate --config packages/nodejs/vault/src/lib/core/common/protocols/Cosmos/pocket/proto/buf.gen.yaml"
   },
   "dependencies": {
-    "@changesets/cli": "^2.26.1",
+    "@changesets/cli": "^2.31.1",
     "dotenv": "16.3.1",
     "turbo": "1.4.3"
   },
@@ -44,6 +44,7 @@
     "prettier": "2.7.1",
     "@types/react": "18.2.0",
     "@types/react-dom": "18.2.0",
-    "cookie": "^0.7.0"
+    "cookie": "^0.7.0",
+    "tmp": "^0.2.6"
   }
 }
