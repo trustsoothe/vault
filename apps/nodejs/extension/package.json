@@ -53,7 +53,6 @@
     "https-browserify": "1.0.0",
     "isomorphic-crypto": "3.0.0",
     "lodash-es": "^4.18.1",
-    "net-browserify": "0.2.4",
     "notistack": "3.0.1",
     "os-browserify": "0.3.0",
     "querystring-es3": "0.2.1",
@@ -68,7 +67,6 @@
     "redux": "^4",
     "redux-thunk": "2.4.2",
     "stream-http": "3.2.0",
-    "tls-browserify": "0.2.2",
     "url": "0.11.3",
     "uuid": "11.1.1",
     "web3-eth-accounts": "4.1.0",
@@ -81,8 +79,8 @@
   "devDependencies": {
     "@types/valid-url": "1.0.7",
     "esbuild-loader": "^4.3.0",
-    "@lavamoat/webpack": "^0.9.0-beta.0",
-    "@lavamoat/allow-scripts": "3.0.0",
+    "@lavamoat/webpack": "1.0.0",
+    "@lavamoat/allow-scripts": "3.4.3",
     "@lavamoat/snow": "2.0.1",
     "@soothe/vault": "*",
     "@soothe/vault-encryption-web": "*",
@@ -111,7 +109,6 @@
     "stream-browserify": "3.0.0",
     "ts-jest": "29.1.0",
     "typescript": "4.9",
-    "vitest": "0.32.0",
     "web-ext-types": "3.2.1",
     "webpack": "5.104.1",
     "webpack-bundle-analyzer": "^4.10.2",
@@ -134,16 +131,11 @@
   "lavamoat": {
     "allowScripts": {
       "@soothe/vault>protobufjs": false,
-      "@soothe/vault>vitest>jsdom>ws>bufferutil": false,
-      "@soothe/vault>vitest>jsdom>ws>utf-8-validate": false,
-      "@soothe/vault>vitest>vite>esbuild": false,
-      "net-browserify>express-ws>ws": false,
       "@soothe/vault>ethereumjs-util>ethereum-cryptography>keccak": false,
       "@soothe/vault>ethereumjs-util>ethereum-cryptography>secp256k1": false,
       "@soothe/vault>hdkey>secp256k1": false,
       "$root$": false,
       "esbuild-loader>esbuild": false,
-      "vitest>vite>esbuild": false,
       "webpack-bundle-analyzer>ws>bufferutil": false,
       "webpack-bundle-analyzer>ws>utf-8-validate": false
     }

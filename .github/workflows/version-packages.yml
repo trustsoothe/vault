@@ -17,11 +17,12 @@ jobs:
       has-changesets: ${{ steps.changeset.outputs.hasChangesets }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v3
+        uses: actions/checkout@v7
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
+          check-latest: true
       - name: Install Dependencies
         run: yarn
       - name: Create Release Pull Request
