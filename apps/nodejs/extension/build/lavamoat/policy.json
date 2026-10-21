@@ -266,9 +266,9 @@
         "@soothe/vault-encryption-web>@noble/hashes": true,
         "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": true,
         "buffer": true,
-        "ts-jest>@babel/core>debug": true,
+        "@svgr/webpack>@babel/core>debug": true,
         "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>pony-cause": true,
-        "ts-jest>semver": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>semver": true,
         "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>superstruct": true
       }
     },
@@ -831,7 +831,7 @@
     "@lavamoat/webpack>json-stable-stringify>call-bound": {
       "packages": {
         "@lavamoat/webpack>json-stable-stringify>call-bind>call-bind-apply-helpers": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic": true
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic": true
       }
     },
     "crypto-browserify>create-hash>cipher-base": {
@@ -915,7 +915,7 @@
         "crypto-browserify>randomfill": true
       }
     },
-    "ts-jest>@babel/core>debug": {
+    "@svgr/webpack>@babel/core>debug": {
       "globals": {
         "console": true,
         "document": true,
@@ -924,7 +924,7 @@
         "process": true
       },
       "packages": {
-        "ts-jest>@babel/core>debug>ms": true,
+        "@svgr/webpack>@babel/core>debug>ms": true,
         "process": true
       }
     },
@@ -937,7 +937,7 @@
     },
     "assert>is-nan>define-properties>define-data-property": {
       "packages": {
-        "assert>call-bind>get-intrinsic": true,
+        "assert>is-nan>define-properties>define-data-property>get-intrinsic": true,
         "assert>util>which-typed-array>gopd": true,
         "assert>is-nan>define-properties>has-property-descriptors": true
       }
@@ -1093,7 +1093,7 @@
         "assert>call-bind>get-intrinsic>hasown": true
       }
     },
-    "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>get-intrinsic": {
+    "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic": {
       "globals": {
         "AggregateError": true,
         "FinalizationRegistry": true,
@@ -1107,30 +1107,23 @@
         "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>es-object-atoms": true,
         "assert>call-bind>function-bind": true,
         "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>get-proto": true,
-        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>gopd": true,
-        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>get-intrinsic>has-symbols": true,
-        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>get-intrinsic>hasown": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>gopd": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>has-symbols": true,
+        "@lavamoat/webpack>@lavamoat/aa>resolve>is-core-module>hasown": true,
         "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>math-intrinsics": true
       }
     },
-    "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic": {
+    "assert>is-nan>define-properties>define-data-property>get-intrinsic": {
       "globals": {
         "AggregateError": true,
         "FinalizationRegistry": true,
-        "Float16Array": true,
         "WeakRef": true
       },
       "packages": {
-        "@lavamoat/webpack>json-stable-stringify>call-bind>call-bind-apply-helpers": true,
-        "url>qs>es-define-property": true,
-        "url>qs>side-channel>es-errors": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>es-object-atoms": true,
         "assert>call-bind>function-bind": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>get-proto": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic>gopd": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic>has-symbols": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic>hasown": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>math-intrinsics": true
+        "assert>call-bind>get-intrinsic>has-proto": true,
+        "assert>object.assign>has-symbols": true,
+        "assert>is-nan>define-properties>define-data-property>get-intrinsic>hasown": true
       }
     },
     "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>define-data-property>gopd>get-intrinsic": {
@@ -1143,7 +1136,7 @@
         "assert>call-bind>function-bind": true,
         "assert>call-bind>get-intrinsic>has-proto": true,
         "assert>object.assign>has-symbols": true,
-        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>define-data-property>gopd>get-intrinsic>hasown": true
+        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>gopd>get-intrinsic>hasown": true
       }
     },
     "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>gopd>get-intrinsic": {
@@ -1159,44 +1152,43 @@
         "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>gopd>get-intrinsic>hasown": true
       }
     },
-    "url>qs>side-channel>side-channel-map>get-intrinsic": {
+    "assert>util>which-typed-array>gopd>get-intrinsic": {
       "globals": {
         "AggregateError": true,
         "FinalizationRegistry": true,
-        "Float16Array": true,
         "WeakRef": true
       },
       "packages": {
-        "@lavamoat/webpack>json-stable-stringify>call-bind>call-bind-apply-helpers": true,
-        "url>qs>es-define-property": true,
-        "url>qs>side-channel>es-errors": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>es-object-atoms": true,
         "assert>call-bind>function-bind": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>get-proto": true,
-        "url>qs>side-channel>side-channel-map>get-intrinsic>gopd": true,
-        "url>qs>side-channel>side-channel-map>get-intrinsic>has-symbols": true,
-        "url>qs>side-channel>side-channel-map>get-intrinsic>hasown": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>math-intrinsics": true
+        "assert>call-bind>get-intrinsic>has-proto": true,
+        "assert>object.assign>has-symbols": true,
+        "assert>util>which-typed-array>gopd>get-intrinsic>hasown": true
       }
     },
-    "url>qs>side-channel>side-channel-weakmap>get-intrinsic": {
+    "assert>is-nan>define-properties>has-property-descriptors>get-intrinsic": {
       "globals": {
         "AggregateError": true,
         "FinalizationRegistry": true,
-        "Float16Array": true,
         "WeakRef": true
       },
       "packages": {
-        "@lavamoat/webpack>json-stable-stringify>call-bind>call-bind-apply-helpers": true,
-        "url>qs>es-define-property": true,
-        "url>qs>side-channel>es-errors": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>es-object-atoms": true,
         "assert>call-bind>function-bind": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>get-proto": true,
-        "url>qs>side-channel>side-channel-weakmap>get-intrinsic>gopd": true,
-        "url>qs>side-channel>side-channel-weakmap>get-intrinsic>has-symbols": true,
-        "url>qs>side-channel>side-channel-weakmap>get-intrinsic>hasown": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>math-intrinsics": true
+        "assert>call-bind>get-intrinsic>has-proto": true,
+        "assert>object.assign>has-symbols": true,
+        "assert>is-nan>define-properties>has-property-descriptors>get-intrinsic>hasown": true
+      }
+    },
+    "assert>call-bind>set-function-length>get-intrinsic": {
+      "globals": {
+        "AggregateError": true,
+        "FinalizationRegistry": true,
+        "WeakRef": true
+      },
+      "packages": {
+        "assert>call-bind>function-bind": true,
+        "assert>call-bind>get-intrinsic>has-proto": true,
+        "assert>object.assign>has-symbols": true,
+        "assert>call-bind>set-function-length>get-intrinsic>hasown": true
       }
     },
     "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>get-proto": {
@@ -1230,12 +1222,12 @@
     },
     "assert>util>which-typed-array>gopd": {
       "packages": {
-        "assert>call-bind>get-intrinsic": true
+        "assert>util>which-typed-array>gopd>get-intrinsic": true
       }
     },
     "assert>is-nan>define-properties>has-property-descriptors": {
       "packages": {
-        "assert>call-bind>get-intrinsic": true
+        "assert>is-nan>define-properties>has-property-descriptors>get-intrinsic": true
       }
     },
     "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>has-property-descriptors": {
@@ -1279,17 +1271,7 @@
         "assert>call-bind>function-bind": true
       }
     },
-    "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>get-intrinsic>hasown": {
-      "packages": {
-        "assert>call-bind>function-bind": true
-      }
-    },
-    "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic>hasown": {
-      "packages": {
-        "assert>call-bind>function-bind": true
-      }
-    },
-    "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>define-data-property>gopd>get-intrinsic>hasown": {
+    "assert>is-nan>define-properties>define-data-property>get-intrinsic>hasown": {
       "packages": {
         "assert>call-bind>function-bind": true
       }
@@ -1299,12 +1281,22 @@
         "assert>call-bind>function-bind": true
       }
     },
-    "url>qs>side-channel>side-channel-map>get-intrinsic>hasown": {
+    "assert>util>which-typed-array>gopd>get-intrinsic>hasown": {
       "packages": {
         "assert>call-bind>function-bind": true
       }
     },
-    "url>qs>side-channel>side-channel-weakmap>get-intrinsic>hasown": {
+    "assert>is-nan>define-properties>has-property-descriptors>get-intrinsic>hasown": {
+      "packages": {
+        "assert>call-bind>function-bind": true
+      }
+    },
+    "assert>call-bind>set-function-length>get-intrinsic>hasown": {
+      "packages": {
+        "assert>call-bind>function-bind": true
+      }
+    },
+    "@lavamoat/webpack>@lavamoat/aa>resolve>is-core-module>hasown": {
       "packages": {
         "assert>call-bind>function-bind": true
       }
@@ -1412,9 +1404,9 @@
         "define": true
       }
     },
-    "ts-jest>semver>lru-cache": {
+    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>semver>lru-cache": {
       "packages": {
-        "ts-jest>semver>lru-cache>yallist": true
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>semver>lru-cache>yallist": true
       }
     },
     "crypto-browserify>create-hash>md5.js": {
@@ -1832,20 +1824,20 @@
         "define": true
       }
     },
-    "ts-jest>semver": {
+    "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>semver": {
       "globals": {
         "console.error": true,
         "process": true
       },
       "packages": {
-        "ts-jest>semver>lru-cache": true,
+        "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>semver>lru-cache": true,
         "process": true
       }
     },
     "assert>call-bind>set-function-length": {
       "packages": {
         "assert>is-nan>define-properties>define-data-property": true,
-        "assert>call-bind>get-intrinsic": true,
+        "assert>call-bind>set-function-length>get-intrinsic": true,
         "assert>util>which-typed-array>gopd": true,
         "assert>is-nan>define-properties>has-property-descriptors": true
       }
@@ -1854,7 +1846,7 @@
       "packages": {
         "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>define-data-property": true,
         "url>qs>side-channel>es-errors": true,
-        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>get-intrinsic": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic": true,
         "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>gopd": true,
         "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>has-property-descriptors": true
       }
@@ -1886,7 +1878,7 @@
       "packages": {
         "@lavamoat/webpack>json-stable-stringify>call-bound": true,
         "url>qs>side-channel>es-errors": true,
-        "url>qs>side-channel>side-channel-map>get-intrinsic": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic": true,
         "url>qs>side-channel>object-inspect": true
       }
     },
@@ -1894,7 +1886,7 @@
       "packages": {
         "@lavamoat/webpack>json-stable-stringify>call-bound": true,
         "url>qs>side-channel>es-errors": true,
-        "url>qs>side-channel>side-channel-weakmap>get-intrinsic": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic": true,
         "url>qs>side-channel>object-inspect": true,
         "url>qs>side-channel>side-channel-map": true
       }
