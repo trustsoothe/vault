@@ -46,6 +46,7 @@
   "resolutions": {
     "prettier": "2.7.1",
     "@types/react": "18.2.0",
-    "@types/react-dom": "18.2.0"
+    "@types/react-dom": "18.2.0",
+    "cookie": "^0.7.0"
   }
 }
