@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "description": "Web Crypto API based encryption plugin for the Universal Crypto Wallet Manager",
   "main": "dist/index.js",
-  "types": "dist/src/index.d.ts",
+  "types": "dist/index.d.ts",
   "repository": "git@github.com:trustsoothe/vault.git",
   "homepage": "https://trustsoothe.io",
   "bugs": {
