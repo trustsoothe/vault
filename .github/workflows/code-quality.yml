@@ -27,7 +27,7 @@ jobs:
       POKT_TESTNET_CHAIN_MAPS_URL: ${{ vars.POKT_TESTNET_CHAIN_MAPS_URL }}
       CHAIN_IMAGES_CDN_URL: ${{ vars.CHAIN_IMAGES_CDN_URL }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: Use Node.js 24.x
         uses: actions/setup-node@v7
         with:
