@@ -1,3 +1,5 @@
+// @vitest-environment node
+// jsdom's AbortSignal is rejected by Node's native fetch (AbortSignal.timeout in getBalance).
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest'
 import ProtocolServiceSpecFactory from '../IProtocolService.specFactory'
 import {
