@@ -119,11 +119,11 @@ module.exports = {
       zlib: require.resolve("browserify-zlib"),
       url: require.resolve("url/"),
       assert: require.resolve("assert/"),
-      tls: require.resolve("tls-browserify"),
       querystring: require.resolve("querystring-es3/"),
       "process/browser": require.resolve("process/browser"),
       fs: false,
       net: false,
+      tls: false,
     },
   },
   plugins: [
