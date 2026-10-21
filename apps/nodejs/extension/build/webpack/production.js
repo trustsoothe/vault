@@ -8,8 +8,6 @@ const plugins = [
   new LavaMoat({
     lockdown: {
       errorTaming: 'unsafe',
-      mathTaming: 'unsafe',
-      dateTaming: 'unsafe',
       consoleTaming: 'unsafe',
       overrideTaming: "severe",
       localeTaming: "unsafe",
