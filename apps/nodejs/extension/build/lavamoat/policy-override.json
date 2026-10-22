@@ -56,6 +56,23 @@
         "navigator.connection.saveData": false
       }
     },
+    "react-router": {
+      "globals": {
+        "fetch": false,
+        "ReadableStream": false,
+        "TransformStream": false,
+        "TextEncoder": false,
+        "TextDecoder": false,
+        "__FLIGHT_DATA": false,
+        "__reactRouterContext": false,
+        "__reactRouterDataRouter": false,
+        "__reactRouterHdrActive": false,
+        "__reactRouterManifest": false,
+        "__reactRouterRouteModules": false,
+        "__staticRouterHydrationData": false,
+        "navigator.connection.saveData": false
+      }
+    },
     "file-saver": {
       "globals": {
         "URL": true
