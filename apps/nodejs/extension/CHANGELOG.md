@@ -1,5 +1,19 @@
 # @soothe/extension
 
+## 0.9.0
+
+### Minor Changes
+
+- 3722d3c: Dapps can now request signatures for Cosmos staking and distribution messages on Pocket Shannon: `/cosmos.staking.v1beta1.MsgDelegate`, `/cosmos.staking.v1beta1.MsgUndelegate`, `/cosmos.staking.v1beta1.MsgBeginRedelegate` and `/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward`. Previously any of these was rejected with an invalid `typeUrl` error before the signing dialog opened. The delegator is the requesting account; a `delegatorAddress` in the message body that does not match it is rejected as invalid instead of silently overridden. Amounts are passed as integer upokt strings, as with `MsgSend`.
+
+### Patch Changes
+
+- a79f9da: Dependency maintenance: bumped ses to 1.12.0 (via @lavamoat/webpack 1.0.0) for GHSA-h9w6-f932-gq62, removed the unused tls-browserify and net-browserify polyfills (drops node-forge and ws@0.4), and applied the pending Dependabot bumps (axios, follow-redirects, pbkdf2, qs, brace-expansion, fast-uri, source-map-js, svgo, browserslist). CI now runs on Node 24.
+- fd5cf67: The transaction hash tooltip now shows the explorer's full hostname ("View in explorer.pocket.network"), matching the Explore card, instead of a name derived from the URL.
+- 7a2e7c1: Fixed switching between chains of the same protocol (e.g. Pocket Mainnet <-> Pocket Beta, ETH Mainnet <-> Sepolia) doing nothing when the browser has frozen tabs (Chrome Memory Saver / background tab freezing). The switch notified every open tab and waited for all of them to answer; a frozen tab never answers until it is thawed, so the switch never completed (the choice was saved and only applied after reloading the extension). Tab notifications for chain changes, account changes, connection approvals and disconnections are now sent without waiting for an answer, and a failed network switch is reported with an error notification instead of failing silently.
+- 9662dc7: A failed price request no longer raises an unhandled promise rejection in the service worker. The background price prefetch called `.catch()` without a handler, so every CoinGecko error (403/429) surfaced as `Uncaught (in promise)` in the console.
+- acf58f5: Upgraded React Router to 7.18.4 (fixes two moderate advisories), with LavaMoat denying the router package the framework-mode globals it does not need, such as `fetch`.
+
 ## 0.8.0
 
 ### Minor Changes
