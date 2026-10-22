@@ -16,16 +16,12 @@
     "format": "prettier --loglevel error --write \"**/*.{js,ts,jsx,tsx}\"",
     "format:ci": "prettier --loglevel warn --check \"**/*.{js,ts,jsx,tsx}\"",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint --concurrency=100%",
-    "lint:fix": "turbo run lintfix --concurrency=100%",
     "build": "turbo run build --concurrency=100%",
     "build:chromium": "turbo run build:chromium --concurrency=100%",
     "build:firefox": "turbo run build:firefox --concurrency=100%",
     "build:autopolicy": "turbo run build:autopolicy --concurrency=100%",
     "dev": "turbo run dev --concurrency=100%",
-    "build:ci": "./build-ci.sh",
     "test": "turbo run test",
-    "commit": "turbo run commit",
     "ci:test": "turbo run ci:test",
     "release:chromium": "turbo run release:chromium",
     "release:firefox": "turbo run release:firefox",
@@ -33,10 +29,9 @@
     "generate:pocket:proto": "buf generate --config packages/nodejs/vault/src/lib/core/common/protocols/Cosmos/pocket/proto/buf.gen.yaml"
   },
   "dependencies": {
-    "@changesets/cli": "^2.26.1",
+    "@changesets/cli": "^2.31.1",
     "dotenv": "16.3.1",
-    "eslint": "8.36.0",
-    "turbo": "1.4.3"
+    "turbo": "2.11.10"
   },
   "engines": {
     "npm": ">=7.0.0",
@@ -47,6 +42,7 @@
     "prettier": "2.7.1",
     "@types/react": "18.2.0",
     "@types/react-dom": "18.2.0",
-    "cookie": "^0.7.0"
+    "cookie": "^1.0.1",
+    "tmp": "^0.2.6"
   }
 }

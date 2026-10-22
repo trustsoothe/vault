@@ -1,6 +1,10 @@
 {
-  "$schema": "https://turborepo.org/schema.json",
-  "pipeline": {
+  "$schema": "https://turborepo.com/schema.json",
+  "envMode": "loose",
+  "globalEnv": [
+    "CI_ENV"
+  ],
+  "tasks": {
     "build": {
       "cache": false,
       "dependsOn": [
@@ -70,14 +74,17 @@
     "test": {
       "dependsOn": [
         "build"
+      ],
+      "outputs": [
+        "dist/**",
+        "build/**"
       ]
     },
-    "ci:test": {},
-    "lint": {
-      "cache": true
-    },
-    "lint:fix": {
-      "cache": false
+    "ci:test": {
+      "outputs": [
+        "dist/**",
+        "build/**"
+      ]
     },
     "typecheck": {
       "cache": false
@@ -91,8 +98,5 @@
     "clean": {
       "cache": false
     }
-  },
-  "globalEnv": [
-    "CI_ENV"
-  ]
+  }
 }

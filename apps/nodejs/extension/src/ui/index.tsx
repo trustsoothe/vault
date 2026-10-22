@@ -36,9 +36,6 @@ import AppInitError from "./AppInitError/AppInitError";
 import { RouterProvider } from "react-router-dom";
 import { requestRouter, router } from "./router";
 
-// opt-in to the React Router v7 behavior of wrapping state updates in
-// React.startTransition, which also silences the v6.30 future-flag warning
-const routerFuture = { v7_startTransition: true };
 import useCtrlAltShiftKeyCombination from "./hooks/useCtrlAltShiftKeyCombination";
 import { activateDevMode } from "../redux/slices/app";
 import { updateAvailableSelector } from "../redux/selectors/app";
@@ -228,10 +225,10 @@ export default function App() {
 
     if (vaultSessionExists) {
       const routerProvider = shouldShowRequestUI ? (
-        <RouterProvider router={requestRouter} future={routerFuture} />
+        <RouterProvider router={requestRouter} />
       ) : (
         <>
-          <RouterProvider router={router} future={routerFuture} />
+          <RouterProvider router={router} />
           <RouteChecker />
         </>
       );
