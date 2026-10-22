@@ -513,20 +513,6 @@
         "@reduxjs/toolkit>reselect": true
       }
     },
-    "react-router-dom>@remix-run/router": {
-      "globals": {
-        "AbortController": true,
-        "DOMException": true,
-        "FormData": true,
-        "Headers": true,
-        "Request": true,
-        "Response": true,
-        "URL": true,
-        "URLSearchParams": true,
-        "console": true,
-        "document.defaultView": true
-      }
-    },
     "@soothe/vault>@metamask/eth-sig-util>@metamask/utils>@scure/base": {
       "globals": {
         "TextDecoder": true,
@@ -1655,41 +1641,56 @@
         "react-redux>use-sync-external-store": true
       }
     },
-    "react-router-dom": {
+    "react-router-dom>react-router": {
       "globals": {
+        "AbortController": true,
+        "DOMException": true,
         "FormData": true,
+        "HTMLElement": true,
+        "Headers": true,
+        "IntersectionObserver": true,
+        "MutationObserver": true,
+        "ReadableStream": true,
+        "Request": true,
+        "Response": true,
+        "TextDecoder": true,
+        "TextEncoder": true,
+        "TransformStream": true,
         "URL": true,
         "URLSearchParams": true,
+        "__FLIGHT_DATA": "write",
+        "__reactRouterContext": true,
+        "__reactRouterDataRouter": "write",
+        "__reactRouterHdrActive": true,
+        "__reactRouterManifest": true,
+        "__reactRouterRouteModules": true,
         "__reactRouterVersion": "write",
+        "__staticRouterHydrationData": true,
         "addEventListener": true,
+        "clearTimeout": true,
         "confirm": true,
+        "console": true,
         "document": true,
+        "fetch": true,
+        "history.replaceState": true,
         "history.scrollRestoration": true,
-        "location.href": true,
+        "history.state": true,
+        "location": true,
+        "matchMedia": true,
+        "navigator.connection.saveData": true,
+        "origin": true,
         "process.env.NODE_ENV": true,
         "removeEventListener": true,
         "scrollTo": true,
         "scrollY": true,
         "sessionStorage.getItem": true,
+        "sessionStorage.removeItem": true,
         "sessionStorage.setItem": true,
         "setTimeout": true
       },
       "packages": {
-        "react-router-dom>@remix-run/router": true,
         "react": true,
-        "react-dom": true,
-        "react-router-dom>react-router": true
-      }
-    },
-    "react-router-dom>react-router": {
-      "globals": {
-        "console.error": true,
-        "console.warn": true,
-        "process.env.NODE_ENV": true
-      },
-      "packages": {
-        "react-router-dom>@remix-run/router": true,
-        "react": true
+        "react-dom": true
       }
     },
     "@mui/material>react-transition-group": {
