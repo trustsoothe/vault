@@ -28,6 +28,16 @@
         "Response": true
       }
     },
+    "@soothe/vault>@cosmjs/tendermint-rpc>cross-fetch": {
+      "globals": {
+        "XMLHttpRequest": true,
+        "fetch": true,
+        "DOMException": true,
+        "Headers": true,
+        "Request": true,
+        "Response": true
+      }
+    },
     "external:../../../packages/nodejs/vault/dist/index.js": {
       "globals": {
         "XMLHttpRequest": true,
