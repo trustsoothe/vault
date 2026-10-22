@@ -29,10 +29,20 @@
         "@soothe/vault>@cosmjs/encoding": true,
         "@soothe/vault>@cosmjs/amino>@cosmjs/math": true,
         "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true,
+        "@soothe/vault>@cosmjs/crypto>@noble/curves": true,
         "@soothe/vault>@cosmjs/crypto>@noble/hashes": true,
         "@soothe/vault>@cosmjs/crypto>bn.js": true,
-        "crypto-browserify": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic": true
+        "crypto-browserify": true
+      }
+    },
+    "@poktscan/vault-siwp>@cosmjs/encoding": {
+      "globals": {
+        "TextDecoder": true,
+        "TextEncoder": true
+      },
+      "packages": {
+        "buffer>base64-js": true,
+        "@soothe/vault>@cosmjs/encoding>bech32": true
       }
     },
     "@soothe/vault>@cosmjs/encoding": {
@@ -108,7 +118,6 @@
     "@soothe/vault>@cosmjs/tendermint-rpc": {
       "globals": {
         "clearInterval": true,
-        "fetch": true,
         "setInterval": true
       },
       "packages": {
@@ -119,7 +128,7 @@
         "@soothe/vault>@cosmjs/tendermint-rpc>@cosmjs/socket": true,
         "@soothe/vault>@cosmjs/stargate>@cosmjs/stream": true,
         "@soothe/vault>@cosmjs/amino>@cosmjs/utils": true,
-        "@soothe/vault>@cosmjs/tendermint-rpc>axios": true,
+        "@soothe/vault>@cosmjs/tendermint-rpc>cross-fetch": true,
         "@soothe/vault>@cosmjs/tendermint-rpc>xstream": true
       }
     },
@@ -401,6 +410,11 @@
         "react": true
       }
     },
+    "@soothe/vault>@cosmjs/crypto>@noble/curves": {
+      "packages": {
+        "@soothe/vault>@cosmjs/crypto>@noble/curves>@noble/hashes": true
+      }
+    },
     "@poktscan/vault-siwp>@noble/curves": {
       "globals": {
         "TextEncoder": true
@@ -419,6 +433,13 @@
     },
     "@soothe/vault>@cosmjs/crypto>@noble/hashes": {
       "globals": {
+        "TextEncoder": true,
+        "crypto": true
+      }
+    },
+    "@soothe/vault>@cosmjs/crypto>@noble/curves>@noble/hashes": {
+      "globals": {
+        "TextDecoder": true,
         "TextEncoder": true,
         "crypto": true
       }
@@ -463,7 +484,7 @@
         "crypto.subtle.digest": true
       },
       "packages": {
-        "@soothe/vault>@cosmjs/encoding": true,
+        "@poktscan/vault-siwp>@cosmjs/encoding": true,
         "@poktscan/vault-siwp>@noble/curves": true,
         "@poktscan/vault-siwp>@noble/hashes": true,
         "@poktscan/vault-siwp>apg-js": true,
@@ -603,7 +624,7 @@
       "packages": {
         "crypto-browserify>create-ecdh>bn.js": true,
         "glob>inherits": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
         "encoding>iconv-lite>safer-buffer": true
       }
     },
@@ -625,33 +646,6 @@
     "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>available-typed-arrays": {
       "packages": {
         "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>available-typed-arrays>possible-typed-array-names": true
-      }
-    },
-    "@soothe/vault>@cosmjs/tendermint-rpc>axios": {
-      "globals": {
-        "AbortController": true,
-        "Blob": true,
-        "FormData": true,
-        "ReadableStream": true,
-        "URL": true,
-        "URLSearchParams": true,
-        "WorkerGlobalScope": true,
-        "XMLHttpRequest": true,
-        "btoa": true,
-        "clearTimeout": true,
-        "console.warn": true,
-        "document": true,
-        "fetch": true,
-        "importScripts": true,
-        "location.href": true,
-        "navigator": true,
-        "process": true,
-        "queueMicrotask": true,
-        "setImmediate": true,
-        "setTimeout": true
-      },
-      "packages": {
-        "process": true
       }
     },
     "@soothe/vault>hdkey>bs58check>bs58>base-x": {
@@ -694,7 +688,7 @@
         "Buffer": true
       }
     },
-    "@soothe/vault>@cosmjs/crypto>elliptic>brorand": {
+    "crypto-browserify>create-ecdh>elliptic>brorand": {
       "globals": {
         "crypto": true,
         "msCrypto": true
@@ -744,7 +738,7 @@
         "crypto-browserify>public-encrypt>browserify-rsa": true,
         "crypto-browserify>create-hash": true,
         "crypto-browserify>create-hmac": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic": true,
+        "crypto-browserify>create-ecdh>elliptic": true,
         "glob>inherits": true,
         "crypto-browserify>public-encrypt>parse-asn1": true,
         "stream-http>readable-stream": true,
@@ -817,7 +811,7 @@
     "@lavamoat/webpack>json-stable-stringify>call-bound": {
       "packages": {
         "@lavamoat/webpack>json-stable-stringify>call-bind>call-bind-apply-helpers": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic": true
+        "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic": true
       }
     },
     "crypto-browserify>create-hash>cipher-base": {
@@ -855,7 +849,7 @@
       "packages": {
         "crypto-browserify>create-ecdh>bn.js": true,
         "buffer": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic": true
+        "crypto-browserify>create-ecdh>elliptic": true
       }
     },
     "crypto-browserify>create-hash": {
@@ -875,6 +869,18 @@
         "@soothe/vault>hdkey>ripemd160": true,
         "@soothe/vault>hdkey>safe-buffer": true,
         "crypto-browserify>pbkdf2>sha.js": true
+      }
+    },
+    "@soothe/vault>@cosmjs/tendermint-rpc>cross-fetch": {
+      "globals": {
+        "AbortController": true,
+        "Blob": true,
+        "FileReader": true,
+        "FormData": true,
+        "URLSearchParams.prototype.isPrototypeOf": true,
+        "XMLHttpRequest": true,
+        "console.warn": true,
+        "setTimeout": true
       }
     },
     "@soothe/vault>web3-providers-http>cross-fetch": {
@@ -923,7 +929,7 @@
     },
     "assert>is-nan>define-properties>define-data-property": {
       "packages": {
-        "assert>is-nan>define-properties>define-data-property>get-intrinsic": true,
+        "assert>call-bind>get-intrinsic": true,
         "assert>util>which-typed-array>gopd": true,
         "assert>is-nan>define-properties>has-property-descriptors": true
       }
@@ -945,7 +951,7 @@
     "crypto-browserify>browserify-cipher>browserify-des>des.js": {
       "packages": {
         "glob>inherits": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true
       }
     },
     "crypto-browserify>diffie-hellman": {
@@ -978,15 +984,15 @@
         "@soothe/vault>ed25519-hd-key>tweetnacl": true
       }
     },
-    "@soothe/vault>@cosmjs/crypto>elliptic": {
+    "crypto-browserify>create-ecdh>elliptic": {
       "packages": {
         "crypto-browserify>create-ecdh>bn.js": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>brorand": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>hash.js": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>hmac-drbg": true,
+        "crypto-browserify>create-ecdh>elliptic>brorand": true,
+        "@soothe/vault>ethereumjs-util>ethereum-cryptography>hash.js": true,
+        "crypto-browserify>create-ecdh>elliptic>hmac-drbg": true,
         "glob>inherits": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-crypto-utils": true
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-crypto-utils": true
       }
     },
     "ethereum-cryptography": {
@@ -1079,7 +1085,7 @@
         "assert>call-bind>get-intrinsic>hasown": true
       }
     },
-    "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic": {
+    "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>get-intrinsic": {
       "globals": {
         "AggregateError": true,
         "FinalizationRegistry": true,
@@ -1093,23 +1099,30 @@
         "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>es-object-atoms": true,
         "assert>call-bind>function-bind": true,
         "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>get-proto": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>gopd": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>has-symbols": true,
-        "@lavamoat/webpack>@lavamoat/aa>resolve>is-core-module>hasown": true,
+        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>gopd": true,
+        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>get-intrinsic>has-symbols": true,
+        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>get-intrinsic>hasown": true,
         "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>math-intrinsics": true
       }
     },
-    "assert>is-nan>define-properties>define-data-property>get-intrinsic": {
+    "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic": {
       "globals": {
         "AggregateError": true,
         "FinalizationRegistry": true,
+        "Float16Array": true,
         "WeakRef": true
       },
       "packages": {
+        "@lavamoat/webpack>json-stable-stringify>call-bind>call-bind-apply-helpers": true,
+        "url>qs>es-define-property": true,
+        "url>qs>side-channel>es-errors": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>es-object-atoms": true,
         "assert>call-bind>function-bind": true,
-        "assert>call-bind>get-intrinsic>has-proto": true,
-        "assert>object.assign>has-symbols": true,
-        "assert>is-nan>define-properties>define-data-property>get-intrinsic>hasown": true
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>get-proto": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic>gopd": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic>has-symbols": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic>hasown": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>math-intrinsics": true
       }
     },
     "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>define-data-property>gopd>get-intrinsic": {
@@ -1122,7 +1135,7 @@
         "assert>call-bind>function-bind": true,
         "assert>call-bind>get-intrinsic>has-proto": true,
         "assert>object.assign>has-symbols": true,
-        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>gopd>get-intrinsic>hasown": true
+        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>define-data-property>gopd>get-intrinsic>hasown": true
       }
     },
     "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>gopd>get-intrinsic": {
@@ -1138,43 +1151,44 @@
         "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>gopd>get-intrinsic>hasown": true
       }
     },
-    "assert>util>which-typed-array>gopd>get-intrinsic": {
+    "url>qs>side-channel>side-channel-map>get-intrinsic": {
       "globals": {
         "AggregateError": true,
         "FinalizationRegistry": true,
+        "Float16Array": true,
         "WeakRef": true
       },
       "packages": {
+        "@lavamoat/webpack>json-stable-stringify>call-bind>call-bind-apply-helpers": true,
+        "url>qs>es-define-property": true,
+        "url>qs>side-channel>es-errors": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>es-object-atoms": true,
         "assert>call-bind>function-bind": true,
-        "assert>call-bind>get-intrinsic>has-proto": true,
-        "assert>object.assign>has-symbols": true,
-        "assert>util>which-typed-array>gopd>get-intrinsic>hasown": true
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>get-proto": true,
+        "url>qs>side-channel>side-channel-map>get-intrinsic>gopd": true,
+        "url>qs>side-channel>side-channel-map>get-intrinsic>has-symbols": true,
+        "url>qs>side-channel>side-channel-map>get-intrinsic>hasown": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>math-intrinsics": true
       }
     },
-    "assert>is-nan>define-properties>has-property-descriptors>get-intrinsic": {
+    "url>qs>side-channel>side-channel-weakmap>get-intrinsic": {
       "globals": {
         "AggregateError": true,
         "FinalizationRegistry": true,
+        "Float16Array": true,
         "WeakRef": true
       },
       "packages": {
+        "@lavamoat/webpack>json-stable-stringify>call-bind>call-bind-apply-helpers": true,
+        "url>qs>es-define-property": true,
+        "url>qs>side-channel>es-errors": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>es-object-atoms": true,
         "assert>call-bind>function-bind": true,
-        "assert>call-bind>get-intrinsic>has-proto": true,
-        "assert>object.assign>has-symbols": true,
-        "assert>is-nan>define-properties>has-property-descriptors>get-intrinsic>hasown": true
-      }
-    },
-    "assert>call-bind>set-function-length>get-intrinsic": {
-      "globals": {
-        "AggregateError": true,
-        "FinalizationRegistry": true,
-        "WeakRef": true
-      },
-      "packages": {
-        "assert>call-bind>function-bind": true,
-        "assert>call-bind>get-intrinsic>has-proto": true,
-        "assert>object.assign>has-symbols": true,
-        "assert>call-bind>set-function-length>get-intrinsic>hasown": true
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>get-proto": true,
+        "url>qs>side-channel>side-channel-weakmap>get-intrinsic>gopd": true,
+        "url>qs>side-channel>side-channel-weakmap>get-intrinsic>has-symbols": true,
+        "url>qs>side-channel>side-channel-weakmap>get-intrinsic>hasown": true,
+        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>math-intrinsics": true
       }
     },
     "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic>get-proto": {
@@ -1208,12 +1222,12 @@
     },
     "assert>util>which-typed-array>gopd": {
       "packages": {
-        "assert>util>which-typed-array>gopd>get-intrinsic": true
+        "assert>call-bind>get-intrinsic": true
       }
     },
     "assert>is-nan>define-properties>has-property-descriptors": {
       "packages": {
-        "assert>is-nan>define-properties>has-property-descriptors>get-intrinsic": true
+        "assert>call-bind>get-intrinsic": true
       }
     },
     "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>has-property-descriptors": {
@@ -1246,10 +1260,10 @@
         "crypto-browserify>pbkdf2>to-buffer": true
       }
     },
-    "@soothe/vault>@cosmjs/crypto>elliptic>hash.js": {
+    "@soothe/vault>ethereumjs-util>ethereum-cryptography>hash.js": {
       "packages": {
         "glob>inherits": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true
       }
     },
     "assert>call-bind>get-intrinsic>hasown": {
@@ -1257,7 +1271,17 @@
         "assert>call-bind>function-bind": true
       }
     },
-    "assert>is-nan>define-properties>define-data-property>get-intrinsic>hasown": {
+    "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>get-intrinsic>hasown": {
+      "packages": {
+        "assert>call-bind>function-bind": true
+      }
+    },
+    "@lavamoat/webpack>json-stable-stringify>call-bound>get-intrinsic>hasown": {
+      "packages": {
+        "assert>call-bind>function-bind": true
+      }
+    },
+    "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>define-data-property>gopd>get-intrinsic>hasown": {
       "packages": {
         "assert>call-bind>function-bind": true
       }
@@ -1267,22 +1291,12 @@
         "assert>call-bind>function-bind": true
       }
     },
-    "assert>util>which-typed-array>gopd>get-intrinsic>hasown": {
+    "url>qs>side-channel>side-channel-map>get-intrinsic>hasown": {
       "packages": {
         "assert>call-bind>function-bind": true
       }
     },
-    "assert>is-nan>define-properties>has-property-descriptors>get-intrinsic>hasown": {
-      "packages": {
-        "assert>call-bind>function-bind": true
-      }
-    },
-    "assert>call-bind>set-function-length>get-intrinsic>hasown": {
-      "packages": {
-        "assert>call-bind>function-bind": true
-      }
-    },
-    "@lavamoat/webpack>@lavamoat/aa>resolve>is-core-module>hasown": {
+    "url>qs>side-channel>side-channel-weakmap>get-intrinsic>hasown": {
       "packages": {
         "assert>call-bind>function-bind": true
       }
@@ -1297,11 +1311,11 @@
         "@soothe/vault>hdkey>secp256k1": true
       }
     },
-    "@soothe/vault>@cosmjs/crypto>elliptic>hmac-drbg": {
+    "crypto-browserify>create-ecdh>elliptic>hmac-drbg": {
       "packages": {
-        "@soothe/vault>@cosmjs/crypto>elliptic>hash.js": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-assert": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>minimalistic-crypto-utils": true
+        "@soothe/vault>ethereumjs-util>ethereum-cryptography>hash.js": true,
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-assert": true,
+        "crypto-browserify>create-ecdh>elliptic>minimalistic-crypto-utils": true
       }
     },
     "react-redux>hoist-non-react-statics": {
@@ -1425,7 +1439,7 @@
     "crypto-browserify>diffie-hellman>miller-rabin": {
       "packages": {
         "crypto-browserify>create-ecdh>bn.js": true,
-        "@soothe/vault>@cosmjs/crypto>elliptic>brorand": true
+        "crypto-browserify>create-ecdh>elliptic>brorand": true
       }
     },
     "notistack": {
@@ -1817,7 +1831,7 @@
     },
     "@soothe/vault>hdkey>secp256k1": {
       "packages": {
-        "@soothe/vault>@cosmjs/crypto>elliptic": true
+        "crypto-browserify>create-ecdh>elliptic": true
       }
     },
     "random-words>seedrandom": {
@@ -1838,7 +1852,7 @@
     "assert>call-bind>set-function-length": {
       "packages": {
         "assert>is-nan>define-properties>define-data-property": true,
-        "assert>call-bind>set-function-length>get-intrinsic": true,
+        "assert>call-bind>get-intrinsic": true,
         "assert>util>which-typed-array>gopd": true,
         "assert>is-nan>define-properties>has-property-descriptors": true
       }
@@ -1847,7 +1861,7 @@
       "packages": {
         "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>define-data-property": true,
         "url>qs>side-channel>es-errors": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic": true,
+        "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>get-intrinsic": true,
         "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>gopd": true,
         "crypto-browserify>pbkdf2>to-buffer>typed-array-buffer>is-typed-array>which-typed-array>call-bind>set-function-length>has-property-descriptors": true
       }
@@ -1879,7 +1893,7 @@
       "packages": {
         "@lavamoat/webpack>json-stable-stringify>call-bound": true,
         "url>qs>side-channel>es-errors": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic": true,
+        "url>qs>side-channel>side-channel-map>get-intrinsic": true,
         "url>qs>side-channel>object-inspect": true
       }
     },
@@ -1887,7 +1901,7 @@
       "packages": {
         "@lavamoat/webpack>json-stable-stringify>call-bound": true,
         "url>qs>side-channel>es-errors": true,
-        "@lavamoat/webpack>json-stable-stringify>call-bind>get-intrinsic": true,
+        "url>qs>side-channel>side-channel-weakmap>get-intrinsic": true,
         "url>qs>side-channel>object-inspect": true,
         "url>qs>side-channel>side-channel-map": true
       }
